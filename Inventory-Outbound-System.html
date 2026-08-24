@@ -4616,10 +4616,16 @@ function populateDeviceStationSelects() {
   const packSelect = document.getElementById('devicePackingStationInput');
   const curRec = getDeviceReceiveStation();
   const curPack = getDevicePackingStation();
-  recSelect.innerHTML = `<option value="">— none —</option>` + receiveStations.map(s => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`).join('');
-  packSelect.innerHTML = `<option value="">— none —</option>` + packingStations.map(s => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`).join('');
-  recSelect.value = receiveStations.some(s => s.name === curRec) ? curRec : '';
-  packSelect.value = packingStations.some(s => s.name === curPack) ? curPack : '';
+  // Only list stations that are currently ON — an OFF station can't be picked here, same as
+  // everywhere else OFF stations get hidden from pickers. Exception: whatever's already saved for
+  // this device stays in the list even if it's since gone OFF, so it doesn't silently vanish —
+  // it just shows up alongside a note that it's off right now.
+  const pickableRec = receiveStations.filter(s => isStationOnShift(s) || s.name === curRec);
+  const pickablePack = packingStations.filter(s => isStationOnShift(s) || s.name === curPack);
+  recSelect.innerHTML = `<option value="">— none —</option>` + pickableRec.map(s => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}${isStationOnShift(s) ? '' : ' (OFF)'}</option>`).join('');
+  packSelect.innerHTML = `<option value="">— none —</option>` + pickablePack.map(s => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}${isStationOnShift(s) ? '' : ' (OFF)'}</option>`).join('');
+  recSelect.value = pickableRec.some(s => s.name === curRec) ? curRec : '';
+  packSelect.value = pickablePack.some(s => s.name === curPack) ? curPack : '';
 }
 function openDeviceStationModal() {
   populateDeviceStationSelects();
