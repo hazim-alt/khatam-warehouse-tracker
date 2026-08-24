@@ -723,7 +723,7 @@
     <span id="loginStatusText"></span>
     <button type="button" class="btn-ghost" id="logoutBtn" style="padding:4px 10px; font-size:11px;">Logout</button>
   </div>
-  <button type="button" class="btn-ghost" id="deviceStationBtn" style="width:100%; text-align:left; padding:4px 10px; font-size:11px; margin:0 0 10px;">📍 <span id="deviceStationBtnLabel">Station komputer ni: — none —</span></button>
+  <button type="button" class="btn-ghost" id="deviceStationBtn" style="width:100%; text-align:left; padding:4px 10px; font-size:11px; margin:0 0 10px;">📍 <span id="deviceStationBtnLabel">This device's station: — none —</span></button>
   <nav class="tabs">
     <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
     <button type="button" class="nav-group-toggle" id="navGroupOutboundToggle" data-group="navGroupOutbound">
@@ -1393,7 +1393,7 @@
   <section class="tab-panel" id="tab-fleet-driver-trip">
     <p class="section-title">Driver Trip</p>
     <div class="card">
-      <div class="data-note" id="driverTripNote" style="margin:0 0 14px;">Berapa kali setiap driver dah menghantar ke setiap boutique (jumlah keseluruhan).</div>
+      <div class="data-note" id="driverTripNote" style="margin:0 0 14px;">How many times each driver has delivered to each boutique (all-time total).</div>
       <div class="filters" style="align-items:center; margin-bottom:14px;">
         <span class="data-note" style="margin-top:0;">Filter:</span>
         <input type="date" id="driverTripRangeFromInput">
@@ -1409,17 +1409,17 @@
     <p class="section-title">Reports</p>
     <div class="card" style="margin-bottom:20px;">
       <div class="filters" style="align-items:center; margin-bottom:6px; flex-wrap:wrap;">
-        <span class="data-note" style="margin-top:0;">Tempoh:</span>
-        <button type="button" class="btn-ghost" id="reportRangeTodayBtn">Hari Ini</button>
-        <button type="button" class="btn-ghost" id="reportRangeWeekBtn">Minggu Ini</button>
-        <button type="button" class="btn-ghost" id="reportRangeMonthBtn">Bulan Ini</button>
+        <span class="data-note" style="margin-top:0;">Period:</span>
+        <button type="button" class="btn-ghost" id="reportRangeTodayBtn">Today</button>
+        <button type="button" class="btn-ghost" id="reportRangeWeekBtn">This Week</button>
+        <button type="button" class="btn-ghost" id="reportRangeMonthBtn">This Month</button>
         <span class="data-note" style="margin-top:0;">atau</span>
         <input type="date" id="reportRangeFromInput">
         <span class="data-note" style="margin-top:0;">to</span>
         <input type="date" id="reportRangeToInput">
         <button type="button" class="btn-ghost" id="reportRangeClearBtn">Semua</button>
         <select id="reportModuleSelect" style="margin-left:auto;">
-          <option value="all">Semua Report</option>
+          <option value="all">All Reports</option>
           <option value="outbound">📦 Outbound</option>
           <option value="fleet">🚚 Fleet / Delivery</option>
           <option value="inbound">📥 Inbound (STO + Garment Order)</option>
@@ -1507,13 +1507,13 @@
         </div>
       </div>
       <div class="field" id="newGarmentSizeGridWrap" style="display:none; margin-bottom:10px;">
-        <label>Qty per size (isi yang berkenaan sahaja)</label>
+        <label>Qty per size (fill in whichever apply)</label>
         <div id="newGarmentSizeGrid" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
       </div>
       <button class="btn-primary" id="addGarmentOrderBtn" style="margin-bottom:16px;">+ Add Batch</button>
-      <div class="data-note" id="garmentOrderNote" style="margin-bottom:14px;">No. Order akan dijana automatik ("Batch No.-Garment Name-YYYYMMDD"). Pilih Category untuk buka kotak saiz berkenaan, isi mana yang perlu — boleh buka kad lagi lepas ni untuk tambah SKU/saiz lain.</div>
+      <div class="data-note" id="garmentOrderNote" style="margin-bottom:14px;">Order No. is auto-generated ("Batch No.-Garment Name-YYYYMMDD"). Pick a Category to open its size boxes, fill in whichever apply — you can reopen the card later to add more SKUs/sizes.</div>
       <div class="filters" style="margin-bottom:12px;">
-        <input type="text" id="garmentOrderSearchInput" placeholder="Cari Batch No. / Garment Name / SKU..." style="flex:1; min-width:220px;">
+        <input type="text" id="garmentOrderSearchInput" placeholder="Search Batch No. / Garment Name / SKU..." style="flex:1; min-width:220px;">
         <select id="garmentOrderStatusFilter">
           <option value="">All Status</option>
           <option value="Pending">Pending</option>
@@ -1594,7 +1594,7 @@
 
   <section class="tab-panel" id="tab-inbound-putaway">
     <p class="section-title">Putaway</p>
-    <div class="data-note" style="margin-bottom:14px;">Rollcage/trolley yang ada barang menunggu putaway — dari Garment Order receiving. Klik "Putaway Done" bila dah siap letak dalam rack.</div>
+    <div class="data-note" style="margin-bottom:14px;">Rollcages/trolleys with items waiting to be put away — from Garment Order receiving. Click "Putaway Done" once everything's been placed on the rack.</div>
     <div id="putawayTableWrap"></div>
   </section>
 
@@ -2017,12 +2017,12 @@
 <div class="modal-overlay hidden" id="putawayRollcageModal">
   <div class="modal-box" style="max-width:380px;">
     <div class="modal-header">
-      <h2>Letak Dalam Rollcage/Trolley?</h2>
+      <h2>Load Into Rollcage/Trolley?</h2>
       <button class="modal-close" id="putawayRollcageCloseBtn">&times;</button>
     </div>
     <div class="data-note" id="putawayRollcageItemNote" style="margin-bottom:10px;"></div>
     <div class="field" style="margin-bottom:14px;">
-      <label>Rollcage/Trolley untuk Putaway (optional)</label>
+      <label>Rollcage/Trolley for Putaway (optional)</label>
       <select id="putawayRollcageInput"></select>
       <div class="data-note" id="putawayRollcageInputNote" style="margin-top:6px;"></div>
     </div>
@@ -2036,16 +2036,16 @@
 <div class="modal-overlay hidden" id="deviceStationModal">
   <div class="modal-box" style="max-width:400px;">
     <div class="modal-header">
-      <h2>Station Komputer Ni</h2>
+      <h2>This Device's Station</h2>
       <button class="modal-close" id="deviceStationCloseBtn">&times;</button>
     </div>
-    <div class="data-note" style="margin-bottom:14px;">Set station untuk KOMPUTER/TABLET ni sahaja (bukan akaun) — mana-mana staff yang log masuk kat sini akan auto guna station yang dipilih. Tak payah buat akaun berasingan untuk setiap station.</div>
+    <div class="data-note" style="margin-bottom:14px;">Set the station for THIS COMPUTER/TABLET only (not an account) — whoever logs in here will automatically use the selected station. No need to create a separate account for every station.</div>
     <div class="field" style="margin-bottom:14px;">
-      <label>Receive Station (untuk komputer ni)</label>
+      <label>Receive Station (for this computer)</label>
       <select id="deviceReceiveStationInput"><option value="">— none —</option></select>
     </div>
     <div class="field" style="margin-bottom:14px;">
-      <label>Packing Station (untuk komputer ni)</label>
+      <label>Packing Station (for this computer)</label>
       <select id="devicePackingStationInput"><option value="">— none —</option></select>
     </div>
     <div class="modal-actions">
@@ -4190,7 +4190,7 @@ function renderRollcagesList() {
       const idx = Number(e.target.dataset.idx);
       const rc = rollcages[idx];
       const itemCount = (rc.putawayItems || []).length;
-      if (!confirm(`Tandakan "${rc.name}" siap putaway? (${itemCount} item(s)) — rollcage ni akan free semula.`)) return;
+      if (!confirm(`Mark "${rc.name}" as putaway done? (${itemCount} item(s)) — this rollcage will become free again.`)) return;
       rc.putawayInUse = false;
       rc.putawayItems = [];
       saveRollcages();
@@ -4609,7 +4609,7 @@ function renderDeviceStationBtnLabel() {
   const parts = [];
   if (rec) parts.push(`Receive: ${rec}`);
   if (pack) parts.push(`Packing: ${pack}`);
-  label.textContent = parts.length ? `Station komputer ni: ${parts.join(' · ')}` : 'Station komputer ni: — none —';
+  label.textContent = parts.length ? `This device's station: ${parts.join(' · ')}` : "This device's station: — none —";
 }
 function populateDeviceStationSelects() {
   const recSelect = document.getElementById('deviceReceiveStationInput');
@@ -7180,13 +7180,13 @@ function renderFleetDriverTripTab() {
   const wrap = document.getElementById('driverTripGridWrap');
   const note = document.getElementById('driverTripNote');
   if (fleetDriverTripRangeFrom && fleetDriverTripRangeTo) {
-    note.textContent = `Berapa kali setiap driver dah menghantar ke setiap boutique (${formatDateLabel(fleetDriverTripRangeFrom)} - ${formatDateLabel(fleetDriverTripRangeTo)}).`;
+    note.textContent = `How many times each driver has delivered to each boutique (${formatDateLabel(fleetDriverTripRangeFrom)} - ${formatDateLabel(fleetDriverTripRangeTo)}).`;
   } else if (fleetDriverTripRangeFrom) {
-    note.textContent = `Berapa kali setiap driver dah menghantar ke setiap boutique (dari ${formatDateLabel(fleetDriverTripRangeFrom)}).`;
+    note.textContent = `How many times each driver has delivered to each boutique (from ${formatDateLabel(fleetDriverTripRangeFrom)}).`;
   } else if (fleetDriverTripRangeTo) {
-    note.textContent = `Berapa kali setiap driver dah menghantar ke setiap boutique (sehingga ${formatDateLabel(fleetDriverTripRangeTo)}).`;
+    note.textContent = `How many times each driver has delivered to each boutique (up to ${formatDateLabel(fleetDriverTripRangeTo)}).`;
   } else {
-    note.textContent = 'Berapa kali setiap driver dah menghantar ke setiap boutique (jumlah keseluruhan).';
+    note.textContent = 'How many times each driver has delivered to each boutique (all-time total).';
   }
   const driverNames = fleetDriverTripDriverNames();
   if (!driverNames.length) {
@@ -7246,7 +7246,7 @@ function renderReportRangeNote() {
   } else if (reportRangeTo) {
     note.textContent = `Menunjukkan data sehingga ${formatDateLabel(reportRangeTo)}.`;
   } else {
-    note.textContent = 'Menunjukkan data keseluruhan (semua tarikh).';
+    note.textContent = 'Showing all-time data (every date).';
   }
 }
 // A severity card (Late/Critical/Pending, etc.) sitting at 0 isn't something wrong — it's the good
@@ -7310,7 +7310,7 @@ function renderReportOutboundTargetKpis() {
   const note = document.getElementById('reportOutboundTargetNote');
   const grid = document.getElementById('reportOutboundTargetKpiGrid');
   if (!reportRangeFrom || !reportRangeTo) {
-    note.textContent = 'Pilih tempoh tarikh (bukan "Semua") untuk lihat % berbanding Daily Target.';
+    note.textContent = 'Pick a date range (not "All") to see % against Daily Target.';
     grid.innerHTML = '';
     return;
   }
@@ -7324,7 +7324,7 @@ function renderReportInboundTargetKpis() {
   const note = document.getElementById('reportInboundTargetNote');
   const grid = document.getElementById('reportInboundTargetKpiGrid');
   if (!reportRangeFrom || !reportRangeTo) {
-    note.textContent = 'Pilih tempoh tarikh (bukan "Semua") untuk lihat % berbanding Daily Target.';
+    note.textContent = 'Pick a date range (not "All") to see % against Daily Target.';
     grid.innerHTML = '';
     return;
   }
@@ -7463,7 +7463,7 @@ function renderButikPerformanceTable() {
 // with it (Picker/Packer inside Outbound, combined STO+Garment inside Inbound), and Garment Order
 // lives inside the Inbound box too — same grouping as the app's own sidebar nav (Garment Order and
 // STO From Boutique are both under "Inbound" there, not separate top-level sections). The Boutique
-// table rides along with "outbound" since it's really just an Outbound breakdown. "Semua Report"
+// table rides along with "outbound" since it's really just an Outbound breakdown. "All Reports"
 // shows everything.
 function applyReportModuleFilter() {
   const moduleKey = document.getElementById('reportModuleSelect').value;
@@ -9117,7 +9117,7 @@ document.getElementById('putawayRollcageSaveBtn').addEventListener('click', () =
       // modal was open (rare, but cheap to guard against — shared pool).
       const detail = rollcageInUseByDetail(val, null);
       if (detail && detail.source !== 'Garment Order (Putaway)') {
-        alert(`Rollcage "${val}" baru sahaja dipakai untuk ${detail.source}. Pilih yang lain.`);
+        alert(`Rollcage "${val}" was just taken by ${detail.source}. Pick another one.`);
         populatePutawayRollcageSelect();
         return;
       }
@@ -9153,7 +9153,7 @@ function renderPutawayTab() {
   if (!wrap) return;
   const loaded = rollcages.filter(rc => rc.putawayInUse && (rc.putawayItems || []).length);
   if (!loaded.length) {
-    wrap.innerHTML = `<div class="empty-state">Takde rollcage/trolley yang loaded untuk putaway sekarang. Item akan muncul di sini lepas staff log receiving di Garment Order dan pilih rollcage.</div>`;
+    wrap.innerHTML = `<div class="empty-state">No rollcages/trolleys loaded for putaway right now. Items will show up here once staff log receiving in Garment Order and pick a rollcage.</div>`;
     return;
   }
   wrap.innerHTML = loaded.map(rc => {
@@ -9193,7 +9193,7 @@ function renderPutawayTab() {
       const rc = rollcages.find(r => r.name === name);
       if (!rc) return;
       const itemCount = (rc.putawayItems || []).length;
-      if (!confirm(`Tandakan "${rc.name}" siap putaway? (${itemCount} item(s)) — rollcage ni akan free semula.`)) return;
+      if (!confirm(`Mark "${rc.name}" as putaway done? (${itemCount} item(s)) — this rollcage will become free again.`)) return;
       rc.putawayInUse = false;
       rc.putawayItems = [];
       saveRollcages();
@@ -9588,7 +9588,7 @@ function markGarmentSkusPutawayDoneForRollcage(rollcageName) {
 
 function renderGarmentSkuRows(batch) {
   if (!batch.skus.length) return `<div class="empty-state">No SKUs added to this batch yet — add one below.</div>`;
-  // A station attached to THIS COMPUTER (Team Setup > "Station komputer ni" button in the sidebar),
+  // A station attached to THIS COMPUTER ("This Device's Station" button in the sidebar),
   // or failing that an account-level link, auto-attaches it (no dropdown needed — see
   // performGarmentSkuLog). Neither set gets a dropdown here instead, always visible so it's
   // obvious the option exists, but only ever LISTING stations that are currently ON — if none are
@@ -9645,7 +9645,7 @@ function renderGarmentBatchBody(batch) {
       </div>
     </div>
     <div class="field garment-new-size-grid-wrap" data-batch="${escapeHtml(batch.batchNo)}" style="display:none; margin-top:8px;">
-      <label>Qty per size (isi yang berkenaan sahaja)</label>
+      <label>Qty per size (fill in whichever apply)</label>
       <div class="garment-new-size-grid" data-batch="${escapeHtml(batch.batchNo)}" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
     </div>
     <button type="button" class="btn-primary garment-add-sku-btn" data-batch="${escapeHtml(batch.batchNo)}" style="margin-top:10px;">+ Add SKU</button>
@@ -9757,7 +9757,7 @@ function renderGarmentOrderTab() {
     // entirely rather than silently logging under an inactive station. Staff can still log in and
     // look around, they just can't log receiving until their station is turned back ON.
     if (assignedStation && !isStationOnShift(assignedStation)) {
-      alert(`Station "${assignedStation.name}" tengah OFF — tak boleh log receiving sampai station tu di-ON-kan semula di Team Setup.`);
+      alert(`Station "${assignedStation.name}" is currently OFF — you can't log receiving until that station is turned back ON in Team Setup.`);
       return;
     }
     let myStation = assignedStation ? assignedStation.name : '';
@@ -9901,7 +9901,7 @@ document.getElementById('addGarmentOrderBtn').addEventListener('click', () => {
   const skuInput = document.getElementById('inputNewGarmentSku');
   const catSelect = document.getElementById('inputNewGarmentCategory');
   const note = document.getElementById('garmentOrderNote');
-  const defaultNote = 'No. Order akan dijana automatik ("Batch No.-Garment Name-YYYYMMDD"). Pilih Category untuk buka kotak saiz berkenaan, isi mana yang perlu — boleh buka kad lagi lepas ni untuk tambah SKU/saiz lain.';
+  const defaultNote = 'Order No. is auto-generated ("Batch No.-Garment Name-YYYYMMDD"). Pick a Category to open its size boxes, fill in whichever apply — you can reopen the card later to add more SKUs/sizes.';
 
   const rawBatchNo = batchInput.value.trim();
   if (!rawBatchNo) { batchInput.focus(); return; }
