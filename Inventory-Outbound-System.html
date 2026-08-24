@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -750,8 +751,8 @@
     <button class="tab-btn" data-tab="stations">Team Setup</button>
     <button class="tab-btn" data-tab="laporan">Reports</button>
   </nav>
-  <div id="sidebarSyncBar" style="display:none; align-items:center; justify-content:space-between; gap:8px; margin-top:auto; padding:14px 24px 0; border-top:1px solid rgba(255,255,255,0.1);">
-    <span id="sidebarSyncStatus" class="data-note" style="margin:0;"></span>
+  <div id="sidebarSyncBar" style="display:none; flex-direction:column; align-items:flex-start; gap:6px; margin-top:auto; padding:14px 24px; border-top:1px solid rgba(255,255,255,0.1);">
+    <span id="sidebarSyncStatus" class="data-note" style="margin:0; white-space:nowrap;"></span>
     <button type="button" class="btn-ghost" id="sidebarSyncNowBtn" style="padding:4px 10px; font-size:11px; white-space:nowrap;">🔄 Sync Now</button>
   </div>
 </aside>
@@ -842,6 +843,13 @@
             <div class="card"><div id="urgentWrap" class="scroll-table"></div></div>
           </div>
         </div>
+
+        <div class="charts-row dash-tables-row" style="grid-template-columns: 1fr; margin-bottom:0;">
+          <div>
+            <p class="section-title">Rollcage / Trolley Usage</p>
+            <div class="card"><div id="rollcageUsageWrapOutbound" class="scroll-table"></div></div>
+          </div>
+        </div>
       </div>
 
       <div class="dash-slide" data-slide="inbound">
@@ -928,6 +936,13 @@
           <div>
             <p class="section-title">Garment Batches Needing Attention</p>
             <div class="card"><div id="garmentNeedsAttentionWrap" class="scroll-table"></div></div>
+          </div>
+        </div>
+
+        <div class="charts-row dash-tables-row" style="grid-template-columns: 1fr; margin-bottom:0;">
+          <div>
+            <p class="section-title">Rollcage / Trolley Usage</p>
+            <div class="card"><div id="rollcageUsageWrapInbound" class="scroll-table"></div></div>
           </div>
         </div>
       </div>
@@ -1192,6 +1207,25 @@
       </div>
     </div>
 
+    <p class="section-title">Rollcages / Trolleys</p>
+    <div class="card" style="margin-bottom:24px;">
+      <div class="form-grid" style="grid-template-columns: 1fr auto; margin-bottom:16px;">
+        <div class="field">
+          <label>Rollcage No.</label>
+          <input type="text" id="inputNewRollcageName" placeholder="e.g. RC-01">
+        </div>
+        <div class="field">
+          <button class="btn-primary" id="addRollcageBtn">+ Add Rollcage</button>
+        </div>
+      </div>
+      <div class="data-note" style="margin-bottom:14px;">Registered rollcages show up as a dropdown when an STO is dragged into Packing. Each one can only be assigned to one STO at a time — it frees up automatically once that STO moves on to Packed (or gets dragged back out of Packing).</div>
+      <div id="rollcagesListWrap"></div>
+      <div style="display:flex; align-items:center; gap:12px; margin-top:12px;">
+        <button type="button" class="btn-primary" id="saveRollcagesBtn">Save Rollcages</button>
+        <span class="data-note" id="rollcagesDirtyNote" style="margin:0; color:var(--amber); display:none;">Unsaved changes — click Save before leaving this tab.</span>
+      </div>
+    </div>
+
     <p class="section-title">Packing Stations</p>
     <div class="card">
       <div class="form-grid" style="grid-template-columns: 1fr 1.4fr 0.8fr 0.8fr auto; margin-bottom:16px;">
@@ -1438,33 +1472,49 @@
           </label>
           <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx file here</span>
         </div>
-        <div class="upload-hint" style="margin-top:10px;">Columns: <strong>Batch No.</strong>, SKU, Qty Order, Order Date (DD/MM/YYYY). Same Batch No. on multiple rows groups them into one batch card — matching SKU within a batch updates its Qty Order instead of duplicating.</div>
+        <div class="upload-hint" style="margin-top:10px;">Columns: <strong>Batch No.</strong>, Garment Name, SKU, Category (adult/kids/baby), then one column per size — fill in the quantity under whichever size(s) were ordered. Adult uses row 1's headers (XS-6XL); Kids/Baby use row 2's headers (12-18 Month to 12-13 Years). Each filled size becomes its own line item named "SKU-Size". Order No. is auto-generated as "Batch No.-Garment Name-YYYYMMDD"; same Batch No. + Garment Name on the same day groups into one batch card.</div>
       </div>
       <div class="upload-status" id="garmentUploadStatus"></div>
       <div style="border-top:1px solid var(--border); margin:16px 0;"></div>
       <div class="data-note" style="margin:0 0 8px;">...or add a batch one at a time:</div>
-      <div class="form-grid" style="grid-template-columns: 1.2fr 1.3fr 0.9fr 1fr auto; margin-bottom:16px;">
+      <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr 0.8fr; margin-bottom:10px;">
         <div class="field">
           <label>Batch No.</label>
           <input type="text" id="inputNewGarmentBatch" placeholder="e.g. BATCH-01">
         </div>
         <div class="field">
-          <label>SKU (optional)</label>
-          <input type="text" id="inputNewGarmentSku" placeholder="e.g. SKU-1234">
+          <label>Garment Name</label>
+          <input type="text" id="inputNewGarmentName" placeholder="e.g. Samim">
         </div>
         <div class="field">
-          <label>Qty Order</label>
-          <input type="number" id="inputNewGarmentQtyOrder" min="0" placeholder="e.g. 500">
+          <label>SKU</label>
+          <input type="text" id="inputNewGarmentSku" placeholder="e.g. PTX3CFCMD2">
         </div>
         <div class="field">
-          <label>Order Date</label>
-          <input type="date" id="inputNewGarmentDate">
-        </div>
-        <div class="field">
-          <button class="btn-primary" id="addGarmentOrderBtn">+ Add Batch</button>
+          <label>Category</label>
+          <select id="inputNewGarmentCategory">
+            <option value="">-- Select --</option>
+            <option value="adult">Adult</option>
+            <option value="kids">Kids</option>
+            <option value="baby">Baby</option>
+          </select>
         </div>
       </div>
-      <div class="data-note" id="garmentOrderNote" style="margin-bottom:14px;">Creates a batch card with its first SKU already inside — open the card afterward to add more SKUs or log received quantity.</div>
+      <div class="field" id="newGarmentSizeGridWrap" style="display:none; margin-bottom:10px;">
+        <label>Qty per size (isi yang berkenaan sahaja)</label>
+        <div id="newGarmentSizeGrid" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+      </div>
+      <button class="btn-primary" id="addGarmentOrderBtn" style="margin-bottom:16px;">+ Add Batch</button>
+      <div class="data-note" id="garmentOrderNote" style="margin-bottom:14px;">No. Order akan dijana automatik ("Batch No.-Garment Name-YYYYMMDD"). Pilih Category untuk buka kotak saiz berkenaan, isi mana yang perlu — boleh buka kad lagi lepas ni untuk tambah SKU/saiz lain.</div>
+      <div class="filters" style="margin-bottom:12px;">
+        <input type="text" id="garmentOrderSearchInput" placeholder="Cari Batch No. / Garment Name / SKU..." style="flex:1; min-width:220px;">
+        <select id="garmentOrderStatusFilter">
+          <option value="">All Status</option>
+          <option value="Pending">Pending</option>
+          <option value="Partial">Partial</option>
+          <option value="Complete">Complete</option>
+        </select>
+      </div>
       <div id="garmentOrderTableWrap"></div>
     </div>
   </section>
@@ -1774,6 +1824,13 @@
         Admin/Team Lead (full access to every tab, incl. Team Setup)
       </label>
     </div>
+    <div class="field" style="margin-top:14px;">
+      <label>Station (optional)</label>
+      <select id="inputUserStation">
+        <option value="">— none / not station-based —</option>
+      </select>
+      <div class="data-note" style="margin-top:4px;">Kalau diisi, dropdown Station masa log Garment Order receiving akan auto-pilih station ni bila user log in (untuk Receive Station) — Packing Station pula direkod untuk rujukan/laporan.</div>
+    </div>
     <div class="field" id="userPermField" style="margin-top:14px; margin-bottom:0;">
       <label>Tabs this user can access</label>
       <div class="perm-grid" id="userPermGrid"></div>
@@ -1934,6 +1991,24 @@
   </div>
 </div>
 
+<div class="modal-overlay hidden" id="rollcageModal">
+  <div class="modal-box" style="max-width:380px;">
+    <div class="modal-header">
+      <h2>Rollcage No.</h2>
+      <button class="modal-close" id="rollcageCloseBtn">&times;</button>
+    </div>
+    <div class="field" style="margin-bottom:14px;">
+      <label>Rollcage No. (optional)</label>
+      <select id="rollcageInput"></select>
+      <div class="data-note" id="rollcageInputNote" style="margin-top:6px;"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="rollcageSkipBtn">Skip</button>
+      <button class="btn-primary" id="rollcageSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay hidden" id="stoListModal">
   <div class="modal-box" style="max-width:420px;">
     <div class="modal-header">
@@ -2089,7 +2164,11 @@ function formatDoNo(boutique, n) {
 // time left blank) is always considered on-shift, same as before this feature existed. Otherwise
 // "on" means the current time falls within [shiftStart, shiftEnd), with wraparound support for
 // overnight shifts where the end time is earlier than the start (e.g. 22:00 - 06:00).
+// A manual ON/OFF switch (station.enabled) sits ABOVE the shift-time logic — flipping it OFF forces
+// the station off no matter what the shift window says, for campaign-only stations that aren't on
+// a daily recurring schedule (leave Shift blank + flip this switch on only while the campaign runs).
 function isStationOnShift(station, now) {
+  if (station.enabled === false) return false;
   const start = station.shiftStart, end = station.shiftEnd;
   if (!start || !end) return true;
   const d = now || new Date();
@@ -2149,6 +2228,36 @@ function loadPickers() {
 }
 function savePickers() { localStorage.setItem(PICKERS_KEY, JSON.stringify(pickers)); }
 function pickerNames() { return pickers.map(p => p.name); }
+
+/* ---------- Rollcages / Trolleys ---------- */
+const ROLLCAGES_KEY = 'sto_rollcages_v1';
+let rollcages = []; // [{ name }]
+function loadRollcages() {
+  try { rollcages = JSON.parse(localStorage.getItem(ROLLCAGES_KEY)) || []; } catch (e) { rollcages = []; }
+  const seenNames = new Set();
+  rollcages = rollcages.filter(r => {
+    const key = (r.name || '').trim().toLowerCase();
+    if (!key || seenNames.has(key)) return false;
+    seenNames.add(key);
+    return true;
+  });
+}
+function saveRollcages() { localStorage.setItem(ROLLCAGES_KEY, JSON.stringify(rollcages)); }
+// Rollcages/trolleys are a shared physical pool used by BOTH Outbound (Packing stage) and Inbound
+// (On Progress stage) — a rollcage counts as "in use" for as long as some OTHER STO/inbound record
+// currently sitting in that stage has it assigned, and it frees back up the moment that record
+// leaves the stage in either direction, no separate "release" step needed.
+function rollcageInUseByDetail(name, excludeOrderNumber) {
+  const rec = records.find(r => r.progress === 'Packing' && r.rollcageNo === name && r.orderNumber !== excludeOrderNumber);
+  if (rec) return { orderNumber: rec.orderNumber, source: 'Outbound (Packing)' };
+  const inRec = (typeof inboundRecords !== 'undefined' ? inboundRecords : []).find(r => r.progress === 'On Progress' && r.rollcageNo === name && r.orderNumber !== excludeOrderNumber);
+  if (inRec) return { orderNumber: inRec.orderNumber, source: 'Inbound (On Progress)' };
+  return null;
+}
+function rollcageInUseBy(name, excludeOrderNumber) {
+  const d = rollcageInUseByDetail(name, excludeOrderNumber);
+  return d ? d.orderNumber : null;
+}
 
 /* ---------- Daily Targets (overall, department-level) ---------- */
 // Separate from the per-picker / per-packing-station / per-receive-station targets above — this is
@@ -2257,6 +2366,7 @@ function loadData() {
   loadDoRecords();
   loadPackingStations();
   loadPickers();
+  loadRollcages();
   loadDailyTargets();
   loadGarmentOrders();
   loadGarmentReceiveLogs();
@@ -2402,7 +2512,10 @@ function parseFlexibleDateToIso(val) {
 }
 
 /* ---------- CSV parsing (handles quoted commas) ---------- */
-function parseCsv(text) {
+// Raw array-of-arrays tokenizer — pulled out of parseCsv() below so importers that need more than
+// one header row (Garment Order's size-grid template) can use it directly instead of the
+// single-header-row-to-objects shape parseCsv() produces.
+function parseCsvRows(text) {
   const rows = [];
   let row = [], field = '', inQuotes = false;
   for (let i = 0; i < text.length; i++) {
@@ -2421,6 +2534,10 @@ function parseCsv(text) {
     }
   }
   if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+function parseCsv(text) {
+  const rows = parseCsvRows(text);
   if (!rows.length) return [];
   const headers = rows[0].map(h => h.trim());
   return rows.slice(1).filter(r => r.some(v => v !== '')).map(r => {
@@ -2786,6 +2903,10 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
       alert('You have unsaved Pickers changes — click "Save Pickers" first before switching tabs.');
       return;
     }
+    if (typeof rollcagesDirty !== 'undefined' && rollcagesDirty) {
+      alert('You have unsaved Rollcages changes — click "Save Rollcages" first before switching tabs.');
+      return;
+    }
     if (typeof packingStationsDirty !== 'undefined' && packingStationsDirty) {
       alert('You have unsaved Packing Stations changes — click "Save Packing Stations" first before switching tabs.');
       return;
@@ -3078,7 +3199,10 @@ Object.keys(DASH_AUTOSCROLL_SLIDE_BY_ID).forEach(id => {
 
 /* ---------- Dashboard ---------- */
 function renderKpis() {
-  const total = records.length;
+  // "Active" here means still in progress (progress !== 'Shipped'/DO Issued) — not every STO record
+  // ever created. Previously this counted records.length outright, which included records already
+  // shipped/DO-issued long ago, so the number never went down even as batches finished.
+  const total = records.filter(r => r.progress !== 'Shipped').length;
   const amarans = records.map(computeAmaran);
   const count = (a) => amarans.filter(x => x === a).length;
   const lewat = count('LATE');
@@ -3922,6 +4046,108 @@ document.getElementById('inputNewPickerName').addEventListener('keydown', (e) =>
   if (e.key === 'Enter') { e.preventDefault(); addPickerFromInput(); }
 });
 
+/* ---------- Rollcages / Trolleys list rendering ---------- */
+function renderRollcagesList() {
+  const wrap = document.getElementById('rollcagesListWrap');
+  if (!rollcages.length) {
+    wrap.innerHTML = `<div class="empty-state">No rollcages/trolleys registered yet. Add one above — it'll show up as a dropdown when an STO is dragged into Packing.</div>`;
+    return;
+  }
+  let html = `<table><thead><tr><th>Rollcage No.</th><th>Status</th><th></th></tr></thead><tbody>`;
+  rollcages.forEach((rc, i) => {
+    const detail = rollcageInUseByDetail(rc.name, null);
+    const statusBadge = detail
+      ? `<span class="badge badge-red">In use — ${escapeHtml(detail.orderNumber)} (${escapeHtml(detail.source)})</span>`
+      : `<span class="badge badge-green">Free</span>`;
+    html += `<tr>
+      <td><input type="text" class="rollcage-roster-name-input" data-idx="${i}" value="${escapeHtml(rc.name)}"></td>
+      <td>${statusBadge}</td>
+      <td class="row-actions">
+        <button class="icon-btn remove-rollcage-btn" data-idx="${i}" title="Delete">✕</button>
+      </td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+
+  wrap.querySelectorAll('.rollcage-roster-name-input').forEach(inp => {
+    inp.addEventListener('change', (e) => {
+      const idx = Number(e.target.dataset.idx);
+      const v = e.target.value.trim();
+      if (!v) { e.target.value = rollcages[idx].name; return; }
+      if (rollcages.some((rc, ri) => ri !== idx && rc.name.toLowerCase() === v.toLowerCase())) {
+        alert(`A rollcage named "${v}" already exists.`);
+        e.target.value = rollcages[idx].name;
+        return;
+      }
+      rollcages[idx].name = v;
+      markRollcagesDirty();
+    });
+  });
+
+  wrap.querySelectorAll('.remove-rollcage-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = Number(e.target.dataset.idx);
+      const rc = rollcages[idx];
+      if (!confirm(`Remove rollcage "${rc.name}"?`)) return;
+      rollcages.splice(idx, 1);
+      saveRollcages();
+      renderRollcagesList();
+    });
+  });
+}
+
+let rollcagesDirty = false;
+function markRollcagesDirty() { rollcagesDirty = true; const note = document.getElementById('rollcagesDirtyNote'); if (note) note.style.display = ''; }
+function clearRollcagesDirty() { rollcagesDirty = false; const note = document.getElementById('rollcagesDirtyNote'); if (note) note.style.display = 'none'; }
+document.getElementById('saveRollcagesBtn').addEventListener('click', () => { saveRollcages(); clearRollcagesDirty(); });
+
+function addRollcageFromInput() {
+  const input = document.getElementById('inputNewRollcageName');
+  const name = input.value.trim();
+  if (!name) { input.focus(); return; }
+  if (!rollcages.some(rc => rc.name.toLowerCase() === name.toLowerCase())) rollcages.push({ name });
+  saveRollcages();
+  input.value = '';
+  input.focus();
+  renderRollcagesList();
+}
+document.getElementById('addRollcageBtn').addEventListener('click', addRollcageFromInput);
+document.getElementById('inputNewRollcageName').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); addRollcageFromInput(); }
+});
+
+// Shared "Rollcage / Trolley Usage" widget — shown on BOTH the Outbound and Inbound dashboard
+// slides (same data either way, since it's one shared physical pool used by both flows). Only
+// rollcages currently IN USE are listed — free ones stay out of sight so the dashboard only shows
+// something when there's actually something to look at.
+function renderRollcageUsageBoards() {
+  const html = (() => {
+    if (!rollcages.length) {
+      return `<div class="empty-state">No rollcages/trolleys registered yet — add them in Team Setup > Rollcages / Trolleys.</div>`;
+    }
+    const inUseRows = rollcages
+      .map(rc => ({ rc, detail: rollcageInUseByDetail(rc.name, null) }))
+      .filter(x => x.detail);
+    if (!inUseRows.length) {
+      return `<div class="empty-state">All rollcages/trolleys are free right now.</div>`;
+    }
+    let t = `<table><thead><tr><th>Rollcage No.</th><th>In use by</th></tr></thead><tbody>`;
+    inUseRows.forEach(({ rc, detail }) => {
+      t += `<tr>
+        <td>${escapeHtml(rc.name)}</td>
+        <td>${escapeHtml(detail.orderNumber)} — ${escapeHtml(detail.source)}</td>
+      </tr>`;
+    });
+    t += `</tbody></table>`;
+    return t;
+  })();
+  ['rollcageUsageWrapOutbound', 'rollcageUsageWrapInbound'].forEach(id => {
+    const wrap = document.getElementById(id);
+    if (wrap) wrap.innerHTML = html;
+  });
+}
+
 /* ---------- Daily Targets (Overall) tab fields ---------- */
 function renderDailyTargetsInputs() {
   const map = { picker: 'inputDailyTargetPicker', packer: 'inputDailyTargetPacker', inbound: 'inputDailyTargetInbound' };
@@ -4010,7 +4236,7 @@ function renderStationsTab() {
           <button type="button" class="btn-ghost station-shift-set-btn" data-idx="${i}" style="padding:5px 10px; font-size:11px;">Set</button>
         </div>
       </td>
-      <td><span class="badge ${onShift ? 'badge-green' : 'badge-gray'}">${onShift ? 'ON' : 'OFF'}</span></td>
+      <td><button type="button" class="btn-ghost station-enabled-toggle-btn" data-idx="${i}" style="padding:4px 10px;"><span class="badge ${onShift ? 'badge-green' : 'badge-gray'}">${onShift ? 'ON' : 'OFF'}</span></button></td>
       <td>${hasEffTarget ? `<span class="badge ${overTarget ? 'badge-red' : 'badge-green'}">${formatQty(currentLoadQty)} / ${escapeHtml(String(effTarget))}</span>` : formatQty(currentLoadQty)}</td>
       <td class="row-actions">
         <button class="icon-btn remove-station-btn" data-idx="${i}" title="Delete">✕</button>
@@ -4020,6 +4246,18 @@ function renderStationsTab() {
   html += `</tbody></table>`;
   wrap.innerHTML = html;
   // (Station name, manpower, and shift wiring below is unchanged; capacity is no longer a per-station input.)
+
+  // Manual ON/OFF master switch — takes effect immediately (no separate Save click needed), same
+  // as the Shift "Set" button, since flipping this is meant to happen right when a campaign
+  // actually starts/stops, not batched with other edits.
+  wrap.querySelectorAll('.station-enabled-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = Number(e.currentTarget.dataset.idx);
+      packingStations[idx].enabled = packingStations[idx].enabled === false ? true : false;
+      savePackingStations();
+      renderStationsTab();
+    });
+  });
 
   // Same inline-rename pattern as the Drivers table: name can't be blanked, and can't collide with
   // another station's name (case-insensitive). Renaming doesn't cascade to STOs already assigned to
@@ -4291,10 +4529,15 @@ function renderUsersTable() {
   wrap.innerHTML = users.map(u => {
     const roleLabel = u.isAdmin ? 'Admin/Team Lead' : (u.position || 'User');
     const tabCount = u.isAdmin ? 'All tabs' : `${Object.values(u.permissions || {}).filter(Boolean).length} tab(s) granted`;
+    const stationBits = [
+      u.receiveStation ? `Receive: ${u.receiveStation}` : '',
+      u.packingStation ? `Packing: ${u.packingStation}` : '',
+    ].filter(Boolean);
+    const stationLabel = stationBits.length ? ` · Station: ${escapeHtml(stationBits.join(', '))}` : '';
     return `<div class="user-row" data-id="${escapeHtml(u.id)}">
       <div>
         <div class="user-row-name">${escapeHtml(u.username)}</div>
-        <div class="user-row-meta">${escapeHtml(roleLabel)} · ${escapeHtml(tabCount)}</div>
+        <div class="user-row-meta">${escapeHtml(roleLabel)} · ${escapeHtml(tabCount)}${stationLabel}</div>
       </div>
       <button type="button" class="btn-ghost user-edit-btn" data-id="${escapeHtml(u.id)}" style="padding:6px 12px; font-size:12px;">Edit</button>
     </div>`;
@@ -4315,6 +4558,19 @@ function updateUserPermFieldVisibility() {
   document.getElementById('userPermField').style.display = isAdmin ? 'none' : '';
 }
 document.getElementById('inputUserIsAdmin').addEventListener('change', updateUserPermFieldVisibility);
+// One combined dropdown covers both station types — Receive Stations and Packing Stations are
+// different lists (usually named differently, e.g. "Day Shift Reciever" vs "Day Shift Packer"), so
+// each option's value is prefixed with its type ("receive:" / "packing:") to tell them apart on
+// Save, without needing two separate fields cluttering the form.
+function populateUserStationSelect(user) {
+  const select = document.getElementById('inputUserStation');
+  const currentValue = user && user.receiveStation ? `receive:${user.receiveStation}` : (user && user.packingStation ? `packing:${user.packingStation}` : '');
+  select.innerHTML = `<option value="">— none / not station-based —</option>` +
+    (receiveStations.length ? `<optgroup label="Receive Station">${receiveStations.map(s => `<option value="receive:${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`).join('')}</optgroup>` : '') +
+    (packingStations.length ? `<optgroup label="Packing Station">${packingStations.map(s => `<option value="packing:${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`).join('')}</optgroup>` : '');
+  const validValues = ['', ...receiveStations.map(s => `receive:${s.name}`), ...packingStations.map(s => `packing:${s.name}`)];
+  select.value = validValues.includes(currentValue) ? currentValue : '';
+}
 function openUserModal(editId) {
   userModalEditId = editId || null;
   const user = editId ? loadAppUsers().find(u => u.id === editId) : null;
@@ -4323,6 +4579,7 @@ function openUserModal(editId) {
   document.getElementById('inputUserPassword').value = user ? user.password : '';
   document.getElementById('inputUserPosition').value = user && user.position ? user.position : 'User';
   document.getElementById('inputUserIsAdmin').checked = user ? !!user.isAdmin : false;
+  populateUserStationSelect(user);
   document.getElementById('userModalError').style.display = 'none';
   document.getElementById('userModalDeleteBtn').style.display = user ? '' : 'none';
   renderUserPermGrid(user);
@@ -4342,6 +4599,9 @@ document.getElementById('userModalSaveBtn').addEventListener('click', () => {
   const password = document.getElementById('inputUserPassword').value.trim();
   const position = document.getElementById('inputUserPosition').value;
   const isAdmin = document.getElementById('inputUserIsAdmin').checked;
+  const stationSelectVal = document.getElementById('inputUserStation').value; // "" | "receive:<name>" | "packing:<name>"
+  const receiveStation = stationSelectVal.startsWith('receive:') ? stationSelectVal.slice('receive:'.length) : '';
+  const packingStation = stationSelectVal.startsWith('packing:') ? stationSelectVal.slice('packing:'.length) : '';
   const errNote = document.getElementById('userModalError');
   const showErr = (msg) => { errNote.textContent = msg; errNote.style.display = ''; };
   if (!username || !password) { showErr('Username and password are both required.'); return; }
@@ -4352,9 +4612,9 @@ document.getElementById('userModalSaveBtn').addEventListener('click', () => {
   document.querySelectorAll('.user-perm-checkbox').forEach(cb => { permissions[cb.value] = cb.checked; });
   if (userModalEditId) {
     const u = users.find(u => u.id === userModalEditId);
-    if (u) { u.username = username; u.password = password; u.position = position; u.isAdmin = isAdmin; u.permissions = permissions; }
+    if (u) { u.username = username; u.password = password; u.position = position; u.isAdmin = isAdmin; u.permissions = permissions; u.receiveStation = receiveStation; u.packingStation = packingStation; }
   } else {
-    users.push({ id: genUserId(), username, password, position, isAdmin, permissions });
+    users.push({ id: genUserId(), username, password, position, isAdmin, permissions, receiveStation, packingStation });
   }
   if (!users.some(u => u.isAdmin)) { showErr('At least one Admin/Team Lead account must exist — tick "Admin/Team Lead" for at least one user.'); return; }
   saveAppUsers(users);
@@ -4485,6 +4745,7 @@ function isTableDirty(table) {
   if (table === 'Receive_Stations') return typeof receiveStationsDirty !== 'undefined' && receiveStationsDirty;
   if (table === 'Pickers') return typeof pickersDirty !== 'undefined' && pickersDirty;
   if (table === 'Fleet_Drivers') return typeof driversDirty !== 'undefined' && driversDirty;
+  if (table === 'Rollcages') return typeof rollcagesDirty !== 'undefined' && rollcagesDirty;
   return false;
 }
 function anySetupDirty() {
@@ -4492,7 +4753,8 @@ function anySetupDirty() {
          (typeof driversDirty !== 'undefined' && driversDirty) ||
          (typeof pickersDirty !== 'undefined' && pickersDirty) ||
          (typeof packingStationsDirty !== 'undefined' && packingStationsDirty) ||
-         (typeof receiveStationsDirty !== 'undefined' && receiveStationsDirty);
+         (typeof receiveStationsDirty !== 'undefined' && receiveStationsDirty) ||
+         (typeof rollcagesDirty !== 'undefined' && rollcagesDirty);
 }
 
 // Pushes only the records that changed since the last known server snapshot for this table —
@@ -4684,6 +4946,7 @@ const SYNC_COLLECTIONS = [
   { table: 'Packing_Stations', getArray: () => packingStations, setArray: (a) => { packingStations = a; savePackingStations(); }, sortKey: (s) => s.name || '' },
   { table: 'Receive_Stations', getArray: () => receiveStations, setArray: (a) => { receiveStations = a; saveReceiveStations(); }, sortKey: (s) => s.name || '' },
   { table: 'Pickers', getArray: () => pickers, setArray: (a) => { pickers = a; savePickers(); } },
+  { table: 'Rollcages', getArray: () => rollcages, setArray: (a) => { rollcages = a; saveRollcages(); } },
   {
     table: 'Users',
     getArray: () => loadAppUsers(),
@@ -4835,13 +5098,25 @@ async function initialCloudSync() {
   if (!cloudSyncReconcileTimer) cloudSyncReconcileTimer = setInterval(cloudSyncReconcile, CLOUD_SYNC_RECONCILE_MS);
 }
 function renderCloudSyncStatus() {
-  [document.getElementById('cloudSyncStatusNote'), document.getElementById('sidebarSyncStatus')].forEach(note => {
-    if (!note) return;
-    if (!isCloudSyncEnabled()) { note.textContent = ''; return; }
-    if (cloudSyncStatus === 'syncing') { note.textContent = 'Syncing…'; return; }
-    if (cloudSyncStatus === 'error') { note.textContent = `Sync error: ${cloudSyncLastError}`; return; }
-    note.textContent = cloudSyncLastAt ? `Cloud Sync: last synced ${cloudSyncLastAt.toLocaleTimeString()}.` : 'Connected — syncing…';
-  });
+  const fullNote = document.getElementById('cloudSyncStatusNote');
+  const sidebarNote = document.getElementById('sidebarSyncStatus');
+  let fullText = '', shortText = '';
+  if (isCloudSyncEnabled()) {
+    if (cloudSyncStatus === 'syncing') {
+      fullText = shortText = 'Syncing…';
+    } else if (cloudSyncStatus === 'error') {
+      fullText = `Sync error: ${cloudSyncLastError}`;
+      shortText = 'Sync error ⚠';
+    } else {
+      // The sidebar's version is deliberately short (just the time, no "Cloud Sync: last synced…"
+      // preamble) — that sidebar strip is narrow, and the longer sentence used to wrap onto two
+      // lines next to the Sync Now button. The Team Setup card has room for the full sentence.
+      fullText = cloudSyncLastAt ? `Cloud Sync: last synced ${cloudSyncLastAt.toLocaleTimeString()}.` : 'Connected — syncing…';
+      shortText = cloudSyncLastAt ? `Synced ${cloudSyncLastAt.toLocaleTimeString()}` : 'Connected';
+    }
+  }
+  if (fullNote) fullNote.textContent = fullText;
+  if (sidebarNote) sidebarNote.textContent = shortText;
   updateSidebarSyncBarVisibility();
 }
 document.getElementById('cloudSyncNowBtn').addEventListener('click', () => { initialCloudSync(); });
@@ -7390,6 +7665,7 @@ function cardHtml(r, stage, columnKey) {
     </div>
     ${pickerNames.length ? `<div class="kc-sub-info">Picker: ${escapeHtml(pickerNames.join(', '))}</div>` : ''}
     ${r.packerName ? `<div class="kc-sub-info">Packer: ${escapeHtml(r.packerName)}</div>` : ''}
+    ${r.rollcageNo ? `<div class="kc-sub-info">Rollcage: ${escapeHtml(r.rollcageNo)}</div>` : ''}
     ${actionBtnType === 'label' ? `<button type="button" class="kc-label-btn" data-order="${escapeHtml(r.orderNumber)}">Print Label</button>` : ''}
     ${actionBtnType === 'do' ? `<button type="button" class="kc-do-btn" data-order="${escapeHtml(r.orderNumber)}">Print DO</button>` : ''}
     ${actionBtnType === 'picker' ? `<button type="button" class="kc-picker-btn" data-order="${escapeHtml(r.orderNumber)}">${pickerNames.length ? 'Edit Picker(s)' : 'Assign Picker(s)'}</button>` : ''}
@@ -7721,6 +7997,10 @@ function renderKanban() {
         if (stage === 'Packed' && previousStage !== 'Packed') openStickerModal(orderNumber);
         if (stage === 'Shipped' && previousStage === 'Packed') openDOModalForBatch([orderNumber]);
         if (stage === 'Picking' && previousStage !== 'Picking') openPickerModal(orderNumber);
+        // Arriving fresh into Packing (typically dragged out of Picking) — ask which physical
+        // rollcage the order's going out on. Purely optional: closing/skipping the modal leaves
+        // rollcageNo untouched, nothing here ever blocked the move itself.
+        if (stage === 'Packing' && previousStage !== 'Packing') openRollcageModal(orderNumber);
       }
     });
   });
@@ -8539,6 +8819,78 @@ document.getElementById('pickerSaveBtn').addEventListener('click', () => {
   renderPickersList();
 });
 
+/* ---------- Rollcage No. (Outbound: entering Packing / Inbound: On Progress, optional) ---------- */
+// Shared modal for both flows. Dropdown only offers rollcages that are currently free, plus
+// whichever one (if any) is already assigned to this record — so re-opening the modal on an
+// already-assigned card doesn't make it look like its own rollcage vanished.
+let rollcageRecOrderNumber = null;
+let rollcageRecSource = 'outbound'; // 'outbound' (records / Packing) or 'inbound' (inboundRecords / On Progress)
+function rollcageSourceArray() { return rollcageRecSource === 'inbound' ? inboundRecords : records; }
+function populateRollcageSelect(currentValue) {
+  const select = document.getElementById('rollcageInput');
+  const note = document.getElementById('rollcageInputNote');
+  const available = rollcages.filter(rc => !rollcageInUseBy(rc.name, rollcageRecOrderNumber) || rc.name === currentValue);
+  if (!rollcages.length) {
+    select.innerHTML = `<option value="">— none registered —</option>`;
+    note.textContent = 'No rollcages registered yet — add them in Team Setup > Rollcages / Trolleys.';
+    return;
+  }
+  select.innerHTML = `<option value="">— none / skip —</option>` +
+    available.map(rc => `<option value="${escapeHtml(rc.name)}">${escapeHtml(rc.name)}</option>`).join('');
+  select.value = available.some(rc => rc.name === currentValue) ? currentValue : '';
+  note.textContent = available.length < rollcages.length
+    ? `${rollcages.length - available.length} rollcage(s) currently in use elsewhere are hidden from this list.`
+    : '';
+}
+function openRollcageModal(orderNumber, source) {
+  rollcageRecSource = source === 'inbound' ? 'inbound' : 'outbound';
+  const rec = rollcageSourceArray().find(r => r.orderNumber === orderNumber);
+  if (!rec) return;
+  rollcageRecOrderNumber = orderNumber;
+  populateRollcageSelect(rec.rollcageNo || '');
+  document.getElementById('rollcageModal').classList.remove('hidden');
+  document.getElementById('rollcageInput').focus();
+}
+function closeRollcageModal() {
+  document.getElementById('rollcageModal').classList.add('hidden');
+  rollcageRecOrderNumber = null;
+}
+document.getElementById('rollcageCloseBtn').addEventListener('click', closeRollcageModal);
+document.getElementById('rollcageSkipBtn').addEventListener('click', closeRollcageModal);
+document.getElementById('rollcageModal').addEventListener('click', (e) => {
+  if (e.target.id === 'rollcageModal') closeRollcageModal();
+});
+document.getElementById('rollcageSaveBtn').addEventListener('click', () => {
+  const rec = rollcageSourceArray().find(r => r.orderNumber === rollcageRecOrderNumber);
+  if (!rec) { closeRollcageModal(); return; }
+  const val = document.getElementById('rollcageInput').value.trim();
+  // Re-check at save time in case another computer's sync (or the other flow — Outbound/Inbound
+  // share the same physical pool) assigned this same rollcage in the few seconds the modal was
+  // open — rare, but cheap to guard against.
+  if (val) {
+    const takenBy = rollcageInUseBy(val, rollcageRecOrderNumber);
+    if (takenBy) {
+      alert(`Rollcage "${val}" was just assigned to ${takenBy}. Pick another one.`);
+      populateRollcageSelect(rec.rollcageNo || '');
+      return;
+    }
+    rec.rollcageNo = val;
+  } else {
+    delete rec.rollcageNo;
+  }
+  if (rollcageRecSource === 'inbound') {
+    saveInboundRecords();
+    closeRollcageModal();
+    renderInboundAll();
+  } else {
+    saveRecords();
+    closeRollcageModal();
+    renderKanban();
+  }
+  renderRollcagesList();
+  renderRollcageUsageBoards();
+});
+
 /* ---------- Packing station assignment (Packing stage) ---------- */
 // Entering Packing auto-assigns the next station in rotation (see getNextPackingStationName);
 // this modal is for reviewing/overriding that choice manually afterward.
@@ -8625,6 +8977,8 @@ function renderAll() {
   renderKanban();
   renderSlaTab();
   renderPickersList();
+  renderRollcagesList();
+  renderRollcageUsageBoards();
   renderStationsTab();
   renderReceiveStationsTab();
   renderDriversTable();
@@ -8657,27 +9011,78 @@ function loadGarmentOrders() {
 }
 function saveGarmentOrders() { localStorage.setItem(GARMENT_ORDERS_KEY, JSON.stringify(garmentOrders)); }
 
-/* ---------- Garment Order: import from Excel/CSV ---------- */
-function mapRowToGarmentImportRow(row) {
-  return {
-    batchNo: String(row['Batch No.'] ?? row['Batch No'] ?? '').trim(),
-    sku: String(row['SKU'] ?? '').trim(),
-    qtyOrder: Number(row['Qty Order']) || 0,
-    orderDate: parseFlexibleDateToIso(row['Order Date']) || todayStr(),
-  };
+/* ---------- Garment Order: import from Excel/CSV ----------
+   Template layout (see downloadGarmentTemplateBtn below): columns A-D are Batch No., Garment Name,
+   SKU, Category — then columns E..N are a 10-wide size grid that means something different
+   depending on which of TWO header rows applies:
+     Row 1 (Adult sizes):      XS · S · M · L · XL · 2XL · 3XL · 4XL · 5XL · 6XL   (all 10 columns)
+     Row 2 (Kids/Baby sizes):  (E,F unused) · 12-18 Month · 18-24 Month · 2-3 Years · 4-5 Years ·
+                                6-7 Years · 8-9 Years · 10-11 Years · 12-13 Years   (columns G..N)
+   Which row's labels apply to a given data row is decided by that row's own Category value (D),
+   not by which of the two rows happens to have text in it — an "adult" row reads its filled columns
+   against Row 1, a "kids" or "baby" row against Row 2. Every filled size column on a row becomes its
+   own SKU-size line item, named "<SKU>-<size label>" (e.g. "PTX3CFCMD2-M"), quantity = that cell. */
+const GARMENT_TEMPLATE_FIXED_COLS = 4; // Batch No., Garment Name, SKU, Category
+const GARMENT_SIZES_ADULT = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '6XL'];
+const GARMENT_SIZES_KIDS_BABY = [null, null, '12-18 Month', '18-24 Month', '2-3 Years', '4-5 Years', '6-7 Years', '8-9 Years', '10-11 Years', '12-13 Years'];
+function garmentSizeLabelsForCategory(category) {
+  const c = String(category || '').trim().toLowerCase();
+  if (c === 'adult') return GARMENT_SIZES_ADULT;
+  if (c === 'kids' || c === 'kid' || c === 'baby') return GARMENT_SIZES_KIDS_BABY;
+  return null; // unrecognized Category -> can't tell which header row applies, skip the row's sizes
 }
-// Groups imported rows by Batch No. — new batch numbers create a new card, a batch number that
-// already exists gets new SKU lines appended to it (existing Order Date is left untouched). Within
-// a batch, a SKU that already exists (case-insensitive match) has its Qty Order updated in place
-// rather than creating a duplicate line — Qty Received/closedShort on that SKU are never touched
-// by import, so re-importing a corrected sheet never wipes out receiving progress already logged.
+// Same size-per-category list, but as small qty inputs for the manual "Add Batch" / "Add SKU"
+// forms — one input per real size in that category (skips the two null placeholders Kids/Baby
+// share with Adult's unused E,F columns in the import template).
+function garmentSizeGridInputsHtml(category) {
+  const labels = (garmentSizeLabelsForCategory(category) || []).filter(Boolean);
+  return labels.map(label => `<div style="min-width:88px;">
+    <label style="font-size:10px; display:block; margin-bottom:2px; color:var(--text-muted);">${escapeHtml(label)}</label>
+    <input type="number" min="0" class="garment-size-qty-input" data-size="${escapeHtml(label)}" placeholder="0" style="width:100%;">
+  </div>`).join('');
+}
+// sheetRows = array-of-arrays: row[0] = Adult size headers, row[1] = Kids/Baby size headers, row[2+]
+// = data. Produces one { batchNo, garmentName, sku, qtyOrder, orderDate } per SKU+size combination
+// that actually has a quantity filled in. batchNo here is already the FINAL composed identifier
+// ("<Batch No.>-<Garment Name>-<YYYYMMDD>"), not the raw value typed in column A — rows sharing the
+// same raw Batch No. + Garment Name (so the same composed value) still group into one card.
+function parseGarmentImportSheet(sheetRows) {
+  const orderDate = todayStr();
+  const datePart = orderDate.replace(/-/g, '');
+  const out = [];
+  sheetRows.slice(2).forEach(r => {
+    if (!r || !r.some(v => String(v ?? '').trim() !== '')) return; // blank row
+    const rawBatchNo = String(r[0] ?? '').trim();
+    const garmentName = String(r[1] ?? '').trim();
+    const sku = String(r[2] ?? '').trim();
+    const category = r[3];
+    if (!rawBatchNo) return;
+    const sizeLabels = garmentSizeLabelsForCategory(category);
+    if (!sizeLabels) return;
+    const batchNo = [rawBatchNo, garmentName, datePart].filter(Boolean).join('-');
+    sizeLabels.forEach((label, idx) => {
+      if (!label) return;
+      const cell = r[GARMENT_TEMPLATE_FIXED_COLS + idx];
+      const qty = Number(cell);
+      if (!cell || !qty) return; // blank / zero -> that size wasn't ordered
+      out.push({ batchNo, garmentName, sku: sku ? `${sku}-${label}` : label, qtyOrder: qty, orderDate });
+    });
+  });
+  return out;
+}
+// Groups imported rows by (composed) Batch No. — a batch number seen for the first time creates a
+// new card, one seen again gets new SKU lines appended to it (existing Order Date is left
+// untouched). Within a batch, a SKU that already exists (case-insensitive match) has its Qty Order
+// updated in place rather than creating a duplicate line — Qty Received/closedShort on that SKU are
+// never touched by import, so re-importing a corrected sheet never wipes out receiving progress
+// already logged.
 function upsertGarmentImportRows(importRows) {
   let batchesAdded = 0, skusAdded = 0, skusUpdated = 0, skippedNoBatch = 0;
   importRows.forEach(row => {
     if (!row.batchNo) { skippedNoBatch++; return; }
     let batch = garmentOrders.find(b => b.batchNo === row.batchNo);
     if (!batch) {
-      batch = { batchNo: row.batchNo, orderDate: row.orderDate, skus: [] };
+      batch = { batchNo: row.batchNo, garmentName: row.garmentName || '', orderDate: row.orderDate, skus: [] };
       garmentOrders.push(batch);
       batchesAdded++;
     }
@@ -8710,16 +9115,16 @@ function processUploadedGarmentFile(file) {
 
   reader.onload = (evt) => {
     try {
-      let rows = [];
+      let sheetRows = [];
       if (ext === 'csv') {
         const text = String(evt.target.result).replace(/^﻿/, '');
-        rows = parseCsv(text);
+        sheetRows = parseCsvRows(text);
       } else {
         const wb = XLSX.read(evt.target.result, { type: 'array' });
         const sheet = wb.Sheets[wb.SheetNames[0]];
-        rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        sheetRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
       }
-      const mapped = rows.map(mapRowToGarmentImportRow).filter(r => r.batchNo || r.sku || r.qtyOrder);
+      const mapped = parseGarmentImportSheet(sheetRows);
       const { batchesAdded, skusAdded, skusUpdated, skippedNoBatch } = upsertGarmentImportRows(mapped);
 
       let msg = `Success: ${batchesAdded} new batch(es), ${skusAdded} SKU line(s) added, ${skusUpdated} SKU(s) updated.`;
@@ -8764,13 +9169,18 @@ garmentDropzone.addEventListener('drop', (e) => {
   if (file) processUploadedGarmentFile(file);
 });
 document.getElementById('downloadGarmentTemplateBtn').addEventListener('click', () => {
+  // Row 1 = Adult size headers (all 10 size columns), Row 2 = Kids/Baby size headers (only columns
+  // G..N — E,F left blank since Kids/Baby never use them). Example rows mirror the three Category
+  // cases so it's obvious at a glance which header row a given row's numbers line up against.
   const wsData = [
-    ['Batch No.', 'SKU', 'Qty Order', 'Order Date'],
-    ['BATCH-01', 'SKU-1234', 100, todayDdMmYyyy()],
-    ['BATCH-01', 'SKU-5678', 50, todayDdMmYyyy()],
+    ['Batch No.', 'Garment Name', 'SKU', 'Category', ...GARMENT_SIZES_ADULT],
+    ['', '', '', '', ...GARMENT_SIZES_KIDS_BABY.map(s => s || '')],
+    ['Batch-1', 'Samim', 'PTX3CFCMD2', 'adult', '', '', 50, 50, '', '', '', '', '', ''],
+    ['Batch-1', 'Samim', 'PTX3BCM', 'kids', '', '', '', '', 50, 50, 50, '', '', ''],
+    ['Batch-1', 'Samim', 'PTX3BBTB', 'baby', '', '', 50, 50, '', '', '', '', '', ''],
   ];
   const ws = XLSX.utils.aoa_to_sheet(wsData);
-  ws['!cols'] = [{ wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 14 }];
+  ws['!cols'] = [{ wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, ...GARMENT_SIZES_ADULT.map(() => ({ wch: 12 }))];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Garment Order Template');
   XLSX.writeFile(wb, 'garment_order_template.xlsx');
@@ -8852,10 +9262,6 @@ function renderGarmentSkuRows(batch) {
       <td><span class="badge ${garmentStatusBadgeClass(status)}">${status}</span>${shortNote}</td>
       <td class="row-actions">
         <input type="number" class="garment-sku-log-input" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}" min="0" placeholder="e.g. 50" style="width:70px;">
-        ${receiveStations.length ? `<select class="garment-sku-log-station" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}" style="width:auto; padding:3px 6px; font-size:11px;">
-          <option value="">Station...</option>
-          ${receiveStations.map(st => `<option value="${escapeHtml(st.name)}">${escapeHtml(st.name)}</option>`).join('')}
-        </select>` : ''}
         <button type="button" class="btn-ghost garment-sku-log-btn" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}">+ Log</button>
         ${status !== 'Complete' ? `<button type="button" class="btn-primary garment-sku-complete-btn" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}">Mark Complete</button>` : ''}
         ${status === 'Partial' ? `<button type="button" class="btn-ghost garment-sku-close-short-btn" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}">Close Short</button>` : ''}
@@ -8870,20 +9276,38 @@ function renderGarmentSkuRows(batch) {
 function renderGarmentBatchBody(batch) {
   return `<div class="garment-batch-body" style="padding:14px 16px 16px; border-top:1px solid var(--border);">
     ${renderGarmentSkuRows(batch)}
-    <div class="form-grid" style="grid-template-columns: 1.5fr 1fr auto; margin-top:14px;">
+    <div class="form-grid" style="grid-template-columns: 1.3fr 1fr; margin-top:14px;">
       <div class="field">
         <label>SKU</label>
-        <input type="text" class="garment-new-sku-input" data-batch="${escapeHtml(batch.batchNo)}" placeholder="e.g. SKU-1234">
+        <input type="text" class="garment-new-sku-input" data-batch="${escapeHtml(batch.batchNo)}" placeholder="e.g. PTX3CFCMD2">
       </div>
       <div class="field">
-        <label>Qty Order</label>
-        <input type="number" class="garment-new-qty-input" data-batch="${escapeHtml(batch.batchNo)}" min="0" placeholder="e.g. 50">
-      </div>
-      <div class="field">
-        <button type="button" class="btn-primary garment-add-sku-btn" data-batch="${escapeHtml(batch.batchNo)}">+ Add SKU</button>
+        <label>Category</label>
+        <select class="garment-new-category-select" data-batch="${escapeHtml(batch.batchNo)}">
+          <option value="">-- Select --</option>
+          <option value="adult">Adult</option>
+          <option value="kids">Kids</option>
+          <option value="baby">Baby</option>
+        </select>
       </div>
     </div>
+    <div class="field garment-new-size-grid-wrap" data-batch="${escapeHtml(batch.batchNo)}" style="display:none; margin-top:8px;">
+      <label>Qty per size (isi yang berkenaan sahaja)</label>
+      <div class="garment-new-size-grid" data-batch="${escapeHtml(batch.batchNo)}" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+    </div>
+    <button type="button" class="btn-primary garment-add-sku-btn" data-batch="${escapeHtml(batch.batchNo)}" style="margin-top:10px;">+ Add SKU</button>
   </div>`;
+}
+
+// Search matches Batch No., Garment Name, or any SKU inside the batch — so staff can type a SKU
+// code and jump straight to whichever batch(es) contain it, without knowing the batch no. by heart.
+function garmentBatchMatchesSearch(batch, q) {
+  if (!q) return true;
+  const needle = q.trim().toLowerCase();
+  if (!needle) return true;
+  if ((batch.batchNo || '').toLowerCase().includes(needle)) return true;
+  if ((batch.garmentName || '').toLowerCase().includes(needle)) return true;
+  return batch.skus.some(s => (s.sku || '').toLowerCase().includes(needle));
 }
 
 function renderGarmentOrderTab() {
@@ -8893,7 +9317,20 @@ function renderGarmentOrderTab() {
     return;
   }
 
-  const cardsHtml = garmentOrders.map(batch => {
+  const searchInput = document.getElementById('garmentOrderSearchInput');
+  const statusFilterSelect = document.getElementById('garmentOrderStatusFilter');
+  const searchQ = searchInput ? searchInput.value : '';
+  const statusQ = statusFilterSelect ? statusFilterSelect.value : '';
+  const visibleBatches = garmentOrders.filter(batch => {
+    if (statusQ && garmentBatchStatus(batch) !== statusQ) return false;
+    return garmentBatchMatchesSearch(batch, searchQ);
+  });
+  if (!visibleBatches.length) {
+    wrap.innerHTML = `<div class="empty-state">No batches match your search/filter.</div>`;
+    return;
+  }
+
+  const cardsHtml = visibleBatches.map(batch => {
     const status = garmentBatchStatus(batch);
     const amaran = garmentComputeAmaran(batch);
     const { qtyOrder, qtyReceived } = garmentBatchTotals(batch);
@@ -8945,32 +9382,46 @@ function renderGarmentOrderTab() {
 
   // SKU-level actions only exist inside expanded batch bodies, but querying the whole wrap is
   // fine — there's simply nothing to match for collapsed cards.
+  // Shared by both the "+ Log" button click AND pressing Enter in the qty input, so staff can log
+  // a whole run of SKUs without reaching for the mouse each time.
+  function performGarmentSkuLog(batchNo, sidx) {
+    const batch = garmentOrders.find(b => b.batchNo === batchNo);
+    const input = Array.from(wrap.querySelectorAll('.garment-sku-log-input'))
+      .find(el => el.dataset.batch === batchNo && Number(el.dataset.sidx) === sidx);
+    const addQty = Math.max(0, Number(input.value) || 0);
+    if (!addQty) { input.focus(); return; }
+    // No more per-row Station dropdown — the station comes straight from the logged-in user's
+    // assigned Receive Station (Team Setup > Users). Accounts with no station assigned still log
+    // fine, just without a station attached (same as before Receive Stations existed at all).
+    const curUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    const assignedStation = curUser && curUser.receiveStation ? receiveStations.find(st => st.name === curUser.receiveStation) : null;
+    // Station is switched OFF (Team Setup toggle or outside its shift window) — block logging
+    // entirely rather than silently logging under an inactive station. Staff can still log in and
+    // look around, they just can't log receiving until their station is turned back ON.
+    if (assignedStation && !isStationOnShift(assignedStation)) {
+      alert(`Station "${assignedStation.name}" tengah OFF — tak boleh log receiving sampai station tu di-ON-kan semula di Team Setup.`);
+      return;
+    }
+    const myStation = assignedStation ? assignedStation.name : '';
+    batch.skus[sidx].qtyReceived = (Number(batch.skus[sidx].qtyReceived) || 0) + addQty;
+    batch.skus[sidx].lastReceivedDate = todayStr();
+    delete batch.skus[sidx].closedShort;
+    saveGarmentOrders();
+    if (myStation) {
+      garmentReceiveLogs.push({ batchNo: batch.batchNo, sku: batch.skus[sidx].sku, station: myStation, qty: addQty, date: todayStr() });
+      saveGarmentReceiveLogs();
+      // Keep the Team Setup Receive Station table and Inbound Dashboard's station chart in sync
+      // immediately, since this log directly feeds their "Today (pcs)" totals.
+      renderReceiveStationsTab();
+    }
+    renderInboundAll();
+  }
   wrap.querySelectorAll('.garment-sku-log-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const batch = garmentOrders.find(b => b.batchNo === btn.dataset.batch);
-      const sidx = Number(btn.dataset.sidx);
-      const input = Array.from(wrap.querySelectorAll('.garment-sku-log-input'))
-        .find(el => el.dataset.batch === btn.dataset.batch && Number(el.dataset.sidx) === sidx);
-      const stationSelect = Array.from(wrap.querySelectorAll('.garment-sku-log-station'))
-        .find(el => el.dataset.batch === btn.dataset.batch && Number(el.dataset.sidx) === sidx);
-      const addQty = Math.max(0, Number(input.value) || 0);
-      if (!addQty) { input.focus(); return; }
-      // Station is required whenever at least one Receive Station is registered (Team Setup) —
-      // that's what makes the per-station "Today (pcs)" totals meaningful. If none are registered
-      // yet, logging still works without one (backward compatible).
-      if (stationSelect && !stationSelect.value) { stationSelect.focus(); return; }
-      batch.skus[sidx].qtyReceived = (Number(batch.skus[sidx].qtyReceived) || 0) + addQty;
-      batch.skus[sidx].lastReceivedDate = todayStr();
-      delete batch.skus[sidx].closedShort;
-      saveGarmentOrders();
-      if (stationSelect && stationSelect.value) {
-        garmentReceiveLogs.push({ batchNo: batch.batchNo, sku: batch.skus[sidx].sku, station: stationSelect.value, qty: addQty, date: todayStr() });
-        saveGarmentReceiveLogs();
-        // Keep the Team Setup Receive Station table and Inbound Dashboard's station chart in sync
-        // immediately, since this log directly feeds their "Today (pcs)" totals.
-        renderReceiveStationsTab();
-      }
-      renderInboundAll();
+    btn.addEventListener('click', () => performGarmentSkuLog(btn.dataset.batch, Number(btn.dataset.sidx)));
+  });
+  wrap.querySelectorAll('.garment-sku-log-input').forEach(inp => {
+    inp.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); performGarmentSkuLog(inp.dataset.batch, Number(inp.dataset.sidx)); }
     });
   });
 
@@ -9016,62 +9467,124 @@ function renderGarmentOrderTab() {
     });
   });
 
+  // Category select inside each card's "+Add SKU" form reveals that category's size-qty grid —
+  // rebuilt fresh here each render since the whole tab's HTML (including any previous selection) is
+  // rebuilt from scratch on every renderGarmentOrderTab() call.
+  wrap.querySelectorAll('.garment-new-category-select').forEach(sel => {
+    sel.addEventListener('change', () => {
+      const batchNo = sel.dataset.batch;
+      const gridWrap = Array.from(wrap.querySelectorAll('.garment-new-size-grid-wrap')).find(el => el.dataset.batch === batchNo);
+      const grid = Array.from(wrap.querySelectorAll('.garment-new-size-grid')).find(el => el.dataset.batch === batchNo);
+      if (!sel.value) { gridWrap.style.display = 'none'; grid.innerHTML = ''; return; }
+      grid.innerHTML = garmentSizeGridInputsHtml(sel.value);
+      gridWrap.style.display = '';
+    });
+  });
+
   wrap.querySelectorAll('.garment-add-sku-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const batchNo = btn.dataset.batch;
       const batch = garmentOrders.find(b => b.batchNo === batchNo);
       const skuInput = Array.from(wrap.querySelectorAll('.garment-new-sku-input')).find(el => el.dataset.batch === batchNo);
-      const qtyInput = Array.from(wrap.querySelectorAll('.garment-new-qty-input')).find(el => el.dataset.batch === batchNo);
+      const catSelect = Array.from(wrap.querySelectorAll('.garment-new-category-select')).find(el => el.dataset.batch === batchNo);
       const sku = skuInput.value.trim();
-      const qtyOrder = qtyInput.value.trim();
-      if (!sku && !qtyOrder) { skuInput.focus(); return; }
-      batch.skus.push({ sku, qtyOrder, qtyReceived: 0 });
+      const category = catSelect.value;
+      // A SKU with a chosen Category can add several sizes at once (one qty input per size, only
+      // the filled ones count) — each becomes its own "SKU-Size" line, same naming as import. Matching
+      // an existing SKU-Size line updates its Qty Order in place instead of duplicating, same as import.
+      const sizeInputs = category
+        ? Array.from(wrap.querySelectorAll('.garment-new-size-grid')).find(el => el.dataset.batch === batchNo).querySelectorAll('.garment-size-qty-input')
+        : [];
+      let added = 0;
+      sizeInputs.forEach(inp => {
+        const qty = Number(inp.value);
+        if (!inp.value || !qty) return;
+        const lineSku = sku ? `${sku}-${inp.dataset.size}` : inp.dataset.size;
+        const existing = batch.skus.find(s => (s.sku || '').trim().toLowerCase() === lineSku.toLowerCase());
+        if (existing) existing.qtyOrder = qty;
+        else batch.skus.push({ sku: lineSku, qtyOrder: qty, qtyReceived: 0 });
+        added++;
+      });
+      if (!added) {
+        if (!sku) { skuInput.focus(); return; }
+        // No category/sizes chosen -> fall back to a single plain SKU line, same as the old form.
+        batch.skus.push({ sku, qtyOrder: 0, qtyReceived: 0 });
+      }
       saveGarmentOrders();
       renderGarmentOrderTab();
     });
   });
 }
 
-document.getElementById('inputNewGarmentDate').value = todayStr();
+document.getElementById('inputNewGarmentCategory').addEventListener('change', () => {
+  const cat = document.getElementById('inputNewGarmentCategory').value;
+  const gridWrap = document.getElementById('newGarmentSizeGridWrap');
+  const grid = document.getElementById('newGarmentSizeGrid');
+  if (!cat) { gridWrap.style.display = 'none'; grid.innerHTML = ''; return; }
+  grid.innerHTML = garmentSizeGridInputsHtml(cat);
+  gridWrap.style.display = '';
+});
 document.getElementById('addGarmentOrderBtn').addEventListener('click', () => {
   const batchInput = document.getElementById('inputNewGarmentBatch');
+  const nameInput = document.getElementById('inputNewGarmentName');
   const skuInput = document.getElementById('inputNewGarmentSku');
-  const qtyInput = document.getElementById('inputNewGarmentQtyOrder');
-  const dateInput = document.getElementById('inputNewGarmentDate');
+  const catSelect = document.getElementById('inputNewGarmentCategory');
   const note = document.getElementById('garmentOrderNote');
+  const defaultNote = 'No. Order akan dijana automatik ("Batch No.-Garment Name-YYYYMMDD"). Pilih Category untuk buka kotak saiz berkenaan, isi mana yang perlu — boleh buka kad lagi lepas ni untuk tambah SKU/saiz lain.';
 
-  const batchNo = batchInput.value.trim();
-  if (!batchNo) { batchInput.focus(); return; }
+  const rawBatchNo = batchInput.value.trim();
+  if (!rawBatchNo) { batchInput.focus(); return; }
+  const garmentName = nameInput.value.trim();
+  const sku = skuInput.value.trim();
+  const category = catSelect.value;
+  const orderDate = todayStr();
+  // Same composed identifier as the file-upload import — same raw Batch No. + Garment Name on the
+  // same day is treated as the same batch card either way.
+  const batchNo = [rawBatchNo, garmentName, orderDate.replace(/-/g, '')].filter(Boolean).join('-');
+
   if (garmentOrders.some(b => b.batchNo === batchNo)) {
-    note.textContent = `Batch No. "${batchNo}" already exists.`;
+    note.textContent = `Batch "${batchNo}" already exists today — open that card to add more SKUs instead.`;
     note.style.color = '#e2685f';
     batchInput.focus();
     return;
   }
 
-  const sku = skuInput.value.trim();
-  const qtyOrder = qtyInput.value.trim();
-  // The batch is created together with its first SKU line item (if any of those fields were
-  // filled in) — more SKUs can still be added afterward by opening the card.
-  const skus = (sku || qtyOrder) ? [{ sku, qtyOrder, qtyReceived: 0 }] : [];
+  // The batch is created together with its first SKU line item(s), if a Category/size was filled in
+  // — more can still be added afterward by opening the card.
+  const skus = [];
+  if (category) {
+    document.querySelectorAll('#newGarmentSizeGrid .garment-size-qty-input').forEach(inp => {
+      const qty = Number(inp.value);
+      if (inp.value && qty) skus.push({ sku: sku ? `${sku}-${inp.dataset.size}` : inp.dataset.size, qtyOrder: qty, qtyReceived: 0 });
+    });
+  } else if (sku) {
+    skus.push({ sku, qtyOrder: 0, qtyReceived: 0 });
+  }
 
-  garmentOrders.push({ batchNo, orderDate: dateInput.value || todayStr(), skus });
+  garmentOrders.push({ batchNo, garmentName, orderDate, skus });
   garmentExpandedBatches.add(batchNo);
   saveGarmentOrders();
 
   note.textContent = `"${batchNo}" added.`;
   note.style.color = '#4bb583';
   batchInput.value = '';
+  nameInput.value = '';
   skuInput.value = '';
-  qtyInput.value = '';
-  dateInput.value = todayStr();
+  catSelect.value = '';
+  document.getElementById('newGarmentSizeGridWrap').style.display = 'none';
+  document.getElementById('newGarmentSizeGrid').innerHTML = '';
   batchInput.focus();
   renderGarmentOrderTab();
   setTimeout(() => {
-    note.textContent = 'Creates a batch card with its first SKU already inside — open the card afterward to add more SKUs or log received quantity.';
+    note.textContent = defaultNote;
     note.style.color = '';
   }, 4000);
 });
+
+// Search/status filter controls sit outside #garmentOrderTableWrap, so they survive every
+// re-render — wired once here rather than re-attached inside renderGarmentOrderTab().
+document.getElementById('garmentOrderSearchInput').addEventListener('input', () => renderGarmentOrderTab());
+document.getElementById('garmentOrderStatusFilter').addEventListener('change', () => renderGarmentOrderTab());
 
 /* ---------- STO From Boutique ---------- */
 const INBOUND_STO_KEY = 'sto_inbound_records_v1';
@@ -9420,7 +9933,7 @@ function renderReceiveStationsTab() {
           <button type="button" class="btn-ghost receive-station-shift-set-btn" data-idx="${i}" style="padding:5px 10px; font-size:11px;">Set</button>
         </div>
       </td>
-      <td><span class="badge ${onShift ? 'badge-green' : 'badge-gray'}">${onShift ? 'ON' : 'OFF'}</span></td>
+      <td><button type="button" class="btn-ghost receive-station-enabled-toggle-btn" data-idx="${i}" style="padding:4px 10px;"><span class="badge ${onShift ? 'badge-green' : 'badge-gray'}">${onShift ? 'ON' : 'OFF'}</span></button></td>
       <td>${hasEffTarget ? `<span class="badge ${overTarget ? 'badge-red' : 'badge-green'}">${formatQty(currentLoadQty)} / ${escapeHtml(String(effTarget))}</span>` : formatQty(currentLoadQty)}</td>
       <td class="row-actions">
         <button class="icon-btn remove-receive-station-btn" data-idx="${i}" title="Delete">✕</button>
@@ -9430,6 +9943,17 @@ function renderReceiveStationsTab() {
   html += `</tbody></table>`;
   wrap.innerHTML = html;
   // (Station name, manpower, and shift wiring below is unchanged; capacity is no longer a per-station input.)
+
+  // Manual ON/OFF master switch — takes effect immediately, same as the Shift "Set" button, since
+  // flipping this is meant to happen right when a campaign actually starts/stops.
+  wrap.querySelectorAll('.receive-station-enabled-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = Number(e.currentTarget.dataset.idx);
+      receiveStations[idx].enabled = receiveStations[idx].enabled === false ? true : false;
+      saveReceiveStations();
+      renderReceiveStationsTab();
+    });
+  });
 
   // Same inline-rename pattern as the Drivers table: name can't be blanked, and can't collide with
   // another station's name (case-insensitive). Renaming doesn't cascade to STOs/garment receiving
@@ -9636,8 +10160,10 @@ function inboundCardHtml(r) {
       <span class="badge ${amaranBadgeClass(a)}" style="padding:2px 7px;">${amaranLabel(a)}</span>
     </div>
     ${r.receiveStation ? `<div class="kc-sub-info">Station: ${escapeHtml(r.receiveStation)}${r.receiverName ? ` (${escapeHtml(r.receiverName)})` : ''}</div>` : ''}
+    ${r.rollcageNo ? `<div class="kc-sub-info">Rollcage: ${escapeHtml(r.rollcageNo)}</div>` : ''}
     ${stage === 'Complete' && r.qtyReceived !== undefined && r.qtyReceived !== null ? `<div class="kc-sub-info">Received: ${formatQty(r.qtyReceived)} / DO ${formatQty(r.totalOrderQty)}</div>` : ''}
     ${stage !== 'Active' ? `<button type="button" class="kc-station-btn" data-order="${escapeHtml(r.orderNumber)}">${r.receiveStation ? 'Change Station' : 'Assign Station'}</button>` : ''}
+    ${stage !== 'Complete' ? `<button type="button" class="kc-station-btn" data-order="${escapeHtml(r.orderNumber)}" data-rollcage-btn="1">${r.rollcageNo ? 'Change Rollcage' : 'Assign Rollcage'}</button>` : ''}
     ${stage === 'Complete' ? `<button type="button" class="kc-station-btn" data-order="${escapeHtml(r.orderNumber)}" data-qty-btn="1">Edit Received Qty</button>` : ''}
   </div>`;
 }
@@ -9708,6 +10234,7 @@ function renderInboundKanban() {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       if (btn.dataset.qtyBtn) openInboundReceiveQtyModal(btn.dataset.order);
+      else if (btn.dataset.rollcageBtn) openRollcageModal(btn.dataset.order, 'inbound');
       else openReceiveStationModal(btn.dataset.order);
     });
   });
