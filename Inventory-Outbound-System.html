@@ -2022,12 +2022,11 @@
     </div>
     <div class="data-note" id="putawayRollcageItemNote" style="margin-bottom:10px;"></div>
     <div class="field" style="margin-bottom:14px;">
-      <label>Rollcage/Trolley for Putaway (optional)</label>
+      <label>Rollcage/Trolley for Putaway</label>
       <select id="putawayRollcageInput"></select>
       <div class="data-note" id="putawayRollcageInputNote" style="margin-top:6px;"></div>
     </div>
     <div class="modal-actions">
-      <button class="btn-ghost" id="putawayRollcageSkipBtn">Skip</button>
       <button class="btn-primary" id="putawayRollcageSaveBtn">Save</button>
     </div>
   </div>
@@ -2466,6 +2465,7 @@ function loadData() {
   loadDailyTargets();
   loadGarmentOrders();
   loadGarmentReceiveLogs();
+  pruneOrphanedGarmentData();
   loadInboundRecords();
   loadReceiveStations();
   loadInboundAlertSettings();
@@ -7715,11 +7715,15 @@ const UNASSIGNED_STATION_KEY = '__unassigned__';
 
 // Describes every column to render for the Packing stage: one per registered station, in
 // registration order, plus an "Unassigned" lane only if some Packing-stage STO has no station
-// (e.g. bulk-moved before any station existed). Falls back to a single generic lane when no
-// stations are registered at all, matching the old single-column behavior.
+// (e.g. bulk-moved before any station existed). Falls back to a single generic "Packing" lane
+// (station: undefined, same treatment as the non-Packing stage columns — no per-station filter,
+// just shows every Packing-stage STO) when no stations are registered at all, OR when every
+// registered station is currently switched OFF — no point splitting into lanes nobody's staffing
+// right now, so it collapses to one column exactly like the Dashboard's target-progress charts do.
 function packingLaneDescriptors() {
-  if (!packingStations.length) {
-    return [{ stage: 'Packing', station: null, columnKey: 'Packing', label: 'Packing' }];
+  const anyOnShift = packingStations.some(s => isStationOnShift(s));
+  if (!packingStations.length || !anyOnShift) {
+    return [{ stage: 'Packing', station: undefined, columnKey: 'Packing', label: 'Packing' }];
   }
   const lanes = packingStations.map(s => ({
     stage: 'Packing', station: s.name, columnKey: `Packing::${s.name}`, label: s.name
@@ -9073,7 +9077,7 @@ function populatePutawayRollcageSelect() {
   const note = document.getElementById('putawayRollcageInputNote');
   if (!rollcages.length) {
     select.innerHTML = `<option value="">— none registered —</option>`;
-    note.textContent = 'No rollcages registered yet — add them in Team Setup > Rollcages / Trolleys.';
+    note.textContent = 'No rollcages registered yet — add one in Team Setup > Rollcages / Trolleys, then come back and pick it here.';
     return;
   }
   // Hide rollcages that are physically elsewhere right now (Outbound Packing / Inbound On
@@ -9083,18 +9087,24 @@ function populatePutawayRollcageSelect() {
     const detail = rollcageInUseByDetail(rc.name, null);
     return !detail || detail.source === 'Garment Order (Putaway)';
   });
-  select.innerHTML = `<option value="">— none / skip —</option>` +
-    available.map(rc => {
-      const loadedNote = rc.putawayInUse ? ` (${(rc.putawayItems || []).length} item(s) already loaded)` : '';
-      return `<option value="${escapeHtml(rc.name)}">${escapeHtml(rc.name)}${loadedNote}</option>`;
-    }).join('');
+  if (!available.length) {
+    select.innerHTML = `<option value="">— all in use elsewhere —</option>`;
+    note.textContent = 'Every registered rollcage is currently in use for Packing/Receiving — free one up, or register another, then come back and pick it here.';
+    return;
+  }
+  // No "skip" placeholder — putaway assignment is required, so the select always defaults to a
+  // real, pickable rollcage instead of sitting on an empty option that lets Save do nothing.
+  select.innerHTML = available.map(rc => {
+    const loadedNote = rc.putawayInUse ? ` (${(rc.putawayItems || []).length} item(s) already loaded)` : '';
+    return `<option value="${escapeHtml(rc.name)}">${escapeHtml(rc.name)}${loadedNote}</option>`;
+  }).join('');
   note.textContent = available.length < rollcages.length
     ? `${rollcages.length - available.length} rollcage(s) currently in use for Packing/Receiving are hidden.`
     : '';
 }
 function openPutawayRollcageModal(batchNo, sku, qty) {
   putawayRollcagePending = { batchNo, sku, qty };
-  document.getElementById('putawayRollcageItemNote').textContent = `${sku || batchNo} — ${formatQty(qty)} pcs baru di-log.`;
+  document.getElementById('putawayRollcageItemNote').textContent = `${sku || batchNo} — ${formatQty(qty)} pcs just logged.`;
   populatePutawayRollcageSelect();
   document.getElementById('putawayRollcageModal').classList.remove('hidden');
   document.getElementById('putawayRollcageInput').focus();
@@ -9103,13 +9113,34 @@ function closePutawayRollcageModal() {
   document.getElementById('putawayRollcageModal').classList.add('hidden');
   putawayRollcagePending = null;
 }
-document.getElementById('putawayRollcageCloseBtn').addEventListener('click', closePutawayRollcageModal);
-document.getElementById('putawayRollcageSkipBtn').addEventListener('click', closePutawayRollcageModal);
+// Putaway can no longer be skipped — the modal can only be dismissed without picking a rollcage
+// in the two edge cases where there's genuinely nothing TO pick (none registered at all, or every
+// registered rollcage is currently in use elsewhere). Otherwise the X/backdrop are no-ops and
+// Save requires an actual selection, same enforcement either way.
+function putawayModalCanBeDismissedWithoutPicking() {
+  if (!rollcages.length) return true;
+  const available = rollcages.filter(rc => {
+    const detail = rollcageInUseByDetail(rc.name, null);
+    return !detail || detail.source === 'Garment Order (Putaway)';
+  });
+  return !available.length;
+}
+document.getElementById('putawayRollcageCloseBtn').addEventListener('click', () => {
+  if (putawayModalCanBeDismissedWithoutPicking()) closePutawayRollcageModal();
+});
 document.getElementById('putawayRollcageModal').addEventListener('click', (e) => {
-  if (e.target.id === 'putawayRollcageModal') closePutawayRollcageModal();
+  if (e.target.id === 'putawayRollcageModal' && putawayModalCanBeDismissedWithoutPicking()) closePutawayRollcageModal();
 });
 document.getElementById('putawayRollcageSaveBtn').addEventListener('click', () => {
   const val = document.getElementById('putawayRollcageInput').value.trim();
+  if (!val) {
+    // Nothing to pick right now (none registered / all in use elsewhere) — let it through as a
+    // graceful close rather than a skip. Otherwise a real rollcage IS available, so this is a
+    // genuine "didn't pick anything" click — block it instead of silently closing.
+    if (putawayModalCanBeDismissedWithoutPicking()) { closePutawayRollcageModal(); return; }
+    alert("Pick a rollcage/trolley to continue — putaway can't be skipped.");
+    return;
+  }
   if (val && putawayRollcagePending) {
     const rc = rollcages.find(r => r.name === val);
     if (rc) {
@@ -9517,6 +9548,28 @@ function loadGarmentReceiveLogs() {
   try { garmentReceiveLogs = JSON.parse(localStorage.getItem(GARMENT_RECEIVE_LOGS_KEY)) || []; } catch (e) { garmentReceiveLogs = []; }
 }
 function saveGarmentReceiveLogs() { localStorage.setItem(GARMENT_RECEIVE_LOGS_KEY, JSON.stringify(garmentReceiveLogs)); }
+// One-time cleanup run on every load, for installs that already had orphaned data from BEFORE
+// deleting a Garment Order batch also cleaned up after itself (see the batch delete handler) —
+// garmentReceiveLogs is a separate append-only log, so a deleted batch's pcs kept counting toward
+// Dashboard/Reports/KPI "today" totals forever unless its log entries are pruned too. Same idea
+// for rollcage putawayItems referencing a batch that no longer exists.
+function pruneOrphanedGarmentData() {
+  const validBatchNos = new Set(garmentOrders.map(b => b.batchNo));
+  const logsBefore = garmentReceiveLogs.length;
+  garmentReceiveLogs = garmentReceiveLogs.filter(l => validBatchNos.has(l.batchNo));
+  if (garmentReceiveLogs.length !== logsBefore) saveGarmentReceiveLogs();
+  let rollcagesChanged = false;
+  rollcages.forEach(rc => {
+    if (!rc.putawayItems || !rc.putawayItems.length) return;
+    const itemsBefore = rc.putawayItems.length;
+    rc.putawayItems = rc.putawayItems.filter(it => validBatchNos.has(it.batchNo));
+    if (rc.putawayItems.length !== itemsBefore) {
+      rollcagesChanged = true;
+      if (!rc.putawayItems.length) rc.putawayInUse = false;
+    }
+  });
+  if (rollcagesChanged) saveRollcages();
+}
 // Shared by the Receive Station table (Team Setup) and the Receive Station Target Progress chart
 // (Inbound Dashboard) — a station's "today" pcs is boutique-STO receiving PLUS garment-order
 // receiving combined, since both flows share the same physical stations.
@@ -9565,11 +9618,14 @@ function garmentStatusBadgeClass(status) {
 }
 // Putaway status is separate from receiving status (garmentBatchStatus above) — a batch can be
 // fully "Complete" (all pcs received) while its putaway is still "Pending" (still sitting in a
-// rollcage waiting to be shelved). Only SKUs that actually had something received are counted —
-// a SKU nobody's touched yet has nothing to put away, so it shouldn't drag the badge down. Returns
-// null when nothing's been received at all yet (no badge shown in that case).
+// rollcage waiting to be shelved). Only SKUs that were actually LOADED INTO A ROLLCAGE are
+// counted as relevant — a SKU that was received but had its putaway prompt skipped (e.g. "Skip"
+// clicked, or a short-closed line whose leftover qty was never physically carted) has nothing
+// sitting in a rollcage waiting to be unloaded, so it shouldn't permanently block the badge from
+// ever reaching "Done". Returns null when nothing's ever been loaded into a rollcage for this
+// batch at all (no badge shown in that case).
 function garmentBatchPutawayStatus(batch) {
-  const relevant = batch.skus.filter(s => (Number(s.qtyReceived) || 0) > 0);
+  const relevant = batch.skus.filter(s => !!s.putawayRollcage);
   if (!relevant.length) return null;
   return relevant.every(s => s.putawayStatus === 'done') ? 'Done' : 'Pending';
 }
@@ -9733,7 +9789,30 @@ function renderGarmentOrderTab() {
       garmentOrders = garmentOrders.filter(b => b.batchNo !== batchNo);
       garmentExpandedBatches.delete(batchNo);
       saveGarmentOrders();
-      renderGarmentOrderTab();
+      // Deleting a batch only removed it from garmentOrders — everything else that references it
+      // by batchNo (the receiving event log that feeds Dashboard/Reports/KPI totals, and any
+      // rollcage it was loaded into for putaway) used to keep it around forever, so its pcs kept
+      // counting toward "today's" totals even after the batch itself was gone. Clean those up too.
+      const logsBefore = garmentReceiveLogs.length;
+      garmentReceiveLogs = garmentReceiveLogs.filter(l => l.batchNo !== batchNo);
+      if (garmentReceiveLogs.length !== logsBefore) saveGarmentReceiveLogs();
+      let rollcagesChanged = false;
+      rollcages.forEach(rc => {
+        if (!rc.putawayItems || !rc.putawayItems.length) return;
+        const itemsBefore = rc.putawayItems.length;
+        rc.putawayItems = rc.putawayItems.filter(it => it.batchNo !== batchNo);
+        if (rc.putawayItems.length !== itemsBefore) {
+          rollcagesChanged = true;
+          if (!rc.putawayItems.length) rc.putawayInUse = false;
+        }
+      });
+      if (rollcagesChanged) saveRollcages();
+      renderInboundAll();
+      renderReceiveStationsTab();
+      if (rollcagesChanged) {
+        renderRollcagesList();
+        renderRollcageUsageBoards();
+      }
     });
   });
 
@@ -9797,15 +9876,24 @@ function renderGarmentOrderTab() {
   });
 
   // One-click shortcut for the common case where a SKU's whole remaining balance arrives in a
-  // single delivery — fills Qty Received straight up to Qty Order, no typing.
+  // single delivery — fills Qty Received straight up to Qty Order, no typing. Routed through the
+  // exact same performGarmentSkuLog() path as the "+ Log" button (by pre-filling the qty input
+  // and clicking it programmatically) so it gets every side effect a normal log gets: station
+  // attribution/OFF-block, the garmentReceiveLogs entry that feeds KPIs/Reports/charts, and the
+  // putaway rollcage prompt — none of that used to happen when this button set qtyReceived
+  // directly, which silently skipped putaway tracking and undercounted receiving totals.
   wrap.querySelectorAll('.garment-sku-complete-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const batch = garmentOrders.find(b => b.batchNo === btn.dataset.batch);
+      const batchNo = btn.dataset.batch;
       const sidx = Number(btn.dataset.sidx);
-      batch.skus[sidx].qtyReceived = Number(batch.skus[sidx].qtyOrder) || 0;
-      batch.skus[sidx].lastReceivedDate = todayStr();
-      saveGarmentOrders();
-      renderGarmentOrderTab();
+      const batch = garmentOrders.find(b => b.batchNo === batchNo);
+      const s = batch.skus[sidx];
+      const remaining = Math.max(0, (Number(s.qtyOrder) || 0) - (Number(s.qtyReceived) || 0));
+      if (!remaining) return;
+      const input = Array.from(wrap.querySelectorAll('.garment-sku-log-input'))
+        .find(el => el.dataset.batch === batchNo && Number(el.dataset.sidx) === sidx);
+      if (input) input.value = remaining;
+      performGarmentSkuLog(batchNo, sidx);
     });
   });
 
@@ -10017,8 +10105,14 @@ function garmentDaysWaiting(batch) {
 function garmentComputeAmaran(batch) {
   // "Done" now means fully received AND fully put away — a batch that's finished receiving but
   // still sitting in a rollcage waiting for putaway isn't truly done yet, so it falls through to
-  // the normal waiting-day logic below instead of short-circuiting.
-  if (garmentBatchStatus(batch) === 'Complete' && garmentBatchPutawayStatus(batch) === 'Done') return 'Done';
+  // the normal waiting-day logic below instead of short-circuiting. A batch that never had
+  // anything loaded into a rollcage at all (garmentBatchPutawayStatus returns null, e.g. every
+  // SKU's putaway prompt was skipped) has nothing pending to unload either, so that counts the
+  // same as "Done" here rather than blocking the badge forever.
+  if (garmentBatchStatus(batch) === 'Complete') {
+    const putawayStatus = garmentBatchPutawayStatus(batch);
+    if (putawayStatus === null || putawayStatus === 'Done') return 'Done';
+  }
   const waiting = garmentDaysWaiting(batch);
   if (waiting === null) return 'OK';
   if (waiting > inboundAlertSettings.garment.criticalDays) return 'CRITICAL';
