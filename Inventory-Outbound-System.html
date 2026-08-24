@@ -264,6 +264,10 @@
   .dash-slide[data-slide="fleet"] #fleetDashTodayWrap th,
   .dash-slide[data-slide="fleet"] #fleetDashTodayWrap td { padding: 6px 8px; font-size: 12px; }
   .dash-slide[data-slide="fleet"] #fleetDashTodayWrap .badge { padding: 2px 8px; font-size: 10px; }
+  /* The box itself already stretches to fill leftover slide height — this makes the actual rows
+     share that extra height between them (standard table-height distribution) instead of just
+     sitting at the top with dead space below, so the box looks genuinely "full" edge to edge. */
+  .dash-slide[data-slide="fleet"] #fleetDashTodayWrap table { height: 100%; }
 
   .card { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 20px; margin-bottom: 22px; }
 
@@ -715,10 +719,11 @@
     <h1 class="brand-title">Warehouse Tracker</h1>
   </div>
   <div class="sidebar-date" id="todayLabel"></div>
-  <div class="data-note" id="loginStatusBar" style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 10px;">
+  <div class="data-note" id="loginStatusBar" style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 6px;">
     <span id="loginStatusText"></span>
     <button type="button" class="btn-ghost" id="logoutBtn" style="padding:4px 10px; font-size:11px;">Logout</button>
   </div>
+  <button type="button" class="btn-ghost" id="deviceStationBtn" style="width:100%; text-align:left; padding:4px 10px; font-size:11px; margin:0 0 10px;">📍 <span id="deviceStationBtnLabel">Station komputer ni: — none —</span></button>
   <nav class="tabs">
     <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
     <button type="button" class="nav-group-toggle" id="navGroupOutboundToggle" data-group="navGroupOutbound">
@@ -737,6 +742,7 @@
       <button class="tab-btn" data-tab="inbound-garment">Garment Order</button>
       <button class="tab-btn" data-tab="inbound-sto">STO From Boutique</button>
       <button class="tab-btn" data-tab="inbound-board">Progress Board</button>
+      <button class="tab-btn" data-tab="inbound-putaway">Putaway</button>
       <button class="tab-btn" data-tab="inbound-sla">SLA Settings</button>
     </div>
     <button type="button" class="nav-group-toggle" id="navGroupFleetToggle" data-group="navGroupFleet">
@@ -1586,6 +1592,12 @@
     <div class="kanban-board" id="inboundKanbanBoard"></div>
   </section>
 
+  <section class="tab-panel" id="tab-inbound-putaway">
+    <p class="section-title">Putaway</p>
+    <div class="data-note" style="margin-bottom:14px;">Rollcage/trolley yang ada barang menunggu putaway — dari Garment Order receiving. Klik "Putaway Done" bila dah siap letak dalam rack.</div>
+    <div id="putawayTableWrap"></div>
+  </section>
+
   <section class="tab-panel" id="tab-inbound-sla">
     <p class="section-title">STO From Boutique Alert Thresholds</p>
     <div class="card" style="margin-bottom:24px;">
@@ -1824,13 +1836,6 @@
         Admin/Team Lead (full access to every tab, incl. Team Setup)
       </label>
     </div>
-    <div class="field" style="margin-top:14px;">
-      <label>Station (optional)</label>
-      <select id="inputUserStation">
-        <option value="">— none / not station-based —</option>
-      </select>
-      <div class="data-note" style="margin-top:4px;">Kalau diisi, dropdown Station masa log Garment Order receiving akan auto-pilih station ni bila user log in (untuk Receive Station) — Packing Station pula direkod untuk rujukan/laporan.</div>
-    </div>
     <div class="field" id="userPermField" style="margin-top:14px; margin-bottom:0;">
       <label>Tabs this user can access</label>
       <div class="perm-grid" id="userPermGrid"></div>
@@ -2005,6 +2010,47 @@
     <div class="modal-actions">
       <button class="btn-ghost" id="rollcageSkipBtn">Skip</button>
       <button class="btn-primary" id="rollcageSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="putawayRollcageModal">
+  <div class="modal-box" style="max-width:380px;">
+    <div class="modal-header">
+      <h2>Letak Dalam Rollcage/Trolley?</h2>
+      <button class="modal-close" id="putawayRollcageCloseBtn">&times;</button>
+    </div>
+    <div class="data-note" id="putawayRollcageItemNote" style="margin-bottom:10px;"></div>
+    <div class="field" style="margin-bottom:14px;">
+      <label>Rollcage/Trolley untuk Putaway (optional)</label>
+      <select id="putawayRollcageInput"></select>
+      <div class="data-note" id="putawayRollcageInputNote" style="margin-top:6px;"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="putawayRollcageSkipBtn">Skip</button>
+      <button class="btn-primary" id="putawayRollcageSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="deviceStationModal">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="modal-header">
+      <h2>Station Komputer Ni</h2>
+      <button class="modal-close" id="deviceStationCloseBtn">&times;</button>
+    </div>
+    <div class="data-note" style="margin-bottom:14px;">Set station untuk KOMPUTER/TABLET ni sahaja (bukan akaun) — mana-mana staff yang log masuk kat sini akan auto guna station yang dipilih. Tak payah buat akaun berasingan untuk setiap station.</div>
+    <div class="field" style="margin-bottom:14px;">
+      <label>Receive Station (untuk komputer ni)</label>
+      <select id="deviceReceiveStationInput"><option value="">— none —</option></select>
+    </div>
+    <div class="field" style="margin-bottom:14px;">
+      <label>Packing Station (untuk komputer ni)</label>
+      <select id="devicePackingStationInput"><option value="">— none —</option></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="deviceStationCloseBtn2">Close</button>
+      <button class="btn-primary" id="deviceStationSaveBtn">Save</button>
     </div>
   </div>
 </div>
@@ -2186,6 +2232,37 @@ function formatShiftWindow(station) {
   return `${station.shiftStart}–${station.shiftEnd}`;
 }
 
+// "This device's station" — lets staff pick which Receive/Packing Station this specific
+// computer/tablet belongs to, ONCE, instead of needing a separate login account per station.
+// Whoever logs in on that device is treated as working at that station for as long as the
+// selection stays set (it lives in this browser's localStorage, not on the user account).
+// Falls back to the (older, still-supported) account-level curUser.receiveStation/packingStation
+// link if this device has nothing set, so existing linked accounts keep working unchanged.
+const DEVICE_RECEIVE_STATION_KEY = 'sto_device_receive_station_v1';
+const DEVICE_PACKING_STATION_KEY = 'sto_device_packing_station_v1';
+function getDeviceReceiveStation() { return localStorage.getItem(DEVICE_RECEIVE_STATION_KEY) || ''; }
+function getDevicePackingStation() { return localStorage.getItem(DEVICE_PACKING_STATION_KEY) || ''; }
+function setDeviceReceiveStation(name) {
+  if (name) localStorage.setItem(DEVICE_RECEIVE_STATION_KEY, name); else localStorage.removeItem(DEVICE_RECEIVE_STATION_KEY);
+}
+function setDevicePackingStation(name) {
+  if (name) localStorage.setItem(DEVICE_PACKING_STATION_KEY, name); else localStorage.removeItem(DEVICE_PACKING_STATION_KEY);
+}
+function getEffectiveReceiveStationName() {
+  const dev = getDeviceReceiveStation();
+  if (dev && receiveStations.some(s => s.name === dev)) return dev;
+  const curUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+  if (curUser && curUser.receiveStation) return curUser.receiveStation;
+  return '';
+}
+function getEffectivePackingStationName() {
+  const dev = getDevicePackingStation();
+  if (dev && packingStations.some(s => s.name === dev)) return dev;
+  const curUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+  if (curUser && curUser.packingStation) return curUser.packingStation;
+  return '';
+}
+
 /* ---------- Packing Stations ---------- */
 const PACKING_STATIONS_KEY = 'sto_packing_stations_v1';
 const PACKING_STATION_RR_KEY = 'sto_packing_station_rr_v1'; // next round-robin index
@@ -2203,6 +2280,19 @@ function getNextPackingStationName() {
   const idx = Math.max(0, Number(localStorage.getItem(PACKING_STATION_RR_KEY)) || 0) % onStations.length;
   localStorage.setItem(PACKING_STATION_RR_KEY, String((idx + 1) % onStations.length));
   return onStations[idx].name;
+}
+// Whoever's physically dragging an STO into Packing is usually the one about to pack it — if
+// their account is linked to a Packing Station (Team Setup > Users) and it's currently on shift,
+// that takes priority over the round-robin so the card lands straight on their own lane instead of
+// wherever rotation happens to point. Falls back to round-robin for accounts with no station linked
+// (or whose linked station is off right now), same as before this existed.
+function getPreferredPackingStationName() {
+  const effectiveStationName = getEffectivePackingStationName();
+  if (effectiveStationName) {
+    const mine = packingStations.find(s => s.name === effectiveStationName);
+    if (mine && isStationOnShift(mine)) return mine.name;
+  }
+  return getNextPackingStationName();
 }
 
 /* ---------- Pickers roster (flat list, no separate lanes/stations) ---------- */
@@ -2231,7 +2321,10 @@ function pickerNames() { return pickers.map(p => p.name); }
 
 /* ---------- Rollcages / Trolleys ---------- */
 const ROLLCAGES_KEY = 'sto_rollcages_v1';
-let rollcages = []; // [{ name }]
+// putawayInUse: true once Garment Order receiving has loaded this rollcage with stock still
+// waiting to be put away — putawayItems is just a running log of what went in (for display), it
+// doesn't drive anything. Cleared by the "Putaway Done" button in Team Setup, not automatically.
+let rollcages = []; // [{ name, putawayInUse, putawayItems: [{ batchNo, sku, qty, date }] }]
 function loadRollcages() {
   try { rollcages = JSON.parse(localStorage.getItem(ROLLCAGES_KEY)) || []; } catch (e) { rollcages = []; }
   const seenNames = new Set();
@@ -2243,15 +2336,18 @@ function loadRollcages() {
   });
 }
 function saveRollcages() { localStorage.setItem(ROLLCAGES_KEY, JSON.stringify(rollcages)); }
-// Rollcages/trolleys are a shared physical pool used by BOTH Outbound (Packing stage) and Inbound
-// (On Progress stage) — a rollcage counts as "in use" for as long as some OTHER STO/inbound record
-// currently sitting in that stage has it assigned, and it frees back up the moment that record
-// leaves the stage in either direction, no separate "release" step needed.
+// Rollcages/trolleys are a shared physical pool used by Outbound (Packing stage), Inbound (On
+// Progress stage), AND Garment Order putaway (loaded after receiving, until "Putaway Done") — a
+// rollcage counts as "in use" for as long as any ONE of those three holds it. The first two free up
+// automatically when the record leaves that stage; putaway only frees up via the explicit button,
+// since there's no single "record" whose stage-move would signal it's done.
 function rollcageInUseByDetail(name, excludeOrderNumber) {
   const rec = records.find(r => r.progress === 'Packing' && r.rollcageNo === name && r.orderNumber !== excludeOrderNumber);
   if (rec) return { orderNumber: rec.orderNumber, source: 'Outbound (Packing)' };
   const inRec = (typeof inboundRecords !== 'undefined' ? inboundRecords : []).find(r => r.progress === 'On Progress' && r.rollcageNo === name && r.orderNumber !== excludeOrderNumber);
   if (inRec) return { orderNumber: inRec.orderNumber, source: 'Inbound (On Progress)' };
+  const rc = rollcages.find(r => r.name === name && r.putawayInUse);
+  if (rc) return { orderNumber: `${(rc.putawayItems || []).length} item(s)`, source: 'Garment Order (Putaway)' };
   return null;
 }
 function rollcageInUseBy(name, excludeOrderNumber) {
@@ -3418,15 +3514,28 @@ let stationTargetChart = null;
 // each other is the point here.
 function renderStationTargetProgress() {
   const today = todayStr();
-  // All stations share the same auto-derived target (overall Packer Daily Target split evenly).
-  const autoCapTarget = effectiveOf(autoIndividualTargetPair('packer', packingStations.length));
-  const rows = (autoCapTarget && autoCapTarget > 0 ? packingStations : [])
-    .map(s => {
-      const qty = records
-        .filter(r => r.packingStation === s.name && r.packingCompletedDate === today)
-        .reduce((sum, r) => sum + (parseFloat(r.totalOrderQty) || 0), 0);
-      return { name: s.name, qty, target: Number(autoCapTarget) };
-    });
+  // When every registered station is OFF, there's no meaningful per-station breakdown to show —
+  // collapse into a single "General" bar against the OVERALL (un-split) target instead of a wall
+  // of empty/idle per-station bars.
+  const anyPackingOnShift = packingStations.some(s => isStationOnShift(s));
+  let rows;
+  if (packingStations.length && !anyPackingOnShift) {
+    const overallTarget = effectiveDailyTarget('packer');
+    const qty = records
+      .filter(r => r.packingCompletedDate === today)
+      .reduce((sum, r) => sum + (parseFloat(r.totalOrderQty) || 0), 0);
+    rows = (overallTarget && overallTarget > 0) ? [{ name: 'Packing', qty, target: Number(overallTarget) }] : [];
+  } else {
+    // All stations share the same auto-derived target (overall Packer Daily Target split evenly).
+    const autoCapTarget = effectiveOf(autoIndividualTargetPair('packer', packingStations.length));
+    rows = (autoCapTarget && autoCapTarget > 0 ? packingStations : [])
+      .map(s => {
+        const qty = records
+          .filter(r => r.packingStation === s.name && r.packingCompletedDate === today)
+          .reduce((sum, r) => sum + (parseFloat(r.totalOrderQty) || 0), 0);
+        return { name: s.name, qty, target: Number(autoCapTarget) };
+      });
+  }
 
   const canvas = document.getElementById('stationTargetChart');
   const emptyEl = document.getElementById('stationTargetEmpty');
@@ -4053,15 +4162,21 @@ function renderRollcagesList() {
     wrap.innerHTML = `<div class="empty-state">No rollcages/trolleys registered yet. Add one above — it'll show up as a dropdown when an STO is dragged into Packing.</div>`;
     return;
   }
-  let html = `<table><thead><tr><th>Rollcage No.</th><th>Status</th><th></th></tr></thead><tbody>`;
+  let html = `<table><thead><tr><th>Rollcage No.</th><th>Status</th><th></th><th></th></tr></thead><tbody>`;
   rollcages.forEach((rc, i) => {
     const detail = rollcageInUseByDetail(rc.name, null);
     const statusBadge = detail
       ? `<span class="badge badge-red">In use — ${escapeHtml(detail.orderNumber)} (${escapeHtml(detail.source)})</span>`
       : `<span class="badge badge-green">Free</span>`;
+    // "Putaway Done" only shows up once this rollcage actually has something loaded for putaway —
+    // clicking it frees the rollcage regardless of how many separate SKU logs fed into it.
+    const putawayBtn = rc.putawayInUse
+      ? `<button type="button" class="btn-ghost rollcage-putaway-done-btn" data-idx="${i}">Putaway Done</button>`
+      : '';
     html += `<tr>
       <td><input type="text" class="rollcage-roster-name-input" data-idx="${i}" value="${escapeHtml(rc.name)}"></td>
       <td>${statusBadge}</td>
+      <td class="row-actions">${putawayBtn}</td>
       <td class="row-actions">
         <button class="icon-btn remove-rollcage-btn" data-idx="${i}" title="Delete">✕</button>
       </td>
@@ -4069,6 +4184,23 @@ function renderRollcagesList() {
   });
   html += `</tbody></table>`;
   wrap.innerHTML = html;
+
+  wrap.querySelectorAll('.rollcage-putaway-done-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = Number(e.target.dataset.idx);
+      const rc = rollcages[idx];
+      const itemCount = (rc.putawayItems || []).length;
+      if (!confirm(`Tandakan "${rc.name}" siap putaway? (${itemCount} item(s)) — rollcage ni akan free semula.`)) return;
+      rc.putawayInUse = false;
+      rc.putawayItems = [];
+      saveRollcages();
+      markGarmentSkusPutawayDoneForRollcage(rc.name);
+      renderRollcagesList();
+      renderRollcageUsageBoards();
+      if (typeof renderPutawayTab === 'function') renderPutawayTab();
+      renderGarmentOrderTab();
+    });
+  });
 
   wrap.querySelectorAll('.rollcage-roster-name-input').forEach(inp => {
     inp.addEventListener('change', (e) => {
@@ -4412,6 +4544,7 @@ const PERMISSION_TABS = [
   { id: 'inbound-garment', label: 'Garment Order (Inbound)' },
   { id: 'inbound-sto', label: 'STO From Boutique (Inbound)' },
   { id: 'inbound-board', label: 'Progress Board (Inbound)' },
+  { id: 'inbound-putaway', label: 'Putaway (Inbound)' },
   { id: 'inbound-sla', label: 'SLA Settings (Inbound)' },
   { id: 'fleet-trips', label: 'Create Trip (Fleet)' },
   { id: 'fleet-board', label: 'Trip Schedule (Fleet)' },
@@ -4463,7 +4596,48 @@ function renderLoginStatusBar(user) {
   const text = document.getElementById('loginStatusText');
   if (!text) return;
   text.textContent = user ? `${user.username} (${user.isAdmin ? 'Admin/Team Lead' : (user.position || 'User')})` : '';
+  renderDeviceStationBtnLabel();
 }
+// "This device's station" button label in the sidebar — summarises whatever's currently saved for
+// THIS browser (localStorage), so staff can tell at a glance which station this computer is set to
+// without opening the modal.
+function renderDeviceStationBtnLabel() {
+  const label = document.getElementById('deviceStationBtnLabel');
+  if (!label) return;
+  const rec = getDeviceReceiveStation();
+  const pack = getDevicePackingStation();
+  const parts = [];
+  if (rec) parts.push(`Receive: ${rec}`);
+  if (pack) parts.push(`Packing: ${pack}`);
+  label.textContent = parts.length ? `Station komputer ni: ${parts.join(' · ')}` : 'Station komputer ni: — none —';
+}
+function populateDeviceStationSelects() {
+  const recSelect = document.getElementById('deviceReceiveStationInput');
+  const packSelect = document.getElementById('devicePackingStationInput');
+  const curRec = getDeviceReceiveStation();
+  const curPack = getDevicePackingStation();
+  recSelect.innerHTML = `<option value="">— none —</option>` + receiveStations.map(s => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`).join('');
+  packSelect.innerHTML = `<option value="">— none —</option>` + packingStations.map(s => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`).join('');
+  recSelect.value = receiveStations.some(s => s.name === curRec) ? curRec : '';
+  packSelect.value = packingStations.some(s => s.name === curPack) ? curPack : '';
+}
+function openDeviceStationModal() {
+  populateDeviceStationSelects();
+  document.getElementById('deviceStationModal').classList.remove('hidden');
+}
+function closeDeviceStationModal() {
+  document.getElementById('deviceStationModal').classList.add('hidden');
+}
+document.getElementById('deviceStationBtn').addEventListener('click', openDeviceStationModal);
+document.getElementById('deviceStationCloseBtn').addEventListener('click', closeDeviceStationModal);
+document.getElementById('deviceStationCloseBtn2').addEventListener('click', closeDeviceStationModal);
+document.getElementById('deviceStationSaveBtn').addEventListener('click', () => {
+  setDeviceReceiveStation(document.getElementById('deviceReceiveStationInput').value);
+  setDevicePackingStation(document.getElementById('devicePackingStationInput').value);
+  renderDeviceStationBtnLabel();
+  closeDeviceStationModal();
+  if (typeof renderGarmentOrderTab === 'function' && document.getElementById('tab-inbound-garment')) renderGarmentOrderTab();
+});
 // Shown on the very first run (no users exist yet at all) instead of the normal login screen, so
 // there's no guessable default password to worry about — Shaila sets her own Admin username/password.
 function initAuthGate() {
@@ -4562,15 +4736,6 @@ document.getElementById('inputUserIsAdmin').addEventListener('change', updateUse
 // different lists (usually named differently, e.g. "Day Shift Reciever" vs "Day Shift Packer"), so
 // each option's value is prefixed with its type ("receive:" / "packing:") to tell them apart on
 // Save, without needing two separate fields cluttering the form.
-function populateUserStationSelect(user) {
-  const select = document.getElementById('inputUserStation');
-  const currentValue = user && user.receiveStation ? `receive:${user.receiveStation}` : (user && user.packingStation ? `packing:${user.packingStation}` : '');
-  select.innerHTML = `<option value="">— none / not station-based —</option>` +
-    (receiveStations.length ? `<optgroup label="Receive Station">${receiveStations.map(s => `<option value="receive:${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`).join('')}</optgroup>` : '') +
-    (packingStations.length ? `<optgroup label="Packing Station">${packingStations.map(s => `<option value="packing:${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`).join('')}</optgroup>` : '');
-  const validValues = ['', ...receiveStations.map(s => `receive:${s.name}`), ...packingStations.map(s => `packing:${s.name}`)];
-  select.value = validValues.includes(currentValue) ? currentValue : '';
-}
 function openUserModal(editId) {
   userModalEditId = editId || null;
   const user = editId ? loadAppUsers().find(u => u.id === editId) : null;
@@ -4579,7 +4744,6 @@ function openUserModal(editId) {
   document.getElementById('inputUserPassword').value = user ? user.password : '';
   document.getElementById('inputUserPosition').value = user && user.position ? user.position : 'User';
   document.getElementById('inputUserIsAdmin').checked = user ? !!user.isAdmin : false;
-  populateUserStationSelect(user);
   document.getElementById('userModalError').style.display = 'none';
   document.getElementById('userModalDeleteBtn').style.display = user ? '' : 'none';
   renderUserPermGrid(user);
@@ -4599,9 +4763,6 @@ document.getElementById('userModalSaveBtn').addEventListener('click', () => {
   const password = document.getElementById('inputUserPassword').value.trim();
   const position = document.getElementById('inputUserPosition').value;
   const isAdmin = document.getElementById('inputUserIsAdmin').checked;
-  const stationSelectVal = document.getElementById('inputUserStation').value; // "" | "receive:<name>" | "packing:<name>"
-  const receiveStation = stationSelectVal.startsWith('receive:') ? stationSelectVal.slice('receive:'.length) : '';
-  const packingStation = stationSelectVal.startsWith('packing:') ? stationSelectVal.slice('packing:'.length) : '';
   const errNote = document.getElementById('userModalError');
   const showErr = (msg) => { errNote.textContent = msg; errNote.style.display = ''; };
   if (!username || !password) { showErr('Username and password are both required.'); return; }
@@ -4611,10 +4772,14 @@ document.getElementById('userModalSaveBtn').addEventListener('click', () => {
   const permissions = {};
   document.querySelectorAll('.user-perm-checkbox').forEach(cb => { permissions[cb.value] = cb.checked; });
   if (userModalEditId) {
+    // Note: intentionally NOT touching u.receiveStation/u.packingStation here — those legacy
+    // account-level links (from before "this device's station" existed) are left as-is for any
+    // account that already had one set, since getEffectiveReceiveStationName()/
+    // getEffectivePackingStationName() still fall back to them when a device has nothing set.
     const u = users.find(u => u.id === userModalEditId);
-    if (u) { u.username = username; u.password = password; u.position = position; u.isAdmin = isAdmin; u.permissions = permissions; u.receiveStation = receiveStation; u.packingStation = packingStation; }
+    if (u) { u.username = username; u.password = password; u.position = position; u.isAdmin = isAdmin; u.permissions = permissions; }
   } else {
-    users.push({ id: genUserId(), username, password, position, isAdmin, permissions, receiveStation, packingStation });
+    users.push({ id: genUserId(), username, password, position, isAdmin, permissions });
   }
   if (!users.some(u => u.isAdmin)) { showErr('At least one Admin/Team Lead account must exist — tick "Admin/Team Lead" for at least one user.'); return; }
   saveAppUsers(users);
@@ -7970,7 +8135,7 @@ function renderKanban() {
         // whichever lane it's dropped on (or clears the station if dropped on "Unassigned").
         if (stage === 'Packing') {
           if (previousStage !== 'Packing') {
-            const nextStation = getNextPackingStationName();
+            const nextStation = getPreferredPackingStationName();
             if (nextStation) {
               rec.packingStation = nextStation;
               rec.packingStationDate = todayStr();
@@ -8066,7 +8231,7 @@ function bulkMoveOrderNumbersToStage(orderNumbers, target) {
     if (target === 'Shipped' && previousStage === 'Packed') packedToShipped.push(id);
     clearStaleNumbersOnBackwardMove(rec, previousStage, target);
     if (target === 'Packing' && previousStage !== 'Packing') {
-      const nextStation = getNextPackingStationName();
+      const nextStation = getPreferredPackingStationName();
       if (nextStation) { rec.packingStation = nextStation; rec.packingStationDate = todayStr(); }
     }
     if (target === 'Packing' && previousStage === 'Picking') rec.pickingCompletedDate = todayStr();
@@ -8891,6 +9056,150 @@ document.getElementById('rollcageSaveBtn').addEventListener('click', () => {
   renderRollcageUsageBoards();
 });
 
+/* ---------- Putaway Rollcage/Trolley (after Garment Order receiving log) ---------- */
+// Triggered every time a SKU qty is logged as received — asks which rollcage/trolley it goes into
+// for putaway. Several SKUs/logs can share the same rollcage (it just keeps a running list of
+// what's loaded), so unlike the Packing/Receiving rollcage field this isn't "one occupant only" —
+// it stays "in use" until someone explicitly clicks "Putaway Done" on it in Team Setup.
+let putawayRollcagePending = null; // { batchNo, sku, qty }
+function populatePutawayRollcageSelect() {
+  const select = document.getElementById('putawayRollcageInput');
+  const note = document.getElementById('putawayRollcageInputNote');
+  if (!rollcages.length) {
+    select.innerHTML = `<option value="">— none registered —</option>`;
+    note.textContent = 'No rollcages registered yet — add them in Team Setup > Rollcages / Trolleys.';
+    return;
+  }
+  // Hide rollcages that are physically elsewhere right now (Outbound Packing / Inbound On
+  // Progress) — but keep ones already loaded for putaway selectable, since sharing one trolley
+  // across several SKUs/logs is the normal case.
+  const available = rollcages.filter(rc => {
+    const detail = rollcageInUseByDetail(rc.name, null);
+    return !detail || detail.source === 'Garment Order (Putaway)';
+  });
+  select.innerHTML = `<option value="">— none / skip —</option>` +
+    available.map(rc => {
+      const loadedNote = rc.putawayInUse ? ` (${(rc.putawayItems || []).length} item(s) already loaded)` : '';
+      return `<option value="${escapeHtml(rc.name)}">${escapeHtml(rc.name)}${loadedNote}</option>`;
+    }).join('');
+  note.textContent = available.length < rollcages.length
+    ? `${rollcages.length - available.length} rollcage(s) currently in use for Packing/Receiving are hidden.`
+    : '';
+}
+function openPutawayRollcageModal(batchNo, sku, qty) {
+  putawayRollcagePending = { batchNo, sku, qty };
+  document.getElementById('putawayRollcageItemNote').textContent = `${sku || batchNo} — ${formatQty(qty)} pcs baru di-log.`;
+  populatePutawayRollcageSelect();
+  document.getElementById('putawayRollcageModal').classList.remove('hidden');
+  document.getElementById('putawayRollcageInput').focus();
+}
+function closePutawayRollcageModal() {
+  document.getElementById('putawayRollcageModal').classList.add('hidden');
+  putawayRollcagePending = null;
+}
+document.getElementById('putawayRollcageCloseBtn').addEventListener('click', closePutawayRollcageModal);
+document.getElementById('putawayRollcageSkipBtn').addEventListener('click', closePutawayRollcageModal);
+document.getElementById('putawayRollcageModal').addEventListener('click', (e) => {
+  if (e.target.id === 'putawayRollcageModal') closePutawayRollcageModal();
+});
+document.getElementById('putawayRollcageSaveBtn').addEventListener('click', () => {
+  const val = document.getElementById('putawayRollcageInput').value.trim();
+  if (val && putawayRollcagePending) {
+    const rc = rollcages.find(r => r.name === val);
+    if (rc) {
+      // Re-check at save time in case it got taken by Packing/Receiving in the few seconds the
+      // modal was open (rare, but cheap to guard against — shared pool).
+      const detail = rollcageInUseByDetail(val, null);
+      if (detail && detail.source !== 'Garment Order (Putaway)') {
+        alert(`Rollcage "${val}" baru sahaja dipakai untuk ${detail.source}. Pilih yang lain.`);
+        populatePutawayRollcageSelect();
+        return;
+      }
+      rc.putawayInUse = true;
+      rc.putawayItems = rc.putawayItems || [];
+      rc.putawayItems.push({ batchNo: putawayRollcagePending.batchNo, sku: putawayRollcagePending.sku, qty: putawayRollcagePending.qty, date: todayStr() });
+      saveRollcages();
+      // Tag the originating SKU line item itself so the batch card's own "Putaway: Pending/Done"
+      // badge (garmentBatchPutawayStatus) has something to read — the rollcage's putawayItems list
+      // is just a display log, this is what actually drives the badge.
+      const srcBatch = garmentOrders.find(b => b.batchNo === putawayRollcagePending.batchNo);
+      const srcSku = srcBatch && srcBatch.skus.find(s => s.sku === putawayRollcagePending.sku);
+      if (srcSku) {
+        srcSku.putawayRollcage = val;
+        srcSku.putawayStatus = 'pending';
+        saveGarmentOrders();
+      }
+      renderRollcagesList();
+      renderRollcageUsageBoards();
+      renderPutawayTab();
+      renderGarmentOrderTab();
+    }
+  }
+  closePutawayRollcageModal();
+});
+
+/* ---------- Putaway tab (Inbound) ---------- */
+// Dedicated tab for the putaway crew — every rollcage currently loaded (putawayInUse), with what's
+// in it and when it got logged, plus its own "Putaway Done" button (same action as the one in Team
+// Setup > Rollcages, just easier to reach without going through Admin-only Team Setup).
+function renderPutawayTab() {
+  const wrap = document.getElementById('putawayTableWrap');
+  if (!wrap) return;
+  const loaded = rollcages.filter(rc => rc.putawayInUse && (rc.putawayItems || []).length);
+  if (!loaded.length) {
+    wrap.innerHTML = `<div class="empty-state">Takde rollcage/trolley yang loaded untuk putaway sekarang. Item akan muncul di sini lepas staff log receiving di Garment Order dan pilih rollcage.</div>`;
+    return;
+  }
+  wrap.innerHTML = loaded.map(rc => {
+    // Same SKU can get logged more than once (separate delivery/log entries) — combine those into
+    // one row with summed qty instead of listing every individual log line separately.
+    const grouped = [];
+    const groupIndex = {};
+    (rc.putawayItems || []).forEach(it => {
+      const key = it.sku || it.batchNo || '-';
+      if (!groupIndex[key]) {
+        groupIndex[key] = { sku: it.sku, batchNos: new Set(), qty: 0, latestDate: it.date };
+        grouped.push(groupIndex[key]);
+      }
+      const g = groupIndex[key];
+      if (it.batchNo) g.batchNos.add(it.batchNo);
+      g.qty += Number(it.qty) || 0;
+      if (!g.latestDate || (it.date && it.date > g.latestDate)) g.latestDate = it.date;
+    });
+    const itemsHtml = grouped.map(g => `<tr>
+      <td class="mono-name">${escapeHtml(g.sku || '-')}</td>
+      <td>${escapeHtml([...g.batchNos].join(', ') || '-')}</td>
+      <td>${formatQty(g.qty)}</td>
+      <td>${formatDateLabel(g.latestDate)}</td>
+    </tr>`).join('');
+    return `<div class="card" style="margin-bottom:16px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;">
+        <span class="mono-name" style="font-size:15px;">${escapeHtml(rc.name)}</span>
+        <button type="button" class="btn-primary putaway-tab-done-btn" data-name="${escapeHtml(rc.name)}">Putaway Done</button>
+      </div>
+      <table><thead><tr><th>SKU</th><th>Batch No.</th><th>Qty</th><th>Date Logged</th></tr></thead><tbody>${itemsHtml}</tbody></table>
+    </div>`;
+  }).join('');
+
+  wrap.querySelectorAll('.putaway-tab-done-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const name = e.target.dataset.name;
+      const rc = rollcages.find(r => r.name === name);
+      if (!rc) return;
+      const itemCount = (rc.putawayItems || []).length;
+      if (!confirm(`Tandakan "${rc.name}" siap putaway? (${itemCount} item(s)) — rollcage ni akan free semula.`)) return;
+      rc.putawayInUse = false;
+      rc.putawayItems = [];
+      saveRollcages();
+      markGarmentSkusPutawayDoneForRollcage(rc.name);
+      renderPutawayTab();
+      renderRollcagesList();
+      renderRollcageUsageBoards();
+      renderGarmentOrderTab();
+    });
+  });
+}
+
 /* ---------- Packing station assignment (Packing stage) ---------- */
 // Entering Packing auto-assigns the next station in rotation (see getNextPackingStationName);
 // this modal is for reviewing/overriding that choice manually afterward.
@@ -8933,9 +9242,13 @@ function openPackingStationModal(orderNumber) {
     select.innerHTML = `<option value="">${packingStations.length ? '— none on shift right now —' : '— none registered —'}</option>`;
   } else {
     select.innerHTML = pickable.map(s => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`).join('');
-    select.value = rec.packingStation && pickable.some(s => s.name === rec.packingStation)
+    // Preference order: keep whatever's already assigned to this STO > this device's/account's
+    // linked Packing Station (if it's pickable) > just whatever's first in the list.
+    const myStationName = getEffectivePackingStationName();
+    const myStationPickable = myStationName && pickable.some(s => s.name === myStationName) ? myStationName : null;
+    select.value = (rec.packingStation && pickable.some(s => s.name === rec.packingStation))
       ? rec.packingStation
-      : pickable[0].name;
+      : (myStationPickable || pickable[0].name);
   }
   renderPackingStationManpowerNote(select.value);
   renderPackerSelect(select.value, rec.packerName);
@@ -9244,9 +9557,39 @@ function garmentStatusBadgeClass(status) {
   if (status === 'Partial') return 'badge-amber';
   return 'badge-red';
 }
+// Putaway status is separate from receiving status (garmentBatchStatus above) — a batch can be
+// fully "Complete" (all pcs received) while its putaway is still "Pending" (still sitting in a
+// rollcage waiting to be shelved). Only SKUs that actually had something received are counted —
+// a SKU nobody's touched yet has nothing to put away, so it shouldn't drag the badge down. Returns
+// null when nothing's been received at all yet (no badge shown in that case).
+function garmentBatchPutawayStatus(batch) {
+  const relevant = batch.skus.filter(s => (Number(s.qtyReceived) || 0) > 0);
+  if (!relevant.length) return null;
+  return relevant.every(s => s.putawayStatus === 'done') ? 'Done' : 'Pending';
+}
+function garmentPutawayBadgeClass(status) { return status === 'Done' ? 'badge-green' : 'badge-amber'; }
+// Called once a rollcage's "Putaway Done" is clicked — cascades that completion down to every SKU
+// line item (across every batch) that was loaded into it, so the batch cards' Putaway badges flip
+// over without needing their own separate "mark done" step.
+function markGarmentSkusPutawayDoneForRollcage(rollcageName) {
+  garmentOrders.forEach(b => {
+    b.skus.forEach(s => {
+      if (s.putawayRollcage === rollcageName && s.putawayStatus === 'pending') s.putawayStatus = 'done';
+    });
+  });
+  saveGarmentOrders();
+}
 
 function renderGarmentSkuRows(batch) {
   if (!batch.skus.length) return `<div class="empty-state">No SKUs added to this batch yet — add one below.</div>`;
+  // A station attached to THIS COMPUTER (Team Setup > "Station komputer ni" button in the sidebar),
+  // or failing that an account-level link, auto-attaches it (no dropdown needed — see
+  // performGarmentSkuLog). Neither set gets a dropdown here instead, always visible so it's
+  // obvious the option exists, but only ever LISTING stations that are currently ON — if none are
+  // on right now, the dropdown still shows with just a "general" option, and logging falls back to
+  // no station attached (same as before Receive Stations existed).
+  const needsStationPicker = !getEffectiveReceiveStationName() && receiveStations.length > 0;
+  const onShiftStations = needsStationPicker ? receiveStations.filter(s => isStationOnShift(s)) : [];
   let html = `<table><thead><tr><th>SKU</th><th>Qty Order</th><th>Qty Received</th><th>Remaining</th><th>Status</th><th>Log Received</th><th></th></tr></thead><tbody>`;
   batch.skus.forEach((s, si) => {
     const order = Number(s.qtyOrder) || 0;
@@ -9262,6 +9605,10 @@ function renderGarmentSkuRows(batch) {
       <td><span class="badge ${garmentStatusBadgeClass(status)}">${status}</span>${shortNote}</td>
       <td class="row-actions">
         <input type="number" class="garment-sku-log-input" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}" min="0" placeholder="e.g. 50" style="width:70px;">
+        ${needsStationPicker ? `<select class="garment-sku-log-station" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}" style="width:auto; padding:3px 6px; font-size:11px;">
+          <option value="">${onShiftStations.length ? 'Station...' : '— none on shift —'}</option>
+          ${onShiftStations.map(st => `<option value="${escapeHtml(st.name)}">${escapeHtml(st.name)}</option>`).join('')}
+        </select>` : ''}
         <button type="button" class="btn-ghost garment-sku-log-btn" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}">+ Log</button>
         ${status !== 'Complete' ? `<button type="button" class="btn-primary garment-sku-complete-btn" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}">Mark Complete</button>` : ''}
         ${status === 'Partial' ? `<button type="button" class="btn-ghost garment-sku-close-short-btn" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}">Close Short</button>` : ''}
@@ -9333,6 +9680,7 @@ function renderGarmentOrderTab() {
   const cardsHtml = visibleBatches.map(batch => {
     const status = garmentBatchStatus(batch);
     const amaran = garmentComputeAmaran(batch);
+    const putawayStatus = garmentBatchPutawayStatus(batch);
     const { qtyOrder, qtyReceived } = garmentBatchTotals(batch);
     const expanded = garmentExpandedBatches.has(batch.batchNo);
     // Collapsed cards sit as compact tiles in the grid; an opened card spans the full grid
@@ -9346,9 +9694,12 @@ function renderGarmentOrderTab() {
         <div class="data-note" style="margin:0 0 10px;">${formatDateLabel(batch.orderDate)}</div>
         <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;">
           <span class="data-note" style="margin:0;">${batch.skus.length} SKU · ${formatQty(qtyReceived)}/${formatQty(qtyOrder)} pcs</span>
-          <span class="badge ${garmentStatusBadgeClass(status)}">${status}</span>
+          <span class="badge ${garmentStatusBadgeClass(status)}">Receive: ${status}</span>
         </div>
-        <div style="display:flex; justify-content:flex-end;"><span class="badge ${amaranBadgeClass(amaran)}">${amaranLabel(amaran)}</span></div>
+        <div style="display:flex; justify-content:flex-end; gap:6px; flex-wrap:wrap;">
+          ${putawayStatus ? `<span class="badge ${garmentPutawayBadgeClass(putawayStatus)}">Putaway: ${putawayStatus}</span>` : ''}
+          <span class="badge ${amaranBadgeClass(amaran)}">${amaranLabel(amaran)}</span>
+        </div>
         <div style="text-align:center; margin-top:8px;"><span class="nav-group-chevron" style="font-size:11px; color:var(--text-muted); display:inline-block; transform:rotate(${expanded ? '0' : '-90'}deg);">▾</span></div>
       </div>
       ${expanded ? renderGarmentBatchBody(batch) : ''}
@@ -9390,11 +9741,12 @@ function renderGarmentOrderTab() {
       .find(el => el.dataset.batch === batchNo && Number(el.dataset.sidx) === sidx);
     const addQty = Math.max(0, Number(input.value) || 0);
     if (!addQty) { input.focus(); return; }
-    // No more per-row Station dropdown — the station comes straight from the logged-in user's
-    // assigned Receive Station (Team Setup > Users). Accounts with no station assigned still log
-    // fine, just without a station attached (same as before Receive Stations existed at all).
-    const curUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
-    const assignedStation = curUser && curUser.receiveStation ? receiveStations.find(st => st.name === curUser.receiveStation) : null;
+    // Station comes straight from the logged-in user's assigned Receive Station (Team Setup >
+    // Users) when they have one. Accounts with NO station assigned get the per-row dropdown
+    // instead (only ever showing stations that are currently ON) — pick one there, or leave it as
+    // "general" (no station) if none are on right now.
+    const effectiveStationName = getEffectiveReceiveStationName();
+    const assignedStation = effectiveStationName ? receiveStations.find(st => st.name === effectiveStationName) : null;
     // Station is switched OFF (Team Setup toggle or outside its shift window) — block logging
     // entirely rather than silently logging under an inactive station. Staff can still log in and
     // look around, they just can't log receiving until their station is turned back ON.
@@ -9402,19 +9754,32 @@ function renderGarmentOrderTab() {
       alert(`Station "${assignedStation.name}" tengah OFF — tak boleh log receiving sampai station tu di-ON-kan semula di Team Setup.`);
       return;
     }
-    const myStation = assignedStation ? assignedStation.name : '';
+    let myStation = assignedStation ? assignedStation.name : '';
+    if (!myStation) {
+      const stationSelect = Array.from(wrap.querySelectorAll('.garment-sku-log-station'))
+        .find(el => el.dataset.batch === batchNo && Number(el.dataset.sidx) === sidx);
+      if (stationSelect && stationSelect.value) myStation = stationSelect.value;
+    }
     batch.skus[sidx].qtyReceived = (Number(batch.skus[sidx].qtyReceived) || 0) + addQty;
     batch.skus[sidx].lastReceivedDate = todayStr();
     delete batch.skus[sidx].closedShort;
     saveGarmentOrders();
+    // Always logged — even with no station attached (station: '' when nothing's on shift right
+    // now). Dropping "general" entries entirely used to silently under-count every total that
+    // reads from this log (KPIs, Reports, AND the Receive Station Target chart's own "everything's
+    // off" fallback), not just the per-station breakdown, which genuinely needs a real station name.
+    garmentReceiveLogs.push({ batchNo: batch.batchNo, sku: batch.skus[sidx].sku, station: myStation, qty: addQty, date: todayStr() });
+    saveGarmentReceiveLogs();
     if (myStation) {
-      garmentReceiveLogs.push({ batchNo: batch.batchNo, sku: batch.skus[sidx].sku, station: myStation, qty: addQty, date: todayStr() });
-      saveGarmentReceiveLogs();
       // Keep the Team Setup Receive Station table and Inbound Dashboard's station chart in sync
       // immediately, since this log directly feeds their "Today (pcs)" totals.
       renderReceiveStationsTab();
     }
+    const loggedSku = batch.skus[sidx].sku;
     renderInboundAll();
+    // Every successful log asks where the goods physically went (rollcage/trolley), for putaway —
+    // optional/skippable, same pattern as the Outbound Packing rollcage prompt.
+    openPutawayRollcageModal(batchNo, loggedSku, addQty);
   }
   wrap.querySelectorAll('.garment-sku-log-btn').forEach(btn => {
     btn.addEventListener('click', () => performGarmentSkuLog(btn.dataset.batch, Number(btn.dataset.sidx)));
@@ -9644,7 +10009,10 @@ function garmentDaysWaiting(batch) {
   return -daysDiffFromToday(batch.orderDate);
 }
 function garmentComputeAmaran(batch) {
-  if (garmentBatchStatus(batch) === 'Complete') return 'Done';
+  // "Done" now means fully received AND fully put away — a batch that's finished receiving but
+  // still sitting in a rollcage waiting for putaway isn't truly done yet, so it falls through to
+  // the normal waiting-day logic below instead of short-circuiting.
+  if (garmentBatchStatus(batch) === 'Complete' && garmentBatchPutawayStatus(batch) === 'Done') return 'Done';
   const waiting = garmentDaysWaiting(batch);
   if (waiting === null) return 'OK';
   if (waiting > inboundAlertSettings.garment.criticalDays) return 'CRITICAL';
@@ -10366,13 +10734,35 @@ function renderGarmentProgressChart() {
 let receiveStationTargetChart = null;
 function renderReceiveStationTargetProgress() {
   const today = todayStr();
-  // All stations share the same auto-derived target (overall Inbound Daily Target split evenly).
-  const autoCapTarget = effectiveOf(autoIndividualTargetPair('inbound', receiveStations.length));
-  const rows = (autoCapTarget && autoCapTarget > 0 ? receiveStations : [])
-    .map(s => {
-      const { sto, garment } = receiveStationTodayQtyBySource(s.name, today);
-      return { name: s.name, sto, garment, qty: sto + garment, target: Number(autoCapTarget) };
-    });
+  // When every registered station is OFF, there's no meaningful per-station breakdown to show —
+  // collapse into a single "General" bar (summed across all stations) against the OVERALL
+  // (un-split) target instead of a wall of empty/idle per-station bars.
+  const anyReceiveOnShift = receiveStations.some(s => isStationOnShift(s));
+  let rows;
+  if (receiveStations.length && !anyReceiveOnShift) {
+    const overallTarget = effectiveDailyTarget('inbound');
+    // Sum EVERYTHING received today, regardless of which (if any) station it's tagged with — a
+    // per-station sum would miss "general" garment logs (no station attached, since nothing was on
+    // shift when they were logged), which is exactly the situation this fallback exists for.
+    const stoQty = inboundRecords
+      .filter(r => r.receivingCompletedDate === today)
+      .reduce((sum, r) => sum + (parseFloat(r.totalOrderQty) || 0), 0);
+    const garmentQty = garmentReceiveLogs
+      .filter(l => l.date === today)
+      .reduce((sum, l) => sum + (Number(l.qty) || 0), 0);
+    const totals = { sto: stoQty, garment: garmentQty };
+    rows = (overallTarget && overallTarget > 0)
+      ? [{ name: 'Receiving', sto: totals.sto, garment: totals.garment, qty: totals.sto + totals.garment, target: Number(overallTarget) }]
+      : [];
+  } else {
+    // All stations share the same auto-derived target (overall Inbound Daily Target split evenly).
+    const autoCapTarget = effectiveOf(autoIndividualTargetPair('inbound', receiveStations.length));
+    rows = (autoCapTarget && autoCapTarget > 0 ? receiveStations : [])
+      .map(s => {
+        const { sto, garment } = receiveStationTodayQtyBySource(s.name, today);
+        return { name: s.name, sto, garment, qty: sto + garment, target: Number(autoCapTarget) };
+      });
+  }
 
   const canvas = document.getElementById('receiveStationTargetChart');
   const emptyEl = document.getElementById('receiveStationTargetEmpty');
@@ -10636,6 +11026,7 @@ function renderInboundAll() {
   renderGarmentOrderTab();
   renderInboundStoTab();
   renderInboundKanban();
+  renderPutawayTab();
   renderInboundSlaTab();
   // Only re-render the Inbound dashboard charts while that slide is actually visible — rendering
   // Chart.js into a display:none canvas produces a 0-height chart (see goToDashSlide).
