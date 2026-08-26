@@ -297,6 +297,15 @@
   .badge-gray { background: var(--gray-bg); color: #cfc4b7; }
   .badge-gold { background: rgba(199,155,74,0.18); color: var(--gold); }
   .badge-purple { background: var(--purple-bg); color: var(--purple); }
+  select.role-select { padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 700; border: none; cursor: pointer; appearance: auto; }
+  select.role-select.badge-red { background: var(--red-bg); color: var(--red); }
+  select.role-select.badge-amber { background: var(--amber-bg); color: var(--amber); }
+  select.role-select.badge-green { background: var(--green-bg); color: var(--green); }
+  select.role-select.badge-blue { background: var(--blue-bg); color: var(--blue); }
+  select.role-select.badge-gray { background: var(--gray-bg); color: #cfc4b7; }
+  select.role-select.badge-gold { background: rgba(199,155,74,0.18); color: var(--gold); }
+  select.role-select.badge-purple { background: var(--purple-bg); color: var(--purple); }
+  select.role-select option { background: #2a231c; color: #f1e9dd; font-weight: 500; }
 
   .dropzone {
     border: 2px dashed #4a4038; border-radius: 8px; padding: 22px; text-align: center;
@@ -344,6 +353,25 @@
 
   .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 13px; }
   .data-note { font-size: 11px; color: var(--text-muted); margin-top: 10px; }
+
+  /* Manpower "dropdown" (checklist) for manually-controlled stations — <details>/<summary> gives a
+     native open/close toggle without needing JS to manage outside-click handling. */
+  .manpower-dropdown { position: relative; display: block; width: 100%; }
+  .manpower-dropdown summary {
+    list-style: none; cursor: pointer; padding: 8px 10px; border: 1px solid #4a4038; border-radius: 4px;
+    background: #1e1a17; color: var(--text); font-size: 13px; min-height: 17px; user-select: none;
+  }
+  .manpower-dropdown summary::-webkit-details-marker { display: none; }
+  .manpower-dropdown summary::after { content: '▾'; float: right; color: var(--text-muted); margin-left: 8px; }
+  .manpower-dropdown[open] summary::after { content: '▴'; }
+  .manpower-dropdown-panel {
+    position: absolute; z-index: 40; top: calc(100% + 3px); left: 0; min-width: 210px; max-width: 300px;
+    max-height: 220px; overflow-y: auto; background: var(--card); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px; box-shadow: 0 8px 20px rgba(0,0,0,0.45);
+  }
+  .manpower-check-row { display: flex; align-items: center; gap: 8px; padding: 6px 6px; font-size: 13px; cursor: pointer; border-radius: 4px; }
+  .manpower-check-row:hover { background: rgba(255,255,255,0.05); }
+  .manpower-check-row input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; flex-shrink: 0; accent-color: var(--gold); }
 
   .sla-input { width: 70px; text-align: center; }
   .sla-input:disabled { background: #2a2420; color: var(--text-muted); }
@@ -755,6 +783,7 @@
       <button class="tab-btn" data-tab="delivered" data-perm="delivered-fleet">Delivery Status</button>
     </div>
     <button class="tab-btn" data-tab="stations">Team Setup</button>
+    <button class="tab-btn" data-tab="staff-schedule">Staff Schedule</button>
     <button class="tab-btn" data-tab="laporan">Reports</button>
   </nav>
   <div id="sidebarSyncBar" style="display:none; flex-direction:column; align-items:flex-start; gap:6px; margin-top:auto; padding:14px 24px; border-top:1px solid rgba(255,255,255,0.1);">
@@ -1051,7 +1080,10 @@
   <section class="tab-panel" id="tab-papan">
     <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
       <p class="section-title" style="margin-bottom:0;">Picking/Packing Progress Board</p>
-      <button class="btn-ghost" id="resetProgressBtn">Reset Progress Board</button>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-ghost" id="undoResetProgressBtn" style="display:none;">↩ Undo Reset</button>
+        <button class="btn-ghost" id="resetProgressBtn">Reset Progress Board</button>
+      </div>
     </div>
     <div class="data-note" style="margin-bottom:14px;">Each column has its own search box — filter STO No., boutique, or boutique code independently per column. Drag a card to another column to change its progress, or tick cards and use the bulk bar to move several at once.</div>
 
@@ -1199,13 +1231,14 @@
       <div class="form-grid" style="grid-template-columns: 1fr auto; margin-bottom:16px;">
         <div class="field">
           <label>Picker Name</label>
-          <input type="text" id="inputNewPickerName" placeholder="e.g. Wan">
+          <input type="text" id="inputNewPickerName" list="pickerNameSuggestions" placeholder="Type a name (e.g. part-time staff)" autocomplete="off">
+          <datalist id="pickerNameSuggestions"></datalist>
         </div>
         <div class="field">
           <button class="btn-primary" id="addPickerBtn">+ Add Picker</button>
         </div>
       </div>
-      <div class="data-note" style="margin-bottom:14px;">Add one picker at a time (press Enter or click "+ Add Picker"). Registered pickers show up as a dropdown when assigning picker(s) to an STO — no need to type names each time. Target is auto-calculated: the overall Picker Daily Target above (Weekday/Weekend) split evenly across every registered picker — it updates automatically as pickers are added/removed or the overall target changes. "Today (pcs)" counts pieces from STOs assigned to that picker today and resets to 0 automatically the next day.</div>
+      <div class="data-note" style="margin-bottom:14px;">Type any name and click "+ Add Picker" — handy for part-time staff not on the Staff Schedule roster. Active staff tagged Role = Picker on that roster auto-register here too (no need to add them manually), and also show up as suggestions while typing. Registered pickers show up as a dropdown when assigning picker(s) to an STO — no need to type names each time. Target is auto-calculated and shift-aware: the overall Picker Daily Target above (Weekday/Weekend) is split across whoever shares that picker's shift TODAY on the Staff Schedule tab (Day headcount for Day shift, Night headcount for Night shift) — it reflows automatically each day as staff go on/off Day, Night, Off, or Leave. A picker shows "—" for target on any day they're Normal (the default — a regular working day with no special campaign shift), Off, or on Leave, or until they're added to Staff Schedule with Role = Picker (see "Shift Today" column). "Today (pcs)" counts pieces from STOs assigned to that picker today and resets to 0 automatically the next day.</div>
       <div id="pickersListWrap"></div>
       <div style="display:flex; align-items:center; gap:12px; margin-top:12px;">
         <button type="button" class="btn-primary" id="savePickersBtn">Save Pickers</button>
@@ -1234,7 +1267,7 @@
 
     <p class="section-title">Packing Stations</p>
     <div class="card">
-      <div class="form-grid" style="grid-template-columns: 1fr 1.4fr 0.8fr 0.8fr auto; margin-bottom:16px;">
+      <div class="form-grid" style="grid-template-columns: 1fr 1.4fr auto; margin-bottom:16px;">
         <div class="field">
           <label>Station Name</label>
           <input type="text" id="inputNewStationName" placeholder="e.g. Station 1">
@@ -1244,18 +1277,10 @@
           <input type="text" id="inputNewStationManpower" placeholder="e.g. Ali, Chong, Muthu">
         </div>
         <div class="field">
-          <label>Shift Start</label>
-          <input type="time" id="inputNewStationShiftStart">
-        </div>
-        <div class="field">
-          <label>Shift End</label>
-          <input type="time" id="inputNewStationShiftEnd">
-        </div>
-        <div class="field">
           <button class="btn-primary" id="addStationBtn">+ Add Station</button>
         </div>
       </div>
-      <div class="data-note" style="margin-bottom:14px;">Registered stations are used to auto-assign STOs when they enter the Packing stage — each STO rotates to the next station in the list (round-robin). You can still change a card's station manually afterward. Target is auto-calculated: the overall Packer Daily Target above (Weekday/Weekend) split evenly across every registered station — it updates automatically as stations are added/removed or the overall target changes. "Today (pcs)" counts only pieces assigned to that station today and resets to 0 automatically the next day. Shift Start/End is optional — leave both blank for a station that's always on. Outside its shift window, a station is skipped by auto-assign and hidden from the manual picker (it stays selectable only if it's already assigned to that STO).</div>
+      <div class="data-note" style="margin-bottom:14px;">Registered stations are used to auto-assign STOs when they enter the Packing stage — each STO rotates to the next station in the list (round-robin). You can still change a card's station manually afterward. Target is auto-calculated: the overall Packer Daily Target above (Weekday/Weekend) is split evenly across only the stations currently ON — an OFF station shows "—" and doesn't shrink everyone else's share. "Today (pcs)" counts only pieces assigned to that station today and resets to 0 automatically the next day. By default (Auto) a station is ON only while someone actually has it picked as "This Device's Station" (sidebar), and auto-flips back OFF ~15 min after that device goes quiet (closes the tab, loses power, etc.) without anyone explicitly switching stations. Click the Status button to cycle Auto → Force ON → Force OFF → back to Auto — forcing it either way overrides device presence completely, for whenever you need full manual control. Name a station with "Day" or "Night" in it (e.g. "Day Shift Packer") and its Manpower auto-fills live from the Staff Schedule tab — every Active staff tagged Role = Packer and on that shift today, no typing needed; stations named any other way keep the freehand Manpower field.</div>
       <div id="stationsTableWrap"></div>
       <div style="display:flex; align-items:center; gap:12px; margin-top:12px;">
         <button type="button" class="btn-primary" id="savePackingStationsBtn">Save Packing Stations</button>
@@ -1265,7 +1290,7 @@
 
     <p class="section-title">Receive Stations</p>
     <div class="card">
-      <div class="form-grid" style="grid-template-columns: 1fr 1.4fr 0.8fr 0.8fr auto; margin-bottom:16px;">
+      <div class="form-grid" style="grid-template-columns: 1fr 1.4fr auto; margin-bottom:16px;">
         <div class="field">
           <label>Station Name</label>
           <input type="text" id="inputNewReceiveStationName" placeholder="e.g. Receiving Bay 1">
@@ -1275,18 +1300,10 @@
           <input type="text" id="inputNewReceiveStationManpower" placeholder="e.g. Faiz, Aina, Ramesh">
         </div>
         <div class="field">
-          <label>Shift Start</label>
-          <input type="time" id="inputNewReceiveStationShiftStart">
-        </div>
-        <div class="field">
-          <label>Shift End</label>
-          <input type="time" id="inputNewReceiveStationShiftEnd">
-        </div>
-        <div class="field">
           <button class="btn-primary" id="addReceiveStationBtn">+ Add Station</button>
         </div>
       </div>
-      <div class="data-note" style="margin-bottom:14px;">Registered stations show up when assigning who's receiving an incoming STO (dragging a card into "On Progress" on the Inbound Progress Board). Target is auto-calculated: the overall Inbound Daily Target above (Weekday/Weekend) split evenly across every registered station — it updates automatically as stations are added/removed or the overall target changes. "Today (pcs)" counts only pieces that finished receiving (moved to Complete) at that station today and resets to 0 automatically the next day. Shift Start/End is optional — leave both blank for a station that's always on. Outside its shift window, a station is hidden from the picker (it stays selectable only if it's already assigned to that STO).</div>
+      <div class="data-note" style="margin-bottom:14px;">Registered stations show up when assigning who's receiving an incoming STO (dragging a card into "On Progress" on the Inbound Progress Board). Target is auto-calculated: the overall Inbound Daily Target above (Weekday/Weekend) is split evenly across only the stations currently ON — an OFF station shows "—" and doesn't shrink everyone else's share. "Today (pcs)" counts only pieces that finished receiving (moved to Complete) at that station today and resets to 0 automatically the next day. By default (Auto) a station is ON only while someone actually has it picked as "This Device's Station" (sidebar), and auto-flips back OFF ~15 min after that device goes quiet (closes the tab, loses power, etc.) without anyone explicitly switching stations. Click the Status button to cycle Auto → Force ON → Force OFF → back to Auto — forcing it either way overrides device presence completely, for whenever you need full manual control. Name a station with "Day" or "Night" in it (e.g. "Day Shift Receiver") and its Manpower auto-fills live from the Staff Schedule tab — every Active staff tagged Role = Receiver and on that shift today, no typing needed; stations named any other way keep the freehand Manpower field.</div>
       <div id="receiveStationsTableWrap"></div>
       <div style="display:flex; align-items:center; gap:12px; margin-top:12px;">
         <button type="button" class="btn-primary" id="saveReceiveStationsBtn">Save Receive Stations</button>
@@ -1299,7 +1316,7 @@
       <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr auto; margin-bottom:16px;">
         <div class="field">
           <label>Driver Name</label>
-          <input type="text" id="inputNewDriverName" placeholder="e.g. Amir">
+          <select id="inputNewDriverName"></select>
         </div>
         <div class="field">
           <label>Driver Phone</label>
@@ -1313,7 +1330,7 @@
           <button class="btn-primary" id="addDriverBtn">+ Add Driver</button>
         </div>
       </div>
-      <div class="data-note" style="margin-bottom:14px;">Registered drivers show up as autocomplete suggestions when creating a new trip under Operation Fleet.</div>
+      <div class="data-note" style="margin-bottom:14px;">Pick a name from the Staff Schedule tab and click "+ Add Driver" — only staff not already added show up here. Registered drivers show up as autocomplete suggestions when creating a new trip under Operation Fleet.</div>
       <div id="driversTableWrap"></div>
       <div style="display:flex; align-items:center; gap:12px; margin-top:12px;">
         <button type="button" class="btn-primary" id="saveDriversBtn">Save Drivers</button>
@@ -1355,6 +1372,78 @@
     </div>
   </section>
 
+  <section class="tab-panel" id="tab-staff-schedule">
+    <p class="section-title">Staff Roster</p>
+    <div class="card" style="margin-bottom:24px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <span class="data-note" style="margin:0;">Import a whole list of staff straight from Excel or CSV instead of adding one by one.</span>
+        <button type="button" class="btn-ghost" id="downloadStaffRosterTemplateBtn">⬇ Download Template</button>
+      </div>
+      <div class="dropzone" id="staffRosterDropzone">
+        <div class="dropzone-icon">⬆</div>
+        <div class="upload-row">
+          <label class="upload-btn-label">
+            Choose File
+            <input type="file" id="staffRosterFileInput" accept=".csv,.xlsx,.xls">
+          </label>
+          <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx file here</span>
+        </div>
+        <div class="upload-hint" style="margin-top:10px;">Columns: <strong>Name</strong>, Department (Inbound / Outbound), Role (Picker / Packer / Receiver / PIC / Backup PIC), then one column per day of the WHOLE MONTH shown in the template (Day / Night / Off / Leave — leave blank for Normal, a regular working day with no special shift). A name already in the roster gets its department/role/schedule updated instead of being duplicated, so this also works as a re-upload to make changes.</div>
+      </div>
+      <div class="upload-status" id="staffRosterUploadStatus"></div>
+      <div style="border-top:1px solid var(--border); margin:16px 0;"></div>
+      <div class="data-note" style="margin:0 0 8px;">...or add one at a time:</div>
+      <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr auto; margin-bottom:16px;">
+        <div class="field">
+          <label>Staff Name</label>
+          <input type="text" id="inputNewStaffName" placeholder="e.g. Aina">
+        </div>
+        <div class="field">
+          <label>Department</label>
+          <select id="inputNewStaffDept" class="role-select">
+            <option value="Inbound">Inbound</option>
+            <option value="Outbound">Outbound</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Role</label>
+          <select id="inputNewStaffRole" class="role-select">
+            <option value="Picker">Picker</option>
+            <option value="Packer">Packer</option>
+            <option value="Receiver">Receiver</option>
+            <option value="PIC">PIC</option>
+            <option value="Backup PIC">Backup PIC</option>
+          </select>
+        </div>
+        <div class="field">
+          <button class="btn-primary" id="addStaffBtn">+ Add Staff</button>
+        </div>
+      </div>
+      <div class="data-note" style="margin-bottom:14px;">Register staff here once — this roster is also the name source for adding Pickers (Team Setup) and Drivers (Team Setup) elsewhere in the app, so a staff member only ever needs to be typed in once.</div>
+      <div class="field" style="max-width:280px; margin-bottom:12px;">
+        <input type="text" id="staffRosterSearchInput" placeholder="🔎 Cari nama...">
+      </div>
+      <div id="staffRosterListWrap"></div>
+      <div class="empty-state" id="staffRosterFilterEmpty" style="display:none;">Takde staff dengan nama tu.</div>
+    </div>
+
+    <p class="section-title">Weekly Schedule</p>
+    <div class="card">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
+        <button type="button" class="btn-ghost" id="staffScheduleWeekPrevBtn">◀</button>
+        <span class="data-note" id="staffScheduleWeekLabel" style="margin:0; font-weight:600;"></span>
+        <button type="button" class="btn-ghost" id="staffScheduleWeekNextBtn">▶</button>
+        <button type="button" class="btn-ghost" id="staffScheduleWeekTodayBtn">This Week</button>
+      </div>
+      <div class="data-note" style="margin-bottom:14px;">Click a cell to cycle Normal → Day Shift → Night Shift → Off → On Leave. Normal (the default, blank cell) means a regular working day with no special campaign shift — Off means an actual day off/not working. Shift rotates independently every week — each week is set separately, so a campaign rotation just means paging forward and clicking through. Who's PIC/Backup PIC is set on the Staff Roster above (Role column), not here.</div>
+      <div class="field" style="max-width:280px; margin-bottom:12px;">
+        <input type="text" id="staffScheduleSearchInput" placeholder="🔎 Cari nama...">
+      </div>
+      <div id="staffScheduleGridWrap" style="overflow-x:auto;"></div>
+      <div class="empty-state" id="staffScheduleFilterEmpty" style="display:none;">Takde staff dengan nama tu.</div>
+    </div>
+  </section>
+
   <section class="tab-panel" id="tab-fleet-trips">
     <p class="section-title">Create Trip</p>
     <div class="card">
@@ -1380,7 +1469,10 @@
   <section class="tab-panel" id="tab-fleet-board">
     <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
       <p class="section-title" style="margin-bottom:0;">Trip Schedule</p>
-      <button class="btn-ghost" id="resetFleetTripsBtn">Reset Trip Schedule</button>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-ghost" id="undoResetTripBtn" style="display:none;">↩ Undo Reset</button>
+        <button class="btn-ghost" id="resetFleetTripsBtn">Reset Trip Schedule</button>
+      </div>
     </div>
     <div class="filters" style="align-items:center;">
       <span class="data-note" style="margin-top:0;">Date:</span>
@@ -2205,30 +2297,28 @@ function formatDoNo(boutique, n) {
   return `KFA-FG/${butikCodeFor(boutique)}/${yymmdd(todayStr())}/${String(n).padStart(3, '0')}`;
 }
 
-// Shared by Packing Stations and Receive Stations — a station with no shift schedule set (either
-// time left blank) is always considered on-shift, same as before this feature existed. Otherwise
-// "on" means the current time falls within [shiftStart, shiftEnd), with wraparound support for
-// overnight shifts where the end time is earlier than the start (e.g. 22:00 - 06:00).
-// A manual ON/OFF switch (station.enabled) sits ABOVE the shift-time logic — flipping it OFF forces
-// the station off no matter what the shift window says, for campaign-only stations that aren't on
-// a daily recurring schedule (leave Shift blank + flip this switch on only while the campaign runs).
-function isStationOnShift(station, now) {
-  if (station.enabled === false) return false;
-  const start = station.shiftStart, end = station.shiftEnd;
-  if (!start || !end) return true;
-  const d = now || new Date();
-  const cur = d.getHours() * 60 + d.getMinutes();
-  const [sh, sm] = start.split(':').map(Number);
-  const [eh, em] = end.split(':').map(Number);
-  if (isNaN(sh) || isNaN(sm) || isNaN(eh) || isNaN(em)) return true;
-  const startMin = sh * 60 + sm, endMin = eh * 60 + em;
-  if (startMin === endMin) return true; // identical start/end treated as "always on" rather than "never on"
-  if (startMin < endMin) return cur >= startMin && cur < endMin;
-  return cur >= startMin || cur < endMin; // overnight wraparound
+// Shared by Packing Stations and Receive Stations — the Status button on each row cycles through
+// three states: Auto (default — follows whether some device currently has this station selected as
+// "This Device's Station", see stationHasActiveDevice above; OFF the moment nobody's claimed it, and
+// auto-flips back OFF ~15 min after that device goes quiet without anyone explicitly switching) ->
+// forced ON -> forced OFF -> back to Auto. Forced ON/OFF ignore device presence entirely, for
+// stations staff want to manually control (e.g. a station nobody's logged into via a device yet, or
+// one that needs to be taken offline regardless of who's on it).
+// station.status: 'on' | 'off' | undefined (= Auto). Legacy data from before Auto existed may carry
+// `enabled: false` instead of `status: 'off'` — still honored, so nothing already forced off silently
+// flips back on.
+function stationStatusOverride(station) {
+  if (station.status === 'on' || station.status === 'off') return station.status;
+  if (station.enabled === false) return 'off';
+  return 'auto';
 }
-function formatShiftWindow(station) {
-  if (!station.shiftStart || !station.shiftEnd) return null;
-  return `${station.shiftStart}–${station.shiftEnd}`;
+function isStationOnShift(station) {
+  const override = stationStatusOverride(station);
+  if (override === 'off') return false;
+  if (override === 'on') return true;
+  const type = stationTypeOf(station);
+  if (!type) return true; // shouldn't normally happen; fail open rather than silently hiding it
+  return stationHasActiveDevice(type, station.name);
 }
 
 // "This device's station" — lets staff pick which Receive/Packing Station this specific
@@ -2247,6 +2337,50 @@ function setDeviceReceiveStation(name) {
 function setDevicePackingStation(name) {
   if (name) localStorage.setItem(DEVICE_PACKING_STATION_KEY, name); else localStorage.removeItem(DEVICE_PACKING_STATION_KEY);
 }
+// Station presence — lets a station with a Shift schedule set count as truly "ON" only while some
+// device actually has it selected as "This Device's Station" (not just within its shift-time
+// window), so target-splitting/auto-assign don't treat an unmanned station as active. Presence is
+// SHARED across every device/staff (unlike the device-station selection itself, which is per-device)
+// by riding the app's existing settings sync: a heartbeat every minute refreshes this device's
+// station(s) in this small JSON blob, which the normal ~2s Firebase settings sync then pushes/pulls
+// like any other setting. An entry older than STATION_PRESENCE_STALE_MS is treated as gone — covers
+// a device closing its tab/losing power without explicitly deselecting.
+const STATION_PRESENCE_KEY = 'sto_station_presence_v1';
+const STATION_PRESENCE_STALE_MS = 15 * 60 * 1000; // 15 minutes
+const STATION_PRESENCE_HEARTBEAT_MS = 60 * 1000; // 1 minute
+let stationPresence = { packing: {}, receive: {} };
+function loadStationPresence() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STATION_PRESENCE_KEY));
+    stationPresence = { packing: (parsed && parsed.packing) || {}, receive: (parsed && parsed.receive) || {} };
+  } catch (e) { stationPresence = { packing: {}, receive: {} }; }
+}
+function saveStationPresence() { localStorage.setItem(STATION_PRESENCE_KEY, JSON.stringify(stationPresence)); }
+function stationHasActiveDevice(type, stationName) {
+  const ts = stationPresence[type] && stationPresence[type][stationName];
+  return !!ts && (Date.now() - ts) < STATION_PRESENCE_STALE_MS;
+}
+function clearStationPresence(type, stationName) {
+  if (stationPresence[type] && stationPresence[type][stationName]) { delete stationPresence[type][stationName]; saveStationPresence(); }
+}
+// Which array (packing vs receive) a given station object actually belongs to — used so
+// isStationOnShift can look up the right presence bucket without needing every call site (there are
+// many, scattered across the app) updated to pass it in explicitly.
+function stationTypeOf(station) {
+  if (packingStations.indexOf(station) !== -1) return 'packing';
+  if (receiveStations.indexOf(station) !== -1) return 'receive';
+  return null;
+}
+function stationPresenceHeartbeat() {
+  loadStationPresence();
+  let changed = false;
+  const pack = getDevicePackingStation();
+  const recv = getDeviceReceiveStation();
+  if (pack) { stationPresence.packing[pack] = Date.now(); changed = true; }
+  if (recv) { stationPresence.receive[recv] = Date.now(); changed = true; }
+  if (changed) saveStationPresence();
+}
+setInterval(stationPresenceHeartbeat, STATION_PRESENCE_HEARTBEAT_MS);
 function getEffectiveReceiveStationName() {
   const dev = getDeviceReceiveStation();
   if (dev && receiveStations.some(s => s.name === dev)) return dev;
@@ -2265,7 +2399,7 @@ function getEffectivePackingStationName() {
 /* ---------- Packing Stations ---------- */
 const PACKING_STATIONS_KEY = 'sto_packing_stations_v1';
 const PACKING_STATION_RR_KEY = 'sto_packing_station_rr_v1'; // next round-robin index
-let packingStations = []; // [{ name, manpower: [names], shiftStart, shiftEnd }] — target is auto-derived (see autoIndividualTargetPair), not stored per-station
+let packingStations = []; // [{ name, manpower: [names], status: 'on'|'off'|undefined }] — target is auto-derived (see autoIndividualTargetPair), not stored per-station
 function loadPackingStations() {
   try { packingStations = JSON.parse(localStorage.getItem(PACKING_STATIONS_KEY)) || []; } catch (e) { packingStations = []; }
 }
@@ -2335,6 +2469,64 @@ function loadRollcages() {
   });
 }
 function saveRollcages() { localStorage.setItem(ROLLCAGES_KEY, JSON.stringify(rollcages)); }
+
+/* ---------- Staff Roster + Weekly Schedule (Inbound/Outbound shift planning) ---------- */
+// Register staff once here; this roster is also the name source for adding Pickers/Drivers
+// elsewhere in Team Setup (see populatePickerRosterSelect/populateDriverRosterSelect), so a staff
+// member only ever needs to be typed in once.
+const STAFF_ROSTER_KEY = 'sto_staff_roster_v1';
+let staffRoster = []; // [{ id, name, department, role }] department: 'Inbound' | 'Outbound'; role: see STAFF_ROLE_OPTIONS
+function loadStaffRoster() {
+  try { staffRoster = JSON.parse(localStorage.getItem(STAFF_ROSTER_KEY)) || []; } catch (e) { staffRoster = []; }
+}
+function saveStaffRoster() { localStorage.setItem(STAFF_ROSTER_KEY, JSON.stringify(staffRoster)); }
+function genStaffId() { return 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+// One-time migration for installs where "department" used to double as the role field (across a
+// few earlier iterations of this feature) — splits it into the two separate fields it is now:
+// department (Inbound/Outbound) and role (Picker/Packer/Receiver/PIC/Backup PIC).
+function migrateStaffRosterDeptRole() {
+  const roleValues = ['Picker', 'Packer', 'Receiver', 'PIC', 'Backup PIC'];
+  let changed = false;
+  staffRoster.forEach(s => {
+    if (s.role) return; // already migrated
+    const old = s.department;
+    if (old === 'Receiver') { s.department = 'Inbound'; s.role = 'Receiver'; }
+    else if (roleValues.includes(old)) { s.department = 'Outbound'; s.role = old; }
+    else if (old === 'Inbound') { s.department = 'Inbound'; s.role = 'Receiver'; }
+    else if (old === 'Outbound') { s.department = 'Outbound'; s.role = 'Picker'; }
+    else { s.department = old || 'Outbound'; s.role = 'Picker'; }
+    changed = true;
+  });
+  if (changed) saveStaffRoster();
+}
+
+// Shift rotates week to week (not a fixed repeating pattern) — flat per-staff, per-day storage so
+// every individual day can carry its own Day/Night/Off, and the weekly grid just displays whichever
+// 7-day slice is currently in view. Missing entries default to "Normal" (a regular working day with
+// no special campaign shift — nothing stored for days no one's touched yet, keeps the saved data
+// lean). "Off" is a separate, explicitly-stored state meaning an actual day off/not working.
+const STAFF_SCHEDULE_KEY = 'sto_staff_schedule_v1';
+let staffSchedule = {}; // { staffId: { 'YYYY-MM-DD': 'Day' | 'Night' | 'Off' | 'Leave' } } — 'Normal' days aren't stored
+function loadStaffSchedule() {
+  try { staffSchedule = JSON.parse(localStorage.getItem(STAFF_SCHEDULE_KEY)) || {}; } catch (e) { staffSchedule = {}; }
+}
+function saveStaffSchedule() { localStorage.setItem(STAFF_SCHEDULE_KEY, JSON.stringify(staffSchedule)); }
+
+// Monday of the week containing the given ISO date — Sunday counts as the tail end of the PRIOR
+// week, matching how a work week is normally thought about here.
+function mondayOfWeek(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  const day = d.getDay(); // 0 = Sun .. 6 = Sat
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return toIsoLocal(d);
+}
+function addDaysIso(iso, days) {
+  const d = new Date(iso + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return toIsoLocal(d);
+}
+
 // Rollcages/trolleys are a shared physical pool used by Outbound (Packing stage), Inbound (On
 // Progress stage), AND Garment Order putaway (loaded after receiving, until "Putaway Done") — a
 // rollcage counts as "in use" for as long as any ONE of those three holds it. The first two free up
@@ -2411,12 +2603,71 @@ function autoIndividualTargetPair(overallKey, count) {
     weekend: (t.weekend !== null && t.weekend !== undefined) ? Math.round(t.weekend / count) : null
   };
 }
+// Pickers split the overall Picker Daily Target by who's actually on shift TODAY (per the Staff
+// Schedule tab) rather than by everyone ever registered — Day shift and Night shift each get their
+// own split, and anyone Normal/Off/Leave today (i.e. not explicitly on a campaign Day/Night shift —
+// or not linked to an Active, Role = Picker roster entry at all, e.g. a manually-added part-timer
+// who hasn't been added to Staff Schedule) is left out of both the split's denominator and their own
+// Target columns entirely, same treatment as an excluded picker.
+function pickerShiftStatusToday(picker) {
+  const roster = staffRoster.find(s => s.role === 'Picker' && s.active !== false && (s.name || '').trim().toLowerCase() === (picker.name || '').trim().toLowerCase());
+  if (!roster) return null; // not linked to an Active Picker-role entry on the Staff Schedule roster
+  const todayIso = todayStr();
+  return (staffSchedule[roster.id] && staffSchedule[roster.id][todayIso]) || 'Normal';
+}
+function computeShiftPickerCounts() {
+  let dayCount = 0, nightCount = 0;
+  pickers.forEach(p => {
+    if (p.excludeFromDashboard) return;
+    const status = pickerShiftStatusToday(p);
+    if (status === 'Day') dayCount++;
+    else if (status === 'Night') nightCount++;
+  });
+  return { dayCount, nightCount };
+}
+// The { weekday, weekend } pair a specific picker should be measured against right now.
+function pickerTargetPairFor(picker, shiftCounts) {
+  if (picker.excludeFromDashboard) return { weekday: null, weekend: null };
+  const status = pickerShiftStatusToday(picker);
+  if (status === 'Day') return autoIndividualTargetPair('picker', shiftCounts.dayCount);
+  if (status === 'Night') return autoIndividualTargetPair('picker', shiftCounts.nightCount);
+  return { weekday: null, weekend: null }; // Normal, Off, Leave, or not linked to the roster
+}
+// Packing/Receive station Manpower auto-fills live from the Staff Schedule roster for any station
+// whose name says which shift it covers ("Day"/"Night", case-insensitive — e.g. "Day Shift Packer")
+// — re-derived from TODAY's schedule on every render, so it always reflects who's currently tagged
+// that shift with the matching Role (Packer for packing stations, Receiver for receive stations),
+// no manual editing or clicking needed. Stations without "Day"/"Night" in the name are left alone
+// with the original freehand Manpower field, since there's nothing to auto-classify them by.
+function classifyStationShiftLabel(station) {
+  const n = (station.name || '').toLowerCase();
+  if (n.includes('night')) return 'Night';
+  if (n.includes('day')) return 'Day';
+  return null;
+}
+function autoManpowerForStationShift(shiftLabel, role) {
+  const todayIso = todayStr();
+  return staffRoster
+    .filter(s => s.active !== false && s.role === role)
+    .filter(s => ((staffSchedule[s.id] && staffSchedule[s.id][todayIso]) || 'Normal') === shiftLabel)
+    .map(s => s.name);
+}
 // Total pcs actually finished TODAY, matching each area's own "completed" rule elsewhere:
 // picking -> pickingCompletedDate, packing -> packingCompletedDate, inbound receiving -> combines
 // boutique-STO receiving (receivingCompletedDate) with garment order receiving logged today.
+// A picker can be flagged "Exclude from Dashboard" (e.g. a Merchandise Picker who only ever picks
+// non-garment stock) — an STO is skipped from every Dashboard picker total/list ONLY when EVERY
+// picker assigned to it is excluded. A team-picked STO with at least one non-excluded picker still
+// counts normally, since real garment picking work was involved.
+function isRecordOnlyExcludedPickers(r) {
+  const names = (r.pickerInfo && r.pickerInfo.names) || [];
+  if (!names.length) return false;
+  const excludedNames = new Set(pickers.filter(p => p.excludeFromDashboard).map(p => p.name));
+  return names.every(n => excludedNames.has(n));
+}
 function pickerTodayTotalQty() {
   const today = todayStr();
-  return records.filter(r => r.pickingCompletedDate === today).reduce((sum, r) => sum + (parseFloat(r.totalOrderQty) || 0), 0);
+  return records.filter(r => r.pickingCompletedDate === today && !isRecordOnlyExcludedPickers(r)).reduce((sum, r) => sum + (parseFloat(r.totalOrderQty) || 0), 0);
 }
 function packerTodayTotalQty() {
   const today = todayStr();
@@ -2461,10 +2712,14 @@ function loadData() {
   loadDoRecords();
   loadPackingStations();
   loadPickers();
+  loadStaffRoster();
+  migrateStaffRosterDeptRole();
+  loadStaffSchedule();
   loadRollcages();
   loadDailyTargets();
   loadGarmentOrders();
   loadGarmentReceiveLogs();
+  migrateGarmentPutawayAssignments();
   pruneOrphanedGarmentData();
   loadInboundRecords();
   loadReceiveStations();
@@ -2474,6 +2729,7 @@ function loadData() {
   loadFleetPostponedDoNos();
   autoAttachDoNosToTrips();
   loadEmailjsSettings();
+  loadStationPresence();
 }
 function saveRecords() { localStorage.setItem(RECORDS_KEY, JSON.stringify(records)); }
 function saveSla() { localStorage.setItem(SLA_KEY, JSON.stringify(sla)); }
@@ -2848,6 +3104,7 @@ function allAppStorageKeys() {
   return [
     RECORDS_KEY, SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, DO_RECORDS_KEY, STICKER_KEY,
     PACKING_STATIONS_KEY, PACKING_STATION_RR_KEY, PICKERS_KEY, DAILY_TARGETS_KEY,
+    STAFF_ROSTER_KEY, STAFF_SCHEDULE_KEY, STATION_PRESENCE_KEY,
     GARMENT_ORDERS_KEY, GARMENT_RECEIVE_LOGS_KEY, INBOUND_STO_KEY, RECEIVE_STATIONS_KEY,
     INBOUND_ALERT_SETTINGS_KEY, LAST_UPLOAD_KEY, INBOUND_LAST_UPLOAD_KEY,
     FLEET_DRIVERS_KEY, FLEET_VEHICLES_KEY_LEGACY, FLEET_TRIPS_KEY, NAV_GROUP_STATE_KEY,
@@ -2913,8 +3170,29 @@ document.getElementById('clearDataBtn').addEventListener('click', () => {
   renderLastUploadNote();
 });
 
+// Both Reset buttons snapshot everything they're about to wipe into localStorage FIRST, so an
+// accidental click can be walked back via "Undo Reset" — persists across tab switches/reloads (not
+// just an in-memory undo stack), and is only ever cleared by actually clicking Undo or running that
+// same reset again (which overwrites it with the newer snapshot). Both buttons — Reset and Undo —
+// are Admin/Team Lead-only regardless of what tabs a non-admin has been granted (see
+// applyUserPermissions), since this wipes shared operational data, not just this user's own view.
+const PROGRESS_BOARD_RESET_SNAPSHOT_KEY = 'sto_progress_board_reset_snapshot_v1';
+const TRIP_SCHEDULE_RESET_SNAPSHOT_KEY = 'sto_trip_schedule_reset_snapshot_v1';
+function updateResetUndoButtons() {
+  const undoProgressBtn = document.getElementById('undoResetProgressBtn');
+  if (undoProgressBtn) undoProgressBtn.style.display = localStorage.getItem(PROGRESS_BOARD_RESET_SNAPSHOT_KEY) ? '' : 'none';
+  const undoTripBtn = document.getElementById('undoResetTripBtn');
+  if (undoTripBtn) undoTripBtn.style.display = localStorage.getItem(TRIP_SCHEDULE_RESET_SNAPSHOT_KEY) ? '' : 'none';
+}
 document.getElementById('resetProgressBtn').addEventListener('click', () => {
-  if (!confirm('Reset the Progress Board? Every STO moves back to Active, and any Carton No. / DO No. / picker(s) / packing station already assigned to them is cleared (Carton No. and DO No. counters reset to 0 too). Boutique SLA settings, boutique codes/addresses, label From-details and registered Packing Stations are kept. This action cannot be undone.')) return;
+  if (!confirm('Reset the Progress Board? Every STO moves back to Active, and any Carton No. / DO No. / picker(s) / packing station already assigned to them is cleared (Carton No. and DO No. counters reset to 0 too). Boutique SLA settings, boutique codes/addresses, label From-details and registered Packing Stations are kept. Click "Undo Reset" right after if this was a mistake — it stops working once you reset again.')) return;
+  localStorage.setItem(PROGRESS_BOARD_RESET_SNAPSHOT_KEY, JSON.stringify({
+    records: JSON.parse(JSON.stringify(records)),
+    doRecords: JSON.parse(JSON.stringify(doRecords)),
+    cartonCounter: localStorage.getItem(CARTON_COUNTER_KEY),
+    doCounter: localStorage.getItem(DO_COUNTER_KEY),
+    packingStationRR: localStorage.getItem(PACKING_STATION_RR_KEY),
+  }));
   records.forEach(r => {
     r.progress = 'Active';
     delete r.cartonLock;
@@ -2934,6 +3212,23 @@ document.getElementById('resetProgressBtn').addEventListener('click', () => {
   saveDoRecords();
   selectedCartons.clear();
   renderAll();
+  updateResetUndoButtons();
+});
+document.getElementById('undoResetProgressBtn').addEventListener('click', () => {
+  const raw = localStorage.getItem(PROGRESS_BOARD_RESET_SNAPSHOT_KEY);
+  if (!raw) return;
+  if (!confirm('Undo the last Progress Board reset? This restores every STO, DO record, and counter to exactly how they were right before that reset.')) return;
+  const snap = JSON.parse(raw);
+  records = snap.records;
+  saveRecords();
+  doRecords = snap.doRecords;
+  saveDoRecords();
+  if (snap.cartonCounter !== null) localStorage.setItem(CARTON_COUNTER_KEY, snap.cartonCounter); else localStorage.removeItem(CARTON_COUNTER_KEY);
+  if (snap.doCounter !== null) localStorage.setItem(DO_COUNTER_KEY, snap.doCounter); else localStorage.removeItem(DO_COUNTER_KEY);
+  if (snap.packingStationRR !== null) localStorage.setItem(PACKING_STATION_RR_KEY, snap.packingStationRR); else localStorage.removeItem(PACKING_STATION_RR_KEY);
+  localStorage.removeItem(PROGRESS_BOARD_RESET_SNAPSHOT_KEY);
+  renderAll();
+  updateResetUndoButtons();
 });
 
 // Scoped to Fleet's own trip scheduling data only — wipes every scheduled/dispatched/delivered
@@ -2942,13 +3237,32 @@ document.getElementById('resetProgressBtn').addEventListener('click', () => {
 // attached to a wiped trip just goes back to looking un-dispatched ("DO Issued", no trip yet) —
 // its own STO/DO data is unaffected, only the trip-side link to it disappears.
 document.getElementById('resetFleetTripsBtn').addEventListener('click', () => {
-  if (!confirm('Reset the Trip Schedule? This wipes every scheduled, Out of Delivery, and Delivered trip, and clears their "Reschedule" postponed flags. Drivers/Assistants (Team Setup), boutiques, and all STO/DO records are all KEPT — any DO that was attached to a trip just goes back to "DO Issued" with no trip yet. Consider Export Backup first. This action cannot be undone.')) return;
+  if (!confirm('Reset the Trip Schedule? This wipes every scheduled, Out of Delivery, and Delivered trip, and clears their "Reschedule" postponed flags. Drivers/Assistants (Team Setup), boutiques, and all STO/DO records are all KEPT — any DO that was attached to a trip just goes back to "DO Issued" with no trip yet. Click "Undo Reset" right after if this was a mistake — it stops working once you reset again.')) return;
+  localStorage.setItem(TRIP_SCHEDULE_RESET_SNAPSHOT_KEY, JSON.stringify({
+    fleetTrips: JSON.parse(JSON.stringify(fleetTrips)),
+    fleetPostponedDoNos: JSON.parse(JSON.stringify(fleetPostponedDoNos)),
+  }));
   fleetTrips = [];
   saveFleetTrips();
   fleetPostponedDoNos = [];
   saveFleetPostponedDoNos();
   renderAll();
   renderFleetTab();
+  updateResetUndoButtons();
+});
+document.getElementById('undoResetTripBtn').addEventListener('click', () => {
+  const raw = localStorage.getItem(TRIP_SCHEDULE_RESET_SNAPSHOT_KEY);
+  if (!raw) return;
+  if (!confirm('Undo the last Trip Schedule reset? This restores every trip and postponed flag to exactly how they were right before that reset.')) return;
+  const snap = JSON.parse(raw);
+  fleetTrips = snap.fleetTrips;
+  saveFleetTrips();
+  fleetPostponedDoNos = snap.fleetPostponedDoNos;
+  saveFleetPostponedDoNos();
+  localStorage.removeItem(TRIP_SCHEDULE_RESET_SNAPSHOT_KEY);
+  renderAll();
+  renderFleetTab();
+  updateResetUndoButtons();
 });
 
 function renderCartonCounterNote() {
@@ -3025,6 +3339,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'inbound-board') renderInboundKanban();
     if (btn.dataset.tab === 'inbound-sla') renderInboundSlaTab();
     if (btn.dataset.tab === 'fleet-trips' || btn.dataset.tab === 'fleet-board' || btn.dataset.tab === 'fleet-driver-trip') renderFleetTab();
+    if (btn.dataset.tab === 'staff-schedule') { renderStaffRosterList(); renderStaffScheduleGrid(); }
     updateSidebarSyncBarVisibility();
   });
 });
@@ -3486,14 +3801,17 @@ function renderPickerTargetProgress() {
 // the ones most likely to need a nudge); the list is simply the bottom 3 by qty ascending.
 function renderPickerLowestList() {
   const wrap = document.getElementById('pickerLowestListWrap');
-  if (!pickers.length) { wrap.innerHTML = `<div class="empty-state">No pickers registered yet.</div>`; return; }
+  // Excluded pickers (e.g. a Merchandise Picker) don't belong on a "who still needs to pick more
+  // baju today" nudge list, so they're filtered out entirely rather than just showing 0.
+  const dashboardPickers = pickers.filter(p => !p.excludeFromDashboard);
+  if (!dashboardPickers.length) { wrap.innerHTML = `<div class="empty-state">No pickers registered yet.</div>`; return; }
   const today = todayStr();
-  const autoTarget = effectiveOf(autoIndividualTargetPair('picker', pickers.length));
-  const ranked = pickers.map(p => {
+  const shiftCounts = computeShiftPickerCounts();
+  const ranked = dashboardPickers.map(p => {
     const qty = records
       .filter(r => r.pickingCompletedDate === today && r.pickerInfo && (r.pickerInfo.names || []).includes(p.name))
       .reduce((sum, r) => sum + (parseFloat(r.totalOrderQty) || 0), 0);
-    return { name: p.name, qty, target: autoTarget };
+    return { name: p.name, qty, target: effectiveOf(pickerTargetPairFor(p, shiftCounts)) };
   }).sort((a, b) => a.qty - b.qty).slice(0, 3);
 
   let html = `<table><thead><tr><th>#</th><th>Picker</th><th>Today (pcs)</th></tr></thead><tbody>`;
@@ -3516,19 +3834,23 @@ function renderStationTargetProgress() {
   const today = todayStr();
   // When every registered station is OFF, there's no meaningful per-station breakdown to show —
   // collapse into a single "General" bar against the OVERALL (un-split) target instead of a wall
-  // of empty/idle per-station bars.
-  const anyPackingOnShift = packingStations.some(s => isStationOnShift(s));
+  // of empty/idle per-station bars. Otherwise, only stations currently ON shift (per their own
+  // Shift window / manual ON-OFF switch) share the split and appear as bars — an off-shift station
+  // isn't expected to produce anything right now, so it neither counts toward the denominator nor
+  // clutters the chart with an empty 0/target bar.
+  const onShiftStations = packingStations.filter(s => isStationOnShift(s));
   let rows;
-  if (packingStations.length && !anyPackingOnShift) {
+  if (packingStations.length && !onShiftStations.length) {
     const overallTarget = effectiveDailyTarget('packer');
     const qty = records
       .filter(r => r.packingCompletedDate === today)
       .reduce((sum, r) => sum + (parseFloat(r.totalOrderQty) || 0), 0);
     rows = (overallTarget && overallTarget > 0) ? [{ name: 'Packing', qty, target: Number(overallTarget) }] : [];
   } else {
-    // All stations share the same auto-derived target (overall Packer Daily Target split evenly).
-    const autoCapTarget = effectiveOf(autoIndividualTargetPair('packer', packingStations.length));
-    rows = (autoCapTarget && autoCapTarget > 0 ? packingStations : [])
+    // On-shift stations share the same auto-derived target (overall Packer Daily Target split
+    // evenly across just those on shift right now).
+    const autoCapTarget = effectiveOf(autoIndividualTargetPair('packer', onShiftStations.length));
+    rows = (autoCapTarget && autoCapTarget > 0 ? onShiftStations : [])
       .map(s => {
         const qty = records
           .filter(r => r.packingStation === s.name && r.packingCompletedDate === today)
@@ -4080,21 +4402,30 @@ function renderPickersList() {
   }
   const today = todayStr();
   // Each picker's target is auto-derived: the overall Picker Daily Target (Team Setup, top of this
-  // tab) split evenly across every registered picker — not editable per-picker anymore.
-  const autoPair = autoIndividualTargetPair('picker', pickers.length);
-  const effTarget = effectiveOf(autoPair);
-  const hasEffTarget = hasEffective(autoPair);
-  let html = `<table><thead><tr><th>Picker</th><th>Target Weekday</th><th>Target Weekend</th><th>Today (pcs)</th><th></th></tr></thead><tbody>`;
+  // tab) split across whoever shares their shift TODAY (Day shift splits it across today's Day
+  // headcount, Night shift across today's Night headcount) — see pickerTargetPairFor. Excluded,
+  // Off, on Leave, or not linked to an Active Picker-role Staff Schedule entry all show "—".
+  const shiftCounts = computeShiftPickerCounts();
+  let html = `<table><thead><tr><th>Picker</th><th>Shift Today</th><th>Target Weekday</th><th>Target Weekend</th><th>Today (pcs)</th><th>Dashboard</th><th></th></tr></thead><tbody>`;
   pickers.forEach((p, i) => {
+    const excluded = !!p.excludeFromDashboard;
+    const status = pickerShiftStatusToday(p);
+    const pair = pickerTargetPairFor(p, shiftCounts);
+    const effTarget = effectiveOf(pair);
+    const hasEffTarget = hasEffective(pair);
+    const shiftBadgeClass = status === null ? 'badge-gray' : STAFF_SHIFT_BADGE_CLASS[status];
+    const shiftLabel = status === null ? 'Not linked' : STAFF_SHIFT_CELL_LABEL[status];
     const currentLoadQty = records
       .filter(r => r.pickingCompletedDate === today && r.pickerInfo && (r.pickerInfo.names || []).includes(p.name))
       .reduce((sum, r) => sum + (parseFloat(r.totalOrderQty) || 0), 0);
     const overTarget = hasEffTarget && currentLoadQty > Number(effTarget);
     html += `<tr>
       <td><input type="text" class="picker-roster-name-input" data-idx="${i}" value="${escapeHtml(p.name)}"></td>
-      <td>${autoPair.weekday !== null ? formatQty(autoPair.weekday) : '—'}</td>
-      <td>${autoPair.weekend !== null ? formatQty(autoPair.weekend) : '—'}</td>
+      <td><span class="badge ${shiftBadgeClass}" title="${status === null ? 'Add this name to the Staff Schedule roster with Role = Picker to get a live shift-based target' : 'From the Staff Schedule tab, today'}">${shiftLabel}</span></td>
+      <td>${pair.weekday !== null ? formatQty(pair.weekday) : '—'}</td>
+      <td>${pair.weekend !== null ? formatQty(pair.weekend) : '—'}</td>
       <td>${hasEffTarget ? `<span class="badge ${overTarget ? 'badge-red' : 'badge-green'}">${formatQty(currentLoadQty)} / ${escapeHtml(String(effTarget))}</span>` : formatQty(currentLoadQty)}</td>
+      <td><button type="button" class="btn-ghost picker-exclude-toggle-btn" data-idx="${i}" title="Exclude this picker's pcs from Dashboard totals/charts (e.g. a Merchandise Picker)"><span class="badge ${excluded ? 'badge-amber' : 'badge-green'}">${excluded ? 'Excluded' : 'Included'}</span></button></td>
       <td class="row-actions">
         <button class="icon-btn remove-picker-btn" data-idx="${i}" title="Delete">✕</button>
       </td>
@@ -4121,6 +4452,16 @@ function renderPickersList() {
     });
   });
 
+  wrap.querySelectorAll('.picker-exclude-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.dataset.idx);
+      pickers[idx].excludeFromDashboard = !pickers[idx].excludeFromDashboard;
+      savePickers();
+      renderPickersList();
+      renderPickerLowestList(); // exclusion changed -> auto-split denominator + list membership changed
+    });
+  });
+
   wrap.querySelectorAll('.remove-picker-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const idx = Number(e.target.dataset.idx);
@@ -4130,6 +4471,7 @@ function renderPickersList() {
       savePickers();
       renderPickersList();
       renderPickerLowestList(); // picker count changed -> auto-split target changed for everyone
+      populatePickerRosterSelect(); // removed picker's name reappears as an unassigned staff option
     });
   });
 }
@@ -4143,17 +4485,539 @@ function addPickerFromInput() {
   const input = document.getElementById('inputNewPickerName');
   const name = input.value.trim();
   if (!name) { input.focus(); return; }
-  if (!pickers.some(p => p.name.toLowerCase() === name.toLowerCase())) pickers.push({ name });
+  if (pickers.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+    alert(`A picker named "${name}" already exists.`);
+    return;
+  }
+  pickers.push({ name });
   savePickers();
   input.value = '';
   input.focus();
   renderPickersList();
   renderPickerLowestList(); // picker count changed -> auto-split target changed for everyone
+  populatePickerRosterSelect(); // just-added name drops off the suggestion list
 }
 document.getElementById('addPickerBtn').addEventListener('click', addPickerFromInput);
 document.getElementById('inputNewPickerName').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); addPickerFromInput(); }
 });
+
+/* ---------- Staff Roster list rendering ---------- */
+function renderStaffRosterList() {
+  const wrap = document.getElementById('staffRosterListWrap');
+  if (!wrap) return;
+  if (!staffRoster.length) {
+    wrap.innerHTML = `<div class="empty-state">No staff registered yet. Add one above — they'll show up in the weekly schedule grid below, and as a name option when adding Pickers/Drivers.</div>`;
+  } else {
+    let html = `<table><thead><tr><th>Name</th><th>Department</th><th>Role</th><th>Status</th><th></th></tr></thead><tbody>`;
+    staffRoster.forEach((s, i) => {
+      const active = s.active !== false;
+      html += `<tr data-name="${escapeHtml((s.name || '').toLowerCase())}">
+        <td><input type="text" class="staff-roster-name-input" data-idx="${i}" value="${escapeHtml(s.name)}"></td>
+        <td>
+          <select class="staff-roster-dept-select role-select ${staffDeptBadgeClass(s.department)}" data-idx="${i}">
+            <option value="Inbound" ${s.department === 'Inbound' ? 'selected' : ''}>Inbound</option>
+            <option value="Outbound" ${s.department === 'Outbound' ? 'selected' : ''}>Outbound</option>
+            ${(s.department !== 'Inbound' && s.department !== 'Outbound') ? `<option value="${escapeHtml(s.department)}" selected>${escapeHtml(s.department)} (legacy — pick a new department)</option>` : ''}
+          </select>
+        </td>
+        <td>
+          <select class="staff-roster-role-select role-select ${staffRoleBadgeClass(s.role)}" data-idx="${i}">
+            ${STAFF_ROLE_OPTIONS.map(r => `<option value="${r}" ${s.role === r ? 'selected' : ''}>${r}</option>`).join('')}
+            ${!STAFF_ROLE_OPTIONS.includes(s.role) ? `<option value="${escapeHtml(s.role || '')}" selected>${escapeHtml(s.role || '(none)')} (legacy — pick a new role)</option>` : ''}
+          </select>
+        </td>
+        <td><button type="button" class="btn-ghost staff-active-toggle-btn" data-idx="${i}" title="${active ? 'Currently active — click to turn Off (e.g. campaign over, not needed right now)' : 'Currently Off — click to turn back Active'}"><span class="badge ${active ? 'badge-green' : 'badge-red'}">${active ? 'Active' : 'Off'}</span></button></td>
+        <td class="row-actions"><button class="icon-btn remove-staff-btn" data-idx="${i}" title="Delete">✕</button></td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+    wrap.innerHTML = html;
+
+    wrap.querySelectorAll('.staff-roster-name-input').forEach(inp => {
+      inp.addEventListener('change', (e) => {
+        const idx = Number(e.target.dataset.idx);
+        const v = e.target.value.trim();
+        if (!v) { e.target.value = staffRoster[idx].name; return; }
+        if (staffRoster.some((s, si) => si !== idx && s.name.toLowerCase() === v.toLowerCase())) {
+          alert(`A staff named "${v}" already exists.`);
+          e.target.value = staffRoster[idx].name;
+          return;
+        }
+        staffRoster[idx].name = v;
+        saveStaffRoster();
+        renderStaffScheduleGrid();
+        populatePickerRosterSelect();
+        populateDriverRosterSelect();
+      });
+    });
+    wrap.querySelectorAll('.staff-roster-dept-select').forEach(sel => {
+      sel.addEventListener('change', (e) => {
+        const idx = Number(e.target.dataset.idx);
+        staffRoster[idx].department = e.target.value;
+        saveStaffRoster();
+        recolorRoleSelect(e.target, staffDeptBadgeClass);
+        renderStaffScheduleGrid();
+      });
+    });
+    wrap.querySelectorAll('.staff-roster-role-select').forEach(sel => {
+      sel.addEventListener('change', (e) => {
+        const idx = Number(e.target.dataset.idx);
+        staffRoster[idx].role = e.target.value;
+        saveStaffRoster();
+        recolorRoleSelect(e.target, staffRoleBadgeClass);
+        renderStaffScheduleGrid();
+        populatePickerRosterSelect(); // role change may add/remove this person from the Picker pool
+        populateDriverRosterSelect();
+        renderPickersList(); // role change may (dis)connect them from a live shift-based target
+        renderPickerLowestList();
+        renderStationsTab(); // role change may add/remove them from a Day/Night station's auto Manpower
+        renderReceiveStationsTab();
+      });
+    });
+    // Off just parks a staff member — their Department/Role stay exactly as set (this is a
+    // separate "currently in use" flag, not a reset), they're hidden from the Weekly Schedule grid
+    // (so it doesn't stay cluttered with people not needed outside a campaign period), and they
+    // drop off the "unassigned staff" dropdown when adding Pickers/Drivers. Turning back Active
+    // brings them straight back everywhere with everything intact.
+    wrap.querySelectorAll('.staff-active-toggle-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const idx = Number(e.target.closest('button').dataset.idx);
+        staffRoster[idx].active = staffRoster[idx].active === false ? true : false;
+        saveStaffRoster();
+        renderStaffRosterList();
+        renderStaffScheduleGrid();
+        populatePickerRosterSelect();
+        populateDriverRosterSelect();
+        renderPickersList(); // Off unlinks them from today's shift-based target too
+        renderPickerLowestList();
+        renderStationsTab(); // Off also unlinks them from a Day/Night station's auto Manpower
+        renderReceiveStationsTab();
+      });
+    });
+    wrap.querySelectorAll('.remove-staff-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const idx = Number(e.target.dataset.idx);
+        const s = staffRoster[idx];
+        if (!confirm(`Remove "${s.name}" from the staff roster? Their existing shift history stays saved, but they'll drop off the schedule grid and off the name list for adding Pickers/Drivers.`)) return;
+        staffRoster.splice(idx, 1);
+        saveStaffRoster();
+        renderStaffRosterList();
+        renderStaffScheduleGrid();
+        populatePickerRosterSelect();
+        populateDriverRosterSelect();
+      });
+    });
+  }
+  syncPickersFromStaffRoster();
+  populatePickerRosterSelect();
+  populateDriverRosterSelect();
+  applyNameFilter('staffRosterSearchInput', 'staffRosterListWrap', 'staffRosterFilterEmpty');
+}
+// Shared name-filter for the Staff Roster table and Weekly Schedule grid — rows are already fully
+// rendered (data-idx / data-staff attributes must keep pointing at the real staffRoster entries), so
+// filtering just hides/shows <tr> via a data-name attribute instead of re-rendering a subset, which
+// would break every index-based click handler wired against the full unfiltered list. Re-applied at
+// the end of both render functions so the filter survives any unrelated re-render (e.g. a dept/role
+// change elsewhere) instead of silently resetting to "show everyone".
+function applyNameFilter(searchInputId, tableWrapId, emptyStateId) {
+  const input = document.getElementById(searchInputId);
+  const wrap = document.getElementById(tableWrapId);
+  const emptyEl = document.getElementById(emptyStateId);
+  if (!input || !wrap) return;
+  const q = input.value.trim().toLowerCase();
+  const rows = wrap.querySelectorAll('tr[data-name]');
+  let anyVisible = false;
+  rows.forEach(tr => {
+    const match = !q || tr.dataset.name.includes(q);
+    tr.style.display = match ? '' : 'none';
+    if (match) anyVisible = true;
+  });
+  if (emptyEl) emptyEl.style.display = (q && rows.length && !anyVisible) ? '' : 'none';
+}
+document.getElementById('staffRosterSearchInput').addEventListener('input', () => applyNameFilter('staffRosterSearchInput', 'staffRosterListWrap', 'staffRosterFilterEmpty'));
+document.getElementById('staffScheduleSearchInput').addEventListener('input', () => applyNameFilter('staffScheduleSearchInput', 'staffScheduleGridWrap', 'staffScheduleFilterEmpty'));
+// Any Active staff whose Role = Picker on the Staff Schedule roster is auto-registered into the
+// Team Setup Pickers list — no manual "+ Add Picker" click needed. One-directional: turning
+// someone Off or changing their role away from Picker does NOT auto-remove them from Pickers
+// (their existing target/history data stays put); removing them from Pickers stays a manual ✕.
+function syncPickersFromStaffRoster() {
+  const existingNames = new Set(pickers.map(p => (p.name || '').trim().toLowerCase()));
+  let added = false;
+  staffRoster.forEach(s => {
+    if (s.active === false || s.role !== 'Picker') return;
+    const key = (s.name || '').trim().toLowerCase();
+    if (!key || existingNames.has(key)) return;
+    pickers.push({ name: s.name });
+    existingNames.add(key);
+    added = true;
+  });
+  if (added) {
+    savePickers();
+    renderPickersList();
+    renderPickerLowestList();
+  }
+}
+
+document.getElementById('addStaffBtn').addEventListener('click', addStaffFromInput);
+document.getElementById('inputNewStaffName').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); addStaffFromInput(); }
+});
+function addStaffFromInput() {
+  const nameInput = document.getElementById('inputNewStaffName');
+  const deptSelect = document.getElementById('inputNewStaffDept');
+  const roleSelect = document.getElementById('inputNewStaffRole');
+  const name = nameInput.value.trim();
+  if (!name) { nameInput.focus(); return; }
+  if (staffRoster.some(s => s.name.toLowerCase() === name.toLowerCase())) {
+    alert(`A staff named "${name}" already exists.`);
+    return;
+  }
+  staffRoster.push({ id: genStaffId(), name, department: deptSelect.value, role: roleSelect.value });
+  saveStaffRoster();
+  nameInput.value = '';
+  nameInput.focus();
+  renderStaffRosterList();
+  renderStaffScheduleGrid();
+}
+
+/* ---------- Staff Roster bulk import (Excel/CSV) ---------- */
+// Template covers the WHOLE CALENDAR MONTH that the week currently showing in the grid below falls
+// in — one column per day, all 28-31 of them. Each day column's header carries the actual ISO date
+// (e.g. "Mon 2026-08-03"), not just a weekday name, so the file is self-contained: it can be filled
+// in and uploaded later without caring what week happens to be on screen at upload time (upload
+// reads the dates back OUT of the header, not off current state).
+function daysInMonth(year, monthIndex0) { return new Date(year, monthIndex0 + 1, 0).getDate(); }
+document.getElementById('downloadStaffRosterTemplateBtn').addEventListener('click', () => {
+  const anchor = new Date(staffScheduleWeekStart + 'T00:00:00');
+  const year = anchor.getFullYear();
+  const monthIndex0 = anchor.getMonth();
+  const numDays = daysInMonth(year, monthIndex0);
+  const monthDates = [];
+  for (let d = 1; d <= numDays; d++) monthDates.push(toIsoLocal(new Date(year, monthIndex0, d)));
+  const dayHeaders = monthDates.map(iso => {
+    const wd = STAFF_SCHEDULE_WEEKDAY_LABELS[(new Date(iso + 'T00:00:00').getDay() + 6) % 7];
+    return `${wd} ${iso}`;
+  });
+  const exampleShiftsFor = (pattern) => monthDates.map((_, i) => pattern[i % pattern.length]);
+  const wsData = [
+    ['Name', 'Department', 'Role', ...dayHeaders],
+    ['Aina', 'Inbound', 'Receiver', ...exampleShiftsFor(['Day', 'Day', 'Day', 'Day', 'Day', 'Off', 'Off'])],
+    ['Wan', 'Outbound', 'Picker', ...exampleShiftsFor(['Night', 'Night', 'Off', 'Night', 'Night', 'Night', 'Off'])],
+    ['Ali', 'Outbound', 'Packer', ...monthDates.map(() => '')],
+    ['Faiz', 'Outbound', 'PIC', ...exampleShiftsFor(['Day', 'Day', 'Day', 'Day', 'Day', 'Off', 'Off'])],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [{ wch: 18 }, { wch: 12 }, { wch: 12 }, ...dayHeaders.map(() => ({ wch: 16 }))];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Staff Roster Template');
+  XLSX.writeFile(wb, `staff_roster_template_${year}-${String(monthIndex0 + 1).padStart(2, '0')}.xlsx`);
+});
+// Accepts a few spellings so a template filled in loosely ("outbound", "receiver", blank, etc.)
+// still lands somewhere sensible instead of silently failing the row.
+const STAFF_ROLE_OPTIONS = ['Picker', 'Packer', 'Receiver', 'PIC', 'Backup PIC'];
+// Color-codes the Department/Role dropdowns (Staff Roster + Weekly Schedule) so the table reads at
+// a glance instead of being a wall of identical plain selects.
+const STAFF_DEPT_BADGE_CLASS = { Inbound: 'badge-blue', Outbound: 'badge-gold' };
+const STAFF_ROLE_BADGE_CLASS = { Picker: 'badge-green', Packer: 'badge-blue', Receiver: 'badge-purple', PIC: 'badge-gold', 'Backup PIC': 'badge-amber' };
+function staffDeptBadgeClass(dept) { return STAFF_DEPT_BADGE_CLASS[dept] || 'badge-gray'; }
+function staffRoleBadgeClass(role) { return STAFF_ROLE_BADGE_CLASS[role] || 'badge-gray'; }
+// Recolors a Department/Role <select> to match its currently-selected value — called on render AND
+// on every change, so the color always tracks what's actually selected instead of just what it was
+// initially rendered with.
+function recolorRoleSelect(sel, badgeClassFn) {
+  Object.values(STAFF_DEPT_BADGE_CLASS).concat(Object.values(STAFF_ROLE_BADGE_CLASS)).forEach(c => sel.classList.remove(c));
+  sel.classList.add(badgeClassFn(sel.value));
+}
+// Add Staff form's own two selects get the same live color treatment as the table rows.
+(() => {
+  const newDeptSel = document.getElementById('inputNewStaffDept');
+  const newRoleSel = document.getElementById('inputNewStaffRole');
+  recolorRoleSelect(newDeptSel, staffDeptBadgeClass);
+  recolorRoleSelect(newRoleSel, staffRoleBadgeClass);
+  newDeptSel.addEventListener('change', () => recolorRoleSelect(newDeptSel, staffDeptBadgeClass));
+  newRoleSel.addEventListener('change', () => recolorRoleSelect(newRoleSel, staffRoleBadgeClass));
+})();
+function normalizeStaffRole(raw) {
+  const v = String(raw || '').trim().toLowerCase();
+  if (v.includes('backup')) return 'Backup PIC'; // checked before the plain "pic" check below
+  if (v.includes('picker')) return 'Picker'; // checked before "pic" so "picker" doesn't match as PIC
+  if (v.includes('packer')) return 'Packer';
+  if (v.includes('pic')) return 'PIC';
+  if (v.includes('receiv')) return 'Receiver';
+  return 'Picker';
+}
+function normalizeStaffDept(raw) {
+  const v = String(raw || '').trim().toLowerCase();
+  if (v.includes('in')) return 'Inbound';
+  if (v.includes('out')) return 'Outbound';
+  return 'Outbound';
+}
+function normalizeStaffShiftCell(raw) {
+  const v = String(raw || '').trim().toLowerCase();
+  if (v === 'day') return 'Day';
+  if (v === 'night') return 'Night';
+  if (v === 'leave' || v === 'on leave') return 'Leave';
+  if (v === 'off') return 'Off';
+  return 'Normal'; // blank or anything unrecognized — regular working day, no special shift
+}
+function processUploadedStaffRosterFile(file) {
+  const statusEl = document.getElementById('staffRosterUploadStatus');
+  statusEl.textContent = 'Processing file...';
+  statusEl.className = 'upload-status';
+
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+
+  reader.onload = (evt) => {
+    try {
+      let sheetRows = [];
+      if (ext === 'csv') {
+        const text = String(evt.target.result).replace(/^﻿/, '');
+        sheetRows = parseCsvRows(text);
+      } else {
+        const wb = XLSX.read(evt.target.result, { type: 'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        sheetRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+      }
+      // Row 0 is the header row — columns 3.. (if present) each carry a "Weekday YYYY-MM-DD" label;
+      // pull the actual dates back out of it rather than assuming they line up with whatever week
+      // happens to be on screen right now.
+      const headerRow = sheetRows[0] || [];
+      const shiftDates = [];
+      for (let c = 3; c < headerRow.length; c++) {
+        const m = String(headerRow[c] || '').match(/(\d{4}-\d{2}-\d{2})/);
+        shiftDates.push(m ? m[1] : null);
+      }
+      const hasShiftColumns = shiftDates.some(d => d);
+      const dataRows = sheetRows.slice(1);
+      const existingByKey = {};
+      staffRoster.forEach(s => { existingByKey[s.name.trim().toLowerCase()] = s; });
+      let added = 0, updated = 0, skippedBlank = 0;
+      let scheduleChanged = false;
+      dataRows.forEach(row => {
+        const name = String((row && row[0]) || '').trim();
+        if (!name) { skippedBlank++; return; }
+        const key = name.toLowerCase();
+        const deptRaw = String((row && row[1]) || '').trim();
+        const roleRaw = String((row && row[2]) || '').trim();
+        let staff = existingByKey[key];
+        if (!staff) {
+          staff = {
+            id: genStaffId(),
+            name,
+            department: deptRaw ? normalizeStaffDept(deptRaw) : 'Outbound',
+            role: roleRaw ? normalizeStaffRole(roleRaw) : 'Picker',
+          };
+          staffRoster.push(staff);
+          existingByKey[key] = staff;
+          added++;
+        } else {
+          if (deptRaw) staff.department = normalizeStaffDept(deptRaw);
+          if (roleRaw) staff.role = normalizeStaffRole(roleRaw);
+          updated++;
+        }
+        if (hasShiftColumns) {
+          shiftDates.forEach((dateIso, i) => {
+            if (!dateIso) return;
+            const shift = normalizeStaffShiftCell(row[3 + i]);
+            staffSchedule[staff.id] = staffSchedule[staff.id] || {};
+            if (shift === 'Normal') delete staffSchedule[staff.id][dateIso];
+            else staffSchedule[staff.id][dateIso] = shift;
+            scheduleChanged = true;
+          });
+        }
+      });
+      saveStaffRoster();
+      if (scheduleChanged) saveStaffSchedule();
+      let msg = `Success: ${added} new staff added, ${updated} existing staff updated.`;
+      if (hasShiftColumns) msg += ' Schedule applied for the week in the file.';
+      if (skippedBlank) msg += ` ${skippedBlank} row(s) skipped (missing Name).`;
+      statusEl.textContent = msg;
+      statusEl.className = 'upload-status ok';
+      // Jump the grid to whichever week the upload just set, so the result is immediately visible
+      // instead of looking unchanged if staff happened to be viewing a different week.
+      const firstValidDate = shiftDates.find(d => d);
+      if (hasShiftColumns && firstValidDate) staffScheduleWeekStart = mondayOfWeek(firstValidDate);
+      renderStaffRosterList();
+      renderStaffScheduleGrid();
+    } catch (err) {
+      statusEl.textContent = 'Failed to process file: ' + err.message;
+      statusEl.className = 'upload-status err';
+    }
+  };
+  reader.onerror = () => {
+    statusEl.textContent = 'Failed to read file.';
+    statusEl.className = 'upload-status err';
+  };
+
+  if (ext === 'csv') reader.readAsText(file);
+  else reader.readAsArrayBuffer(file);
+}
+document.getElementById('staffRosterFileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  processUploadedStaffRosterFile(file);
+  e.target.value = '';
+});
+const staffRosterDropzone = document.getElementById('staffRosterDropzone');
+['dragenter', 'dragover'].forEach(evtName => {
+  staffRosterDropzone.addEventListener(evtName, (e) => {
+    e.preventDefault(); e.stopPropagation();
+    staffRosterDropzone.classList.add('dragover');
+  });
+});
+['dragleave', 'drop'].forEach(evtName => {
+  staffRosterDropzone.addEventListener(evtName, (e) => {
+    e.preventDefault(); e.stopPropagation();
+    staffRosterDropzone.classList.remove('dragover');
+  });
+});
+staffRosterDropzone.addEventListener('drop', (e) => {
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (file) processUploadedStaffRosterFile(file);
+});
+
+/* ---------- Staff Schedule weekly grid ---------- */
+let staffScheduleWeekStart = mondayOfWeek(todayStr());
+// 'Normal' is the default — a regular working day with no special campaign shift, and (like 'Off'
+// used to be) it's never actually stored in staffSchedule; deleting the key represents it. 'Off'
+// is now its own explicit state meaning an actual day off/not working, distinct from Normal.
+const STAFF_SHIFT_CYCLE = ['Normal', 'Day', 'Night', 'Off', 'Leave'];
+const STAFF_SHIFT_BADGE_CLASS = { Normal: 'badge-gray', Day: 'badge-green', Night: 'badge-blue', Off: 'badge-amber', Leave: 'badge-red' };
+const STAFF_SHIFT_CELL_LABEL = { Normal: 'Normal', Day: 'Day', Night: 'Night', Off: 'Off', Leave: 'Leave' };
+const STAFF_SCHEDULE_WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+function renderStaffScheduleGrid() {
+  const label = document.getElementById('staffScheduleWeekLabel');
+  if (label) {
+    const weekEnd = addDaysIso(staffScheduleWeekStart, 6);
+    label.textContent = `${formatDateLabel(staffScheduleWeekStart)} - ${formatDateLabel(weekEnd)}`;
+  }
+  const wrap = document.getElementById('staffScheduleGridWrap');
+  if (!wrap) return;
+  // Off staff (see the Status toggle on the roster above) don't clutter the grid — the schedule is
+  // only really needed during a campaign, so parking someone Off keeps this list to just who's
+  // actually relevant right now, without losing their record or Department/Role.
+  const activeRoster = staffRoster.filter(s => s.active !== false);
+  if (!activeRoster.length) {
+    wrap.innerHTML = `<div class="empty-state">${staffRoster.length ? 'Every registered staff is currently Off — turn someone back Active on the roster above to see them here.' : 'No staff registered yet — add staff above first.'}</div>`;
+    return;
+  }
+  let html = `<table class="driver-trip-table"><thead><tr><th class="driver-trip-name-col">Staff</th><th>Department</th><th>Role</th>`;
+  const weekDates = [];
+  for (let i = 0; i < 7; i++) {
+    const dateIso = addDaysIso(staffScheduleWeekStart, i);
+    weekDates.push(dateIso);
+    const shortDate = formatDateLabel(dateIso).replace(/,?\s*\d{4}$/, '');
+    html += `<th>${STAFF_SCHEDULE_WEEKDAY_LABELS[i]}<br><span style="font-weight:400; font-size:11px; color:var(--text-muted);">${shortDate}</span></th>`;
+  }
+  html += `</tr></thead><tbody>`;
+  activeRoster.forEach(s => {
+    const deptOptionsHtml = `<option value="Inbound" ${s.department === 'Inbound' ? 'selected' : ''}>Inbound</option>
+      <option value="Outbound" ${s.department === 'Outbound' ? 'selected' : ''}>Outbound</option>
+      ${(s.department !== 'Inbound' && s.department !== 'Outbound') ? `<option value="${escapeHtml(s.department)}" selected>${escapeHtml(s.department)} (legacy)</option>` : ''}`;
+    const roleOptionsHtml = STAFF_ROLE_OPTIONS.map(r => `<option value="${r}" ${s.role === r ? 'selected' : ''}>${r}</option>`).join('')
+      + (!STAFF_ROLE_OPTIONS.includes(s.role) ? `<option value="${escapeHtml(s.role || '')}" selected>${escapeHtml(s.role || '(none)')} (legacy)</option>` : '');
+    html += `<tr data-name="${escapeHtml((s.name || '').toLowerCase())}"><td class="driver-trip-name-col mono-name">${escapeHtml(s.name)}</td>
+      <td><select class="staff-schedule-dept-select role-select ${staffDeptBadgeClass(s.department)}" data-staff="${s.id}">${deptOptionsHtml}</select></td>
+      <td><select class="staff-schedule-role-select role-select ${staffRoleBadgeClass(s.role)}" data-staff="${s.id}">${roleOptionsHtml}</select></td>`;
+    weekDates.forEach(dateIso => {
+      const shift = (staffSchedule[s.id] && staffSchedule[s.id][dateIso]) || 'Normal';
+      html += `<td style="text-align:center;"><button type="button" class="badge shift-cell-btn ${STAFF_SHIFT_BADGE_CLASS[shift]}" data-staff="${s.id}" data-date="${dateIso}" style="cursor:pointer; border:none; min-width:56px;">${STAFF_SHIFT_CELL_LABEL[shift]}</button></td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+
+  wrap.querySelectorAll('.shift-cell-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const staffId = btn.dataset.staff;
+      const dateIso = btn.dataset.date;
+      staffSchedule[staffId] = staffSchedule[staffId] || {};
+      const cur = staffSchedule[staffId][dateIso] || 'Normal';
+      const next = STAFF_SHIFT_CYCLE[(STAFF_SHIFT_CYCLE.indexOf(cur) + 1) % STAFF_SHIFT_CYCLE.length];
+      if (next === 'Normal') delete staffSchedule[staffId][dateIso];
+      else staffSchedule[staffId][dateIso] = next;
+      saveStaffSchedule();
+      renderStaffScheduleGrid();
+      // Today's shift toggles change the live Picker target split and Day/Night station Manpower
+      // auto-fill in Team Setup — refresh those too.
+      if (dateIso === todayStr()) {
+        renderPickersList();
+        renderPickerLowestList();
+        renderStationsTab();
+        renderReceiveStationsTab();
+      }
+    });
+  });
+
+  wrap.querySelectorAll('.staff-schedule-dept-select').forEach(sel => {
+    sel.addEventListener('change', (e) => {
+      const staffId = sel.dataset.staff;
+      const staff = staffRoster.find(s => s.id === staffId);
+      if (!staff) return;
+      staff.department = e.target.value;
+      saveStaffRoster();
+      recolorRoleSelect(e.target, staffDeptBadgeClass);
+      renderStaffRosterList();
+    });
+  });
+  wrap.querySelectorAll('.staff-schedule-role-select').forEach(sel => {
+    sel.addEventListener('change', (e) => {
+      const staffId = sel.dataset.staff;
+      const staff = staffRoster.find(s => s.id === staffId);
+      if (!staff) return;
+      staff.role = e.target.value;
+      saveStaffRoster();
+      recolorRoleSelect(e.target, staffRoleBadgeClass);
+      renderStaffRosterList();
+      renderPickersList(); // role change may (dis)connect them from a live shift-based target
+      renderPickerLowestList();
+      renderStationsTab(); // role change may add/remove them from a Day/Night station's auto Manpower
+      renderReceiveStationsTab();
+    });
+  });
+  applyNameFilter('staffScheduleSearchInput', 'staffScheduleGridWrap', 'staffScheduleFilterEmpty');
+}
+document.getElementById('staffScheduleWeekPrevBtn').addEventListener('click', () => {
+  staffScheduleWeekStart = addDaysIso(staffScheduleWeekStart, -7);
+  renderStaffScheduleGrid();
+});
+document.getElementById('staffScheduleWeekNextBtn').addEventListener('click', () => {
+  staffScheduleWeekStart = addDaysIso(staffScheduleWeekStart, 7);
+  renderStaffScheduleGrid();
+});
+document.getElementById('staffScheduleWeekTodayBtn').addEventListener('click', () => {
+  staffScheduleWeekStart = mondayOfWeek(todayStr());
+  renderStaffScheduleGrid();
+});
+
+// Add Picker is a free-text field (part-time staff usually aren't on the Staff Schedule roster at
+// all) with roster names offered only as typing suggestions via a <datalist> — Active staff tagged
+// Role = Picker there and not already added here. Those same staff also auto-register themselves
+// (see syncPickersFromStaffRoster) so this list is just a convenience, not the only way in.
+function populatePickerRosterSelect() {
+  const list = document.getElementById('pickerNameSuggestions');
+  if (!list) return;
+  const existing = new Set(pickers.map(p => (p.name || '').trim().toLowerCase()));
+  // Only staff tagged Role = Picker on the Staff Schedule roster — Packer/Receiver/PIC/Backup PIC
+  // aren't offered here, since this list feeds Outbound picking specifically.
+  const names = staffRoster.filter(s => s.active !== false && s.role === 'Picker').map(s => s.name).filter(n => !existing.has(n.trim().toLowerCase())).sort();
+  list.innerHTML = names.map(n => `<option value="${escapeHtml(n)}"></option>`).join('');
+}
+function populateDriverRosterSelect() {
+  const select = document.getElementById('inputNewDriverName');
+  if (!select) return;
+  const existing = new Set(fleetDrivers.map(d => (d.driverName || '').trim().toLowerCase()));
+  const names = staffRoster.filter(s => s.active !== false).map(s => s.name).filter(n => !existing.has(n.trim().toLowerCase())).sort();
+  if (!names.length) {
+    select.innerHTML = `<option value="">— no unassigned staff in roster —</option>`;
+    return;
+  }
+  select.innerHTML = `<option value="">— pick a staff —</option>` + names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+}
 
 /* ---------- Rollcages / Trolleys list rendering ---------- */
 function renderRollcagesList() {
@@ -4339,13 +5203,18 @@ function renderStationsTab() {
     wrap.innerHTML = `<div class="empty-state">No packing stations registered yet. Add one above — STOs entering Packing will then auto-assign to the next station in rotation.</div>`;
     return;
   }
-  let html = `<table><thead><tr><th>Station</th><th>Manpower</th><th>Target Weekday</th><th>Target Weekend</th><th>Shift</th><th>Status</th><th>Today (pcs)</th><th></th></tr></thead><tbody>`;
+  let html = `<table><thead><tr><th>Station</th><th>Manpower</th><th>Target Weekday</th><th>Target Weekend</th><th>Status</th><th>Today (pcs)</th><th></th></tr></thead><tbody>`;
   const today = todayStr();
   // Each station's target is auto-derived: the overall Packer Daily Target (Team Setup, top of this
-  // tab) split evenly across every registered packing station — not editable per-station anymore.
-  const autoCap = autoIndividualTargetPair('packer', packingStations.length);
+  // tab) is split only across stations currently ON right now (per stationHasActiveDevice / manual
+  // ON-OFF switch, isStationOnShift) — not every registered station regardless of whether it's
+  // actually manned. A station that's OFF right now shows "—" and doesn't shrink everyone else's
+  // share; it rejoins the split the instant a device claims it (or the manual switch flips back ON).
+  const onShiftCount = packingStations.filter(s => isStationOnShift(s)).length;
+  const autoCap = autoIndividualTargetPair('packer', onShiftCount);
   const effTarget = effectiveOf(autoCap);
   const hasEffTarget = hasEffective(autoCap);
+  let manpowerChanged = false;
   packingStations.forEach((s, i) => {
     // Pcs (Qty) that FINISHED packing at this station TODAY (moved on from Packing to Packed) —
     // not just assigned to the station, since being assigned isn't the same as actually packed.
@@ -4353,23 +5222,38 @@ function renderStationsTab() {
     const currentLoadQty = records
       .filter(r => r.packingStation === s.name && r.packingCompletedDate === today)
       .reduce((sum, r) => sum + (parseFloat(r.totalOrderQty) || 0), 0);
-    const overTarget = hasEffTarget && currentLoadQty > Number(effTarget);
     const onShift = isStationOnShift(s);
+    const override = stationStatusOverride(s);
+    const statusLabel = onShift ? (override === 'auto' ? 'ON' : 'ON (Manual)') : (override === 'auto' ? 'OFF' : 'OFF (Manual)');
+    const rowHasTarget = onShift && hasEffTarget;
+    const overTarget = rowHasTarget && currentLoadQty > Number(effTarget);
+    const shiftLabel = classifyStationShiftLabel(s);
+    let manpowerCell;
+    if (shiftLabel && override === 'auto') {
+      const autoNames = autoManpowerForStationShift(shiftLabel, 'Packer');
+      if (JSON.stringify(autoNames) !== JSON.stringify(s.manpower || [])) { s.manpower = autoNames; manpowerChanged = true; }
+      manpowerCell = `<div class="data-note" style="margin:0 0 3px 0; color:var(--gold);">Auto — ${shiftLabel} shift, Role: Packer</div>` +
+        (autoNames.length ? autoNames.map(escapeHtml).join(', ') : `<span class="data-note" style="margin:0;">— none scheduled today —</span>`);
+    } else {
+      // Manually forced ON/OFF (or a station whose name isn't tagged Day/Night at all) means nobody's
+      // being auto-pulled from Staff Schedule — tick who's actually there instead, from a checklist
+      // of Active, Role = Packer staff (same pool the Auto Day/Night fill draws from).
+      const eligibleNames = staffRoster.filter(st => st.active !== false && st.role === 'Packer').map(st => st.name).sort();
+      const current = s.manpower || [];
+      const summaryText = current.length ? current.map(escapeHtml).join(', ') : '— pilih staff —';
+      const checklistHtml = eligibleNames.length
+        ? eligibleNames.map(n => `<label class="manpower-check-row"><input type="checkbox" class="station-manpower-check" data-idx="${i}" value="${escapeHtml(n)}" ${current.includes(n) ? 'checked' : ''}> ${escapeHtml(n)}</label>`).join('')
+        : `<div class="data-note" style="margin:0;">Takde staff Role Packer (Active) dalam Staff Schedule.</div>`;
+      manpowerCell = (shiftLabel ? `<div class="data-note" style="margin:0 0 3px 0;">Manual — pilih siapa ada kat station ni</div>` : '') +
+        `<details class="manpower-dropdown"><summary>${summaryText}</summary><div class="manpower-dropdown-panel">${checklistHtml}</div></details>`;
+    }
     html += `<tr>
       <td><input type="text" class="station-name-input" data-idx="${i}" value="${escapeHtml(s.name)}"></td>
-      <td><input type="text" class="station-manpower-input" data-idx="${i}" placeholder="e.g. Ali, Chong, Muthu" value="${escapeHtml((s.manpower || []).join(', '))}"></td>
-      <td>${autoCap.weekday !== null ? formatQty(autoCap.weekday) : '—'}</td>
-      <td>${autoCap.weekend !== null ? formatQty(autoCap.weekend) : '—'}</td>
-      <td style="white-space:nowrap;">
-        <div style="display:inline-flex; align-items:center; gap:4px; border:1px solid #4a4038; border-radius:4px; padding:3px 4px 3px 8px; background:#1e1a17;">
-          <input type="time" class="station-shift-start-input" data-idx="${i}" value="${escapeHtml(s.shiftStart || '')}" style="width:95px; border:none; background:transparent; padding:2px 0;">
-          <span class="data-note" style="margin:0;">–</span>
-          <input type="time" class="station-shift-end-input" data-idx="${i}" value="${escapeHtml(s.shiftEnd || '')}" style="width:95px; border:none; background:transparent; padding:2px 0;">
-          <button type="button" class="btn-ghost station-shift-set-btn" data-idx="${i}" style="padding:5px 10px; font-size:11px;">Set</button>
-        </div>
-      </td>
-      <td><button type="button" class="btn-ghost station-enabled-toggle-btn" data-idx="${i}" style="padding:4px 10px;"><span class="badge ${onShift ? 'badge-green' : 'badge-gray'}">${onShift ? 'ON' : 'OFF'}</span></button></td>
-      <td>${hasEffTarget ? `<span class="badge ${overTarget ? 'badge-red' : 'badge-green'}">${formatQty(currentLoadQty)} / ${escapeHtml(String(effTarget))}</span>` : formatQty(currentLoadQty)}</td>
+      <td>${manpowerCell}</td>
+      <td>${onShift && autoCap.weekday !== null ? formatQty(autoCap.weekday) : '—'}</td>
+      <td>${onShift && autoCap.weekend !== null ? formatQty(autoCap.weekend) : '—'}</td>
+      <td><button type="button" class="btn-ghost station-enabled-toggle-btn" data-idx="${i}" title="Click to cycle: Auto (follows This Device's Station) → Force ON → Force OFF → back to Auto" style="padding:4px 10px;"><span class="badge ${onShift ? 'badge-green' : 'badge-gray'}">${statusLabel}</span></button></td>
+      <td>${rowHasTarget ? `<span class="badge ${overTarget ? 'badge-red' : 'badge-green'}">${formatQty(currentLoadQty)} / ${escapeHtml(String(effTarget))}</span>` : formatQty(currentLoadQty)}</td>
       <td class="row-actions">
         <button class="icon-btn remove-station-btn" data-idx="${i}" title="Delete">✕</button>
       </td>
@@ -4377,15 +5261,19 @@ function renderStationsTab() {
   });
   html += `</tbody></table>`;
   wrap.innerHTML = html;
+  if (manpowerChanged) savePackingStations(); // auto-derived manpower is system-computed, saves immediately
   // (Station name, manpower, and shift wiring below is unchanged; capacity is no longer a per-station input.)
 
-  // Manual ON/OFF master switch — takes effect immediately (no separate Save click needed), same
-  // as the Shift "Set" button, since flipping this is meant to happen right when a campaign
-  // actually starts/stops, not batched with other edits.
+  // Status button cycles Auto -> Force ON -> Force OFF -> Auto — takes effect immediately (no
+  // separate Save click needed), since flipping it is meant to happen right when it's needed, not
+  // batched with other edits. Clears the legacy `enabled` field once touched so nothing conflicting
+  // lingers behind the new `status` field.
   wrap.querySelectorAll('.station-enabled-toggle-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const idx = Number(e.currentTarget.dataset.idx);
-      packingStations[idx].enabled = packingStations[idx].enabled === false ? true : false;
+      const cur = stationStatusOverride(packingStations[idx]);
+      packingStations[idx].status = cur === 'auto' ? 'on' : cur === 'on' ? 'off' : 'auto';
+      delete packingStations[idx].enabled;
       savePackingStations();
       renderStationsTab();
     });
@@ -4409,27 +5297,21 @@ function renderStationsTab() {
     });
   });
 
-  wrap.querySelectorAll('.station-manpower-input').forEach(inp => {
-    inp.addEventListener('change', (e) => {
+  // Manual Manpower checklist — ticking/unticking updates the array in memory and the summary
+  // label immediately, WITHOUT a full renderStationsTab() re-render (that would rebuild the
+  // <details> element and snap the dropdown closed after every single tick, forcing it back open
+  // for each name). Same dirty/Save pattern as every other Team Setup roster edit.
+  wrap.querySelectorAll('.station-manpower-check').forEach(chk => {
+    chk.addEventListener('change', (e) => {
       const idx = Number(e.target.dataset.idx);
-      packingStations[idx].manpower = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+      const name = e.target.value;
+      const list = packingStations[idx].manpower || (packingStations[idx].manpower = []);
+      const pos = list.indexOf(name);
+      if (e.target.checked) { if (pos === -1) list.push(name); }
+      else if (pos !== -1) { list.splice(pos, 1); }
       markPackingStationsDirty();
-    });
-  });
-
-  // Shift Start/End only commit on "Set" (not on every native time-picker interaction) — saving
-  // and re-rendering mid-pick was fighting with the browser's own time-picker popover, leaving it
-  // looking disconnected/broken. Both must be set for a schedule to apply; clearing either one back
-  // to blank makes the station always-on again (see isStationOnShift).
-  wrap.querySelectorAll('.station-shift-set-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const idx = Number(e.target.dataset.idx);
-      const startInp = wrap.querySelector(`.station-shift-start-input[data-idx="${idx}"]`);
-      const endInp = wrap.querySelector(`.station-shift-end-input[data-idx="${idx}"]`);
-      packingStations[idx].shiftStart = startInp.value || null;
-      packingStations[idx].shiftEnd = endInp.value || null;
-      savePackingStations();
-      renderStationsTab();
+      const summary = e.target.closest('.manpower-dropdown').querySelector('summary');
+      summary.textContent = list.length ? list.join(', ') : '— pilih staff —';
     });
   });
 
@@ -4453,17 +5335,13 @@ document.getElementById('savePackingStationsBtn').addEventListener('click', () =
 document.getElementById('addStationBtn').addEventListener('click', () => {
   const nameInput = document.getElementById('inputNewStationName');
   const manpowerInput = document.getElementById('inputNewStationManpower');
-  const shiftStartInput = document.getElementById('inputNewStationShiftStart');
-  const shiftEndInput = document.getElementById('inputNewStationShiftEnd');
   const name = nameInput.value.trim();
   if (!name) { nameInput.focus(); return; }
   const manpower = manpowerInput.value.split(',').map(s => s.trim()).filter(Boolean);
-  packingStations.push({ name, manpower, shiftStart: shiftStartInput.value || null, shiftEnd: shiftEndInput.value || null });
+  packingStations.push({ name, manpower });
   savePackingStations();
   nameInput.value = '';
   manpowerInput.value = '';
-  shiftStartInput.value = '';
-  shiftEndInput.value = '';
   renderAll();
 });
 
@@ -4556,6 +5434,10 @@ function userCanAccessTab(user, tabId) {
   if (!user) return false;
   if (user.isAdmin) return true;
   if (tabId === 'stations') return false;
+  // Staff Roster/Schedule used to live inside Admin-only Team Setup before it got its own tab —
+  // keeping it Admin/Team Lead-only preserves that same access level rather than accidentally
+  // opening it up to anyone via PERMISSION_TABS.
+  if (tabId === 'staff-schedule') return false;
   if (user.permissions && user.permissions[tabId]) return true;
   // Legacy fallback: users created before Delivery Status was split into separate Outbound/Fleet
   // toggles had a single 'delivered' permission — honor it so nobody who already had access loses
@@ -4588,6 +5470,15 @@ function applyUserPermissions(user) {
   if (mgmtSection) mgmtSection.style.display = (user && user.isAdmin) ? '' : 'none';
   const syncSection = document.getElementById('cloudSyncSection');
   if (syncSection) syncSection.style.display = (user && user.isAdmin) ? '' : 'none';
+  // "Reset Progress Board" / "Reset Trip Schedule" wipe shared operational data used by the whole
+  // team, not just this user's own work — Admin/Team Lead only, even for a non-admin who's been
+  // granted the surrounding tab (Progress Board / Trip Schedule) itself.
+  const isAdminUser = !!(user && user.isAdmin);
+  ['resetProgressBtn', 'undoResetProgressBtn', 'resetFleetTripsBtn', 'undoResetTripBtn'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.style.display = isAdminUser ? '' : 'none';
+  });
+  if (isAdminUser) updateResetUndoButtons(); // re-check actual snapshot state, don't just force-show
   renderLoginStatusBar(user);
   updateSidebarSyncBarVisibility();
   if (user && user.isAdmin) { renderUsersTable(); renderCloudSyncStatus(); }
@@ -4616,14 +5507,16 @@ function populateDeviceStationSelects() {
   const packSelect = document.getElementById('devicePackingStationInput');
   const curRec = getDeviceReceiveStation();
   const curPack = getDevicePackingStation();
-  // Only list stations that are currently ON — an OFF station can't be picked here, same as
-  // everywhere else OFF stations get hidden from pickers. Exception: whatever's already saved for
-  // this device stays in the list even if it's since gone OFF, so it doesn't silently vanish —
-  // it just shows up alongside a note that it's off right now.
-  const pickableRec = receiveStations.filter(s => isStationOnShift(s) || s.name === curRec);
-  const pickablePack = packingStations.filter(s => isStationOnShift(s) || s.name === curPack);
-  recSelect.innerHTML = `<option value="">— none —</option>` + pickableRec.map(s => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}${isStationOnShift(s) ? '' : ' (OFF)'}</option>`).join('');
-  packSelect.innerHTML = `<option value="">— none —</option>` + pickablePack.map(s => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}${isStationOnShift(s) ? '' : ' (OFF)'}</option>`).join('');
+  // Only list stations that haven't been manually switched OFF — this deliberately ignores presence
+  // (unlike the full isStationOnShift), since picking a station here is exactly how it becomes
+  // manned; requiring it to already be manned would make it impossible to ever pick a fresh one.
+  // Exception: whatever's already saved for this device stays in the list even if it's since been
+  // switched OFF, so it doesn't silently vanish — it just shows up alongside a note that it's off.
+  const isPickable = s => stationStatusOverride(s) !== 'off';
+  const pickableRec = receiveStations.filter(s => isPickable(s) || s.name === curRec);
+  const pickablePack = packingStations.filter(s => isPickable(s) || s.name === curPack);
+  recSelect.innerHTML = `<option value="">— none —</option>` + pickableRec.map(s => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}${isPickable(s) ? '' : ' (OFF)'}</option>`).join('');
+  packSelect.innerHTML = `<option value="">— none —</option>` + pickablePack.map(s => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}${isPickable(s) ? '' : ' (OFF)'}</option>`).join('');
   recSelect.value = pickableRec.some(s => s.name === curRec) ? curRec : '';
   packSelect.value = pickablePack.some(s => s.name === curPack) ? curPack : '';
 }
@@ -4638,11 +5531,23 @@ document.getElementById('deviceStationBtn').addEventListener('click', openDevice
 document.getElementById('deviceStationCloseBtn').addEventListener('click', closeDeviceStationModal);
 document.getElementById('deviceStationCloseBtn2').addEventListener('click', closeDeviceStationModal);
 document.getElementById('deviceStationSaveBtn').addEventListener('click', () => {
-  setDeviceReceiveStation(document.getElementById('deviceReceiveStationInput').value);
-  setDevicePackingStation(document.getElementById('devicePackingStationInput').value);
+  // Presence is what makes a scheduled station show as truly ON for everyone else, so it has to
+  // update immediately here — clear whatever this device is walking away from (rather than leaving
+  // it to expire after STATION_PRESENCE_STALE_MS) and beat presence for whatever it's newly on.
+  const prevRec = getDeviceReceiveStation();
+  const prevPack = getDevicePackingStation();
+  const newRec = document.getElementById('deviceReceiveStationInput').value;
+  const newPack = document.getElementById('devicePackingStationInput').value;
+  setDeviceReceiveStation(newRec);
+  setDevicePackingStation(newPack);
+  if (prevRec && prevRec !== newRec) clearStationPresence('receive', prevRec);
+  if (prevPack && prevPack !== newPack) clearStationPresence('packing', prevPack);
+  stationPresenceHeartbeat();
   renderDeviceStationBtnLabel();
   closeDeviceStationModal();
   if (typeof renderGarmentOrderTab === 'function' && document.getElementById('tab-inbound-garment')) renderGarmentOrderTab();
+  if (typeof renderStationsTab === 'function') renderStationsTab();
+  if (typeof renderReceiveStationsTab === 'function') renderReceiveStationsTab();
 });
 // Shown on the very first run (no users exist yet at all) instead of the normal login screen, so
 // there's no guessable default password to worry about — Shaila sets her own Admin username/password.
@@ -5036,7 +5941,7 @@ function attachPostponedDoNosListener() {
 // functions below (which only ever run after the whole script has finished loading) avoids that —
 // same pattern as allAppStorageKeys() above.
 function syncSettingsKeys() {
-  return [SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, STICKER_KEY, DAILY_TARGETS_KEY, INBOUND_ALERT_SETTINGS_KEY, EMAILJS_SETTINGS_KEY, ADMIN_PASSWORD_KEY, PACKING_STATION_RR_KEY];
+  return [SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, STICKER_KEY, DAILY_TARGETS_KEY, INBOUND_ALERT_SETTINGS_KEY, EMAILJS_SETTINGS_KEY, ADMIN_PASSWORD_KEY, PACKING_STATION_RR_KEY, STAFF_SCHEDULE_KEY, STATION_PRESENCE_KEY];
 }
 const FB_SETTINGS_TABLE = 'AppSettings';
 function pushSettingsDiff() {
@@ -5085,11 +5990,20 @@ function applySettingsSnapshot() {
     loadEmailjsSettings();
     loadInboundAlertSettings();
     loadDailyTargets();
+    loadStaffSchedule();
+    loadStationPresence();
     // Daily Targets' inputs are a static section (not tied to any tab-switch re-render), so unlike
     // everything else here, refreshing the underlying variable above isn't enough on its own — the
     // visible fields need their own explicit repaint or they'd keep showing stale numbers until a
     // full page reload.
     renderDailyTargetsInputs();
+    if (typeof renderStaffScheduleGrid === 'function') renderStaffScheduleGrid();
+    // Another device's presence heartbeat (or its explicit deselect) just changed live ON/OFF for a
+    // scheduled station — refresh everywhere that status shows.
+    if (typeof renderStationsTab === 'function') renderStationsTab();
+    if (typeof renderReceiveStationsTab === 'function') renderReceiveStationsTab();
+    if (typeof renderStationTargetProgress === 'function') renderStationTargetProgress();
+    if (typeof renderReceiveStationTargetProgress === 'function') renderReceiveStationTargetProgress();
     cloudSyncLastAt = new Date();
     renderCloudSyncStatus();
   }
@@ -5117,6 +6031,7 @@ const SYNC_COLLECTIONS = [
   { table: 'Packing_Stations', getArray: () => packingStations, setArray: (a) => { packingStations = a; savePackingStations(); }, sortKey: (s) => s.name || '' },
   { table: 'Receive_Stations', getArray: () => receiveStations, setArray: (a) => { receiveStations = a; saveReceiveStations(); }, sortKey: (s) => s.name || '' },
   { table: 'Pickers', getArray: () => pickers, setArray: (a) => { pickers = a; savePickers(); } },
+  { table: 'Staff_Roster', getArray: () => staffRoster, setArray: (a) => { staffRoster = a; saveStaffRoster(); } },
   { table: 'Rollcages', getArray: () => rollcages, setArray: (a) => { rollcages = a; saveRollcages(); } },
   {
     table: 'Users',
@@ -5425,6 +6340,7 @@ function renderDriversTable() {
       fleetDrivers = fleetDrivers.filter(x => x.id !== id);
       saveFleetDrivers();
       renderFleetTab();
+      populateDriverRosterSelect(); // removed driver's name reappears as an unassigned staff option
     });
   });
 }
@@ -5461,10 +6377,10 @@ document.getElementById('addDriverBtn').addEventListener('click', () => {
     driverPassword: passwordInput.value.trim()
   });
   saveFleetDrivers();
-  nameInput.value = '';
   phoneInput.value = '';
   passwordInput.value = '';
   renderFleetTab();
+  populateDriverRosterSelect(); // just-added name drops off the "unassigned staff" dropdown
 });
 
 // Driver is a free-text field on the trip modal (with autocomplete suggestions pulled from Team
@@ -7202,13 +8118,15 @@ function renderFleetDriverTripTab() {
     return;
   }
 
-  let html = `<table class="driver-trip-table"><thead><tr><th class="driver-trip-name-col">Driver</th>`;
-  boutiques.forEach(b => { html += `<th>${escapeHtml(b)}</th>`; });
+  // Boutiques down the rows, drivers across the columns — easier to scan "who's delivered to THIS
+  // boutique" when there are more drivers than boutiques (or vice versa, whichever reads better).
+  let html = `<table class="driver-trip-table"><thead><tr><th class="driver-trip-name-col">Boutique</th>`;
+  driverNames.forEach(driver => { html += `<th>${escapeHtml(driver)}</th>`; });
   html += `</tr></thead><tbody>`;
 
-  driverNames.forEach(driver => {
-    html += `<tr><td class="driver-trip-name-col mono-name">${escapeHtml(driver)}</td>`;
-    boutiques.forEach(b => {
+  boutiques.forEach(b => {
+    html += `<tr><td class="driver-trip-name-col mono-name">${escapeHtml(b)}</td>`;
+    driverNames.forEach(driver => {
       const n = (counts[driver] && counts[driver][b]) || 0;
       html += `<td class="driver-trip-count-cell${n ? '' : ' zero'}">${n || '-'}</td>`;
     });
@@ -9158,12 +10076,16 @@ document.getElementById('putawayRollcageSaveBtn').addEventListener('click', () =
       saveRollcages();
       // Tag the originating SKU line item itself so the batch card's own "Putaway: Pending/Done"
       // badge (garmentBatchPutawayStatus) has something to read — the rollcage's putawayItems list
-      // is just a display log, this is what actually drives the badge.
+      // is just a display log, this is what actually drives the badge. PUSH a new assignment entry
+      // rather than overwriting a single field — the same SKU line can be loaded into putaway more
+      // than once (order split across two trolleys, or a partial delivery today and the rest later
+      // into a different rollcage), and each of those needs its OWN pending/done tracking so an
+      // earlier rollcage's still-pending load can't get hidden behind a later one.
       const srcBatch = garmentOrders.find(b => b.batchNo === putawayRollcagePending.batchNo);
       const srcSku = srcBatch && srcBatch.skus.find(s => s.sku === putawayRollcagePending.sku);
       if (srcSku) {
-        srcSku.putawayRollcage = val;
-        srcSku.putawayStatus = 'pending';
+        srcSku.putawayAssignments = srcSku.putawayAssignments || [];
+        srcSku.putawayAssignments.push({ rollcage: val, status: 'pending' });
         saveGarmentOrders();
       }
       renderRollcagesList();
@@ -9327,6 +10249,8 @@ function renderAll() {
   renderKanban();
   renderSlaTab();
   renderPickersList();
+  renderStaffRosterList();
+  renderStaffScheduleGrid();
   renderRollcagesList();
   renderRollcageUsageBoards();
   renderStationsTab();
@@ -9553,6 +10477,48 @@ function saveGarmentReceiveLogs() { localStorage.setItem(GARMENT_RECEIVE_LOGS_KE
 // garmentReceiveLogs is a separate append-only log, so a deleted batch's pcs kept counting toward
 // Dashboard/Reports/KPI "today" totals forever unless its log entries are pruned too. Same idea
 // for rollcage putawayItems referencing a batch that no longer exists.
+// One-time migration for installs that still have the OLD single-value putaway fields
+// (sku.putawayRollcage / sku.putawayStatus). That model broke the moment a single SKU line got
+// loaded into putaway more than once (e.g. one order split across two trolleys, or a partial
+// delivery logged today and the rest logged later into a different rollcage) — each new log
+// SILENTLY OVERWROTE the previous rollcage/status, so an earlier rollcage's still-pending items
+// vanished from the batch's putaway calculation the moment a later log pointed the single field
+// somewhere else. Converts each SKU's old single field into a putawayAssignments array (one entry
+// per rollcage it was ever loaded into), preserving whatever status it already had, then leaves the
+// old fields alone (unused going forward, harmless to keep around).
+function migrateGarmentPutawayAssignments() {
+  let changed = false;
+  garmentOrders.forEach(b => {
+    (b.skus || []).forEach(s => {
+      if (s.putawayRollcage && !s.putawayAssignments) {
+        s.putawayAssignments = [{ rollcage: s.putawayRollcage, status: s.putawayStatus === 'done' ? 'done' : 'pending' }];
+        changed = true;
+      }
+    });
+  });
+  // Reconcile against what's still physically sitting in a rollcage right now. The OLD single-field
+  // model could only ever remember the LAST rollcage a SKU was loaded into — so for a SKU split
+  // across two trolleys where the first trolley was already marked "Putaway Done" before the second
+  // load happened, that first (correct, still-pending) assignment for the SECOND trolley got
+  // silently overwritten and is unrecoverable from the SKU field alone. rc.putawayItems is ground
+  // truth for "still physically waiting to be shelved" — if an item is sitting there right now, that
+  // SKU/batch MUST have a pending assignment for that rollcage, no matter what the migrated field
+  // says. This also acts as an ongoing self-healing safety net, not just a one-time migration.
+  rollcages.forEach(rc => {
+    (rc.putawayItems || []).forEach(it => {
+      const b = garmentOrders.find(bb => bb.batchNo === it.batchNo);
+      const s = b && b.skus.find(sk => sk.sku === it.sku);
+      if (!s) return;
+      s.putawayAssignments = s.putawayAssignments || [];
+      const hasThisPending = s.putawayAssignments.some(a => a.rollcage === rc.name && a.status === 'pending');
+      if (!hasThisPending) {
+        s.putawayAssignments.push({ rollcage: rc.name, status: 'pending' });
+        changed = true;
+      }
+    });
+  });
+  if (changed) saveGarmentOrders();
+}
 function pruneOrphanedGarmentData() {
   const validBatchNos = new Set(garmentOrders.map(b => b.batchNo));
   const logsBefore = garmentReceiveLogs.length;
@@ -9625,9 +10591,13 @@ function garmentStatusBadgeClass(status) {
 // ever reaching "Done". Returns null when nothing's ever been loaded into a rollcage for this
 // batch at all (no badge shown in that case).
 function garmentBatchPutawayStatus(batch) {
-  const relevant = batch.skus.filter(s => !!s.putawayRollcage);
-  if (!relevant.length) return null;
-  return relevant.every(s => s.putawayStatus === 'done') ? 'Done' : 'Pending';
+  // Each SKU line can carry MULTIPLE putaway assignments (loaded into putaway more than once —
+  // e.g. one order split across two trolleys) — the batch is only "Done" once every single one of
+  // them, across every SKU, has been unloaded (not just the most recent one per SKU).
+  const assignments = [];
+  batch.skus.forEach(s => { (s.putawayAssignments || []).forEach(a => assignments.push(a)); });
+  if (!assignments.length) return null;
+  return assignments.every(a => a.status === 'done') ? 'Done' : 'Pending';
 }
 function garmentPutawayBadgeClass(status) { return status === 'Done' ? 'badge-green' : 'badge-amber'; }
 // Called once a rollcage's "Putaway Done" is clicked — cascades that completion down to every SKU
@@ -9636,7 +10606,9 @@ function garmentPutawayBadgeClass(status) { return status === 'Done' ? 'badge-gr
 function markGarmentSkusPutawayDoneForRollcage(rollcageName) {
   garmentOrders.forEach(b => {
     b.skus.forEach(s => {
-      if (s.putawayRollcage === rollcageName && s.putawayStatus === 'pending') s.putawayStatus = 'done';
+      (s.putawayAssignments || []).forEach(a => {
+        if (a.rollcage === rollcageName && a.status === 'pending') a.status = 'done';
+      });
     });
   });
   saveGarmentOrders();
@@ -9739,7 +10711,7 @@ function renderGarmentOrderTab() {
     return;
   }
 
-  const cardsHtml = visibleBatches.map(batch => {
+  function garmentBatchCardHtml(batch) {
     const status = garmentBatchStatus(batch);
     const amaran = garmentComputeAmaran(batch);
     const putawayStatus = garmentBatchPutawayStatus(batch);
@@ -9766,8 +10738,29 @@ function renderGarmentOrderTab() {
       </div>
       ${expanded ? renderGarmentBatchBody(batch) : ''}
     </div>`;
-  }).join('');
-  wrap.innerHTML = `<div class="garment-batch-grid">${cardsHtml}</div>`;
+  }
+
+  // Split into "still needs attention" vs "fully wrapped up" (receiving complete AND putaway done,
+  // or putaway never applicable to begin with) so staff can tell at a glance what's left to do
+  // instead of hunting for it among batches that are already finished. Order within each group is
+  // preserved as-is (not re-sorted) — just grouped.
+  const isBatchFullyDone = (batch) => {
+    const putawayStatus = garmentBatchPutawayStatus(batch);
+    return garmentBatchStatus(batch) === 'Complete' && (putawayStatus === 'Done' || putawayStatus === null);
+  };
+  const pendingBatches = visibleBatches.filter(b => !isBatchFullyDone(b));
+  const doneBatches = visibleBatches.filter(b => isBatchFullyDone(b));
+
+  let sectionsHtml = '';
+  if (pendingBatches.length) {
+    sectionsHtml += `<div class="data-note" style="margin:0 0 8px; font-weight:600; color:var(--text-secondary);">Pending (${pendingBatches.length})</div>
+      <div class="garment-batch-grid">${pendingBatches.map(garmentBatchCardHtml).join('')}</div>`;
+  }
+  if (doneBatches.length) {
+    sectionsHtml += `<div class="data-note" style="margin:${pendingBatches.length ? '20px' : '0'} 0 8px; font-weight:600; color:var(--text-secondary);">Completed — Receiving &amp; Putaway (${doneBatches.length})</div>
+      <div class="garment-batch-grid" style="opacity:0.7;">${doneBatches.map(garmentBatchCardHtml).join('')}</div>`;
+  }
+  wrap.innerHTML = sectionsHtml;
 
   // Card header toggles expand/collapse — the delete (✕) button sits inside the header too, so
   // it bails out of the toggle instead of also opening/closing the card.
@@ -9832,7 +10825,7 @@ function renderGarmentOrderTab() {
     // "general" (no station) if none are on right now.
     const effectiveStationName = getEffectiveReceiveStationName();
     const assignedStation = effectiveStationName ? receiveStations.find(st => st.name === effectiveStationName) : null;
-    // Station is switched OFF (Team Setup toggle or outside its shift window) — block logging
+    // Station is switched OFF (Team Setup toggle, or no device currently claims it) — block logging
     // entirely rather than silently logging under an inactive station. Staff can still log in and
     // look around, they just can't log receiving until their station is turned back ON.
     if (assignedStation && !isStationOnShift(assignedStation)) {
@@ -10361,7 +11354,7 @@ document.getElementById('addInboundStoBtn').addEventListener('click', () => {
 // Structured the same way as Packing Stations (name + manpower + optional target) — but there's
 // no auto-assign rotation here: entering "On Progress" always opens the modal for a manual pick.
 const RECEIVE_STATIONS_KEY = 'sto_receive_stations_v1';
-let receiveStations = []; // [{ name, manpower: [names], shiftStart, shiftEnd }] — target is auto-derived (see autoIndividualTargetPair), not stored per-station
+let receiveStations = []; // [{ name, manpower: [names], status: 'on'|'off'|undefined }] — target is auto-derived (see autoIndividualTargetPair), not stored per-station
 function loadReceiveStations() {
   try { receiveStations = JSON.parse(localStorage.getItem(RECEIVE_STATIONS_KEY)) || []; } catch (e) { receiveStations = []; }
 }
@@ -10374,35 +11367,55 @@ function renderReceiveStationsTab() {
     wrap.innerHTML = `<div class="empty-state">No receive stations registered yet. Add one above — it'll then show up in the picker when a card enters "On Progress".</div>`;
     return;
   }
-  let html = `<table><thead><tr><th>Station</th><th>Manpower</th><th>Target Weekday</th><th>Target Weekend</th><th>Shift</th><th>Status</th><th>Today (pcs)</th><th></th></tr></thead><tbody>`;
+  let html = `<table><thead><tr><th>Station</th><th>Manpower</th><th>Target Weekday</th><th>Target Weekend</th><th>Status</th><th>Today (pcs)</th><th></th></tr></thead><tbody>`;
   const today = todayStr();
   // Each station's target is auto-derived: the overall Inbound Daily Target (Team Setup, top of this
-  // tab) split evenly across every registered receive station — not editable per-station anymore.
-  const autoCap = autoIndividualTargetPair('inbound', receiveStations.length);
+  // tab) is split only across stations currently ON right now (per stationHasActiveDevice / manual
+  // ON-OFF switch, isStationOnShift) — not every registered station regardless of whether it's
+  // actually manned. A station that's OFF right now shows "—" and doesn't shrink everyone else's
+  // share; it rejoins the split the instant a device claims it (or the manual switch flips back ON).
+  const onShiftCount = receiveStations.filter(s => isStationOnShift(s)).length;
+  const autoCap = autoIndividualTargetPair('inbound', onShiftCount);
   const effTarget = effectiveOf(autoCap);
   const hasEffTarget = hasEffective(autoCap);
+  let manpowerChanged = false;
   receiveStations.forEach((s, i) => {
     // Pcs that FINISHED receiving today (moved On Progress -> Complete) at this station — not
     // just assigned to it, same "actually completed" rule used everywhere else in this app.
     // Combines boutique-STO receiving with garment order receiving logged at this station.
     const currentLoadQty = receiveStationTodayQty(s.name, today);
-    const overTarget = hasEffTarget && currentLoadQty > Number(effTarget);
     const onShift = isStationOnShift(s);
+    const override = stationStatusOverride(s);
+    const statusLabel = onShift ? (override === 'auto' ? 'ON' : 'ON (Manual)') : (override === 'auto' ? 'OFF' : 'OFF (Manual)');
+    const rowHasTarget = onShift && hasEffTarget;
+    const overTarget = rowHasTarget && currentLoadQty > Number(effTarget);
+    const shiftLabel = classifyStationShiftLabel(s);
+    let manpowerCell;
+    if (shiftLabel && override === 'auto') {
+      const autoNames = autoManpowerForStationShift(shiftLabel, 'Receiver');
+      if (JSON.stringify(autoNames) !== JSON.stringify(s.manpower || [])) { s.manpower = autoNames; manpowerChanged = true; }
+      manpowerCell = `<div class="data-note" style="margin:0 0 3px 0; color:var(--gold);">Auto — ${shiftLabel} shift, Role: Receiver</div>` +
+        (autoNames.length ? autoNames.map(escapeHtml).join(', ') : `<span class="data-note" style="margin:0;">— none scheduled today —</span>`);
+    } else {
+      // Manually forced ON/OFF (or a station whose name isn't tagged Day/Night at all) means nobody's
+      // being auto-pulled from Staff Schedule — tick who's actually there instead, from a checklist
+      // of Active, Role = Receiver staff (same pool the Auto Day/Night fill draws from).
+      const eligibleNames = staffRoster.filter(st => st.active !== false && st.role === 'Receiver').map(st => st.name).sort();
+      const current = s.manpower || [];
+      const summaryText = current.length ? current.map(escapeHtml).join(', ') : '— pilih staff —';
+      const checklistHtml = eligibleNames.length
+        ? eligibleNames.map(n => `<label class="manpower-check-row"><input type="checkbox" class="receive-station-manpower-check" data-idx="${i}" value="${escapeHtml(n)}" ${current.includes(n) ? 'checked' : ''}> ${escapeHtml(n)}</label>`).join('')
+        : `<div class="data-note" style="margin:0;">Takde staff Role Receiver (Active) dalam Staff Schedule.</div>`;
+      manpowerCell = (shiftLabel ? `<div class="data-note" style="margin:0 0 3px 0;">Manual — pilih siapa ada kat station ni</div>` : '') +
+        `<details class="manpower-dropdown"><summary>${summaryText}</summary><div class="manpower-dropdown-panel">${checklistHtml}</div></details>`;
+    }
     html += `<tr>
       <td><input type="text" class="receive-station-name-input" data-idx="${i}" value="${escapeHtml(s.name)}"></td>
-      <td><input type="text" class="receive-station-manpower-input" data-idx="${i}" placeholder="e.g. Faiz, Aina, Ramesh" value="${escapeHtml((s.manpower || []).join(', '))}"></td>
-      <td>${autoCap.weekday !== null ? formatQty(autoCap.weekday) : '—'}</td>
-      <td>${autoCap.weekend !== null ? formatQty(autoCap.weekend) : '—'}</td>
-      <td style="white-space:nowrap;">
-        <div style="display:inline-flex; align-items:center; gap:4px; border:1px solid #4a4038; border-radius:4px; padding:3px 4px 3px 8px; background:#1e1a17;">
-          <input type="time" class="receive-station-shift-start-input" data-idx="${i}" value="${escapeHtml(s.shiftStart || '')}" style="width:95px; border:none; background:transparent; padding:2px 0;">
-          <span class="data-note" style="margin:0;">–</span>
-          <input type="time" class="receive-station-shift-end-input" data-idx="${i}" value="${escapeHtml(s.shiftEnd || '')}" style="width:95px; border:none; background:transparent; padding:2px 0;">
-          <button type="button" class="btn-ghost receive-station-shift-set-btn" data-idx="${i}" style="padding:5px 10px; font-size:11px;">Set</button>
-        </div>
-      </td>
-      <td><button type="button" class="btn-ghost receive-station-enabled-toggle-btn" data-idx="${i}" style="padding:4px 10px;"><span class="badge ${onShift ? 'badge-green' : 'badge-gray'}">${onShift ? 'ON' : 'OFF'}</span></button></td>
-      <td>${hasEffTarget ? `<span class="badge ${overTarget ? 'badge-red' : 'badge-green'}">${formatQty(currentLoadQty)} / ${escapeHtml(String(effTarget))}</span>` : formatQty(currentLoadQty)}</td>
+      <td>${manpowerCell}</td>
+      <td>${onShift && autoCap.weekday !== null ? formatQty(autoCap.weekday) : '—'}</td>
+      <td>${onShift && autoCap.weekend !== null ? formatQty(autoCap.weekend) : '—'}</td>
+      <td><button type="button" class="btn-ghost receive-station-enabled-toggle-btn" data-idx="${i}" title="Click to cycle: Auto (follows This Device's Station) → Force ON → Force OFF → back to Auto" style="padding:4px 10px;"><span class="badge ${onShift ? 'badge-green' : 'badge-gray'}">${statusLabel}</span></button></td>
+      <td>${rowHasTarget ? `<span class="badge ${overTarget ? 'badge-red' : 'badge-green'}">${formatQty(currentLoadQty)} / ${escapeHtml(String(effTarget))}</span>` : formatQty(currentLoadQty)}</td>
       <td class="row-actions">
         <button class="icon-btn remove-receive-station-btn" data-idx="${i}" title="Delete">✕</button>
       </td>
@@ -10410,14 +11423,18 @@ function renderReceiveStationsTab() {
   });
   html += `</tbody></table>`;
   wrap.innerHTML = html;
+  if (manpowerChanged) saveReceiveStations(); // auto-derived manpower is system-computed, saves immediately
   // (Station name, manpower, and shift wiring below is unchanged; capacity is no longer a per-station input.)
 
-  // Manual ON/OFF master switch — takes effect immediately, same as the Shift "Set" button, since
-  // flipping this is meant to happen right when a campaign actually starts/stops.
+  // Status button cycles Auto -> Force ON -> Force OFF -> Auto — takes effect immediately, since
+  // flipping it is meant to happen right when it's needed. Clears the legacy `enabled` field once
+  // touched so nothing conflicting lingers behind the new `status` field.
   wrap.querySelectorAll('.receive-station-enabled-toggle-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const idx = Number(e.currentTarget.dataset.idx);
-      receiveStations[idx].enabled = receiveStations[idx].enabled === false ? true : false;
+      const cur = stationStatusOverride(receiveStations[idx]);
+      receiveStations[idx].status = cur === 'auto' ? 'on' : cur === 'on' ? 'off' : 'auto';
+      delete receiveStations[idx].enabled;
       saveReceiveStations();
       renderReceiveStationsTab();
     });
@@ -10442,26 +11459,21 @@ function renderReceiveStationsTab() {
     });
   });
 
-  wrap.querySelectorAll('.receive-station-manpower-input').forEach(inp => {
-    inp.addEventListener('change', (e) => {
+  // Manual Manpower checklist — ticking/unticking updates the array in memory and the summary
+  // label immediately, WITHOUT a full renderReceiveStationsTab() re-render (that would rebuild the
+  // <details> element and snap the dropdown closed after every single tick, forcing it back open
+  // for each name). Same dirty/Save pattern as every other Team Setup roster edit.
+  wrap.querySelectorAll('.receive-station-manpower-check').forEach(chk => {
+    chk.addEventListener('change', (e) => {
       const idx = Number(e.target.dataset.idx);
-      receiveStations[idx].manpower = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+      const name = e.target.value;
+      const list = receiveStations[idx].manpower || (receiveStations[idx].manpower = []);
+      const pos = list.indexOf(name);
+      if (e.target.checked) { if (pos === -1) list.push(name); }
+      else if (pos !== -1) { list.splice(pos, 1); }
       markReceiveStationsDirty();
-    });
-  });
-  // Shift Start/End only commit on "Set" (not on every native time-picker interaction) — saving
-  // and re-rendering mid-pick was fighting with the browser's own time-picker popover, leaving it
-  // looking disconnected/broken. Both must be set for a schedule to apply; clearing either one back
-  // to blank makes the station always-on again (see isStationOnShift).
-  wrap.querySelectorAll('.receive-station-shift-set-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const idx = Number(e.target.dataset.idx);
-      const startInp = wrap.querySelector(`.receive-station-shift-start-input[data-idx="${idx}"]`);
-      const endInp = wrap.querySelector(`.receive-station-shift-end-input[data-idx="${idx}"]`);
-      receiveStations[idx].shiftStart = startInp.value || null;
-      receiveStations[idx].shiftEnd = endInp.value || null;
-      saveReceiveStations();
-      renderReceiveStationsTab();
+      const summary = e.target.closest('.manpower-dropdown').querySelector('summary');
+      summary.textContent = list.length ? list.join(', ') : '— pilih staff —';
     });
   });
   wrap.querySelectorAll('.remove-receive-station-btn').forEach(btn => {
@@ -10485,17 +11497,13 @@ document.getElementById('saveReceiveStationsBtn').addEventListener('click', () =
 document.getElementById('addReceiveStationBtn').addEventListener('click', () => {
   const nameInput = document.getElementById('inputNewReceiveStationName');
   const manpowerInput = document.getElementById('inputNewReceiveStationManpower');
-  const shiftStartInput = document.getElementById('inputNewReceiveStationShiftStart');
-  const shiftEndInput = document.getElementById('inputNewReceiveStationShiftEnd');
   const name = nameInput.value.trim();
   if (!name) { nameInput.focus(); return; }
   const manpower = manpowerInput.value.split(',').map(s => s.trim()).filter(Boolean);
-  receiveStations.push({ name, manpower, shiftStart: shiftStartInput.value || null, shiftEnd: shiftEndInput.value || null });
+  receiveStations.push({ name, manpower });
   saveReceiveStations();
   nameInput.value = '';
   manpowerInput.value = '';
-  shiftStartInput.value = '';
-  shiftEndInput.value = '';
   renderReceiveStationsTab();
   renderReceiveStationTargetProgress();
 });
@@ -10836,10 +11844,12 @@ function renderReceiveStationTargetProgress() {
   const today = todayStr();
   // When every registered station is OFF, there's no meaningful per-station breakdown to show —
   // collapse into a single "General" bar (summed across all stations) against the OVERALL
-  // (un-split) target instead of a wall of empty/idle per-station bars.
-  const anyReceiveOnShift = receiveStations.some(s => isStationOnShift(s));
+  // (un-split) target instead of a wall of empty/idle per-station bars. Otherwise, only stations
+  // currently ON shift right now (per their own Shift window / manual ON-OFF switch) share the
+  // split and appear as bars.
+  const onShiftStations = receiveStations.filter(s => isStationOnShift(s));
   let rows;
-  if (receiveStations.length && !anyReceiveOnShift) {
+  if (receiveStations.length && !onShiftStations.length) {
     const overallTarget = effectiveDailyTarget('inbound');
     // Sum EVERYTHING received today, regardless of which (if any) station it's tagged with — a
     // per-station sum would miss "general" garment logs (no station attached, since nothing was on
@@ -10855,9 +11865,10 @@ function renderReceiveStationTargetProgress() {
       ? [{ name: 'Receiving', sto: totals.sto, garment: totals.garment, qty: totals.sto + totals.garment, target: Number(overallTarget) }]
       : [];
   } else {
-    // All stations share the same auto-derived target (overall Inbound Daily Target split evenly).
-    const autoCapTarget = effectiveOf(autoIndividualTargetPair('inbound', receiveStations.length));
-    rows = (autoCapTarget && autoCapTarget > 0 ? receiveStations : [])
+    // On-shift stations share the same auto-derived target (overall Inbound Daily Target split
+    // evenly across just those on shift right now).
+    const autoCapTarget = effectiveOf(autoIndividualTargetPair('inbound', onShiftStations.length));
+    rows = (autoCapTarget && autoCapTarget > 0 ? onShiftStations : [])
       .map(s => {
         const { sto, garment } = receiveStationTodayQtyBySource(s.name, today);
         return { name: s.name, sto, garment, qty: sto + garment, target: Number(autoCapTarget) };
@@ -11138,6 +12149,7 @@ document.getElementById('todayLabel').textContent =
   new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
 loadData();
+stationPresenceHeartbeat(); // refresh this device's own station presence right away, don't wait up to 60s
 renderAll();
 renderDailyTargetsInputs();
 renderLastUploadNote();
