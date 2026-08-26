@@ -326,13 +326,13 @@
   .upload-status.err { color: var(--red); }
 
   .field label { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; }
-  input, select { padding: 8px 10px; border: 1px solid #4a4038; border-radius: 4px; font-size: 13px; background: #1e1a17; color: var(--text); }
-  input:focus, select:focus { outline: none; border-color: var(--navy); }
+  input, select, textarea { padding: 8px 10px; border: 1px solid #4a4038; border-radius: 4px; font-size: 13px; background: #1e1a17; color: var(--text); font-family: inherit; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--navy); }
   input[type=number] { width: 90px; }
 
   .form-grid { display: grid; gap: 10px 14px; align-items: end; }
   .form-grid .field { min-width: 0; }
-  .form-grid .field input, .form-grid .field select { width: 100%; }
+  .form-grid .field input, .form-grid .field select, .form-grid .field textarea { width: 100%; }
   @media (max-width: 760px) { .form-grid { grid-template-columns: 1fr !important; } }
 
   button { cursor: pointer; border: none; border-radius: 4px; font-size: 13px; }
@@ -552,13 +552,109 @@
      the UI scoped to what each logged-in user should see, it's not real server-side security. */
   #loginOverlay {
     position: fixed; inset: 0; background: var(--bg);
-    display: flex; align-items: center; justify-content: center; z-index: 5000; padding: 20px;
+    display: flex; align-items: center; justify-content: center; z-index: 5000; padding: 0;
   }
   #loginOverlay.hidden { display: none; }
-  .login-box {
-    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-    max-width: 380px; width: 100%; padding: 32px 28px;
+  /* Org Chart + login are one single card (chart on the left, login form on the right), like a
+     typical enterprise-app login screen — not two separate boxes side by side. Fills essentially
+     the whole screen once a chart's been uploaded (Team Setup -> Organization Chart, Admin-only);
+     with none uploaded, the row shrinks back down to just the login box via .no-org-chart
+     (added/removed by JS), centered on its own exactly like before this feature existed. */
+  .login-screen-row {
+    display: flex; align-items: stretch; justify-content: center;
+    background: var(--card);
+    width: 100vw; height: 100vh;
   }
+  .login-screen-row.no-org-chart {
+    width: auto; height: auto; max-width: 380px;
+    border: 1px solid var(--border); border-radius: 14px; overflow: hidden;
+    box-shadow: 0 24px 70px rgba(0,0,0,0.5);
+  }
+  .login-box {
+    background: transparent; border: none; border-radius: 0;
+    flex: 0 0 420px; width: 420px; padding: 40px 32px;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .login-screen-row.no-org-chart .login-box { flex: 1 1 auto; width: 100%; }
+  .org-chart-panel {
+    background: #14110d; border-right: 1px solid var(--border);
+    flex: 1 1 auto; min-width: 0; padding: 32px;
+    display: flex; align-items: center; justify-content: center;
+    overflow: auto;
+  }
+  @media (max-width: 760px) {
+    .login-screen-row { flex-direction: column; }
+    .org-chart-panel { border-right: none; border-bottom: 1px solid var(--border); flex: 1 1 55%; }
+    .login-box { width: 100%; flex: 0 0 auto; }
+  }
+
+  /* ---------- Organization Chart tree (built from Team Setup entries, not an uploaded file) ----------
+     A well-known pure-CSS "table" tree technique: each generation is a <table>-displayed <ul>, each
+     box is a plain flex item; the connecting lines are an SVG overlay drawn in JS from each box's
+     actual measured position (orgChartDrawLines) — a CSS-only "table trick" version of this looked
+     fine for a balanced tree, but drew misaligned lines wherever siblings' subtrees were very
+     different widths (one box's own line ending up cutting through its neighbour instead of
+     sitting cleanly between them), so the connectors are measured, not guessed. */
+  .oc-tree-wrap { position: relative; display: inline-block; }
+  .oc-tree-lines { position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible; }
+  .oc-tree-lines .oc-line { stroke: var(--border); stroke-width: 1; }
+  .oc-tree-roots { display: flex; gap: 48px; justify-content: center; position: relative; z-index: 1; }
+  .oc-tree-node { display: flex; flex-direction: column; align-items: center; position: relative; z-index: 1; }
+  .oc-tree-children { display: flex; gap: 24px; margin-top: 32px; }
+  .oc-box {
+    display: inline-block; border-radius: 6px; padding: 8px 14px; margin-bottom: 6px;
+    min-width: 150px; max-width: 220px; position: relative; text-align: center;
+  }
+  .oc-box .oc-title { font-size: 12.5px; font-weight: 600; line-height: 1.3; }
+  .oc-box .oc-subtitle { font-size: 11px; line-height: 1.3; margin-top: 2px; }
+  .oc-box.oc-level-manager { background: var(--navy); border: 1px solid var(--navy); color: #fff; }
+  .oc-box.oc-level-manager .oc-subtitle { color: rgba(255,255,255,0.75); }
+  .oc-box.oc-level-leader { background: var(--navy-light); border: 1px solid var(--navy-light); color: #fff; }
+  .oc-box.oc-level-leader .oc-subtitle { color: rgba(255,255,255,0.8); }
+  .oc-box.oc-level-coordinator { background: #f1e3c6; border: 1px solid var(--gold); color: #4a3a1a; }
+  .oc-box.oc-level-coordinator .oc-subtitle { color: #7a6535; }
+  .oc-box.oc-level-department { background: #dce6f0; border: 1px solid var(--blue); color: #1f3a52; }
+  .oc-box.oc-level-department .oc-subtitle { color: #4a6478; }
+  .oc-box.oc-level-staff { background: #fff; border: 1px solid #c9c2b8; color: #2a2620; }
+  .oc-box.oc-level-staff .oc-subtitle { color: #6b6459; }
+  .oc-chart-legend { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 20px; }
+  .oc-chart-legend .oc-legend-item { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-muted); }
+  .oc-chart-legend .oc-legend-swatch { width: 13px; height: 13px; border-radius: 3px; flex-shrink: 0; }
+  /* The whole thing (header + tree + legend) sits on one dark card in the app's own navy/gold
+     (KHATAM) theme, with a fixed header up top carrying a KHATAM wordmark — a light/bright card
+     looked out of place against the rest of this dark-themed app. */
+  .oc-chart-sizer { position: relative; overflow: hidden; }
+  .oc-chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: 0 12px 34px rgba(0,0,0,0.4); display: inline-block; text-align: left; }
+  .oc-chart-header {
+    background: linear-gradient(135deg, var(--navy), #241d18); color: #fff;
+    padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .oc-chart-header-title { font-weight: 700; font-size: 14px; letter-spacing: 0.4px; white-space: nowrap; }
+  .oc-chart-header-sub { font-size: 10.5px; color: rgba(255,255,255,0.6); margin-top: 2px; white-space: nowrap; }
+  .oc-chart-header-logo {
+    font-weight: 800; font-size: 15px; letter-spacing: 1.5px; color: var(--gold);
+    border: 1px solid var(--gold); padding: 4px 12px; border-radius: 4px; white-space: nowrap; flex-shrink: 0;
+  }
+  .oc-chart-body { padding: 28px 24px 22px; }
+  /* Admin-side (Team Setup) editor: node list rows + the form used to add/edit one box. Capped at a
+     fixed height with its own scrollbar — with 20-30+ boxes this list would otherwise push the rest
+     of the page down a long way. */
+  #orgChartNodesListWrap { max-height: 280px; overflow-y: auto; padding-right: 4px; }
+  .oc-node-row {
+    display: flex; align-items: center; gap: 8px; padding: 5px 10px; border-radius: 6px;
+    border: 1px solid var(--border); margin-bottom: 4px; font-size: 12px;
+  }
+  .oc-node-row .oc-node-info { flex: 1 1 auto; min-width: 0; }
+  .oc-node-row .oc-node-info .oc-node-title { font-weight: 600; }
+  .oc-node-row .oc-node-info .oc-node-sub { color: var(--text-muted); font-size: 11.5px; }
+  .oc-node-row .oc-node-actions { display: flex; gap: 4px; flex-shrink: 0; }
+  .oc-level-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .oc-level-dot.oc-level-manager { background: var(--navy-light); }
+  .oc-level-dot.oc-level-leader { background: var(--navy-light); opacity: 0.75; }
+  .oc-level-dot.oc-level-coordinator { background: var(--gold); }
+  .oc-level-dot.oc-level-department { background: var(--blue); }
+  .oc-level-dot.oc-level-staff { background: #c9c2b8; }
   .login-box .brand-logo { width: 46px; height: 46px; display: block; margin: 0 auto 12px; }
   .login-box h1 { font-family: Georgia, serif; font-size: 19px; margin: 0 0 4px; text-align: center; }
   .login-box .login-sub { text-align: center; color: var(--text-muted); font-size: 12.5px; margin: 0 0 22px; }
@@ -702,20 +798,25 @@
 <body>
 
 <div class="modal-overlay hidden" id="loginOverlay" style="position:fixed; background:var(--bg); z-index:5000;">
-  <div class="login-box">
-    <p class="brand-eyebrow" style="text-align:center; margin:0 0 2px;">Inventory Department</p>
-    <h1>Warehouse Tracker</h1>
-    <p class="login-sub" id="loginSubText">Log in to continue.</p>
-    <div class="field">
-      <label>Username</label>
-      <input type="text" id="loginUsernameInput" autocomplete="username">
+  <div class="login-screen-row" id="loginScreenRow">
+    <div class="org-chart-panel" id="orgChartPanel" style="display:none;">
+      <div id="orgChartMediaWrap" style="width:100%; height:100%;"></div>
     </div>
-    <div class="field">
-      <label>Password</label>
-      <input type="password" id="loginPasswordInput" autocomplete="current-password">
+    <div class="login-box">
+      <p class="brand-eyebrow" style="text-align:center; margin:0 0 2px;">Inventory Department</p>
+      <h1>Warehouse Tracker</h1>
+      <p class="login-sub" id="loginSubText">Log in to continue.</p>
+      <div class="field">
+        <label>Username</label>
+        <input type="text" id="loginUsernameInput" autocomplete="username">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="loginPasswordInput" autocomplete="current-password">
+      </div>
+      <div class="login-error" id="loginErrorNote"></div>
+      <button class="btn-primary" id="loginSubmitBtn">Log In</button>
     </div>
-    <div class="login-error" id="loginErrorNote"></div>
-    <button class="btn-primary" id="loginSubmitBtn">Log In</button>
   </div>
 </div>
 
@@ -1351,6 +1452,43 @@
         </div>
       </div>
       <div class="data-note" id="adminPasswordNote" style="margin-top:10px;"></div>
+    </div>
+
+    <p class="section-title" style="margin-top:24px;">Organization Chart</p>
+    <div class="card">
+      <div class="data-note" style="margin:0 0 14px;">Shown on the Login screen, beside the login form, so the team structure is visible before anyone even signs in. Built box-by-box below — add a box, pick who it reports to, and the chart draws itself.</div>
+      <div id="orgChartAdminPreviewWrap" style="overflow-x:auto; padding:10px 0 6px;"></div>
+      <div class="form-grid" style="grid-template-columns: 1.2fr 1.2fr 1fr 1fr auto; align-items:end; margin-top:10px;">
+        <div class="field">
+          <label>Title / Department</label>
+          <input type="text" id="orgChartTitleInput" placeholder="e.g. Inventory Manager">
+        </div>
+        <div class="field">
+          <label>Name &amp; Role (optional, 2nd line — press Enter for its own line, e.g. name then "(PIC)")</label>
+          <textarea id="orgChartSubtitleInput" rows="2" placeholder="e.g. Muhammad Afiq Ihsan Bin Aziz&#10;(PIC)" style="resize:vertical; min-height:36px;"></textarea>
+        </div>
+        <div class="field">
+          <label>Reports To</label>
+          <select id="orgChartParentSelect"><option value="">— Top of chart —</option></select>
+        </div>
+        <div class="field">
+          <label>Box Colour</label>
+          <select id="orgChartLevelSelect">
+            <option value="manager">Pengurus / Manager</option>
+            <option value="leader">Ketua Sub-Jabatan / Team Leader</option>
+            <option value="department">Sub-Department / Bahagian</option>
+            <option value="coordinator">Koordinator / Bahagian</option>
+            <option value="staff" selected>Kakitangan / Staff</option>
+          </select>
+        </div>
+        <div class="field" style="display:flex; gap:8px;">
+          <button type="button" class="btn-primary" id="orgChartSaveNodeBtn" style="flex:1;">Add Box</button>
+          <button type="button" class="btn-ghost" id="orgChartCancelEditBtn" style="display:none;">Cancel</button>
+        </div>
+      </div>
+      <div class="data-note" id="orgChartFormNote" style="margin-top:8px;"></div>
+      <p class="section-title" style="margin-top:20px; font-size:11px;">All Boxes</p>
+      <div id="orgChartNodesListWrap"></div>
     </div>
 
     <div id="userMgmtSection" style="display:none;">
@@ -3108,7 +3246,8 @@ function allAppStorageKeys() {
     GARMENT_ORDERS_KEY, GARMENT_RECEIVE_LOGS_KEY, INBOUND_STO_KEY, RECEIVE_STATIONS_KEY,
     INBOUND_ALERT_SETTINGS_KEY, LAST_UPLOAD_KEY, INBOUND_LAST_UPLOAD_KEY,
     FLEET_DRIVERS_KEY, FLEET_VEHICLES_KEY_LEGACY, FLEET_TRIPS_KEY, NAV_GROUP_STATE_KEY,
-    EMAILJS_SETTINGS_KEY, DASH_SIZE_KEY, SIDEBAR_COLLAPSED_KEY, ADMIN_PASSWORD_KEY, APP_USERS_KEY
+    EMAILJS_SETTINGS_KEY, DASH_SIZE_KEY, SIDEBAR_COLLAPSED_KEY, ADMIN_PASSWORD_KEY, APP_USERS_KEY,
+    ORG_CHART_NODES_KEY
   ];
 }
 
@@ -3340,6 +3479,9 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'inbound-sla') renderInboundSlaTab();
     if (btn.dataset.tab === 'fleet-trips' || btn.dataset.tab === 'fleet-board' || btn.dataset.tab === 'fleet-driver-trip') renderFleetTab();
     if (btn.dataset.tab === 'staff-schedule') { renderStaffRosterList(); renderStaffScheduleGrid(); }
+    // Its lines are measured from actual box positions (getBoundingClientRect), which read as
+    // all-zero while this tab is hidden — redraw now that it's actually on-screen.
+    if (btn.dataset.tab === 'stations' && typeof renderOrgChartAdminPreview === 'function') renderOrgChartAdminPreview();
     updateSidebarSyncBarVisibility();
   });
 });
@@ -5345,6 +5487,313 @@ document.getElementById('addStationBtn').addEventListener('click', () => {
   renderAll();
 });
 
+/* ---------- Organization Chart (Login screen) ---------- */
+// Built box-by-box in Team Setup (not an uploaded image/PDF) — each box is { id, title, subtitle,
+// parentId, level }. parentId === null/'' means "top of chart" (there can be more than one; they're
+// drawn side by side). Synced like any other setting (syncSettingsKeys) so every device/login shows
+// the same chart. Array order is display order among siblings (see the Move Up/Down buttons).
+const ORG_CHART_NODES_KEY = 'sto_org_chart_nodes_v1';
+let orgChartNodes = [];
+let orgChartEditingId = null;
+// Seeded once, the first time this feature runs on a fresh install, from the chart Shaila shared —
+// transcribed by hand from a screenshot, so names/spelling should be double-checked and corrected
+// here if anything's off; after this first load it's just whatever's saved, never reset again.
+const ORG_CHART_DEFAULT_NODES = [
+  { id: 'oc1', title: 'Shaila Shermin Binti Kamaluddin', subtitle: 'Inventory Manager', parentId: null, level: 'manager' },
+  { id: 'oc2', title: 'Inventory Planner', subtitle: 'Sub-department', parentId: 'oc1', level: 'department' },
+  { id: 'oc3', title: 'Suhaimie Bin Abdal', subtitle: 'Planner', parentId: 'oc2', level: 'staff' },
+  { id: 'oc4', title: 'Muhammad Amirul Azri', subtitle: 'Planner', parentId: 'oc2', level: 'staff' },
+  { id: 'oc5', title: 'Inventory Operation', subtitle: 'Sub-department', parentId: 'oc1', level: 'department' },
+  { id: 'oc6', title: 'Muhammad Hazim Bin Mohammad Zaher', subtitle: 'Inventory Team Leader', parentId: 'oc5', level: 'leader' },
+  { id: 'oc7', title: 'Warehouse Management System', subtitle: '', parentId: 'oc5', level: 'coordinator' },
+  { id: 'oc8', title: 'Muhammad Afzan Afifi Bin Azman', subtitle: 'Warehouse Assistant', parentId: 'oc7', level: 'staff' },
+  { id: 'oc9', title: 'Reezqa Najmi Bin Abd Samat', subtitle: 'Warehouse Assistant', parentId: 'oc7', level: 'staff' },
+  { id: 'oc10', title: 'Raw Materials & Order Handling', subtitle: 'Nurul Intan Natasha Binti Hamdan — Senior Inventory Executive (Coordinator)', parentId: 'oc6', level: 'coordinator' },
+  { id: 'oc11', title: 'Raw Materials', subtitle: '', parentId: 'oc10', level: 'staff' },
+  { id: 'oc12', title: 'Muhammad Afiq Ihsan Bin Aziz', subtitle: 'Warehouse Assistant (PIC)', parentId: 'oc11', level: 'staff' },
+  { id: 'oc13', title: 'Muhammad Amier Danial Bin Nor Azman', subtitle: 'Warehouse Assistant (Kontrak)', parentId: 'oc11', level: 'staff' },
+  { id: 'oc14', title: 'Order Handling', subtitle: '', parentId: 'oc10', level: 'staff' },
+  { id: 'oc15', title: 'Nurul Nazuha Binti Mohd Ali', subtitle: 'Inventory Executive (PIC)', parentId: 'oc14', level: 'staff' },
+  { id: 'oc16', title: 'Jufie Hasiq Bin Mohd Hanafi', subtitle: 'Warehouse Assistant (Kontrak)', parentId: 'oc14', level: 'staff' },
+  { id: 'oc17', title: 'Inbound & Outbound Logistics', subtitle: 'Nur Azilah Binti Abdul Halim Hafiz — Inventory Executive (Coordinator)', parentId: 'oc6', level: 'coordinator' },
+  { id: 'oc18', title: 'Inbound', subtitle: '', parentId: 'oc17', level: 'staff' },
+  { id: 'oc19', title: 'Mohammad Hamizan Bin Abd Rahim', subtitle: 'Warehouse Assistant', parentId: 'oc18', level: 'staff' },
+  { id: 'oc20', title: 'Afif Bin Hamzah', subtitle: 'Warehouse Assistant (Kontrak)', parentId: 'oc18', level: 'staff' },
+  { id: 'oc21', title: 'Outbound', subtitle: '', parentId: 'oc17', level: 'staff' },
+  { id: 'oc22', title: 'Ahmad Fauzan Bin Mohamad Zaidi', subtitle: 'Inventory Executive — Outbound Coordinator', parentId: 'oc21', level: 'staff' },
+  { id: 'oc23', title: 'Az Sheril Shazney Binti Azlan', subtitle: 'Inventory Executive — Documentation Controller', parentId: 'oc21', level: 'staff' },
+  { id: 'oc24', title: 'Picker Team', subtitle: '', parentId: 'oc23', level: 'coordinator' },
+  { id: 'oc25', title: 'Muhamad Arif Aiman Bin Zulkifli', subtitle: 'Warehouse Assistant (PIC)', parentId: 'oc24', level: 'staff' },
+  { id: 'oc26', title: 'Dzaqwan Bin Asmara Devin', subtitle: 'Warehouse Assistant (Kontrak, Backup PIC)', parentId: 'oc24', level: 'staff' },
+  { id: 'oc27', title: 'Packer Team', subtitle: '', parentId: 'oc23', level: 'coordinator' },
+  { id: 'oc28', title: 'Muhamad Fitri Azim Bin Mohd Jamali', subtitle: 'Warehouse Assistant (Kontrak, PIC)', parentId: 'oc27', level: 'staff' },
+  { id: 'oc29', title: 'Ismail Fiqry Bin Abdul Razak', subtitle: 'Warehouse Assistant (Kontrak, Backup PIC)', parentId: 'oc27', level: 'staff' }
+];
+function loadOrgChartNodes() {
+  const raw = localStorage.getItem(ORG_CHART_NODES_KEY);
+  if (raw === null) { orgChartNodes = ORG_CHART_DEFAULT_NODES.map(n => ({ ...n })); saveOrgChartNodes(); return; }
+  try { orgChartNodes = JSON.parse(raw) || []; } catch (e) { orgChartNodes = []; }
+}
+function saveOrgChartNodes() { localStorage.setItem(ORG_CHART_NODES_KEY, JSON.stringify(orgChartNodes)); }
+const ORG_CHART_LEVEL_LABEL = { manager: 'Pengurus / Manager', leader: 'Ketua Sub-Jabatan / Team Leader', department: 'Sub-Department / Bahagian', coordinator: 'Koordinator / Bahagian', staff: 'Kakitangan / Staff' };
+const ORG_CHART_LEVEL_SWATCH = { manager: 'var(--navy)', leader: 'var(--navy-light)', department: 'var(--blue)', coordinator: 'var(--gold)', staff: '#fff' };
+function orgChartBoxHtml(node) {
+  // escapeHtml runs first (so any literal "<"/">" a name might contain is neutralized), then real
+  // <br> tags are inserted for line breaks the textarea captured — so a role like "(PIC)" can sit
+  // on its own line under the name instead of being crammed onto the same line.
+  return `<div class="oc-box oc-level-${node.level}">` +
+    `<div class="oc-title">${escapeHtml(node.title)}</div>` +
+    (node.subtitle ? `<div class="oc-subtitle">${escapeHtml(node.subtitle).replace(/\n/g, '<br>')}</div>` : '') +
+    `</div>`;
+}
+function orgChartRenderNodeDiv(id) {
+  const node = orgChartNodes.find(n => n.id === id);
+  if (!node) return '';
+  const children = orgChartNodes.filter(n => n.parentId === id);
+  return `<div class="oc-tree-node">${orgChartBoxHtml(node)}` +
+    (children.length ? `<div class="oc-tree-children">${children.map(c => orgChartRenderNodeDiv(c.id)).join('')}</div>` : '') +
+    `</div>`;
+}
+function orgChartTreeHtml(wrapId, sizerId) {
+  const roots = orgChartNodes.filter(n => !n.parentId);
+  if (!roots.length) return '';
+  return `<div class="oc-chart-sizer" id="${sizerId}"><div class="oc-chart-card">` +
+    `<div class="oc-chart-header">` +
+      `<div><div class="oc-chart-header-title">INVENTORY DEPARTMENT</div><div class="oc-chart-header-sub">Organization Chart</div></div>` +
+      `<div class="oc-chart-header-logo">KHATAM</div>` +
+    `</div>` +
+    `<div class="oc-chart-body">` +
+      `<div class="oc-tree-wrap" id="${wrapId}">` +
+        `<svg class="oc-tree-lines"></svg>` +
+        `<div class="oc-tree-roots">${roots.map(r => orgChartRenderNodeDiv(r.id)).join('')}</div>` +
+      `</div>` +
+      `<div class="oc-chart-legend">` +
+      Object.keys(ORG_CHART_LEVEL_LABEL).map(lvl => `<div class="oc-legend-item"><span class="oc-legend-swatch oc-level-${lvl}" style="background:${ORG_CHART_LEVEL_SWATCH[lvl]};"></span>${ORG_CHART_LEVEL_LABEL[lvl]}</div>`).join('') +
+      `</div>` +
+    `</div>` +
+  `</div></div>`;
+}
+// Scales the whole card down (never up) so it fits inside the given space without needing to scroll
+// — a large chart on the login screen should still be fully visible at a glance, and a small chart
+// should grow to actually use the space instead of leaving it looking empty (scales UP too, not
+// just down — capped at 2.5x so it doesn't blow up into a blurry giant on an ultra-wide monitor
+// when there are only a couple of boxes). Uses `transform: scale()` on the card, wrapped in a
+// "sizer" div whose own width/height is set (in JS) to match the scaled footprint — CSS `zoom` was
+// tried first since it also resizes an element's own layout box, but it renders inline SVG content
+// (the connector lines) inconsistently with the rest of a zoomed subtree in Chromium, producing
+// visibly misaligned lines; transform+resize doesn't have that problem since it's the standard,
+// well-supported way to scale mixed HTML/SVG content.
+function orgChartApplyFitZoom(sizerEl, availW, availH) {
+  if (!sizerEl) return;
+  const cardEl = sizerEl.querySelector(':scope > .oc-chart-card');
+  if (!cardEl) return;
+  cardEl.style.transform = 'none';
+  sizerEl.style.width = '';
+  sizerEl.style.height = '';
+  if (!(availW > 0) || !(availH > 0)) return;
+  const naturalW = cardEl.offsetWidth;
+  const naturalH = cardEl.offsetHeight;
+  let scale = Math.min(2.5, availW / naturalW, availH / naturalH);
+  if (!isFinite(scale) || scale <= 0) scale = 1;
+  cardEl.style.transformOrigin = 'top left';
+  cardEl.style.transform = `scale(${scale})`;
+  sizerEl.style.width = (naturalW * scale) + 'px';
+  sizerEl.style.height = (naturalH * scale) + 'px';
+}
+// Draws the connecting lines as an SVG overlay, computed from each box's ACTUAL rendered position
+// (getBoundingClientRect) rather than any CSS percentage trick — this is what keeps a line from ever
+// drifting into a neighbouring box when siblings' subtrees are very different widths (e.g. one box
+// has a deep chain of children while the one beside it has none).
+function orgChartDrawLines(wrapEl) {
+  if (!wrapEl) return;
+  const svg = wrapEl.querySelector(':scope > svg.oc-tree-lines');
+  if (!svg) return;
+  const wrapRect = wrapEl.getBoundingClientRect();
+  if (!wrapRect.width || !wrapRect.height) return; // container is hidden (display:none) — nothing to measure yet
+  const toLocal = (rect) => ({ cx: rect.left + rect.width / 2 - wrapRect.left, top: rect.top - wrapRect.top, bottom: rect.bottom - wrapRect.top });
+  let svgHtml = '';
+  wrapEl.querySelectorAll('.oc-tree-node').forEach(nodeEl => {
+    const childrenWrap = nodeEl.querySelector(':scope > .oc-tree-children');
+    if (!childrenWrap) return;
+    const boxEl = nodeEl.querySelector(':scope > .oc-box');
+    if (!boxEl) return;
+    const parentPt = toLocal(boxEl.getBoundingClientRect());
+    const childPts = [...childrenWrap.querySelectorAll(':scope > .oc-tree-node')]
+      .map(el => { const cb = el.querySelector(':scope > .oc-box'); return cb ? toLocal(cb.getBoundingClientRect()) : null; })
+      .filter(Boolean);
+    if (!childPts.length) return;
+    const busY = parentPt.bottom + (childPts[0].top - parentPt.bottom) / 2;
+    svgHtml += `<line class="oc-line" x1="${parentPt.cx}" y1="${parentPt.bottom}" x2="${parentPt.cx}" y2="${busY}"/>`;
+    if (childPts.length > 1) {
+      const xs = childPts.map(p => p.cx);
+      svgHtml += `<line class="oc-line" x1="${Math.min(...xs)}" y1="${busY}" x2="${Math.max(...xs)}" y2="${busY}"/>`;
+    }
+    childPts.forEach(p => { svgHtml += `<line class="oc-line" x1="${p.cx}" y1="${busY}" x2="${p.cx}" y2="${p.top}"/>`; });
+  });
+  svg.innerHTML = svgHtml;
+  svg.setAttribute('width', wrapEl.offsetWidth);
+  svg.setAttribute('height', wrapEl.offsetHeight);
+}
+function orgChartRedrawAllLines() {
+  // Full re-render rather than just re-drawing lines — the fit-to-screen zoom also needs
+  // recomputing against the new window size, not just the connector positions.
+  if (typeof renderOrgChartLoginPanel === 'function') renderOrgChartLoginPanel();
+  if (typeof renderOrgChartAdminPreview === 'function') renderOrgChartAdminPreview();
+}
+let orgChartResizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(orgChartResizeTimer);
+  orgChartResizeTimer = setTimeout(orgChartRedrawAllLines, 150);
+});
+// Renders on the (pre-login) Login screen — hidden entirely until at least one box exists, so
+// nobody who hasn't set one up sees an empty panel next to the login form.
+function renderOrgChartLoginPanel() {
+  const row = document.getElementById('loginScreenRow');
+  const panel = document.getElementById('orgChartPanel');
+  const wrap = document.getElementById('orgChartMediaWrap');
+  if (!panel || !wrap) return;
+  if (!orgChartNodes.length) {
+    wrap.innerHTML = '';
+    panel.style.display = 'none';
+    if (row) row.classList.add('no-org-chart');
+    return;
+  }
+  panel.style.display = '';
+  if (row) row.classList.remove('no-org-chart');
+  wrap.innerHTML = orgChartTreeHtml('orgChartTreeWrapLogin', 'orgChartFitWrapLogin');
+  orgChartDrawLines(document.getElementById('orgChartTreeWrapLogin'));
+  // 64 = the panel's own 32px padding on each side (see .org-chart-panel).
+  orgChartApplyFitZoom(document.getElementById('orgChartFitWrapLogin'), panel.clientWidth - 64, panel.clientHeight - 64);
+}
+// Renders the live preview + the editable list of boxes inside Team Setup (Admin-only).
+function renderOrgChartAdminPreview() {
+  const previewWrap = document.getElementById('orgChartAdminPreviewWrap');
+  const listWrap = document.getElementById('orgChartNodesListWrap');
+  const parentSelect = document.getElementById('orgChartParentSelect');
+  if (previewWrap) {
+    previewWrap.innerHTML = orgChartNodes.length
+      ? orgChartTreeHtml('orgChartTreeWrapAdmin', 'orgChartFitWrapAdmin')
+      : `<div class="data-note" style="margin:0;">No boxes yet — add the first one below (usually the top manager).</div>`;
+    orgChartDrawLines(document.getElementById('orgChartTreeWrapAdmin'));
+    // No forced fit-to-screen here (unlike the login screen) — this editor view can scroll
+    // horizontally (see the overflow-x:auto on this wrap) so boxes stay readable while editing.
+  }
+  if (listWrap) {
+    if (!orgChartNodes.length) {
+      listWrap.innerHTML = '';
+    } else {
+      listWrap.innerHTML = orgChartNodes.map((n, i) => {
+        const parent = orgChartNodes.find(p => p.id === n.parentId);
+        return `<div class="oc-node-row">
+          <span class="oc-level-dot oc-level-${n.level}"></span>
+          <div class="oc-node-info">
+            <div class="oc-node-title">${escapeHtml(n.title)}</div>
+            <div class="oc-node-sub">${n.subtitle ? escapeHtml(n.subtitle.replace(/\n/g, ' · ')) + ' · ' : ''}${parent ? 'Reports to ' + escapeHtml(parent.title) : 'Top of chart'}</div>
+          </div>
+          <div class="oc-node-actions">
+            <button type="button" class="btn-ghost oc-move-up-btn" data-idx="${i}" title="Move up">↑</button>
+            <button type="button" class="btn-ghost oc-move-down-btn" data-idx="${i}" title="Move down">↓</button>
+            <button type="button" class="btn-ghost oc-edit-node-btn" data-idx="${i}">Edit</button>
+            <button type="button" class="btn-ghost oc-delete-node-btn" data-idx="${i}">Delete</button>
+          </div>
+        </div>`;
+      }).join('');
+      listWrap.querySelectorAll('.oc-move-up-btn').forEach(btn => btn.addEventListener('click', (e) => orgChartMoveSibling(Number(e.currentTarget.dataset.idx), -1)));
+      listWrap.querySelectorAll('.oc-move-down-btn').forEach(btn => btn.addEventListener('click', (e) => orgChartMoveSibling(Number(e.currentTarget.dataset.idx), 1)));
+      listWrap.querySelectorAll('.oc-edit-node-btn').forEach(btn => btn.addEventListener('click', (e) => orgChartStartEdit(Number(e.currentTarget.dataset.idx))));
+      listWrap.querySelectorAll('.oc-delete-node-btn').forEach(btn => btn.addEventListener('click', (e) => orgChartDeleteNode(Number(e.currentTarget.dataset.idx))));
+    }
+  }
+  if (parentSelect) {
+    const prevValue = parentSelect.value;
+    parentSelect.innerHTML = '<option value="">— Top of chart —</option>' +
+      orgChartNodes.filter(n => n.id !== orgChartEditingId).map(n => `<option value="${escapeHtml(n.id)}">${escapeHtml(n.title)}</option>`).join('');
+    if ([...parentSelect.options].some(o => o.value === prevValue)) parentSelect.value = prevValue;
+  }
+}
+function orgChartMoveSibling(idx, direction) {
+  const node = orgChartNodes[idx];
+  if (!node) return;
+  const siblingIdxs = orgChartNodes.map((n, i) => ({ n, i })).filter(x => x.n.parentId === node.parentId).map(x => x.i);
+  const pos = siblingIdxs.indexOf(idx);
+  const swapWith = siblingIdxs[pos + direction];
+  if (swapWith === undefined) return;
+  [orgChartNodes[idx], orgChartNodes[swapWith]] = [orgChartNodes[swapWith], orgChartNodes[idx]];
+  saveOrgChartNodes();
+  renderOrgChartAdminPreview();
+  renderOrgChartLoginPanel();
+}
+function orgChartDescendantIds(id) {
+  const direct = orgChartNodes.filter(n => n.parentId === id).map(n => n.id);
+  return direct.concat(...direct.map(orgChartDescendantIds));
+}
+function orgChartDeleteNode(idx) {
+  const node = orgChartNodes[idx];
+  if (!node) return;
+  const descendants = orgChartDescendantIds(node.id);
+  const msg = descendants.length
+    ? `Delete "${node.title}"? This also removes ${descendants.length} box(es) under it in the chart.`
+    : `Delete "${node.title}"?`;
+  if (!confirm(msg)) return;
+  const removeIds = new Set([node.id, ...descendants]);
+  orgChartNodes = orgChartNodes.filter(n => !removeIds.has(n.id));
+  if (orgChartEditingId && removeIds.has(orgChartEditingId)) orgChartCancelEdit();
+  saveOrgChartNodes();
+  renderOrgChartAdminPreview();
+  renderOrgChartLoginPanel();
+}
+function orgChartStartEdit(idx) {
+  const node = orgChartNodes[idx];
+  if (!node) return;
+  orgChartEditingId = node.id;
+  document.getElementById('orgChartTitleInput').value = node.title;
+  document.getElementById('orgChartSubtitleInput').value = node.subtitle || '';
+  document.getElementById('orgChartLevelSelect').value = node.level;
+  document.getElementById('orgChartSaveNodeBtn').textContent = 'Save Changes';
+  document.getElementById('orgChartCancelEditBtn').style.display = '';
+  renderOrgChartAdminPreview(); // rebuilds the Reports To list excluding this node (can't be its own parent)
+  document.getElementById('orgChartParentSelect').value = node.parentId || '';
+  document.getElementById('orgChartTitleInput').focus();
+}
+function orgChartCancelEdit() {
+  orgChartEditingId = null;
+  document.getElementById('orgChartTitleInput').value = '';
+  document.getElementById('orgChartSubtitleInput').value = '';
+  document.getElementById('orgChartLevelSelect').value = 'staff';
+  document.getElementById('orgChartParentSelect').value = '';
+  document.getElementById('orgChartSaveNodeBtn').textContent = 'Add Box';
+  document.getElementById('orgChartCancelEditBtn').style.display = 'none';
+  document.getElementById('orgChartFormNote').textContent = '';
+  renderOrgChartAdminPreview();
+}
+document.getElementById('orgChartCancelEditBtn').addEventListener('click', orgChartCancelEdit);
+document.getElementById('orgChartSaveNodeBtn').addEventListener('click', () => {
+  const title = document.getElementById('orgChartTitleInput').value.trim();
+  const subtitle = document.getElementById('orgChartSubtitleInput').value.trim();
+  const parentId = document.getElementById('orgChartParentSelect').value || null;
+  const level = document.getElementById('orgChartLevelSelect').value;
+  const note = document.getElementById('orgChartFormNote');
+  if (!title) { note.textContent = 'Title / Department is required.'; note.style.color = 'var(--red)'; return; }
+  if (parentId) {
+    // A box can't report to itself, or to one of its own descendants — that would make a loop.
+    const wouldLoop = orgChartEditingId && (parentId === orgChartEditingId || orgChartDescendantIds(orgChartEditingId).includes(parentId));
+    if (wouldLoop) { note.textContent = "Can't report to itself or one of its own boxes."; note.style.color = 'var(--red)'; return; }
+  }
+  if (orgChartEditingId) {
+    const node = orgChartNodes.find(n => n.id === orgChartEditingId);
+    if (node) { node.title = title; node.subtitle = subtitle; node.parentId = parentId; node.level = level; }
+  } else {
+    orgChartNodes.push({ id: 'oc_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title, subtitle, parentId, level });
+  }
+  saveOrgChartNodes();
+  note.textContent = '';
+  orgChartCancelEdit();
+  renderOrgChartLoginPanel();
+});
+loadOrgChartNodes();
+renderOrgChartAdminPreview();
+renderOrgChartLoginPanel();
+
 /* ---------- Operation Fleet ---------- */
 // Its own standalone tab (not nested under Outbound or Inbound) since a trip/driver can be used
 // for either direction. A trip is a simple daily schedule: date, driver (+ optional assistant),
@@ -5565,6 +6014,10 @@ function initAuthGate() {
   const current = getCurrentUser();
   if (!current) {
     document.getElementById('loginOverlay').classList.remove('hidden');
+    // Re-measure the chart's connector lines now that the panel is actually visible again — while
+    // hidden, getBoundingClientRect() on its boxes returns all-zero, so any earlier attempt to draw
+    // them would have produced nothing.
+    if (typeof renderOrgChartLoginPanel === 'function') renderOrgChartLoginPanel();
     return;
   }
   applyUserPermissions(current);
@@ -5941,7 +6394,7 @@ function attachPostponedDoNosListener() {
 // functions below (which only ever run after the whole script has finished loading) avoids that —
 // same pattern as allAppStorageKeys() above.
 function syncSettingsKeys() {
-  return [SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, STICKER_KEY, DAILY_TARGETS_KEY, INBOUND_ALERT_SETTINGS_KEY, EMAILJS_SETTINGS_KEY, ADMIN_PASSWORD_KEY, PACKING_STATION_RR_KEY, STAFF_SCHEDULE_KEY, STATION_PRESENCE_KEY];
+  return [SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, STICKER_KEY, DAILY_TARGETS_KEY, INBOUND_ALERT_SETTINGS_KEY, EMAILJS_SETTINGS_KEY, ADMIN_PASSWORD_KEY, PACKING_STATION_RR_KEY, STAFF_SCHEDULE_KEY, STATION_PRESENCE_KEY, ORG_CHART_NODES_KEY];
 }
 const FB_SETTINGS_TABLE = 'AppSettings';
 function pushSettingsDiff() {
@@ -6004,6 +6457,11 @@ function applySettingsSnapshot() {
     if (typeof renderReceiveStationsTab === 'function') renderReceiveStationsTab();
     if (typeof renderStationTargetProgress === 'function') renderStationTargetProgress();
     if (typeof renderReceiveStationTargetProgress === 'function') renderReceiveStationTargetProgress();
+    // Someone edited the Organization Chart from another device — reload the boxes and refresh both
+    // the pre-login screen and the admin preview so this device shows the same thing without a reload.
+    if (typeof loadOrgChartNodes === 'function') loadOrgChartNodes();
+    if (typeof renderOrgChartLoginPanel === 'function') renderOrgChartLoginPanel();
+    if (typeof renderOrgChartAdminPreview === 'function') renderOrgChartAdminPreview();
     cloudSyncLastAt = new Date();
     renderCloudSyncStatus();
   }
