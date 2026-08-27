@@ -373,6 +373,16 @@
   .manpower-check-row:hover { background: rgba(255,255,255,0.05); }
   .manpower-check-row input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; flex-shrink: 0; accent-color: var(--gold); }
 
+  /* Pick-one-then-Add-it chip list — used for the Rollcage No. modal (an STO can span more than one
+     rollcage), simpler inside a narrow modal than a checkbox dropdown panel that has to fit next to
+     everything else. */
+  .rollcage-chip {
+    display: inline-flex; align-items: center; gap: 6px; background: var(--gray-bg);
+    border: 1px solid var(--border); border-radius: 14px; padding: 4px 6px 4px 12px; font-size: 12px;
+  }
+  .rollcage-chip-remove { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 15px; line-height: 1; padding: 2px 4px; }
+  .rollcage-chip-remove:hover { color: var(--red); }
+
   .sla-input { width: 70px; text-align: center; }
   .sla-input:disabled { background: #2a2420; color: var(--text-muted); }
   .field input:disabled { background: #2a2420; color: var(--text-muted); cursor: not-allowed; }
@@ -1158,13 +1168,10 @@
           <option value="hariBerbaki">Sort: Days Left</option>
           <option value="orderNumber">Sort: STO No.</option>
         </select>
-        <button class="btn-ghost" id="exportBackupBtn">⬇ Export Backup</button>
-        <button class="btn-ghost" id="importBackupBtn">⬆ Import Backup</button>
-        <input type="file" id="importBackupFile" accept=".json" style="display:none;">
         <button class="btn-ghost" id="clearDataBtn">Reset STO List</button>
       </div>
       <div id="tableWrap"></div>
-      <div class="data-note">Data is stored in this browser (localStorage), tied to this exact file's location — opening a different copy/download of this HTML file starts empty. Use "Export Backup" regularly, and "Import Backup" to bring your data into a new copy. Upload a new file to update the status of existing STOs.</div>
+      <div class="data-note">Data is stored in this browser (localStorage), tied to this exact file's location — opening a different copy/download of this HTML file starts empty. Upload a new file to update the status of existing STOs.</div>
 
       <div class="filters" style="margin-top:16px; align-items:center;">
         <span class="data-note" style="margin-top:0;">Carton No. counter (per boutique):</span>
@@ -1526,7 +1533,7 @@
           </label>
           <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx file here</span>
         </div>
-        <div class="upload-hint" style="margin-top:10px;">Columns: <strong>Name</strong>, Department (Inbound / Outbound), Role (Picker / Packer / Receiver / PIC / Backup PIC), then one column per day of the WHOLE MONTH shown in the template (Day / Night / Off / Leave — leave blank for Normal, a regular working day with no special shift). A name already in the roster gets its department/role/schedule updated instead of being duplicated, so this also works as a re-upload to make changes.</div>
+        <div class="upload-hint" style="margin-top:10px;">Columns: <strong>Name</strong>, Department (Inbound / Outbound / Raw Material), Role (Picker / Packer / Receiver / PIC / Backup PIC / Staff), then one column per day of the WHOLE MONTH shown in the template (Day / Night / Off / Leave — leave blank for Normal, a regular working day with no special shift). A name already in the roster gets its department/role/schedule updated instead of being duplicated, so this also works as a re-upload to make changes.</div>
       </div>
       <div class="upload-status" id="staffRosterUploadStatus"></div>
       <div style="border-top:1px solid var(--border); margin:16px 0;"></div>
@@ -1541,6 +1548,7 @@
           <select id="inputNewStaffDept" class="role-select">
             <option value="Inbound">Inbound</option>
             <option value="Outbound">Outbound</option>
+            <option value="Raw Material">Raw Material</option>
           </select>
         </div>
         <div class="field">
@@ -1551,6 +1559,7 @@
             <option value="Receiver">Receiver</option>
             <option value="PIC">PIC</option>
             <option value="Backup PIC">Backup PIC</option>
+            <option value="Staff">Staff</option>
           </select>
         </div>
         <div class="field">
@@ -1800,7 +1809,13 @@
       <div class="data-note" id="inboundStoNote">Adds an incoming STO from a boutique — status starts at Active. Flagged Critical once it's been waiting more than 10 days.</div>
     </div>
 
-    <p class="section-title">STO From Boutique List</p>
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+      <p class="section-title" style="margin-bottom:0;">STO From Boutique List</p>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-ghost" id="undoResetInboundStoBtn" style="display:none;">↩ Undo Reset</button>
+        <button class="btn-ghost" id="resetInboundStoBtn">Reset STO Progress</button>
+      </div>
+    </div>
     <div class="card">
       <div class="filters">
         <select id="inboundFilterAmaran">
@@ -2233,8 +2248,12 @@
       <button class="modal-close" id="rollcageCloseBtn">&times;</button>
     </div>
     <div class="field" style="margin-bottom:14px;">
-      <label>Rollcage No. (optional)</label>
-      <select id="rollcageInput"></select>
+      <label>Rollcage No. (optional — boleh tambah lebih dari satu kalau STO ni guna 2-3 rollcage)</label>
+      <div style="display:flex; gap:8px;">
+        <select id="rollcageInput" style="flex:1; min-width:0;"></select>
+        <button type="button" class="btn-primary" id="rollcageAddBtn" style="flex-shrink:0;">+ Add</button>
+      </div>
+      <div id="rollcageSelectedChips" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;"></div>
       <div class="data-note" id="rollcageInputNote" style="margin-top:6px;"></div>
     </div>
     <div class="modal-actions">
@@ -2252,8 +2271,12 @@
     </div>
     <div class="data-note" id="putawayRollcageItemNote" style="margin-bottom:10px;"></div>
     <div class="field" style="margin-bottom:14px;">
-      <label>Rollcage/Trolley for Putaway</label>
-      <select id="putawayRollcageInput"></select>
+      <label>Rollcage/Trolley for Putaway (boleh tambah lebih dari satu)</label>
+      <div style="display:flex; gap:8px;">
+        <select id="putawayRollcageInput" style="flex:1; min-width:0;"></select>
+        <button type="button" class="btn-primary" id="putawayRollcageAddBtn" style="flex-shrink:0;">+ Add</button>
+      </div>
+      <div id="putawayRollcageSelectedChips" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;"></div>
       <div class="data-note" id="putawayRollcageInputNote" style="margin-top:6px;"></div>
     </div>
     <div class="modal-actions">
@@ -2665,15 +2688,23 @@ function addDaysIso(iso, days) {
   return toIsoLocal(d);
 }
 
+// An STO can span more than one rollcage (e.g. a big order split across 2-3), so this is an array
+// (rollcageNos) — read through this helper everywhere rather than the field directly, since it also
+// transparently upgrades older records that still only have the single old rollcageNo string.
+function recordRollcageNos(rec) {
+  if (!rec) return [];
+  if (Array.isArray(rec.rollcageNos)) return rec.rollcageNos;
+  return rec.rollcageNo ? [rec.rollcageNo] : [];
+}
 // Rollcages/trolleys are a shared physical pool used by Outbound (Packing stage), Inbound (On
 // Progress stage), AND Garment Order putaway (loaded after receiving, until "Putaway Done") — a
 // rollcage counts as "in use" for as long as any ONE of those three holds it. The first two free up
 // automatically when the record leaves that stage; putaway only frees up via the explicit button,
 // since there's no single "record" whose stage-move would signal it's done.
 function rollcageInUseByDetail(name, excludeOrderNumber) {
-  const rec = records.find(r => r.progress === 'Packing' && r.rollcageNo === name && r.orderNumber !== excludeOrderNumber);
+  const rec = records.find(r => r.progress === 'Packing' && recordRollcageNos(r).includes(name) && r.orderNumber !== excludeOrderNumber);
   if (rec) return { orderNumber: rec.orderNumber, source: 'Outbound (Packing)' };
-  const inRec = (typeof inboundRecords !== 'undefined' ? inboundRecords : []).find(r => r.progress === 'On Progress' && r.rollcageNo === name && r.orderNumber !== excludeOrderNumber);
+  const inRec = (typeof inboundRecords !== 'undefined' ? inboundRecords : []).find(r => r.progress === 'On Progress' && recordRollcageNos(r).includes(name) && r.orderNumber !== excludeOrderNumber);
   if (inRec) return { orderNumber: inRec.orderNumber, source: 'Inbound (On Progress)' };
   const rc = rollcages.find(r => r.name === name && r.putawayInUse);
   if (rc) return { orderNumber: `${(rc.putawayItems || []).length} item(s)`, source: 'Garment Order (Putaway)' };
@@ -3227,82 +3258,13 @@ document.getElementById('addManualStoBtn').addEventListener('click', () => {
   }, 3000);
 });
 
-/* ---------- Data Backup (Export / Import) ---------- */
-// Every localStorage key this app writes to, in one place — used by both "Reset Everything" below
-// and Export/Import Backup, so the two never drift out of sync (a key added to one always ends up
-// in the other). This exists because localStorage is scoped to the EXACT file:// path of this HTML
-// file — opening a different copy/re-download of the "same" file starts completely empty even
-// though nothing was actually deleted, since the old data is simply sitting under the OLD file's
-// storage instead. Export/Import lets that data move between copies.
-// A FUNCTION (not a top-level const array) deliberately — several of these _KEY constants are
-// declared further down in this same script, so building the array immediately at this point in
-// the file would throw "Cannot access before initialization". Calling this only from inside event
-// handlers (which only ever run after the whole script has finished loading) avoids that.
-function allAppStorageKeys() {
-  return [
-    RECORDS_KEY, SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, DO_RECORDS_KEY, STICKER_KEY,
-    PACKING_STATIONS_KEY, PACKING_STATION_RR_KEY, PICKERS_KEY, DAILY_TARGETS_KEY,
-    STAFF_ROSTER_KEY, STAFF_SCHEDULE_KEY, STATION_PRESENCE_KEY,
-    GARMENT_ORDERS_KEY, GARMENT_RECEIVE_LOGS_KEY, INBOUND_STO_KEY, RECEIVE_STATIONS_KEY,
-    INBOUND_ALERT_SETTINGS_KEY, LAST_UPLOAD_KEY, INBOUND_LAST_UPLOAD_KEY,
-    FLEET_DRIVERS_KEY, FLEET_VEHICLES_KEY_LEGACY, FLEET_TRIPS_KEY, NAV_GROUP_STATE_KEY,
-    EMAILJS_SETTINGS_KEY, DASH_SIZE_KEY, SIDEBAR_COLLAPSED_KEY, ADMIN_PASSWORD_KEY, APP_USERS_KEY,
-    ORG_CHART_NODES_KEY
-  ];
-}
-
-document.getElementById('exportBackupBtn').addEventListener('click', () => {
-  const backup = { app: 'khatam-warehouse-tracker', exportedAt: new Date().toISOString(), data: {} };
-  allAppStorageKeys().forEach(k => {
-    const v = localStorage.getItem(k);
-    if (v !== null) backup.data[k] = v;
-  });
-  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `khatam-warehouse-tracker-backup-${todayStr()}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-});
-
-document.getElementById('importBackupBtn').addEventListener('click', () => {
-  document.getElementById('importBackupFile').click();
-});
-document.getElementById('importBackupFile').addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  e.target.value = '';
-  if (!file) return;
-  if (!confirm('Import this backup? This REPLACES all current data in this browser with what\'s in the backup file. This action cannot be undone.')) return;
-  const reader = new FileReader();
-  reader.onload = (evt) => {
-    try {
-      const parsed = JSON.parse(evt.target.result);
-      const data = (parsed && typeof parsed === 'object' && parsed.data && typeof parsed.data === 'object') ? parsed.data : parsed;
-      if (!data || typeof data !== 'object') throw new Error('Invalid backup file.');
-      const keys = allAppStorageKeys();
-      keys.forEach(k => localStorage.removeItem(k)); // clear first, so keys absent from the backup don't linger from before
-      Object.keys(data).forEach(k => {
-        if (keys.includes(k) && typeof data[k] === 'string') localStorage.setItem(k, data[k]);
-      });
-      alert('Backup imported. Reloading the page now...');
-      location.reload();
-    } catch (err) {
-      alert('Could not import this file — it doesn\'t look like a valid backup.');
-    }
-  };
-  reader.readAsText(file);
-});
-
 // Scoped to just the STO List, on purpose — a full "wipe everything" reset was too easy to trigger
 // by accident and took boutique/SLA registrations, Team Setup, Inbound, Garment Orders and
 // Operation Fleet data down with it (all unrelated to what's actually shown on this STO List card).
 // This only clears outbound STO records, their DO records, and the Carton No./DO No. counters —
 // everything else in the app (SLA Settings, Team Setup, Inbound, Garment Orders, Fleet) is kept.
 document.getElementById('clearDataBtn').addEventListener('click', () => {
-  if (!confirm('Reset the STO List? This wipes all outbound STO records, their DO records, and resets the Carton No./DO No. counters. Boutique/SLA settings, Team Setup, Inbound, Garment Orders and Operation Fleet data are all KEPT. Consider Export Backup first. This action cannot be undone.')) return;
+  if (!confirm('Reset the STO List? This wipes all outbound STO records, their DO records, and resets the Carton No./DO No. counters. Boutique/SLA settings, Team Setup, Inbound, Garment Orders and Operation Fleet data are all KEPT. This action cannot be undone.')) return;
   [RECORDS_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, DO_RECORDS_KEY, LAST_UPLOAD_KEY].forEach(k => localStorage.removeItem(k));
   loadData();
   renderAll();
@@ -3317,11 +3279,14 @@ document.getElementById('clearDataBtn').addEventListener('click', () => {
 // applyUserPermissions), since this wipes shared operational data, not just this user's own view.
 const PROGRESS_BOARD_RESET_SNAPSHOT_KEY = 'sto_progress_board_reset_snapshot_v1';
 const TRIP_SCHEDULE_RESET_SNAPSHOT_KEY = 'sto_trip_schedule_reset_snapshot_v1';
+const INBOUND_STO_RESET_SNAPSHOT_KEY = 'sto_inbound_sto_reset_snapshot_v1';
 function updateResetUndoButtons() {
   const undoProgressBtn = document.getElementById('undoResetProgressBtn');
   if (undoProgressBtn) undoProgressBtn.style.display = localStorage.getItem(PROGRESS_BOARD_RESET_SNAPSHOT_KEY) ? '' : 'none';
   const undoTripBtn = document.getElementById('undoResetTripBtn');
   if (undoTripBtn) undoTripBtn.style.display = localStorage.getItem(TRIP_SCHEDULE_RESET_SNAPSHOT_KEY) ? '' : 'none';
+  const undoInboundStoBtn = document.getElementById('undoResetInboundStoBtn');
+  if (undoInboundStoBtn) undoInboundStoBtn.style.display = localStorage.getItem(INBOUND_STO_RESET_SNAPSHOT_KEY) ? '' : 'none';
 }
 document.getElementById('resetProgressBtn').addEventListener('click', () => {
   if (!confirm('Reset the Progress Board? Every STO moves back to Active, and any Carton No. / DO No. / picker(s) / packing station already assigned to them is cleared (Carton No. and DO No. counters reset to 0 too). Boutique SLA settings, boutique codes/addresses, label From-details and registered Packing Stations are kept. Click "Undo Reset" right after if this was a mistake — it stops working once you reset again.')) return;
@@ -3401,6 +3366,31 @@ document.getElementById('undoResetTripBtn').addEventListener('click', () => {
   localStorage.removeItem(TRIP_SCHEDULE_RESET_SNAPSHOT_KEY);
   renderAll();
   renderFleetTab();
+  updateResetUndoButtons();
+});
+
+// Scoped to the Inbound "STO From Boutique List" only — wipes every inbound STO record
+// completely (list goes empty, fresh start). Nothing else (Progress Board, Trip Schedule,
+// Garment Order, other tabs) is touched.
+document.getElementById('resetInboundStoBtn').addEventListener('click', () => {
+  if (!confirm('Reset the STO From Boutique List? This deletes ALL STO records currently in the list — it will go completely empty. Click "Undo Reset" right after if this was a mistake — it stops working once you reset again.')) return;
+  localStorage.setItem(INBOUND_STO_RESET_SNAPSHOT_KEY, JSON.stringify({
+    inboundRecords: JSON.parse(JSON.stringify(inboundRecords)),
+  }));
+  inboundRecords = [];
+  saveInboundRecords();
+  renderInboundAll();
+  updateResetUndoButtons();
+});
+document.getElementById('undoResetInboundStoBtn').addEventListener('click', () => {
+  const raw = localStorage.getItem(INBOUND_STO_RESET_SNAPSHOT_KEY);
+  if (!raw) return;
+  if (!confirm('Undo the last STO From Boutique List reset? This brings back every STO record that was deleted, exactly as it was right before that reset.')) return;
+  const snap = JSON.parse(raw);
+  inboundRecords = snap.inboundRecords;
+  saveInboundRecords();
+  localStorage.removeItem(INBOUND_STO_RESET_SNAPSHOT_KEY);
+  renderInboundAll();
   updateResetUndoButtons();
 });
 
@@ -4169,7 +4159,7 @@ function renderSenaraiTable() {
   if (!list.length) { wrap.innerHTML = `<div class="empty-state">No STOs found. Upload a file to get started.</div>`; return; }
 
   let html = `<table><thead><tr>
-    <th>STO No.</th><th>Boutique</th><th>Qty</th><th>Created Date</th><th>Due Date</th><th>Days Left</th><th>Status</th><th>Alert</th>
+    <th>STO No.</th><th>Boutique</th><th>Qty</th><th>Created Date</th><th>Due Date</th><th>Days Left</th><th>Status</th><th>Alert</th><th></th>
   </tr></thead><tbody>`;
   list.forEach(({ r, a, due }) => {
     const hb = daysDiffFromToday(due);
@@ -4183,10 +4173,22 @@ function renderSenaraiTable() {
       <td>${hb}</td>
       <td><span class="badge badge-gray">${escapeHtml(progressLabel(status))}</span></td>
       <td><span class="badge ${amaranBadgeClass(a)}">${amaranLabel(a)}</span></td>
+      <td><button type="button" class="btn-ghost senarai-delete-btn" data-order="${escapeHtml(r.orderNumber)}" style="padding:4px 10px; color:var(--red); border-color:var(--red);">Delete</button></td>
     </tr>`;
   });
   html += `</tbody></table>`;
   wrap.innerHTML = html;
+  wrap.querySelectorAll('.senarai-delete-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const orderNumber = e.currentTarget.dataset.order;
+      if (!confirm(`Delete STO "${orderNumber}"? This removes it completely from Senarai — this cannot be undone.`)) return;
+      const idx = records.findIndex(r => r.orderNumber === orderNumber);
+      if (idx === -1) return;
+      records.splice(idx, 1);
+      saveRecords();
+      renderAll();
+    });
+  });
 }
 
 ['filterAmaran','filterStatus','filterButik','sortBy'].forEach(id => document.getElementById(id).addEventListener('change', renderSenaraiTable));
@@ -4660,7 +4662,8 @@ function renderStaffRosterList() {
           <select class="staff-roster-dept-select role-select ${staffDeptBadgeClass(s.department)}" data-idx="${i}">
             <option value="Inbound" ${s.department === 'Inbound' ? 'selected' : ''}>Inbound</option>
             <option value="Outbound" ${s.department === 'Outbound' ? 'selected' : ''}>Outbound</option>
-            ${(s.department !== 'Inbound' && s.department !== 'Outbound') ? `<option value="${escapeHtml(s.department)}" selected>${escapeHtml(s.department)} (legacy — pick a new department)</option>` : ''}
+            <option value="Raw Material" ${s.department === 'Raw Material' ? 'selected' : ''}>Raw Material</option>
+            ${(s.department !== 'Inbound' && s.department !== 'Outbound' && s.department !== 'Raw Material') ? `<option value="${escapeHtml(s.department)}" selected>${escapeHtml(s.department)} (legacy — pick a new department)</option>` : ''}
           </select>
         </td>
         <td>
@@ -4857,11 +4860,11 @@ document.getElementById('downloadStaffRosterTemplateBtn').addEventListener('clic
 });
 // Accepts a few spellings so a template filled in loosely ("outbound", "receiver", blank, etc.)
 // still lands somewhere sensible instead of silently failing the row.
-const STAFF_ROLE_OPTIONS = ['Picker', 'Packer', 'Receiver', 'PIC', 'Backup PIC'];
+const STAFF_ROLE_OPTIONS = ['Picker', 'Packer', 'Receiver', 'PIC', 'Backup PIC', 'Staff'];
 // Color-codes the Department/Role dropdowns (Staff Roster + Weekly Schedule) so the table reads at
 // a glance instead of being a wall of identical plain selects.
-const STAFF_DEPT_BADGE_CLASS = { Inbound: 'badge-blue', Outbound: 'badge-gold' };
-const STAFF_ROLE_BADGE_CLASS = { Picker: 'badge-green', Packer: 'badge-blue', Receiver: 'badge-purple', PIC: 'badge-gold', 'Backup PIC': 'badge-amber' };
+const STAFF_DEPT_BADGE_CLASS = { Inbound: 'badge-blue', Outbound: 'badge-gold', 'Raw Material': 'badge-green' };
+const STAFF_ROLE_BADGE_CLASS = { Picker: 'badge-green', Packer: 'badge-blue', Receiver: 'badge-purple', PIC: 'badge-gold', 'Backup PIC': 'badge-amber', Staff: 'badge-red' };
 function staffDeptBadgeClass(dept) { return STAFF_DEPT_BADGE_CLASS[dept] || 'badge-gray'; }
 function staffRoleBadgeClass(role) { return STAFF_ROLE_BADGE_CLASS[role] || 'badge-gray'; }
 // Recolors a Department/Role <select> to match its currently-selected value — called on render AND
@@ -4887,10 +4890,12 @@ function normalizeStaffRole(raw) {
   if (v.includes('packer')) return 'Packer';
   if (v.includes('pic')) return 'PIC';
   if (v.includes('receiv')) return 'Receiver';
+  if (v.includes('staff')) return 'Staff';
   return 'Picker';
 }
 function normalizeStaffDept(raw) {
   const v = String(raw || '').trim().toLowerCase();
+  if (v.includes('raw')) return 'Raw Material'; // checked before "in"/"out" — no overlap with either
   if (v.includes('in')) return 'Inbound';
   if (v.includes('out')) return 'Outbound';
   return 'Outbound';
@@ -5058,7 +5063,8 @@ function renderStaffScheduleGrid() {
   activeRoster.forEach(s => {
     const deptOptionsHtml = `<option value="Inbound" ${s.department === 'Inbound' ? 'selected' : ''}>Inbound</option>
       <option value="Outbound" ${s.department === 'Outbound' ? 'selected' : ''}>Outbound</option>
-      ${(s.department !== 'Inbound' && s.department !== 'Outbound') ? `<option value="${escapeHtml(s.department)}" selected>${escapeHtml(s.department)} (legacy)</option>` : ''}`;
+      <option value="Raw Material" ${s.department === 'Raw Material' ? 'selected' : ''}>Raw Material</option>
+      ${(s.department !== 'Inbound' && s.department !== 'Outbound' && s.department !== 'Raw Material') ? `<option value="${escapeHtml(s.department)}" selected>${escapeHtml(s.department)} (legacy)</option>` : ''}`;
     const roleOptionsHtml = STAFF_ROLE_OPTIONS.map(r => `<option value="${r}" ${s.role === r ? 'selected' : ''}>${r}</option>`).join('')
       + (!STAFF_ROLE_OPTIONS.includes(s.role) ? `<option value="${escapeHtml(s.role || '')}" selected>${escapeHtml(s.role || '(none)')} (legacy)</option>` : '');
     html += `<tr data-name="${escapeHtml((s.name || '').toLowerCase())}"><td class="driver-trip-name-col mono-name">${escapeHtml(s.name)}</td>
@@ -5923,7 +5929,7 @@ function applyUserPermissions(user) {
   // team, not just this user's own work — Admin/Team Lead only, even for a non-admin who's been
   // granted the surrounding tab (Progress Board / Trip Schedule) itself.
   const isAdminUser = !!(user && user.isAdmin);
-  ['resetProgressBtn', 'undoResetProgressBtn', 'resetFleetTripsBtn', 'undoResetTripBtn'].forEach(id => {
+  ['resetProgressBtn', 'undoResetProgressBtn', 'resetFleetTripsBtn', 'undoResetTripBtn', 'resetInboundStoBtn', 'undoResetInboundStoBtn'].forEach(id => {
     const btn = document.getElementById(id);
     if (btn) btn.style.display = isAdminUser ? '' : 'none';
   });
@@ -6391,8 +6397,7 @@ function attachPostponedDoNosListener() {
 // A function, not a top-level const array — STICKER_KEY/EMAILJS_SETTINGS_KEY/INBOUND_ALERT_SETTINGS_KEY
 // are declared further down in this same script, so building this array immediately at this point
 // in the file would throw "Cannot access before initialization". Calling this only from inside the
-// functions below (which only ever run after the whole script has finished loading) avoids that —
-// same pattern as allAppStorageKeys() above.
+// functions below (which only ever run after the whole script has finished loading) avoids that.
 function syncSettingsKeys() {
   return [SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, STICKER_KEY, DAILY_TARGETS_KEY, INBOUND_ALERT_SETTINGS_KEY, EMAILJS_SETTINGS_KEY, ADMIN_PASSWORD_KEY, PACKING_STATION_RR_KEY, STAFF_SCHEDULE_KEY, STATION_PRESENCE_KEY, ORG_CHART_NODES_KEY];
 }
@@ -9216,7 +9221,7 @@ function cardHtml(r, stage, columnKey) {
     </div>
     ${pickerNames.length ? `<div class="kc-sub-info">Picker: ${escapeHtml(pickerNames.join(', '))}</div>` : ''}
     ${r.packerName ? `<div class="kc-sub-info">Packer: ${escapeHtml(r.packerName)}</div>` : ''}
-    ${r.rollcageNo ? `<div class="kc-sub-info">Rollcage: ${escapeHtml(r.rollcageNo)}</div>` : ''}
+    ${recordRollcageNos(r).length ? `<div class="kc-sub-info">Rollcage: ${escapeHtml(recordRollcageNos(r).join(', '))}</div>` : ''}
     ${actionBtnType === 'label' ? `<button type="button" class="kc-label-btn" data-order="${escapeHtml(r.orderNumber)}">Print Label</button>` : ''}
     ${actionBtnType === 'do' ? `<button type="button" class="kc-do-btn" data-order="${escapeHtml(r.orderNumber)}">Print DO</button>` : ''}
     ${actionBtnType === 'picker' ? `<button type="button" class="kc-picker-btn" data-order="${escapeHtml(r.orderNumber)}">${pickerNames.length ? 'Edit Picker(s)' : 'Assign Picker(s)'}</button>` : ''}
@@ -10371,40 +10376,73 @@ document.getElementById('pickerSaveBtn').addEventListener('click', () => {
 });
 
 /* ---------- Rollcage No. (Outbound: entering Packing / Inbound: On Progress, optional) ---------- */
-// Shared modal for both flows. Dropdown only offers rollcages that are currently free, plus
-// whichever one (if any) is already assigned to this record — so re-opening the modal on an
-// already-assigned card doesn't make it look like its own rollcage vanished.
+// Shared modal for both flows. Pick one from the dropdown, click +Add, it becomes a removable chip
+// below — repeat for however many rollcages this STO actually spans. The dropdown only offers
+// rollcages that are currently free AND not already added as a chip. rollcageSelectedNames is the
+// in-progress working set while the modal is open; nothing is written back to the record until Save.
 let rollcageRecOrderNumber = null;
 let rollcageRecSource = 'outbound'; // 'outbound' (records / Packing) or 'inbound' (inboundRecords / On Progress)
+let rollcageSelectedNames = [];
 function rollcageSourceArray() { return rollcageRecSource === 'inbound' ? inboundRecords : records; }
-function populateRollcageSelect(currentValue) {
+function populateRollcageSelectDropdown() {
   const select = document.getElementById('rollcageInput');
   const note = document.getElementById('rollcageInputNote');
-  const available = rollcages.filter(rc => !rollcageInUseBy(rc.name, rollcageRecOrderNumber) || rc.name === currentValue);
+  const selectedSet = new Set(rollcageSelectedNames);
+  const available = rollcages.filter(rc => !selectedSet.has(rc.name) && !rollcageInUseBy(rc.name, rollcageRecOrderNumber));
   if (!rollcages.length) {
     select.innerHTML = `<option value="">— none registered —</option>`;
+    select.disabled = true;
     note.textContent = 'No rollcages registered yet — add them in Team Setup > Rollcages / Trolleys.';
     return;
   }
-  select.innerHTML = `<option value="">— none / skip —</option>` +
-    available.map(rc => `<option value="${escapeHtml(rc.name)}">${escapeHtml(rc.name)}</option>`).join('');
-  select.value = available.some(rc => rc.name === currentValue) ? currentValue : '';
-  note.textContent = available.length < rollcages.length
-    ? `${rollcages.length - available.length} rollcage(s) currently in use elsewhere are hidden from this list.`
+  select.disabled = false;
+  select.innerHTML = available.length
+    ? `<option value="">— pick a rollcage —</option>` + available.map(rc => `<option value="${escapeHtml(rc.name)}">${escapeHtml(rc.name)}</option>`).join('')
+    : `<option value="">— none available —</option>`;
+  // Rollcages hidden from this dropdown for being in use elsewhere — not counting the ones already
+  // added as chips below, those are just not repeated in the "pick one" list.
+  const hiddenElsewhere = rollcages.length - available.length - selectedSet.size;
+  note.textContent = hiddenElsewhere > 0
+    ? `${hiddenElsewhere} rollcage(s) currently in use elsewhere are hidden from this list.`
     : '';
 }
+function renderRollcageChips() {
+  const wrap = document.getElementById('rollcageSelectedChips');
+  wrap.innerHTML = rollcageSelectedNames.map(name =>
+    `<span class="rollcage-chip">${escapeHtml(name)}<button type="button" class="rollcage-chip-remove" data-name="${escapeHtml(name)}" title="Remove">&times;</button></span>`
+  ).join('');
+  wrap.querySelectorAll('.rollcage-chip-remove').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const name = e.currentTarget.dataset.name;
+      rollcageSelectedNames = rollcageSelectedNames.filter(n => n !== name);
+      renderRollcageChips();
+      populateRollcageSelectDropdown();
+    });
+  });
+}
+document.getElementById('rollcageAddBtn').addEventListener('click', () => {
+  const select = document.getElementById('rollcageInput');
+  const val = select.value;
+  if (!val) return;
+  if (!rollcageSelectedNames.includes(val)) rollcageSelectedNames.push(val);
+  renderRollcageChips();
+  populateRollcageSelectDropdown();
+});
 function openRollcageModal(orderNumber, source) {
   rollcageRecSource = source === 'inbound' ? 'inbound' : 'outbound';
   const rec = rollcageSourceArray().find(r => r.orderNumber === orderNumber);
   if (!rec) return;
   rollcageRecOrderNumber = orderNumber;
-  populateRollcageSelect(rec.rollcageNo || '');
+  rollcageSelectedNames = recordRollcageNos(rec).slice();
+  renderRollcageChips();
+  populateRollcageSelectDropdown();
   document.getElementById('rollcageModal').classList.remove('hidden');
   document.getElementById('rollcageInput').focus();
 }
 function closeRollcageModal() {
   document.getElementById('rollcageModal').classList.add('hidden');
   rollcageRecOrderNumber = null;
+  rollcageSelectedNames = [];
 }
 document.getElementById('rollcageCloseBtn').addEventListener('click', closeRollcageModal);
 document.getElementById('rollcageSkipBtn').addEventListener('click', closeRollcageModal);
@@ -10414,21 +10452,21 @@ document.getElementById('rollcageModal').addEventListener('click', (e) => {
 document.getElementById('rollcageSaveBtn').addEventListener('click', () => {
   const rec = rollcageSourceArray().find(r => r.orderNumber === rollcageRecOrderNumber);
   if (!rec) { closeRollcageModal(); return; }
-  const val = document.getElementById('rollcageInput').value.trim();
   // Re-check at save time in case another computer's sync (or the other flow — Outbound/Inbound
-  // share the same physical pool) assigned this same rollcage in the few seconds the modal was
-  // open — rare, but cheap to guard against.
-  if (val) {
+  // share the same physical pool) assigned one of these same rollcages in the few seconds the
+  // modal was open — rare, but cheap to guard against.
+  for (const val of rollcageSelectedNames) {
     const takenBy = rollcageInUseBy(val, rollcageRecOrderNumber);
     if (takenBy) {
       alert(`Rollcage "${val}" was just assigned to ${takenBy}. Pick another one.`);
-      populateRollcageSelect(rec.rollcageNo || '');
+      rollcageSelectedNames = rollcageSelectedNames.filter(n => n !== val);
+      renderRollcageChips();
+      populateRollcageSelectDropdown();
       return;
     }
-    rec.rollcageNo = val;
-  } else {
-    delete rec.rollcageNo;
   }
+  if (rollcageSelectedNames.length) { rec.rollcageNos = rollcageSelectedNames.slice(); delete rec.rollcageNo; }
+  else { delete rec.rollcageNos; delete rec.rollcageNo; }
   if (rollcageRecSource === 'inbound') {
     saveInboundRecords();
     closeRollcageModal();
@@ -10443,63 +10481,90 @@ document.getElementById('rollcageSaveBtn').addEventListener('click', () => {
 });
 
 /* ---------- Putaway Rollcage/Trolley (after Garment Order receiving log) ---------- */
-// Triggered every time a SKU qty is logged as received — asks which rollcage/trolley it goes into
-// for putaway. Several SKUs/logs can share the same rollcage (it just keeps a running list of
-// what's loaded), so unlike the Packing/Receiving rollcage field this isn't "one occupant only" —
-// it stays "in use" until someone explicitly clicks "Putaway Done" on it in Team Setup.
+// Triggered every time a SKU qty is logged as received — asks which rollcage(s)/trolley(s) it goes
+// into for putaway (same "pick, +Add, remove as a chip" pattern as the Packing/Receiving rollcage
+// modal — a delivery can get split across more than one trolley). Several SKUs/logs can share the
+// same rollcage (it just keeps a running list of what's loaded), so unlike the Packing/Receiving
+// rollcage field this isn't "one occupant only" — it stays "in use" until someone explicitly clicks
+// "Putaway Done" on it in Team Setup. putawayRollcageSelectedNames is the in-progress working set
+// while the modal is open.
 let putawayRollcagePending = null; // { batchNo, sku, qty }
-function populatePutawayRollcageSelect() {
+let putawayRollcageSelectedNames = [];
+function putawayAvailableRollcages() {
+  // Hide rollcages that are physically elsewhere right now (Outbound Packing / Inbound On
+  // Progress) — but keep ones already loaded for putaway selectable, since sharing one trolley
+  // across several SKUs/logs is the normal case.
+  return rollcages.filter(rc => {
+    const detail = rollcageInUseByDetail(rc.name, null);
+    return !detail || detail.source === 'Garment Order (Putaway)';
+  });
+}
+function populatePutawayRollcageSelectDropdown() {
   const select = document.getElementById('putawayRollcageInput');
   const note = document.getElementById('putawayRollcageInputNote');
   if (!rollcages.length) {
     select.innerHTML = `<option value="">— none registered —</option>`;
+    select.disabled = true;
     note.textContent = 'No rollcages registered yet — add one in Team Setup > Rollcages / Trolleys, then come back and pick it here.';
     return;
   }
-  // Hide rollcages that are physically elsewhere right now (Outbound Packing / Inbound On
-  // Progress) — but keep ones already loaded for putaway selectable, since sharing one trolley
-  // across several SKUs/logs is the normal case.
-  const available = rollcages.filter(rc => {
-    const detail = rollcageInUseByDetail(rc.name, null);
-    return !detail || detail.source === 'Garment Order (Putaway)';
-  });
-  if (!available.length) {
-    select.innerHTML = `<option value="">— all in use elsewhere —</option>`;
-    note.textContent = 'Every registered rollcage is currently in use for Packing/Receiving — free one up, or register another, then come back and pick it here.';
-    return;
-  }
-  // No "skip" placeholder — putaway assignment is required, so the select always defaults to a
-  // real, pickable rollcage instead of sitting on an empty option that lets Save do nothing.
-  select.innerHTML = available.map(rc => {
-    const loadedNote = rc.putawayInUse ? ` (${(rc.putawayItems || []).length} item(s) already loaded)` : '';
-    return `<option value="${escapeHtml(rc.name)}">${escapeHtml(rc.name)}${loadedNote}</option>`;
-  }).join('');
-  note.textContent = available.length < rollcages.length
-    ? `${rollcages.length - available.length} rollcage(s) currently in use for Packing/Receiving are hidden.`
+  const selectedSet = new Set(putawayRollcageSelectedNames);
+  const available = putawayAvailableRollcages().filter(rc => !selectedSet.has(rc.name));
+  select.disabled = false;
+  select.innerHTML = available.length
+    ? available.map(rc => {
+        const loadedNote = rc.putawayInUse ? ` (${(rc.putawayItems || []).length} item(s) already loaded)` : '';
+        return `<option value="${escapeHtml(rc.name)}">${escapeHtml(rc.name)}${loadedNote}</option>`;
+      }).join('')
+    : `<option value="">— none available —</option>`;
+  const hiddenElsewhere = rollcages.length - available.length - selectedSet.size;
+  note.textContent = hiddenElsewhere > 0
+    ? `${hiddenElsewhere} rollcage(s) currently in use for Packing/Receiving are hidden.`
     : '';
 }
+function renderPutawayRollcageChips() {
+  const wrap = document.getElementById('putawayRollcageSelectedChips');
+  wrap.innerHTML = putawayRollcageSelectedNames.map(name =>
+    `<span class="rollcage-chip">${escapeHtml(name)}<button type="button" class="rollcage-chip-remove" data-name="${escapeHtml(name)}" title="Remove">&times;</button></span>`
+  ).join('');
+  wrap.querySelectorAll('.rollcage-chip-remove').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const name = e.currentTarget.dataset.name;
+      putawayRollcageSelectedNames = putawayRollcageSelectedNames.filter(n => n !== name);
+      renderPutawayRollcageChips();
+      populatePutawayRollcageSelectDropdown();
+    });
+  });
+}
+document.getElementById('putawayRollcageAddBtn').addEventListener('click', () => {
+  const select = document.getElementById('putawayRollcageInput');
+  const val = select.value;
+  if (!val) return;
+  if (!putawayRollcageSelectedNames.includes(val)) putawayRollcageSelectedNames.push(val);
+  renderPutawayRollcageChips();
+  populatePutawayRollcageSelectDropdown();
+});
 function openPutawayRollcageModal(batchNo, sku, qty) {
   putawayRollcagePending = { batchNo, sku, qty };
+  putawayRollcageSelectedNames = [];
   document.getElementById('putawayRollcageItemNote').textContent = `${sku || batchNo} — ${formatQty(qty)} pcs just logged.`;
-  populatePutawayRollcageSelect();
+  renderPutawayRollcageChips();
+  populatePutawayRollcageSelectDropdown();
   document.getElementById('putawayRollcageModal').classList.remove('hidden');
   document.getElementById('putawayRollcageInput').focus();
 }
 function closePutawayRollcageModal() {
   document.getElementById('putawayRollcageModal').classList.add('hidden');
   putawayRollcagePending = null;
+  putawayRollcageSelectedNames = [];
 }
 // Putaway can no longer be skipped — the modal can only be dismissed without picking a rollcage
 // in the two edge cases where there's genuinely nothing TO pick (none registered at all, or every
 // registered rollcage is currently in use elsewhere). Otherwise the X/backdrop are no-ops and
-// Save requires an actual selection, same enforcement either way.
+// Save requires at least one chip added, same enforcement either way.
 function putawayModalCanBeDismissedWithoutPicking() {
   if (!rollcages.length) return true;
-  const available = rollcages.filter(rc => {
-    const detail = rollcageInUseByDetail(rc.name, null);
-    return !detail || detail.source === 'Garment Order (Putaway)';
-  });
-  return !available.length;
+  return !putawayAvailableRollcages().length;
 }
 document.getElementById('putawayRollcageCloseBtn').addEventListener('click', () => {
   if (putawayModalCanBeDismissedWithoutPicking()) closePutawayRollcageModal();
@@ -10508,49 +10573,54 @@ document.getElementById('putawayRollcageModal').addEventListener('click', (e) =>
   if (e.target.id === 'putawayRollcageModal' && putawayModalCanBeDismissedWithoutPicking()) closePutawayRollcageModal();
 });
 document.getElementById('putawayRollcageSaveBtn').addEventListener('click', () => {
-  const val = document.getElementById('putawayRollcageInput').value.trim();
-  if (!val) {
-    // Nothing to pick right now (none registered / all in use elsewhere) — let it through as a
-    // graceful close rather than a skip. Otherwise a real rollcage IS available, so this is a
-    // genuine "didn't pick anything" click — block it instead of silently closing.
+  if (!putawayRollcageSelectedNames.length) {
+    // Nothing picked right now (none registered / all in use elsewhere) — let it through as a
+    // graceful close rather than a skip. Otherwise real rollcages ARE available, so this is a
+    // genuine "didn't add anything" click — block it instead of silently closing.
     if (putawayModalCanBeDismissedWithoutPicking()) { closePutawayRollcageModal(); return; }
-    alert("Pick a rollcage/trolley to continue — putaway can't be skipped.");
+    alert("Add at least one rollcage/trolley to continue — putaway can't be skipped.");
     return;
   }
-  if (val && putawayRollcagePending) {
-    const rc = rollcages.find(r => r.name === val);
-    if (rc) {
-      // Re-check at save time in case it got taken by Packing/Receiving in the few seconds the
-      // modal was open (rare, but cheap to guard against — shared pool).
+  if (putawayRollcagePending) {
+    // Re-check at save time in case one got taken by Packing/Receiving in the few seconds the
+    // modal was open (rare, but cheap to guard against — shared pool).
+    for (const val of putawayRollcageSelectedNames) {
       const detail = rollcageInUseByDetail(val, null);
       if (detail && detail.source !== 'Garment Order (Putaway)') {
         alert(`Rollcage "${val}" was just taken by ${detail.source}. Pick another one.`);
-        populatePutawayRollcageSelect();
+        putawayRollcageSelectedNames = putawayRollcageSelectedNames.filter(n => n !== val);
+        renderPutawayRollcageChips();
+        populatePutawayRollcageSelectDropdown();
         return;
       }
+    }
+    const srcBatch = garmentOrders.find(b => b.batchNo === putawayRollcagePending.batchNo);
+    const srcSku = srcBatch && srcBatch.skus.find(s => s.sku === putawayRollcagePending.sku);
+    putawayRollcageSelectedNames.forEach(val => {
+      const rc = rollcages.find(r => r.name === val);
+      if (!rc) return;
       rc.putawayInUse = true;
       rc.putawayItems = rc.putawayItems || [];
       rc.putawayItems.push({ batchNo: putawayRollcagePending.batchNo, sku: putawayRollcagePending.sku, qty: putawayRollcagePending.qty, date: todayStr() });
-      saveRollcages();
       // Tag the originating SKU line item itself so the batch card's own "Putaway: Pending/Done"
       // badge (garmentBatchPutawayStatus) has something to read — the rollcage's putawayItems list
       // is just a display log, this is what actually drives the badge. PUSH a new assignment entry
-      // rather than overwriting a single field — the same SKU line can be loaded into putaway more
-      // than once (order split across two trolleys, or a partial delivery today and the rest later
-      // into a different rollcage), and each of those needs its OWN pending/done tracking so an
-      // earlier rollcage's still-pending load can't get hidden behind a later one.
-      const srcBatch = garmentOrders.find(b => b.batchNo === putawayRollcagePending.batchNo);
-      const srcSku = srcBatch && srcBatch.skus.find(s => s.sku === putawayRollcagePending.sku);
+      // (one per rollcage this delivery went into) rather than overwriting a single field — the same
+      // SKU line can be loaded into putaway more than once (order split across two trolleys, or a
+      // partial delivery today and the rest later into a different rollcage), and each of those
+      // needs its OWN pending/done tracking so an earlier rollcage's still-pending load can't get
+      // hidden behind a later one.
       if (srcSku) {
         srcSku.putawayAssignments = srcSku.putawayAssignments || [];
         srcSku.putawayAssignments.push({ rollcage: val, status: 'pending' });
-        saveGarmentOrders();
       }
-      renderRollcagesList();
-      renderRollcageUsageBoards();
-      renderPutawayTab();
-      renderGarmentOrderTab();
-    }
+    });
+    saveRollcages();
+    if (srcSku) saveGarmentOrders();
+    renderRollcagesList();
+    renderRollcageUsageBoards();
+    renderPutawayTab();
+    renderGarmentOrderTab();
   }
   closePutawayRollcageModal();
 });
@@ -11072,6 +11142,10 @@ function markGarmentSkusPutawayDoneForRollcage(rollcageName) {
   saveGarmentOrders();
 }
 
+// The one SKU row currently in "Edit SKU/Qty" mode, as `${batchNo}::${sidx}`, or null — click Edit
+// to swap that row's SKU/Qty Order cells to inputs plus Save/Cancel, click Save (or Cancel) to swap
+// back. Only one row editable at a time; switching batches/tabs re-renders and drops it.
+let garmentSkuEditingKey = null;
 function renderGarmentSkuRows(batch) {
   if (!batch.skus.length) return `<div class="empty-state">No SKUs added to this batch yet — add one below.</div>`;
   // A station attached to THIS COMPUTER ("This Device's Station" button in the sidebar),
@@ -11088,10 +11162,17 @@ function renderGarmentSkuRows(batch) {
     const received = Number(s.qtyReceived) || 0;
     const remaining = Math.max(0, order - received);
     const status = garmentSkuStatus(s);
-    const shortNote = s.closedShort && remaining > 0 ? ` <span style="color:var(--red); font-size:11px; white-space:nowrap;">(Short ${formatQty(remaining)})</span>` : '';
+    const shortNote = s.closedShort && remaining > 0
+      ? ` <span style="color:var(--red); font-size:11px;" title="${escapeHtml(s.closedShortRemark || '')}">(Short ${formatQty(remaining)})${s.closedShortRemark ? ' — ' + escapeHtml(s.closedShortRemark) : ''}</span>`
+      : '';
+    const isEditingSku = garmentSkuEditingKey === `${batch.batchNo}::${si}`;
     html += `<tr>
-      <td class="mono-name">${escapeHtml(s.sku || '-')}</td>
-      <td>${formatQty(order)}</td>
+      <td class="mono-name">${isEditingSku
+        ? `<input type="text" class="garment-sku-name-input" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}" value="${escapeHtml(s.sku || '')}" style="width:140px;">`
+        : escapeHtml(s.sku || '-')}</td>
+      <td>${isEditingSku
+        ? `<input type="number" class="garment-sku-order-input" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}" min="0" value="${order}" style="width:70px;">`
+        : formatQty(order)}</td>
       <td>${formatQty(received)}</td>
       <td>${formatQty(remaining)}</td>
       <td><span class="badge ${garmentStatusBadgeClass(status)}">${status}</span>${shortNote}</td>
@@ -11104,6 +11185,11 @@ function renderGarmentSkuRows(batch) {
         <button type="button" class="btn-ghost garment-sku-log-btn" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}">+ Log</button>
         ${status !== 'Complete' ? `<button type="button" class="btn-primary garment-sku-complete-btn" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}">Mark Complete</button>` : ''}
         ${status === 'Partial' ? `<button type="button" class="btn-ghost garment-sku-close-short-btn" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}">Close Short</button>` : ''}
+        ${s.closedShort ? `<button type="button" class="btn-ghost garment-sku-reopen-btn" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}" title="Reopen if the missing stock turns up later">Reopen</button>` : ''}
+        ${isEditingSku
+          ? `<button type="button" class="btn-primary garment-sku-save-edit-btn" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}">Save</button>
+             <button type="button" class="btn-ghost garment-sku-cancel-edit-btn" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}">Cancel</button>`
+          : `<button type="button" class="btn-ghost garment-sku-edit-btn" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}" title="Edit SKU / Qty Order">Edit</button>`}
       </td>
       <td class="row-actions"><button class="icon-btn remove-garment-sku-btn" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}" title="Delete SKU">✕</button></td>
     </tr>`;
@@ -11326,6 +11412,37 @@ function renderGarmentOrderTab() {
     });
   });
 
+  // Click Edit to fix a mistyped SKU code or Qty Order — swaps just that row into an editable
+  // state; Save writes it back, Cancel discards and reverts to plain text either way.
+  wrap.querySelectorAll('.garment-sku-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      garmentSkuEditingKey = `${btn.dataset.batch}::${btn.dataset.sidx}`;
+      renderGarmentOrderTab();
+    });
+  });
+  wrap.querySelectorAll('.garment-sku-cancel-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      garmentSkuEditingKey = null;
+      renderGarmentOrderTab();
+    });
+  });
+  wrap.querySelectorAll('.garment-sku-save-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const batchNo = btn.dataset.batch;
+      const sidx = Number(btn.dataset.sidx);
+      const batch = garmentOrders.find(b => b.batchNo === batchNo);
+      const nameInput = Array.from(wrap.querySelectorAll('.garment-sku-name-input')).find(el => el.dataset.batch === batchNo && Number(el.dataset.sidx) === sidx);
+      const orderInput = Array.from(wrap.querySelectorAll('.garment-sku-order-input')).find(el => el.dataset.batch === batchNo && Number(el.dataset.sidx) === sidx);
+      const newSku = (nameInput.value || '').trim();
+      if (!newSku) { alert('SKU cannot be blank.'); return; }
+      batch.skus[sidx].sku = newSku;
+      batch.skus[sidx].qtyOrder = Math.max(0, Number(orderInput.value) || 0);
+      saveGarmentOrders();
+      garmentSkuEditingKey = null;
+      renderGarmentOrderTab();
+    });
+  });
+
   // One-click shortcut for the common case where a SKU's whole remaining balance arrives in a
   // single delivery — fills Qty Received straight up to Qty Order, no typing. Routed through the
   // exact same performGarmentSkuLog() path as the "+ Log" button (by pre-filling the qty input
@@ -11350,7 +11467,8 @@ function renderGarmentOrderTab() {
 
   // Short shipment: physical delivery came up short and the rest is never coming. Locks the SKU
   // as Complete for tracking purposes while keeping the original Qty Order so the shortfall stays
-  // visible via the Remaining column and the "(Short N)" note next to the badge.
+  // visible via the Remaining column and the "(Short N)" note next to the badge — a remark (why it's
+  // short) is required so that note means something later, not just a bare number.
   wrap.querySelectorAll('.garment-sku-close-short-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const batch = garmentOrders.find(b => b.batchNo === btn.dataset.batch);
@@ -11359,8 +11477,29 @@ function renderGarmentOrderTab() {
       const order = Number(s.qtyOrder) || 0;
       const received = Number(s.qtyReceived) || 0;
       const shortQty = Math.max(0, order - received);
-      if (!confirm(`Close this SKU as short? It will show as Complete even though ${formatQty(shortQty)} pcs never arrived. Qty Order stays ${formatQty(order)} for the record.`)) return;
+      const remark = prompt(`Close this SKU as short? It will show as Complete even though ${formatQty(shortQty)} pcs never arrived. Qty Order stays ${formatQty(order)} for the record.\n\nRemark (reason, required):`);
+      if (remark === null) return; // Cancelled
+      if (!remark.trim()) { alert('A remark is required to close a SKU as short.'); return; }
       s.closedShort = true;
+      s.closedShortRemark = remark.trim();
+      s.closedShortDate = todayStr();
+      saveGarmentOrders();
+      renderGarmentOrderTab();
+    });
+  });
+
+  // Reopens a Complete SKU (whether it hit its full Qty Order or was Closed Short) so the "+Log"
+  // input/Mark Complete button come back — covers the case where stock marked short as "never
+  // coming" later actually turns up, without needing to touch Qty Order or delete/re-add the SKU.
+  wrap.querySelectorAll('.garment-sku-reopen-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const batch = garmentOrders.find(b => b.batchNo === btn.dataset.batch);
+      const sidx = Number(btn.dataset.sidx);
+      const s = batch.skus[sidx];
+      if (!confirm(`Reopen "${s.sku}"? This un-marks it as Complete so you can log more received qty (e.g. if the missing stock turns up later).`)) return;
+      delete s.closedShort;
+      delete s.closedShortRemark;
+      delete s.closedShortDate;
       saveGarmentOrders();
       renderGarmentOrderTab();
     });
@@ -12094,10 +12233,10 @@ function inboundCardHtml(r) {
       <span class="badge ${amaranBadgeClass(a)}" style="padding:2px 7px;">${amaranLabel(a)}</span>
     </div>
     ${r.receiveStation ? `<div class="kc-sub-info">Station: ${escapeHtml(r.receiveStation)}${r.receiverName ? ` (${escapeHtml(r.receiverName)})` : ''}</div>` : ''}
-    ${r.rollcageNo ? `<div class="kc-sub-info">Rollcage: ${escapeHtml(r.rollcageNo)}</div>` : ''}
+    ${recordRollcageNos(r).length ? `<div class="kc-sub-info">Rollcage: ${escapeHtml(recordRollcageNos(r).join(', '))}</div>` : ''}
     ${stage === 'Complete' && r.qtyReceived !== undefined && r.qtyReceived !== null ? `<div class="kc-sub-info">Received: ${formatQty(r.qtyReceived)} / DO ${formatQty(r.totalOrderQty)}</div>` : ''}
     ${stage !== 'Active' ? `<button type="button" class="kc-station-btn" data-order="${escapeHtml(r.orderNumber)}">${r.receiveStation ? 'Change Station' : 'Assign Station'}</button>` : ''}
-    ${stage !== 'Complete' ? `<button type="button" class="kc-station-btn" data-order="${escapeHtml(r.orderNumber)}" data-rollcage-btn="1">${r.rollcageNo ? 'Change Rollcage' : 'Assign Rollcage'}</button>` : ''}
+    ${stage !== 'Complete' ? `<button type="button" class="kc-station-btn" data-order="${escapeHtml(r.orderNumber)}" data-rollcage-btn="1">${recordRollcageNos(r).length ? 'Change Rollcage' : 'Assign Rollcage'}</button>` : ''}
     ${stage === 'Complete' ? `<button type="button" class="kc-station-btn" data-order="${escapeHtml(r.orderNumber)}" data-qty-btn="1">Edit Received Qty</button>` : ''}
   </div>`;
 }
