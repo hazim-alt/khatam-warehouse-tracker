@@ -565,106 +565,12 @@
     display: flex; align-items: center; justify-content: center; z-index: 5000; padding: 0;
   }
   #loginOverlay.hidden { display: none; }
-  /* Org Chart + login are one single card (chart on the left, login form on the right), like a
-     typical enterprise-app login screen — not two separate boxes side by side. Fills essentially
-     the whole screen once a chart's been uploaded (Team Setup -> Organization Chart, Admin-only);
-     with none uploaded, the row shrinks back down to just the login box via .no-org-chart
-     (added/removed by JS), centered on its own exactly like before this feature existed. */
-  .login-screen-row {
-    display: flex; align-items: stretch; justify-content: center;
-    background: var(--card);
-    width: 100vw; height: 100vh;
-  }
-  .login-screen-row.no-org-chart {
-    width: auto; height: auto; max-width: 380px;
-    border: 1px solid var(--border); border-radius: 14px; overflow: hidden;
-    box-shadow: 0 24px 70px rgba(0,0,0,0.5);
-  }
   .login-box {
-    background: transparent; border: none; border-radius: 0;
-    flex: 0 0 420px; width: 420px; padding: 40px 32px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: 0 24px 70px rgba(0,0,0,0.5);
+    width: 380px; max-width: 90vw; padding: 40px 32px;
     display: flex; flex-direction: column; justify-content: center;
   }
-  .login-screen-row.no-org-chart .login-box { flex: 1 1 auto; width: 100%; }
-  .org-chart-panel {
-    background: #14110d; border-right: 1px solid var(--border);
-    flex: 1 1 auto; min-width: 0; padding: 32px;
-    display: flex; align-items: center; justify-content: center;
-    overflow: auto;
-  }
-  @media (max-width: 760px) {
-    .login-screen-row { flex-direction: column; }
-    .org-chart-panel { border-right: none; border-bottom: 1px solid var(--border); flex: 1 1 55%; }
-    .login-box { width: 100%; flex: 0 0 auto; }
-  }
-
-  /* ---------- Organization Chart tree (built from Team Setup entries, not an uploaded file) ----------
-     A well-known pure-CSS "table" tree technique: each generation is a <table>-displayed <ul>, each
-     box is a plain flex item; the connecting lines are an SVG overlay drawn in JS from each box's
-     actual measured position (orgChartDrawLines) — a CSS-only "table trick" version of this looked
-     fine for a balanced tree, but drew misaligned lines wherever siblings' subtrees were very
-     different widths (one box's own line ending up cutting through its neighbour instead of
-     sitting cleanly between them), so the connectors are measured, not guessed. */
-  .oc-tree-wrap { position: relative; display: inline-block; }
-  .oc-tree-lines { position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible; }
-  .oc-tree-lines .oc-line { stroke: var(--border); stroke-width: 1; }
-  .oc-tree-roots { display: flex; gap: 48px; justify-content: center; position: relative; z-index: 1; }
-  .oc-tree-node { display: flex; flex-direction: column; align-items: center; position: relative; z-index: 1; }
-  .oc-tree-children { display: flex; gap: 24px; margin-top: 32px; }
-  .oc-box {
-    display: inline-block; border-radius: 6px; padding: 8px 14px; margin-bottom: 6px;
-    min-width: 150px; max-width: 220px; position: relative; text-align: center;
-  }
-  .oc-box .oc-title { font-size: 12.5px; font-weight: 600; line-height: 1.3; }
-  .oc-box .oc-subtitle { font-size: 11px; line-height: 1.3; margin-top: 2px; }
-  .oc-box.oc-level-manager { background: var(--navy); border: 1px solid var(--navy); color: #fff; }
-  .oc-box.oc-level-manager .oc-subtitle { color: rgba(255,255,255,0.75); }
-  .oc-box.oc-level-leader { background: var(--navy-light); border: 1px solid var(--navy-light); color: #fff; }
-  .oc-box.oc-level-leader .oc-subtitle { color: rgba(255,255,255,0.8); }
-  .oc-box.oc-level-coordinator { background: #f1e3c6; border: 1px solid var(--gold); color: #4a3a1a; }
-  .oc-box.oc-level-coordinator .oc-subtitle { color: #7a6535; }
-  .oc-box.oc-level-department { background: #dce6f0; border: 1px solid var(--blue); color: #1f3a52; }
-  .oc-box.oc-level-department .oc-subtitle { color: #4a6478; }
-  .oc-box.oc-level-staff { background: #fff; border: 1px solid #c9c2b8; color: #2a2620; }
-  .oc-box.oc-level-staff .oc-subtitle { color: #6b6459; }
-  .oc-chart-legend { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 20px; }
-  .oc-chart-legend .oc-legend-item { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-muted); }
-  .oc-chart-legend .oc-legend-swatch { width: 13px; height: 13px; border-radius: 3px; flex-shrink: 0; }
-  /* The whole thing (header + tree + legend) sits on one dark card in the app's own navy/gold
-     (KHATAM) theme, with a fixed header up top carrying a KHATAM wordmark — a light/bright card
-     looked out of place against the rest of this dark-themed app. */
-  .oc-chart-sizer { position: relative; overflow: hidden; }
-  .oc-chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: 0 12px 34px rgba(0,0,0,0.4); display: inline-block; text-align: left; }
-  .oc-chart-header {
-    background: linear-gradient(135deg, var(--navy), #241d18); color: #fff;
-    padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px;
-    border-bottom: 1px solid var(--border);
-  }
-  .oc-chart-header-title { font-weight: 700; font-size: 14px; letter-spacing: 0.4px; white-space: nowrap; }
-  .oc-chart-header-sub { font-size: 10.5px; color: rgba(255,255,255,0.6); margin-top: 2px; white-space: nowrap; }
-  .oc-chart-header-logo {
-    font-weight: 800; font-size: 15px; letter-spacing: 1.5px; color: var(--gold);
-    border: 1px solid var(--gold); padding: 4px 12px; border-radius: 4px; white-space: nowrap; flex-shrink: 0;
-  }
-  .oc-chart-body { padding: 28px 24px 22px; }
-  /* Admin-side (Team Setup) editor: node list rows + the form used to add/edit one box. Capped at a
-     fixed height with its own scrollbar — with 20-30+ boxes this list would otherwise push the rest
-     of the page down a long way. */
-  #orgChartNodesListWrap { max-height: 280px; overflow-y: auto; padding-right: 4px; }
-  .oc-node-row {
-    display: flex; align-items: center; gap: 8px; padding: 5px 10px; border-radius: 6px;
-    border: 1px solid var(--border); margin-bottom: 4px; font-size: 12px;
-  }
-  .oc-node-row .oc-node-info { flex: 1 1 auto; min-width: 0; }
-  .oc-node-row .oc-node-info .oc-node-title { font-weight: 600; }
-  .oc-node-row .oc-node-info .oc-node-sub { color: var(--text-muted); font-size: 11.5px; }
-  .oc-node-row .oc-node-actions { display: flex; gap: 4px; flex-shrink: 0; }
-  .oc-level-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
-  .oc-level-dot.oc-level-manager { background: var(--navy-light); }
-  .oc-level-dot.oc-level-leader { background: var(--navy-light); opacity: 0.75; }
-  .oc-level-dot.oc-level-coordinator { background: var(--gold); }
-  .oc-level-dot.oc-level-department { background: var(--blue); }
-  .oc-level-dot.oc-level-staff { background: #c9c2b8; }
   .login-box .brand-logo { width: 46px; height: 46px; display: block; margin: 0 auto 12px; }
   .login-box h1 { font-family: Georgia, serif; font-size: 19px; margin: 0 0 4px; text-align: center; }
   .login-box .login-sub { text-align: center; color: var(--text-muted); font-size: 12.5px; margin: 0 0 22px; }
@@ -808,25 +714,20 @@
 <body>
 
 <div class="modal-overlay hidden" id="loginOverlay" style="position:fixed; background:var(--bg); z-index:5000;">
-  <div class="login-screen-row" id="loginScreenRow">
-    <div class="org-chart-panel" id="orgChartPanel" style="display:none;">
-      <div id="orgChartMediaWrap" style="width:100%; height:100%;"></div>
+  <div class="login-box">
+    <p class="brand-eyebrow" style="text-align:center; margin:0 0 2px;">Inventory Department</p>
+    <h1>Warehouse Tracker</h1>
+    <p class="login-sub" id="loginSubText">Log in to continue.</p>
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="loginUsernameInput" autocomplete="username">
     </div>
-    <div class="login-box">
-      <p class="brand-eyebrow" style="text-align:center; margin:0 0 2px;">Inventory Department</p>
-      <h1>Warehouse Tracker</h1>
-      <p class="login-sub" id="loginSubText">Log in to continue.</p>
-      <div class="field">
-        <label>Username</label>
-        <input type="text" id="loginUsernameInput" autocomplete="username">
-      </div>
-      <div class="field">
-        <label>Password</label>
-        <input type="password" id="loginPasswordInput" autocomplete="current-password">
-      </div>
-      <div class="login-error" id="loginErrorNote"></div>
-      <button class="btn-primary" id="loginSubmitBtn">Log In</button>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="loginPasswordInput" autocomplete="current-password">
     </div>
+    <div class="login-error" id="loginErrorNote"></div>
+    <button class="btn-primary" id="loginSubmitBtn">Log In</button>
   </div>
 </div>
 
@@ -1461,43 +1362,6 @@
       <div class="data-note" id="adminPasswordNote" style="margin-top:10px;"></div>
     </div>
 
-    <p class="section-title" style="margin-top:24px;">Organization Chart</p>
-    <div class="card">
-      <div class="data-note" style="margin:0 0 14px;">Shown on the Login screen, beside the login form, so the team structure is visible before anyone even signs in. Built box-by-box below — add a box, pick who it reports to, and the chart draws itself.</div>
-      <div id="orgChartAdminPreviewWrap" style="overflow-x:auto; padding:10px 0 6px;"></div>
-      <div class="form-grid" style="grid-template-columns: 1.2fr 1.2fr 1fr 1fr auto; align-items:end; margin-top:10px;">
-        <div class="field">
-          <label>Title / Department</label>
-          <input type="text" id="orgChartTitleInput" placeholder="e.g. Inventory Manager">
-        </div>
-        <div class="field">
-          <label>Name &amp; Role (optional, 2nd line — press Enter for its own line, e.g. name then "(PIC)")</label>
-          <textarea id="orgChartSubtitleInput" rows="2" placeholder="e.g. Muhammad Afiq Ihsan Bin Aziz&#10;(PIC)" style="resize:vertical; min-height:36px;"></textarea>
-        </div>
-        <div class="field">
-          <label>Reports To</label>
-          <select id="orgChartParentSelect"><option value="">— Top of chart —</option></select>
-        </div>
-        <div class="field">
-          <label>Box Colour</label>
-          <select id="orgChartLevelSelect">
-            <option value="manager">Pengurus / Manager</option>
-            <option value="leader">Ketua Sub-Jabatan / Team Leader</option>
-            <option value="department">Sub-Department / Bahagian</option>
-            <option value="coordinator">Koordinator / Bahagian</option>
-            <option value="staff" selected>Kakitangan / Staff</option>
-          </select>
-        </div>
-        <div class="field" style="display:flex; gap:8px;">
-          <button type="button" class="btn-primary" id="orgChartSaveNodeBtn" style="flex:1;">Add Box</button>
-          <button type="button" class="btn-ghost" id="orgChartCancelEditBtn" style="display:none;">Cancel</button>
-        </div>
-      </div>
-      <div class="data-note" id="orgChartFormNote" style="margin-top:8px;"></div>
-      <p class="section-title" style="margin-top:20px; font-size:11px;">All Boxes</p>
-      <div id="orgChartNodesListWrap"></div>
-    </div>
-
     <div id="userMgmtSection" style="display:none;">
       <p class="section-title" style="margin-top:24px;">Users &amp; Access (Login)</p>
       <div class="card">
@@ -1533,7 +1397,7 @@
           </label>
           <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx file here</span>
         </div>
-        <div class="upload-hint" style="margin-top:10px;">Columns: <strong>Name</strong>, Department (Inbound / Outbound / Raw Material), Role (Picker / Packer / Receiver / PIC / Backup PIC / Staff), then one column per day of the WHOLE MONTH shown in the template (Day / Night / Off / Leave — leave blank for Normal, a regular working day with no special shift). A name already in the roster gets its department/role/schedule updated instead of being duplicated, so this also works as a re-upload to make changes.</div>
+        <div class="upload-hint" style="margin-top:10px;">Columns: <strong>Name</strong>, Department (Inbound / Outbound / Raw Material), Role (Picker / Packer / Receiver / PIC Picker / PIC Packer / PIC Receiver / Backup PIC Picker / Backup PIC Packer / Backup PIC Receiver / Staff), then one column per day of the WHOLE MONTH shown in the template (Day / Night / Off / Leave — leave blank for Normal, a regular working day with no special shift). A name already in the roster gets its department/role/schedule updated instead of being duplicated, so this also works as a re-upload to make changes.</div>
       </div>
       <div class="upload-status" id="staffRosterUploadStatus"></div>
       <div style="border-top:1px solid var(--border); margin:16px 0;"></div>
@@ -1557,8 +1421,12 @@
             <option value="Picker">Picker</option>
             <option value="Packer">Packer</option>
             <option value="Receiver">Receiver</option>
-            <option value="PIC">PIC</option>
-            <option value="Backup PIC">Backup PIC</option>
+            <option value="PIC Picker">PIC Picker</option>
+            <option value="PIC Packer">PIC Packer</option>
+            <option value="PIC Receiver">PIC Receiver</option>
+            <option value="Backup PIC Picker">Backup PIC Picker</option>
+            <option value="Backup PIC Packer">Backup PIC Packer</option>
+            <option value="Backup PIC Receiver">Backup PIC Receiver</option>
             <option value="Staff">Staff</option>
           </select>
         </div>
@@ -1901,6 +1769,11 @@
       <div class="field full data-note" style="margin:-4px 0 0;">Printing will generate one label per carton, numbered 1 up to Total Carton — not just the carton shown in the preview above. Once an STO is printed, Total Carton locks so labels stay consistent; you can still reprint and correct other details.</div>
     </div>
 
+    <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
+      <button type="button" class="btn-ghost" id="stickerToggleAllPreviewBtn">👁 View All Cartons</button>
+    </div>
+    <div id="stickerAllPreviewWrap" style="display:none; max-height:560px; overflow-y:auto; overflow-x:auto; margin-bottom:14px; padding:14px; background:#14110f; border-radius:8px; flex-direction:column; align-items:center;"></div>
+
     <div class="sticker-preview-wrap">
       <div class="sticker-label" id="stickerLabel">
         <div class="sl-header">
@@ -1969,6 +1842,7 @@
 
     <div class="modal-actions">
       <button class="btn-ghost" id="stickerCancelBtn">Close</button>
+      <button class="btn-ghost" id="stickerDownloadBtn" style="display:none;">⬇ Download Label List (Excel)</button>
       <button class="btn-primary" id="stickerPrintBtn">Print Label</button>
     </div>
   </div>
@@ -2459,12 +2333,18 @@ function formatDoNo(boutique, n) {
 }
 
 // Shared by Packing Stations and Receive Stations — the Status button on each row cycles through
-// three states: Auto (default — follows whether some device currently has this station selected as
-// "This Device's Station", see stationHasActiveDevice above; OFF the moment nobody's claimed it, and
-// auto-flips back OFF ~15 min after that device goes quiet without anyone explicitly switching) ->
-// forced ON -> forced OFF -> back to Auto. Forced ON/OFF ignore device presence entirely, for
-// stations staff want to manually control (e.g. a station nobody's logged into via a device yet, or
-// one that needs to be taken offline regardless of who's on it).
+// three states: Auto (default) -> forced ON -> forced OFF -> back to Auto. Forced ON/OFF ignore
+// everything else entirely, for stations staff want to manually control (e.g. a station nobody's
+// logged into via a device yet, or one that needs to be taken offline regardless of who's on it).
+// What Auto actually follows depends on the station (see isStationOnShift below):
+// - A station named with "Day"/"Night" in it follows the Staff Schedule directly — ON only while
+//   at least one Active staff of the matching role is tagged that exact shift TODAY. Normal (no
+//   campaign shift) or nobody scheduled means OFF, so on an ordinary day BOTH its Day and Night
+//   stations sit OFF rather than only whichever one nobody's logged into.
+// - Any other station (no Day/Night in its name) follows whether some device currently has it
+//   selected as "This Device's Station" (see stationHasActiveDevice above) — OFF the moment
+//   nobody's claimed it, and auto-flips back OFF ~15 min after that device goes quiet without
+//   anyone explicitly switching.
 // station.status: 'on' | 'off' | undefined (= Auto). Legacy data from before Auto existed may carry
 // `enabled: false` instead of `status: 'off'` — still honored, so nothing already forced off silently
 // flips back on.
@@ -2479,6 +2359,18 @@ function isStationOnShift(station) {
   if (override === 'on') return true;
   const type = stationTypeOf(station);
   if (!type) return true; // shouldn't normally happen; fail open rather than silently hiding it
+  // A "Day"/"Night" named station (see classifyStationShiftLabel) follows the Staff Schedule
+  // directly instead of device presence: it's ON only while at least one Active staff of the
+  // matching role (Packer for packing, Receiver for receive) is actually tagged that exact shift
+  // TODAY. Normal (the default — no campaign shift) or nobody scheduled at all means OFF, since a
+  // Day/Night station only exists to run during an active Day/Night campaign — on an ordinary
+  // Normal working day, BOTH its Day and Night stations should sit OFF, not just whichever one
+  // nobody happens to be logged into on a device.
+  const shiftLabel = classifyStationShiftLabel(station);
+  if (shiftLabel) {
+    const role = type === 'packing' ? 'Packer' : 'Receiver';
+    return autoManpowerForStationShift(shiftLabel, role).length > 0;
+  }
   return stationHasActiveDevice(type, station.name);
 }
 
@@ -2660,6 +2552,20 @@ function migrateStaffRosterDeptRole() {
   });
   if (changed) saveStaffRoster();
 }
+// One-time migration for installs saved back when "PIC"/"Backup PIC" were their own generic roles,
+// before they were split by function (PIC Picker/Packer/Receiver, same for Backup PIC) — without
+// this, those old rows show up stuck as "(legacy — pick a new role)" since their exact old value no
+// longer exists in STAFF_ROLE_OPTIONS. Defaults to the Picker variant (matches normalizeStaffRole's
+// own fallback) since there's no way to know which function they actually did from the old data
+// alone — re-pick Packer/Receiver on the Staff Roster row afterwards if that's what they really are.
+function migrateLegacyPicRoles() {
+  let changed = false;
+  staffRoster.forEach(s => {
+    if (s.role === 'PIC') { s.role = 'PIC Picker'; changed = true; }
+    else if (s.role === 'Backup PIC') { s.role = 'Backup PIC Picker'; changed = true; }
+  });
+  if (changed) saveStaffRoster();
+}
 
 // Shift rotates week to week (not a fixed repeating pattern) — flat per-staff, per-day storage so
 // every individual day can carry its own Day/Night/Off, and the weekly grid just displays whichever
@@ -2779,7 +2685,7 @@ function autoIndividualTargetPair(overallKey, count) {
 // who hasn't been added to Staff Schedule) is left out of both the split's denominator and their own
 // Target columns entirely, same treatment as an excluded picker.
 function pickerShiftStatusToday(picker) {
-  const roster = staffRoster.find(s => s.role === 'Picker' && s.active !== false && (s.name || '').trim().toLowerCase() === (picker.name || '').trim().toLowerCase());
+  const roster = staffRoster.find(s => staffRoleFunction(s.role) === 'Picker' && s.active !== false && (s.name || '').trim().toLowerCase() === (picker.name || '').trim().toLowerCase());
   if (!roster) return null; // not linked to an Active Picker-role entry on the Staff Schedule roster
   const todayIso = todayStr();
   return (staffSchedule[roster.id] && staffSchedule[roster.id][todayIso]) || 'Normal';
@@ -2817,7 +2723,7 @@ function classifyStationShiftLabel(station) {
 function autoManpowerForStationShift(shiftLabel, role) {
   const todayIso = todayStr();
   return staffRoster
-    .filter(s => s.active !== false && s.role === role)
+    .filter(s => s.active !== false && staffRoleFunction(s.role) === role)
     .filter(s => ((staffSchedule[s.id] && staffSchedule[s.id][todayIso]) || 'Normal') === shiftLabel)
     .map(s => s.name);
 }
@@ -2883,6 +2789,8 @@ function loadData() {
   loadPickers();
   loadStaffRoster();
   migrateStaffRosterDeptRole();
+  migrateLegacyPicRoles();
+  pruneNonPickerRosterEntriesFromPickers();
   loadStaffSchedule();
   loadRollcages();
   loadDailyTargets();
@@ -2899,8 +2807,46 @@ function loadData() {
   autoAttachDoNosToTrips();
   loadEmailjsSettings();
   loadStationPresence();
+  // Cleans up any STO No. duplicates already sitting in storage (e.g. from two devices each adding
+  // the same STO No. before they'd ever synced with each other — see backfillNaturalSyncIds above)
+  // and makes sure every record has a stable id going forward, right from the moment data loads —
+  // not just the next time something happens to call save*() for an unrelated reason.
+  saveRecords();
+  saveInboundRecords();
 }
-function saveRecords() { localStorage.setItem(RECORDS_KEY, JSON.stringify(records)); }
+// Fixes a latent duplicate bug: syncKeyOf (used by Cloud Sync, see below) falls back to a random
+// per-instance _syncId for any record without its own `.id` — fine for records with no natural
+// unique field, but for STO-type records the STO/Order No. IS supposed to be globally unique.
+// Without a stable id tied to that number, two devices that each add the SAME STO No. before
+// they've ever synced with each other end up as two separate Firebase entries (same orderNumber,
+// different random key), which merge back down as a visible duplicate instead of colliding into
+// one. Called from every save*() for a STO-type array so it's always kept current, regardless of
+// which code path (manual add, file upload, Undo Reset, a pull from another device) created it.
+function backfillNaturalSyncIds(arr) {
+  arr.forEach(r => { if (!r.id && r.orderNumber) r.id = r.orderNumber; });
+}
+// Cleans up any duplicate STO No. that already slipped in before the fix above existed (same root
+// cause — two devices racing before their first sync). Keeps whichever copy has progressed further
+// (not still sitting at the default "Active"), since that one's more likely to carry real work
+// already logged against it; ties keep whichever was seen first.
+function dedupeStoRecordsByOrderNumber(arr) {
+  const byKey = new Map();
+  arr.forEach(r => {
+    const key = (r.orderNumber || '').trim();
+    if (!key) { byKey.set(Symbol(), r); return; } // no order number at all — nothing to dedupe against
+    if (!byKey.has(key)) { byKey.set(key, r); return; }
+    const existing = byKey.get(key);
+    const existingIsActive = (existing.progress || 'Active') === 'Active';
+    const newIsActive = (r.progress || 'Active') === 'Active';
+    if (existingIsActive && !newIsActive) byKey.set(key, r);
+  });
+  return [...byKey.values()];
+}
+function saveRecords() {
+  records = dedupeStoRecordsByOrderNumber(records);
+  backfillNaturalSyncIds(records);
+  localStorage.setItem(RECORDS_KEY, JSON.stringify(records));
+}
 function saveSla() { localStorage.setItem(SLA_KEY, JSON.stringify(sla)); }
 
 function toIsoLocal(d) {
@@ -3094,11 +3040,12 @@ function progressLabel(stage) { return PROGRESS_LABELS[stage] || stage; }
 
 function upsertRecords(newRecs) {
   let added = 0, updated = 0, removed = 0;
+  const newlyAdded = [];
   newRecs.forEach(nr => {
     if (!nr.orderNumber) return;
     const idx = records.findIndex(r => r.orderNumber === nr.orderNumber);
     if (isActiveStatus(nr.status)) {
-      if (idx === -1) { records.push({ ...nr, progress: 'Active' }); added++; }
+      if (idx === -1) { const rec = { ...nr, progress: 'Active' }; records.push(rec); newlyAdded.push(rec); added++; }
       else { records[idx] = { ...records[idx], ...nr }; updated++; }
     } else if (idx !== -1) {
       records.splice(idx, 1);
@@ -3106,6 +3053,7 @@ function upsertRecords(newRecs) {
     }
   });
   saveRecords();
+  newlyAdded.forEach(rec => markStoJustCreatedByThisDevice('STO_Records', rec));
   return { added, updated, removed };
 }
 
@@ -3228,7 +3176,7 @@ document.getElementById('addManualStoBtn').addEventListener('click', () => {
     return;
   }
 
-  records.push({
+  const newRec = {
     orderNumber,
     pickingOrderNo: '',
     toWarehouse,
@@ -3241,8 +3189,10 @@ document.getElementById('addManualStoBtn').addEventListener('click', () => {
     closedDate: null,
     cancelledDate: null,
     progress: 'Active'
-  });
+  };
+  records.push(newRec);
   saveRecords();
+  markStoJustCreatedByThisDevice('STO_Records', newRec);
 
   note.textContent = `"${orderNumber}" added.`;
   note.style.color = '#4bb583';
@@ -3469,9 +3419,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'inbound-sla') renderInboundSlaTab();
     if (btn.dataset.tab === 'fleet-trips' || btn.dataset.tab === 'fleet-board' || btn.dataset.tab === 'fleet-driver-trip') renderFleetTab();
     if (btn.dataset.tab === 'staff-schedule') { renderStaffRosterList(); renderStaffScheduleGrid(); }
-    // Its lines are measured from actual box positions (getBoundingClientRect), which read as
-    // all-zero while this tab is hidden — redraw now that it's actually on-screen.
-    if (btn.dataset.tab === 'stations' && typeof renderOrgChartAdminPreview === 'function') renderOrgChartAdminPreview();
     updateSidebarSyncBarVisibility();
   });
 });
@@ -4184,11 +4131,28 @@ function renderSenaraiTable() {
       if (!confirm(`Delete STO "${orderNumber}"? This removes it completely from Senarai — this cannot be undone.`)) return;
       const idx = records.findIndex(r => r.orderNumber === orderNumber);
       if (idx === -1) return;
+      rollBackCartonCounterIfSafe(records[idx]);
       records.splice(idx, 1);
       saveRecords();
       renderAll();
     });
   });
+}
+// Rolls a boutique's Carton No. counter back down after its STO is deleted — but ONLY when this
+// STO's cartons are still sitting at the very TOP of that boutique's running count (i.e. nothing
+// else has been printed for that boutique since). If some other STO already claimed a HIGHER
+// number after this one, rolling back would let a brand new STO get assigned a number that may
+// already be printed/labeled on that other STO's physical cartons — so in that case the counter is
+// deliberately left alone, same as before.
+function rollBackCartonCounterIfSafe(rec) {
+  if (!rec || !rec.cartonLock) return;
+  const numbers = getCartonLockNumbers(rec);
+  if (!numbers.length) return;
+  const boutique = rec.toWarehouse || '-';
+  const highest = Math.max(...numbers);
+  const counter = getCartonCounter(boutique);
+  if (highest !== counter) return; // something else already printed a higher number since — not safe to roll back
+  setCartonCounter(boutique, Math.min(...numbers) - 1);
 }
 
 ['filterAmaran','filterStatus','filterButik','sortBy'].forEach(id => document.getElementById(id).addEventListener('change', renderSenaraiTable));
@@ -4710,6 +4674,7 @@ function renderStaffRosterList() {
         const idx = Number(e.target.dataset.idx);
         staffRoster[idx].role = e.target.value;
         saveStaffRoster();
+        if (staffRoleFunction(e.target.value) !== 'Picker') pruneStalePickerByName(staffRoster[idx].name);
         recolorRoleSelect(e.target, staffRoleBadgeClass);
         renderStaffScheduleGrid();
         populatePickerRosterSelect(); // role change may add/remove this person from the Picker pool
@@ -4790,7 +4755,7 @@ function syncPickersFromStaffRoster() {
   const existingNames = new Set(pickers.map(p => (p.name || '').trim().toLowerCase()));
   let added = false;
   staffRoster.forEach(s => {
-    if (s.active === false || s.role !== 'Picker') return;
+    if (s.active === false || staffRoleFunction(s.role) !== 'Picker') return;
     const key = (s.name || '').trim().toLowerCase();
     if (!key || existingNames.has(key)) return;
     pickers.push({ name: s.name });
@@ -4802,6 +4767,31 @@ function syncPickersFromStaffRoster() {
     renderPickersList();
     renderPickerLowestList();
   }
+}
+// Opposite direction of the auto-register above: called right when a Staff Roster role is changed
+// AWAY from Picker (any tier), so someone who's moved to a different department/function doesn't
+// linger in the Pickers list forever as a "Not linked" row waiting for a manual ✕. Exact-name match
+// only (same as auto-register), so it only ever removes the person who was actually just changed.
+function pruneStalePickerByName(name) {
+  const key = (name || '').trim().toLowerCase();
+  if (!key) return;
+  const before = pickers.length;
+  pickers = pickers.filter(p => (p.name || '').trim().toLowerCase() !== key);
+  if (pickers.length !== before) savePickers();
+}
+// Same cleanup as pruneStalePickerByName, but a one-time sweep run at load — catches anyone who was
+// already stuck as a stale "Not linked" Pickers row from BEFORE this auto-prune existed (their role
+// changed away from Picker at some point in the past, back when nothing removed them automatically).
+// Entries with no matching Staff Roster record at all are left completely alone — those are
+// free-typed part-time names (e.g. "Merhandise Picker") never meant to be linked to the roster.
+function pruneNonPickerRosterEntriesFromPickers() {
+  const before = pickers.length;
+  pickers = pickers.filter(p => {
+    const match = staffRoster.find(s => (s.name || '').trim().toLowerCase() === (p.name || '').trim().toLowerCase());
+    if (!match) return true;
+    return staffRoleFunction(match.role) === 'Picker';
+  });
+  if (pickers.length !== before) savePickers();
 }
 
 document.getElementById('addStaffBtn').addEventListener('click', addStaffFromInput);
@@ -4850,7 +4840,7 @@ document.getElementById('downloadStaffRosterTemplateBtn').addEventListener('clic
     ['Aina', 'Inbound', 'Receiver', ...exampleShiftsFor(['Day', 'Day', 'Day', 'Day', 'Day', 'Off', 'Off'])],
     ['Wan', 'Outbound', 'Picker', ...exampleShiftsFor(['Night', 'Night', 'Off', 'Night', 'Night', 'Night', 'Off'])],
     ['Ali', 'Outbound', 'Packer', ...monthDates.map(() => '')],
-    ['Faiz', 'Outbound', 'PIC', ...exampleShiftsFor(['Day', 'Day', 'Day', 'Day', 'Day', 'Off', 'Off'])],
+    ['Faiz', 'Outbound', 'PIC Picker', ...exampleShiftsFor(['Day', 'Day', 'Day', 'Day', 'Day', 'Off', 'Off'])],
   ];
   const ws = XLSX.utils.aoa_to_sheet(wsData);
   ws['!cols'] = [{ wch: 18 }, { wch: 12 }, { wch: 12 }, ...dayHeaders.map(() => ({ wch: 16 }))];
@@ -4860,13 +4850,32 @@ document.getElementById('downloadStaffRosterTemplateBtn').addEventListener('clic
 });
 // Accepts a few spellings so a template filled in loosely ("outbound", "receiver", blank, etc.)
 // still lands somewhere sensible instead of silently failing the row.
-const STAFF_ROLE_OPTIONS = ['Picker', 'Packer', 'Receiver', 'PIC', 'Backup PIC', 'Staff'];
+const STAFF_ROLE_OPTIONS = ['Picker', 'Packer', 'Receiver', 'PIC Picker', 'PIC Packer', 'PIC Receiver', 'Backup PIC Picker', 'Backup PIC Packer', 'Backup PIC Receiver', 'Staff'];
 // Color-codes the Department/Role dropdowns (Staff Roster + Weekly Schedule) so the table reads at
-// a glance instead of being a wall of identical plain selects.
+// a glance instead of being a wall of identical plain selects. PIC/Backup PIC variants share their
+// base function's tier colour (gold for PIC, amber for Backup PIC) rather than getting 6 more
+// distinct colours — the role TEXT already says which function (Picker/Packer/Receiver) they're PIC
+// of, the colour just needs to say "this one's a PIC" at a glance.
 const STAFF_DEPT_BADGE_CLASS = { Inbound: 'badge-blue', Outbound: 'badge-gold', 'Raw Material': 'badge-green' };
-const STAFF_ROLE_BADGE_CLASS = { Picker: 'badge-green', Packer: 'badge-blue', Receiver: 'badge-purple', PIC: 'badge-gold', 'Backup PIC': 'badge-amber', Staff: 'badge-red' };
+const STAFF_ROLE_BADGE_CLASS = {
+  Picker: 'badge-green', Packer: 'badge-blue', Receiver: 'badge-purple',
+  'PIC Picker': 'badge-gold', 'PIC Packer': 'badge-gold', 'PIC Receiver': 'badge-gold',
+  'Backup PIC Picker': 'badge-amber', 'Backup PIC Packer': 'badge-amber', 'Backup PIC Receiver': 'badge-amber',
+  Staff: 'badge-red'
+};
 function staffDeptBadgeClass(dept) { return STAFF_DEPT_BADGE_CLASS[dept] || 'badge-gray'; }
 function staffRoleBadgeClass(role) { return STAFF_ROLE_BADGE_CLASS[role] || 'badge-gray'; }
+// Maps any of the 3 tiers of a function (plain / PIC / Backup PIC) down to its base function
+// (Picker/Packer/Receiver) — a PIC or Backup PIC still does that job day-to-day, the tier just
+// says who's in charge, so they should still show up everywhere staff of that function are pulled
+// from (Picker roster, Packer/Receiver station eligibility, etc).
+function staffRoleFunction(role) {
+  const r = String(role || '');
+  if (r.includes('Picker')) return 'Picker';
+  if (r.includes('Packer')) return 'Packer';
+  if (r.includes('Receiver')) return 'Receiver';
+  return r;
+}
 // Recolors a Department/Role <select> to match its currently-selected value — called on render AND
 // on every change, so the color always tracks what's actually selected instead of just what it was
 // initially rendered with.
@@ -4883,13 +4892,19 @@ function recolorRoleSelect(sel, badgeClassFn) {
   newDeptSel.addEventListener('change', () => recolorRoleSelect(newDeptSel, staffDeptBadgeClass));
   newRoleSel.addEventListener('change', () => recolorRoleSelect(newRoleSel, staffRoleBadgeClass));
 })();
+// Figures out the base function (Picker/Packer/Receiver) first, then layers the tier (plain / PIC /
+// Backup PIC) on top of it — e.g. "PIC Picker", "Backup Pic - Receiver", "pic packer" all land
+// correctly. \bpic\b (word boundary) is what keeps "Picker" itself from ever matching as a PIC tier,
+// since "pic" is a substring of "picker" but not a standalone word there.
 function normalizeStaffRole(raw) {
   const v = String(raw || '').trim().toLowerCase();
-  if (v.includes('backup')) return 'Backup PIC'; // checked before the plain "pic" check below
-  if (v.includes('picker')) return 'Picker'; // checked before "pic" so "picker" doesn't match as PIC
-  if (v.includes('packer')) return 'Packer';
-  if (v.includes('pic')) return 'PIC';
-  if (v.includes('receiv')) return 'Receiver';
+  let fn = '';
+  if (v.includes('picker')) fn = 'Picker';
+  else if (v.includes('packer')) fn = 'Packer';
+  else if (v.includes('receiv')) fn = 'Receiver';
+  if (v.includes('backup')) return 'Backup PIC ' + (fn || 'Picker');
+  if (/\bpic\b/.test(v)) return 'PIC ' + (fn || 'Picker');
+  if (fn) return fn;
   if (v.includes('staff')) return 'Staff';
   return 'Picker';
 }
@@ -5119,6 +5134,7 @@ function renderStaffScheduleGrid() {
       if (!staff) return;
       staff.role = e.target.value;
       saveStaffRoster();
+      if (staffRoleFunction(staff.role) !== 'Picker') pruneStalePickerByName(staff.name);
       recolorRoleSelect(e.target, staffRoleBadgeClass);
       renderStaffRosterList();
       renderPickersList(); // role change may (dis)connect them from a live shift-based target
@@ -5152,7 +5168,7 @@ function populatePickerRosterSelect() {
   const existing = new Set(pickers.map(p => (p.name || '').trim().toLowerCase()));
   // Only staff tagged Role = Picker on the Staff Schedule roster — Packer/Receiver/PIC/Backup PIC
   // aren't offered here, since this list feeds Outbound picking specifically.
-  const names = staffRoster.filter(s => s.active !== false && s.role === 'Picker').map(s => s.name).filter(n => !existing.has(n.trim().toLowerCase())).sort();
+  const names = staffRoster.filter(s => s.active !== false && staffRoleFunction(s.role) === 'Picker').map(s => s.name).filter(n => !existing.has(n.trim().toLowerCase())).sort();
   list.innerHTML = names.map(n => `<option value="${escapeHtml(n)}"></option>`).join('');
 }
 function populateDriverRosterSelect() {
@@ -5386,7 +5402,7 @@ function renderStationsTab() {
       // Manually forced ON/OFF (or a station whose name isn't tagged Day/Night at all) means nobody's
       // being auto-pulled from Staff Schedule — tick who's actually there instead, from a checklist
       // of Active, Role = Packer staff (same pool the Auto Day/Night fill draws from).
-      const eligibleNames = staffRoster.filter(st => st.active !== false && st.role === 'Packer').map(st => st.name).sort();
+      const eligibleNames = staffRoster.filter(st => st.active !== false && staffRoleFunction(st.role) === 'Packer').map(st => st.name).sort();
       const current = s.manpower || [];
       const summaryText = current.length ? current.map(escapeHtml).join(', ') : '— pilih staff —';
       const checklistHtml = eligibleNames.length
@@ -5400,7 +5416,7 @@ function renderStationsTab() {
       <td>${manpowerCell}</td>
       <td>${onShift && autoCap.weekday !== null ? formatQty(autoCap.weekday) : '—'}</td>
       <td>${onShift && autoCap.weekend !== null ? formatQty(autoCap.weekend) : '—'}</td>
-      <td><button type="button" class="btn-ghost station-enabled-toggle-btn" data-idx="${i}" title="Click to cycle: Auto (follows This Device's Station) → Force ON → Force OFF → back to Auto" style="padding:4px 10px;"><span class="badge ${onShift ? 'badge-green' : 'badge-gray'}">${statusLabel}</span></button></td>
+      <td><button type="button" class="btn-ghost station-enabled-toggle-btn" data-idx="${i}" title="Click to cycle: Auto (${shiftLabel ? `follows the ${shiftLabel} shift on Staff Schedule` : `follows This Device's Station`}) → Force ON → Force OFF → back to Auto" style="padding:4px 10px;"><span class="badge ${onShift ? 'badge-green' : 'badge-gray'}">${statusLabel}</span></button></td>
       <td>${rowHasTarget ? `<span class="badge ${overTarget ? 'badge-red' : 'badge-green'}">${formatQty(currentLoadQty)} / ${escapeHtml(String(effTarget))}</span>` : formatQty(currentLoadQty)}</td>
       <td class="row-actions">
         <button class="icon-btn remove-station-btn" data-idx="${i}" title="Delete">✕</button>
@@ -5493,312 +5509,6 @@ document.getElementById('addStationBtn').addEventListener('click', () => {
   renderAll();
 });
 
-/* ---------- Organization Chart (Login screen) ---------- */
-// Built box-by-box in Team Setup (not an uploaded image/PDF) — each box is { id, title, subtitle,
-// parentId, level }. parentId === null/'' means "top of chart" (there can be more than one; they're
-// drawn side by side). Synced like any other setting (syncSettingsKeys) so every device/login shows
-// the same chart. Array order is display order among siblings (see the Move Up/Down buttons).
-const ORG_CHART_NODES_KEY = 'sto_org_chart_nodes_v1';
-let orgChartNodes = [];
-let orgChartEditingId = null;
-// Seeded once, the first time this feature runs on a fresh install, from the chart Shaila shared —
-// transcribed by hand from a screenshot, so names/spelling should be double-checked and corrected
-// here if anything's off; after this first load it's just whatever's saved, never reset again.
-const ORG_CHART_DEFAULT_NODES = [
-  { id: 'oc1', title: 'Shaila Shermin Binti Kamaluddin', subtitle: 'Inventory Manager', parentId: null, level: 'manager' },
-  { id: 'oc2', title: 'Inventory Planner', subtitle: 'Sub-department', parentId: 'oc1', level: 'department' },
-  { id: 'oc3', title: 'Suhaimie Bin Abdal', subtitle: 'Planner', parentId: 'oc2', level: 'staff' },
-  { id: 'oc4', title: 'Muhammad Amirul Azri', subtitle: 'Planner', parentId: 'oc2', level: 'staff' },
-  { id: 'oc5', title: 'Inventory Operation', subtitle: 'Sub-department', parentId: 'oc1', level: 'department' },
-  { id: 'oc6', title: 'Muhammad Hazim Bin Mohammad Zaher', subtitle: 'Inventory Team Leader', parentId: 'oc5', level: 'leader' },
-  { id: 'oc7', title: 'Warehouse Management System', subtitle: '', parentId: 'oc5', level: 'coordinator' },
-  { id: 'oc8', title: 'Muhammad Afzan Afifi Bin Azman', subtitle: 'Warehouse Assistant', parentId: 'oc7', level: 'staff' },
-  { id: 'oc9', title: 'Reezqa Najmi Bin Abd Samat', subtitle: 'Warehouse Assistant', parentId: 'oc7', level: 'staff' },
-  { id: 'oc10', title: 'Raw Materials & Order Handling', subtitle: 'Nurul Intan Natasha Binti Hamdan — Senior Inventory Executive (Coordinator)', parentId: 'oc6', level: 'coordinator' },
-  { id: 'oc11', title: 'Raw Materials', subtitle: '', parentId: 'oc10', level: 'staff' },
-  { id: 'oc12', title: 'Muhammad Afiq Ihsan Bin Aziz', subtitle: 'Warehouse Assistant (PIC)', parentId: 'oc11', level: 'staff' },
-  { id: 'oc13', title: 'Muhammad Amier Danial Bin Nor Azman', subtitle: 'Warehouse Assistant (Kontrak)', parentId: 'oc11', level: 'staff' },
-  { id: 'oc14', title: 'Order Handling', subtitle: '', parentId: 'oc10', level: 'staff' },
-  { id: 'oc15', title: 'Nurul Nazuha Binti Mohd Ali', subtitle: 'Inventory Executive (PIC)', parentId: 'oc14', level: 'staff' },
-  { id: 'oc16', title: 'Jufie Hasiq Bin Mohd Hanafi', subtitle: 'Warehouse Assistant (Kontrak)', parentId: 'oc14', level: 'staff' },
-  { id: 'oc17', title: 'Inbound & Outbound Logistics', subtitle: 'Nur Azilah Binti Abdul Halim Hafiz — Inventory Executive (Coordinator)', parentId: 'oc6', level: 'coordinator' },
-  { id: 'oc18', title: 'Inbound', subtitle: '', parentId: 'oc17', level: 'staff' },
-  { id: 'oc19', title: 'Mohammad Hamizan Bin Abd Rahim', subtitle: 'Warehouse Assistant', parentId: 'oc18', level: 'staff' },
-  { id: 'oc20', title: 'Afif Bin Hamzah', subtitle: 'Warehouse Assistant (Kontrak)', parentId: 'oc18', level: 'staff' },
-  { id: 'oc21', title: 'Outbound', subtitle: '', parentId: 'oc17', level: 'staff' },
-  { id: 'oc22', title: 'Ahmad Fauzan Bin Mohamad Zaidi', subtitle: 'Inventory Executive — Outbound Coordinator', parentId: 'oc21', level: 'staff' },
-  { id: 'oc23', title: 'Az Sheril Shazney Binti Azlan', subtitle: 'Inventory Executive — Documentation Controller', parentId: 'oc21', level: 'staff' },
-  { id: 'oc24', title: 'Picker Team', subtitle: '', parentId: 'oc23', level: 'coordinator' },
-  { id: 'oc25', title: 'Muhamad Arif Aiman Bin Zulkifli', subtitle: 'Warehouse Assistant (PIC)', parentId: 'oc24', level: 'staff' },
-  { id: 'oc26', title: 'Dzaqwan Bin Asmara Devin', subtitle: 'Warehouse Assistant (Kontrak, Backup PIC)', parentId: 'oc24', level: 'staff' },
-  { id: 'oc27', title: 'Packer Team', subtitle: '', parentId: 'oc23', level: 'coordinator' },
-  { id: 'oc28', title: 'Muhamad Fitri Azim Bin Mohd Jamali', subtitle: 'Warehouse Assistant (Kontrak, PIC)', parentId: 'oc27', level: 'staff' },
-  { id: 'oc29', title: 'Ismail Fiqry Bin Abdul Razak', subtitle: 'Warehouse Assistant (Kontrak, Backup PIC)', parentId: 'oc27', level: 'staff' }
-];
-function loadOrgChartNodes() {
-  const raw = localStorage.getItem(ORG_CHART_NODES_KEY);
-  if (raw === null) { orgChartNodes = ORG_CHART_DEFAULT_NODES.map(n => ({ ...n })); saveOrgChartNodes(); return; }
-  try { orgChartNodes = JSON.parse(raw) || []; } catch (e) { orgChartNodes = []; }
-}
-function saveOrgChartNodes() { localStorage.setItem(ORG_CHART_NODES_KEY, JSON.stringify(orgChartNodes)); }
-const ORG_CHART_LEVEL_LABEL = { manager: 'Pengurus / Manager', leader: 'Ketua Sub-Jabatan / Team Leader', department: 'Sub-Department / Bahagian', coordinator: 'Koordinator / Bahagian', staff: 'Kakitangan / Staff' };
-const ORG_CHART_LEVEL_SWATCH = { manager: 'var(--navy)', leader: 'var(--navy-light)', department: 'var(--blue)', coordinator: 'var(--gold)', staff: '#fff' };
-function orgChartBoxHtml(node) {
-  // escapeHtml runs first (so any literal "<"/">" a name might contain is neutralized), then real
-  // <br> tags are inserted for line breaks the textarea captured — so a role like "(PIC)" can sit
-  // on its own line under the name instead of being crammed onto the same line.
-  return `<div class="oc-box oc-level-${node.level}">` +
-    `<div class="oc-title">${escapeHtml(node.title)}</div>` +
-    (node.subtitle ? `<div class="oc-subtitle">${escapeHtml(node.subtitle).replace(/\n/g, '<br>')}</div>` : '') +
-    `</div>`;
-}
-function orgChartRenderNodeDiv(id) {
-  const node = orgChartNodes.find(n => n.id === id);
-  if (!node) return '';
-  const children = orgChartNodes.filter(n => n.parentId === id);
-  return `<div class="oc-tree-node">${orgChartBoxHtml(node)}` +
-    (children.length ? `<div class="oc-tree-children">${children.map(c => orgChartRenderNodeDiv(c.id)).join('')}</div>` : '') +
-    `</div>`;
-}
-function orgChartTreeHtml(wrapId, sizerId) {
-  const roots = orgChartNodes.filter(n => !n.parentId);
-  if (!roots.length) return '';
-  return `<div class="oc-chart-sizer" id="${sizerId}"><div class="oc-chart-card">` +
-    `<div class="oc-chart-header">` +
-      `<div><div class="oc-chart-header-title">INVENTORY DEPARTMENT</div><div class="oc-chart-header-sub">Organization Chart</div></div>` +
-      `<div class="oc-chart-header-logo">KHATAM</div>` +
-    `</div>` +
-    `<div class="oc-chart-body">` +
-      `<div class="oc-tree-wrap" id="${wrapId}">` +
-        `<svg class="oc-tree-lines"></svg>` +
-        `<div class="oc-tree-roots">${roots.map(r => orgChartRenderNodeDiv(r.id)).join('')}</div>` +
-      `</div>` +
-      `<div class="oc-chart-legend">` +
-      Object.keys(ORG_CHART_LEVEL_LABEL).map(lvl => `<div class="oc-legend-item"><span class="oc-legend-swatch oc-level-${lvl}" style="background:${ORG_CHART_LEVEL_SWATCH[lvl]};"></span>${ORG_CHART_LEVEL_LABEL[lvl]}</div>`).join('') +
-      `</div>` +
-    `</div>` +
-  `</div></div>`;
-}
-// Scales the whole card down (never up) so it fits inside the given space without needing to scroll
-// — a large chart on the login screen should still be fully visible at a glance, and a small chart
-// should grow to actually use the space instead of leaving it looking empty (scales UP too, not
-// just down — capped at 2.5x so it doesn't blow up into a blurry giant on an ultra-wide monitor
-// when there are only a couple of boxes). Uses `transform: scale()` on the card, wrapped in a
-// "sizer" div whose own width/height is set (in JS) to match the scaled footprint — CSS `zoom` was
-// tried first since it also resizes an element's own layout box, but it renders inline SVG content
-// (the connector lines) inconsistently with the rest of a zoomed subtree in Chromium, producing
-// visibly misaligned lines; transform+resize doesn't have that problem since it's the standard,
-// well-supported way to scale mixed HTML/SVG content.
-function orgChartApplyFitZoom(sizerEl, availW, availH) {
-  if (!sizerEl) return;
-  const cardEl = sizerEl.querySelector(':scope > .oc-chart-card');
-  if (!cardEl) return;
-  cardEl.style.transform = 'none';
-  sizerEl.style.width = '';
-  sizerEl.style.height = '';
-  if (!(availW > 0) || !(availH > 0)) return;
-  const naturalW = cardEl.offsetWidth;
-  const naturalH = cardEl.offsetHeight;
-  let scale = Math.min(2.5, availW / naturalW, availH / naturalH);
-  if (!isFinite(scale) || scale <= 0) scale = 1;
-  cardEl.style.transformOrigin = 'top left';
-  cardEl.style.transform = `scale(${scale})`;
-  sizerEl.style.width = (naturalW * scale) + 'px';
-  sizerEl.style.height = (naturalH * scale) + 'px';
-}
-// Draws the connecting lines as an SVG overlay, computed from each box's ACTUAL rendered position
-// (getBoundingClientRect) rather than any CSS percentage trick — this is what keeps a line from ever
-// drifting into a neighbouring box when siblings' subtrees are very different widths (e.g. one box
-// has a deep chain of children while the one beside it has none).
-function orgChartDrawLines(wrapEl) {
-  if (!wrapEl) return;
-  const svg = wrapEl.querySelector(':scope > svg.oc-tree-lines');
-  if (!svg) return;
-  const wrapRect = wrapEl.getBoundingClientRect();
-  if (!wrapRect.width || !wrapRect.height) return; // container is hidden (display:none) — nothing to measure yet
-  const toLocal = (rect) => ({ cx: rect.left + rect.width / 2 - wrapRect.left, top: rect.top - wrapRect.top, bottom: rect.bottom - wrapRect.top });
-  let svgHtml = '';
-  wrapEl.querySelectorAll('.oc-tree-node').forEach(nodeEl => {
-    const childrenWrap = nodeEl.querySelector(':scope > .oc-tree-children');
-    if (!childrenWrap) return;
-    const boxEl = nodeEl.querySelector(':scope > .oc-box');
-    if (!boxEl) return;
-    const parentPt = toLocal(boxEl.getBoundingClientRect());
-    const childPts = [...childrenWrap.querySelectorAll(':scope > .oc-tree-node')]
-      .map(el => { const cb = el.querySelector(':scope > .oc-box'); return cb ? toLocal(cb.getBoundingClientRect()) : null; })
-      .filter(Boolean);
-    if (!childPts.length) return;
-    const busY = parentPt.bottom + (childPts[0].top - parentPt.bottom) / 2;
-    svgHtml += `<line class="oc-line" x1="${parentPt.cx}" y1="${parentPt.bottom}" x2="${parentPt.cx}" y2="${busY}"/>`;
-    if (childPts.length > 1) {
-      const xs = childPts.map(p => p.cx);
-      svgHtml += `<line class="oc-line" x1="${Math.min(...xs)}" y1="${busY}" x2="${Math.max(...xs)}" y2="${busY}"/>`;
-    }
-    childPts.forEach(p => { svgHtml += `<line class="oc-line" x1="${p.cx}" y1="${busY}" x2="${p.cx}" y2="${p.top}"/>`; });
-  });
-  svg.innerHTML = svgHtml;
-  svg.setAttribute('width', wrapEl.offsetWidth);
-  svg.setAttribute('height', wrapEl.offsetHeight);
-}
-function orgChartRedrawAllLines() {
-  // Full re-render rather than just re-drawing lines — the fit-to-screen zoom also needs
-  // recomputing against the new window size, not just the connector positions.
-  if (typeof renderOrgChartLoginPanel === 'function') renderOrgChartLoginPanel();
-  if (typeof renderOrgChartAdminPreview === 'function') renderOrgChartAdminPreview();
-}
-let orgChartResizeTimer = null;
-window.addEventListener('resize', () => {
-  clearTimeout(orgChartResizeTimer);
-  orgChartResizeTimer = setTimeout(orgChartRedrawAllLines, 150);
-});
-// Renders on the (pre-login) Login screen — hidden entirely until at least one box exists, so
-// nobody who hasn't set one up sees an empty panel next to the login form.
-function renderOrgChartLoginPanel() {
-  const row = document.getElementById('loginScreenRow');
-  const panel = document.getElementById('orgChartPanel');
-  const wrap = document.getElementById('orgChartMediaWrap');
-  if (!panel || !wrap) return;
-  if (!orgChartNodes.length) {
-    wrap.innerHTML = '';
-    panel.style.display = 'none';
-    if (row) row.classList.add('no-org-chart');
-    return;
-  }
-  panel.style.display = '';
-  if (row) row.classList.remove('no-org-chart');
-  wrap.innerHTML = orgChartTreeHtml('orgChartTreeWrapLogin', 'orgChartFitWrapLogin');
-  orgChartDrawLines(document.getElementById('orgChartTreeWrapLogin'));
-  // 64 = the panel's own 32px padding on each side (see .org-chart-panel).
-  orgChartApplyFitZoom(document.getElementById('orgChartFitWrapLogin'), panel.clientWidth - 64, panel.clientHeight - 64);
-}
-// Renders the live preview + the editable list of boxes inside Team Setup (Admin-only).
-function renderOrgChartAdminPreview() {
-  const previewWrap = document.getElementById('orgChartAdminPreviewWrap');
-  const listWrap = document.getElementById('orgChartNodesListWrap');
-  const parentSelect = document.getElementById('orgChartParentSelect');
-  if (previewWrap) {
-    previewWrap.innerHTML = orgChartNodes.length
-      ? orgChartTreeHtml('orgChartTreeWrapAdmin', 'orgChartFitWrapAdmin')
-      : `<div class="data-note" style="margin:0;">No boxes yet — add the first one below (usually the top manager).</div>`;
-    orgChartDrawLines(document.getElementById('orgChartTreeWrapAdmin'));
-    // No forced fit-to-screen here (unlike the login screen) — this editor view can scroll
-    // horizontally (see the overflow-x:auto on this wrap) so boxes stay readable while editing.
-  }
-  if (listWrap) {
-    if (!orgChartNodes.length) {
-      listWrap.innerHTML = '';
-    } else {
-      listWrap.innerHTML = orgChartNodes.map((n, i) => {
-        const parent = orgChartNodes.find(p => p.id === n.parentId);
-        return `<div class="oc-node-row">
-          <span class="oc-level-dot oc-level-${n.level}"></span>
-          <div class="oc-node-info">
-            <div class="oc-node-title">${escapeHtml(n.title)}</div>
-            <div class="oc-node-sub">${n.subtitle ? escapeHtml(n.subtitle.replace(/\n/g, ' · ')) + ' · ' : ''}${parent ? 'Reports to ' + escapeHtml(parent.title) : 'Top of chart'}</div>
-          </div>
-          <div class="oc-node-actions">
-            <button type="button" class="btn-ghost oc-move-up-btn" data-idx="${i}" title="Move up">↑</button>
-            <button type="button" class="btn-ghost oc-move-down-btn" data-idx="${i}" title="Move down">↓</button>
-            <button type="button" class="btn-ghost oc-edit-node-btn" data-idx="${i}">Edit</button>
-            <button type="button" class="btn-ghost oc-delete-node-btn" data-idx="${i}">Delete</button>
-          </div>
-        </div>`;
-      }).join('');
-      listWrap.querySelectorAll('.oc-move-up-btn').forEach(btn => btn.addEventListener('click', (e) => orgChartMoveSibling(Number(e.currentTarget.dataset.idx), -1)));
-      listWrap.querySelectorAll('.oc-move-down-btn').forEach(btn => btn.addEventListener('click', (e) => orgChartMoveSibling(Number(e.currentTarget.dataset.idx), 1)));
-      listWrap.querySelectorAll('.oc-edit-node-btn').forEach(btn => btn.addEventListener('click', (e) => orgChartStartEdit(Number(e.currentTarget.dataset.idx))));
-      listWrap.querySelectorAll('.oc-delete-node-btn').forEach(btn => btn.addEventListener('click', (e) => orgChartDeleteNode(Number(e.currentTarget.dataset.idx))));
-    }
-  }
-  if (parentSelect) {
-    const prevValue = parentSelect.value;
-    parentSelect.innerHTML = '<option value="">— Top of chart —</option>' +
-      orgChartNodes.filter(n => n.id !== orgChartEditingId).map(n => `<option value="${escapeHtml(n.id)}">${escapeHtml(n.title)}</option>`).join('');
-    if ([...parentSelect.options].some(o => o.value === prevValue)) parentSelect.value = prevValue;
-  }
-}
-function orgChartMoveSibling(idx, direction) {
-  const node = orgChartNodes[idx];
-  if (!node) return;
-  const siblingIdxs = orgChartNodes.map((n, i) => ({ n, i })).filter(x => x.n.parentId === node.parentId).map(x => x.i);
-  const pos = siblingIdxs.indexOf(idx);
-  const swapWith = siblingIdxs[pos + direction];
-  if (swapWith === undefined) return;
-  [orgChartNodes[idx], orgChartNodes[swapWith]] = [orgChartNodes[swapWith], orgChartNodes[idx]];
-  saveOrgChartNodes();
-  renderOrgChartAdminPreview();
-  renderOrgChartLoginPanel();
-}
-function orgChartDescendantIds(id) {
-  const direct = orgChartNodes.filter(n => n.parentId === id).map(n => n.id);
-  return direct.concat(...direct.map(orgChartDescendantIds));
-}
-function orgChartDeleteNode(idx) {
-  const node = orgChartNodes[idx];
-  if (!node) return;
-  const descendants = orgChartDescendantIds(node.id);
-  const msg = descendants.length
-    ? `Delete "${node.title}"? This also removes ${descendants.length} box(es) under it in the chart.`
-    : `Delete "${node.title}"?`;
-  if (!confirm(msg)) return;
-  const removeIds = new Set([node.id, ...descendants]);
-  orgChartNodes = orgChartNodes.filter(n => !removeIds.has(n.id));
-  if (orgChartEditingId && removeIds.has(orgChartEditingId)) orgChartCancelEdit();
-  saveOrgChartNodes();
-  renderOrgChartAdminPreview();
-  renderOrgChartLoginPanel();
-}
-function orgChartStartEdit(idx) {
-  const node = orgChartNodes[idx];
-  if (!node) return;
-  orgChartEditingId = node.id;
-  document.getElementById('orgChartTitleInput').value = node.title;
-  document.getElementById('orgChartSubtitleInput').value = node.subtitle || '';
-  document.getElementById('orgChartLevelSelect').value = node.level;
-  document.getElementById('orgChartSaveNodeBtn').textContent = 'Save Changes';
-  document.getElementById('orgChartCancelEditBtn').style.display = '';
-  renderOrgChartAdminPreview(); // rebuilds the Reports To list excluding this node (can't be its own parent)
-  document.getElementById('orgChartParentSelect').value = node.parentId || '';
-  document.getElementById('orgChartTitleInput').focus();
-}
-function orgChartCancelEdit() {
-  orgChartEditingId = null;
-  document.getElementById('orgChartTitleInput').value = '';
-  document.getElementById('orgChartSubtitleInput').value = '';
-  document.getElementById('orgChartLevelSelect').value = 'staff';
-  document.getElementById('orgChartParentSelect').value = '';
-  document.getElementById('orgChartSaveNodeBtn').textContent = 'Add Box';
-  document.getElementById('orgChartCancelEditBtn').style.display = 'none';
-  document.getElementById('orgChartFormNote').textContent = '';
-  renderOrgChartAdminPreview();
-}
-document.getElementById('orgChartCancelEditBtn').addEventListener('click', orgChartCancelEdit);
-document.getElementById('orgChartSaveNodeBtn').addEventListener('click', () => {
-  const title = document.getElementById('orgChartTitleInput').value.trim();
-  const subtitle = document.getElementById('orgChartSubtitleInput').value.trim();
-  const parentId = document.getElementById('orgChartParentSelect').value || null;
-  const level = document.getElementById('orgChartLevelSelect').value;
-  const note = document.getElementById('orgChartFormNote');
-  if (!title) { note.textContent = 'Title / Department is required.'; note.style.color = 'var(--red)'; return; }
-  if (parentId) {
-    // A box can't report to itself, or to one of its own descendants — that would make a loop.
-    const wouldLoop = orgChartEditingId && (parentId === orgChartEditingId || orgChartDescendantIds(orgChartEditingId).includes(parentId));
-    if (wouldLoop) { note.textContent = "Can't report to itself or one of its own boxes."; note.style.color = 'var(--red)'; return; }
-  }
-  if (orgChartEditingId) {
-    const node = orgChartNodes.find(n => n.id === orgChartEditingId);
-    if (node) { node.title = title; node.subtitle = subtitle; node.parentId = parentId; node.level = level; }
-  } else {
-    orgChartNodes.push({ id: 'oc_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title, subtitle, parentId, level });
-  }
-  saveOrgChartNodes();
-  note.textContent = '';
-  orgChartCancelEdit();
-  renderOrgChartLoginPanel();
-});
-loadOrgChartNodes();
-renderOrgChartAdminPreview();
-renderOrgChartLoginPanel();
 
 /* ---------- Operation Fleet ---------- */
 // Its own standalone tab (not nested under Outbound or Inbound) since a trip/driver can be used
@@ -6020,10 +5730,6 @@ function initAuthGate() {
   const current = getCurrentUser();
   if (!current) {
     document.getElementById('loginOverlay').classList.remove('hidden');
-    // Re-measure the chart's connector lines now that the panel is actually visible again — while
-    // hidden, getBoundingClientRect() on its boxes returns all-zero, so any earlier attempt to draw
-    // them would have produced nothing.
-    if (typeof renderOrgChartLoginPanel === 'function') renderOrgChartLoginPanel();
     return;
   }
   applyUserPermissions(current);
@@ -6235,6 +5941,49 @@ let cloudSyncStatus = 'idle'; // 'idle' | 'syncing' | 'error'
 let cloudSyncLastError = '';
 let cloudSyncLastAt = null;
 
+// Detects the specific race where two devices each create the SAME STO No. before they've synced
+// with each other — since both records now share the same Firebase key (see backfillNaturalSyncIds
+// above), whichever push lands second silently overwrites the first at that key. This keeps a short
+// memory of what THIS device itself just created; if what comes back down for that exact key
+// doesn't match what was just written here, someone else's version won the race, and the person on
+// this device gets told about it here instead of it just silently vanishing.
+const recentlyCreatedStoByThisDevice = {}; // "table::key" -> { record, expiresAt }
+const RECENTLY_CREATED_STO_TTL_MS = 3 * 60 * 1000; // 3 minutes — comfortably longer than normal sync latency
+function markStoJustCreatedByThisDevice(table, record) {
+  const key = fbSafeKey(syncKeyOf(record));
+  recentlyCreatedStoByThisDevice[table + '::' + key] = { record: { ...record }, expiresAt: Date.now() + RECENTLY_CREATED_STO_TTL_MS };
+}
+function checkStoCollisionOnIncoming(table, remoteArr) {
+  const now = Date.now();
+  const prefix = table + '::';
+  Object.keys(recentlyCreatedStoByThisDevice).forEach(mapKey => {
+    if (!mapKey.startsWith(prefix)) return;
+    const entry = recentlyCreatedStoByThisDevice[mapKey];
+    if (now > entry.expiresAt) { delete recentlyCreatedStoByThisDevice[mapKey]; return; }
+    const key = mapKey.slice(prefix.length);
+    const incoming = remoteArr.find(r => fbSafeKey(syncKeyOf(r)) === key);
+    if (incoming && stableStringify(incoming) !== stableStringify(entry.record)) {
+      showStoCollisionToast(`STO "${entry.record.orderNumber}" was created on another device at almost the same time — that device's version is the one that got saved. Double-check "${entry.record.orderNumber}"'s details.`);
+      delete recentlyCreatedStoByThisDevice[mapKey];
+    }
+  });
+}
+// A small bottom-right banner, not a blocking alert() — this can fire at any moment while someone's
+// mid-task on an unrelated tab, so it shouldn't interrupt them the way a modal dialog would.
+function showStoCollisionToast(message) {
+  let el = document.getElementById('stoCollisionToast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'stoCollisionToast';
+    el.style.cssText = 'position:fixed; bottom:22px; right:22px; z-index:9999; background:var(--card); border:1px solid var(--amber); color:var(--text); padding:14px 18px; border-radius:8px; box-shadow:0 12px 34px rgba(0,0,0,0.45); max-width:320px; font-size:12.5px; line-height:1.45;';
+    document.body.appendChild(el);
+  }
+  el.textContent = '⚠ ' + message;
+  el.style.display = '';
+  clearTimeout(el._hideTimer);
+  el._hideTimer = setTimeout(() => { el.style.display = 'none'; }, 12000);
+}
+
 // Plain JSON.stringify() is sensitive to property insertion order — the exact same record can
 // serialize to two different strings depending on how it happened to be constructed (freshly typed
 // in, vs round-tripped through a pulled remote copy, vs having a field like _syncId tacked on
@@ -6326,6 +6075,7 @@ function applyServerSnapshot(table) {
   const remoteObj = fbLastServerSnapshot[table] || {};
   let remoteArr = Object.values(remoteObj);
   if (def.sortKey) remoteArr.sort((a, b) => def.sortKey(a).localeCompare(def.sortKey(b)));
+  if (table === 'STO_Records' || table === 'Inbound_STO') checkStoCollisionOnIncoming(table, remoteArr);
   if (stableStringify(remoteArr) === stableStringify(def.getArray())) { pendingRemoteApply.delete(table); return; }
   if (isUserActivelyTyping() || isTableDirty(table)) { pendingRemoteApply.add(table); return; }
   def.setArray(remoteArr);
@@ -6399,7 +6149,7 @@ function attachPostponedDoNosListener() {
 // in the file would throw "Cannot access before initialization". Calling this only from inside the
 // functions below (which only ever run after the whole script has finished loading) avoids that.
 function syncSettingsKeys() {
-  return [SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, STICKER_KEY, DAILY_TARGETS_KEY, INBOUND_ALERT_SETTINGS_KEY, EMAILJS_SETTINGS_KEY, ADMIN_PASSWORD_KEY, PACKING_STATION_RR_KEY, STAFF_SCHEDULE_KEY, STATION_PRESENCE_KEY, ORG_CHART_NODES_KEY];
+  return [SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, STICKER_KEY, DAILY_TARGETS_KEY, INBOUND_ALERT_SETTINGS_KEY, EMAILJS_SETTINGS_KEY, ADMIN_PASSWORD_KEY, PACKING_STATION_RR_KEY, STAFF_SCHEDULE_KEY, STATION_PRESENCE_KEY];
 }
 const FB_SETTINGS_TABLE = 'AppSettings';
 function pushSettingsDiff() {
@@ -6462,11 +6212,6 @@ function applySettingsSnapshot() {
     if (typeof renderReceiveStationsTab === 'function') renderReceiveStationsTab();
     if (typeof renderStationTargetProgress === 'function') renderStationTargetProgress();
     if (typeof renderReceiveStationTargetProgress === 'function') renderReceiveStationTargetProgress();
-    // Someone edited the Organization Chart from another device — reload the boxes and refresh both
-    // the pre-login screen and the admin preview so this device shows the same thing without a reload.
-    if (typeof loadOrgChartNodes === 'function') loadOrgChartNodes();
-    if (typeof renderOrgChartLoginPanel === 'function') renderOrgChartLoginPanel();
-    if (typeof renderOrgChartAdminPreview === 'function') renderOrgChartAdminPreview();
     cloudSyncLastAt = new Date();
     renderCloudSyncStatus();
   }
@@ -6494,7 +6239,7 @@ const SYNC_COLLECTIONS = [
   { table: 'Packing_Stations', getArray: () => packingStations, setArray: (a) => { packingStations = a; savePackingStations(); }, sortKey: (s) => s.name || '' },
   { table: 'Receive_Stations', getArray: () => receiveStations, setArray: (a) => { receiveStations = a; saveReceiveStations(); }, sortKey: (s) => s.name || '' },
   { table: 'Pickers', getArray: () => pickers, setArray: (a) => { pickers = a; savePickers(); } },
-  { table: 'Staff_Roster', getArray: () => staffRoster, setArray: (a) => { staffRoster = a; saveStaffRoster(); } },
+  { table: 'Staff_Roster', getArray: () => staffRoster, setArray: (a) => { staffRoster = a; migrateLegacyPicRoles(); pruneNonPickerRosterEntriesFromPickers(); saveStaffRoster(); } },
   { table: 'Rollcages', getArray: () => rollcages, setArray: (a) => { rollcages = a; saveRollcages(); } },
   {
     table: 'Users',
@@ -9766,6 +9511,10 @@ function sendEmailViaEmailJS(toEmail, subject, message) {
 function applyCartonLockUI(rec) {
   const totalCartonInput = document.getElementById('stTotalCarton');
   const lockNote = document.getElementById('stTotalCartonLockNote');
+  // "Download Label List" only makes sense once this STO's cartons have actually been printed at
+  // least once (rec.cartonLock) — before that there's no real, locked-in Carton No. list yet, only
+  // a live preview of what the numbers WOULD be if printed right now.
+  document.getElementById('stickerDownloadBtn').style.display = rec.cartonLock ? '' : 'none';
   if (rec.cartonLock) {
     const numbers = getCartonLockNumbers(rec);
     totalCartonInput.value = numbers.length;
@@ -9806,7 +9555,13 @@ function openStickerModal(orderNumber) {
 
   applyCartonLockUI(rec);
 
-  renderStickerPreview();
+  // "View All Cartons" is the default view every time the modal opens — the single one-at-a-time
+  // preview (via the "Carton No. (preview)" field) is still available by toggling it off.
+  document.getElementById('stickerToggleAllPreviewBtn').textContent = '✕ Hide All Cartons';
+  document.getElementById('stickerAllPreviewWrap').style.display = 'flex';
+  document.querySelector('.sticker-preview-wrap').style.display = 'none';
+
+  renderStickerPreview(); // also refreshes the All Cartons panel above, since it's now the visible one
   document.getElementById('stickerModal').classList.remove('hidden');
 }
 function closeStickerModal() {
@@ -9870,7 +9625,66 @@ function renderStickerPreview() {
   if (window.QRCode) {
     new QRCode(qrBox, { text: qrText, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M });
   }
+
+  // Keeps the "View All Cartons" panel (if it's currently open) in sync with whatever was just
+  // typed above — same as the single preview card already does on every keystroke.
+  const allWrap = document.getElementById('stickerAllPreviewWrap');
+  if (allWrap && allWrap.style.display !== 'none') renderAllCartonsPreview();
 }
+
+// Builds a read-only stack of every carton's label — one clone per carton No. 1 through Total
+// Carton — so the whole batch can be visually reviewed right here before actually printing, instead
+// of only ever seeing one at a time via the "Carton No. (preview)" field above. Reuses the exact
+// same clone-and-fill approach as printAllCartons() below (clone #stickerLabel once it's already
+// been filled in with the shared fields, then override only the 3 per-carton bits: the big Carton
+// No., the "X OF N" line, and the QR code) — just renders the clones into this panel instead of
+// feeding them to the print iframe.
+function renderAllCartonsPreview() {
+  const wrap = document.getElementById('stickerAllPreviewWrap');
+  if (!wrap) return;
+  const rec = records.find(r => r.orderNumber === stickerRecOrderNumber);
+  const sourceLabel = document.getElementById('stickerLabel');
+  if (!rec || !sourceLabel) { wrap.innerHTML = ''; return; }
+  const totalCarton = Math.max(1, Number(document.getElementById('stTotalCarton').value) || 1);
+  const boutique = rec.toWarehouse || '-';
+  wrap.innerHTML = '';
+  for (let i = 1; i <= totalCarton; i++) {
+    const clone = sourceLabel.cloneNode(true);
+    clone.removeAttribute('id');
+    clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+    const globalCartonNo = previewCartonNoForIndex(rec, boutique, i);
+    const cnEl = clone.querySelector('.cn');
+    if (cnEl) cnEl.textContent = globalCartonNo;
+    const cartonOfEl = clone.querySelector('.sl-carton-of');
+    if (cartonOfEl) cartonOfEl.textContent = `${i} OF ${totalCarton}`;
+    const qrBox = clone.querySelector('.sl-qr-box');
+    if (qrBox) {
+      qrBox.innerHTML = '';
+      const qrText = buildQrText(boutique, i, totalCarton, globalCartonNo);
+      if (window.QRCode) new QRCode(qrBox, { text: qrText, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M });
+    }
+    const item = document.createElement('div');
+    item.style.marginBottom = '14px';
+    item.appendChild(clone);
+    wrap.appendChild(item);
+  }
+}
+document.getElementById('stickerToggleAllPreviewBtn').addEventListener('click', () => {
+  const wrap = document.getElementById('stickerAllPreviewWrap');
+  const btn = document.getElementById('stickerToggleAllPreviewBtn');
+  const singleWrap = document.querySelector('.sticker-preview-wrap');
+  const showing = wrap.style.display !== 'none';
+  if (showing) {
+    wrap.style.display = 'none';
+    singleWrap.style.display = '';
+    btn.textContent = '👁 View All Cartons';
+  } else {
+    renderAllCartonsPreview();
+    wrap.style.display = 'flex';
+    singleWrap.style.display = 'none';
+    btn.textContent = '✕ Hide All Cartons';
+  }
+});
 
 ['stFromName','stFromAddress','stFromPhone','stDeliveryMethod','stSupport','stToContact','stCartonNo','stTotalCarton'].forEach(id => {
   document.getElementById(id).addEventListener('input', renderStickerPreview);
@@ -9891,6 +9705,25 @@ document.getElementById('stickerPrintBtn').addEventListener('click', () => {
   if (rec) applyCartonLockUI(rec);
   renderCartonCounterNote();
   renderKanban();
+});
+// Only ever enabled once this STO's cartons are actually locked in (see applyCartonLockUI) — a
+// plain reference list of every printed carton for this STO, one row per Carton No., for whoever
+// needs a record of it outside the app (e.g. attaching to a delivery batch, or a physical log).
+document.getElementById('stickerDownloadBtn').addEventListener('click', () => {
+  const rec = records.find(r => r.orderNumber === stickerRecOrderNumber);
+  if (!rec || !rec.cartonLock) return;
+  const numbers = getCartonLockNumbers(rec);
+  const totalCarton = numbers.length;
+  const boutique = rec.toWarehouse || '-';
+  const wsData = [['ORDER_NO', 'BOUTIQUE', 'QR_DATA']];
+  for (let i = 1; i <= totalCarton; i++) {
+    wsData.push([rec.orderNumber, boutique, buildQrText(boutique, i, totalCarton, numbers[i - 1])]);
+  }
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [{ wch: 16 }, { wch: 24 }, { wch: 28 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Carton Labels');
+  XLSX.writeFile(wb, `carton-labels-${rec.orderNumber}-${todayStr()}.xlsx`);
 });
 document.getElementById('stickerModal').addEventListener('click', (e) => {
   if (e.target.id === 'stickerModal') closeStickerModal();
@@ -11146,8 +10979,22 @@ function markGarmentSkusPutawayDoneForRollcage(rollcageName) {
 // to swap that row's SKU/Qty Order cells to inputs plus Save/Cancel, click Save (or Cancel) to swap
 // back. Only one row editable at a time; switching batches/tabs re-renders and drops it.
 let garmentSkuEditingKey = null;
-function renderGarmentSkuRows(batch) {
+// Per-batch local SKU search, live INSIDE an already-opened card — separate from the global "Search
+// Batch No. / Garment Name / SKU..." bar above the whole list, which decides which batches show up
+// at all. This one only ever narrows the SKU rows of the ONE batch it belongs to, so it's handy once
+// staff have already found/opened the right batch and just want to jump to one SKU among many.
+let garmentSkuLocalSearch = {}; // batchNo -> query string
+function renderGarmentSkuRows(batch, searchQ) {
   if (!batch.skus.length) return `<div class="empty-state">No SKUs added to this batch yet — add one below.</div>`;
+  // Only narrows down to matching SKU rows when the batch itself DIDN'T match by its own Batch No.
+  // or Garment Name — if that's what actually matched, every row is still shown same as before;
+  // narrowing only kicks in when the search is specifically hunting for a SKU code.
+  const needle = (searchQ || '').trim().toLowerCase();
+  const batchNameMatches = !needle || (batch.batchNo || '').toLowerCase().includes(needle) || (batch.garmentName || '').toLowerCase().includes(needle);
+  const localNeedle = (garmentSkuLocalSearch[batch.batchNo] || '').trim().toLowerCase();
+  const searchBoxHtml = `<div class="field" style="max-width:260px; margin-bottom:10px;">
+    <input type="text" class="garment-sku-local-search" data-batch="${escapeHtml(batch.batchNo)}" placeholder="🔎 Cari SKU dalam batch ni..." value="${escapeHtml(garmentSkuLocalSearch[batch.batchNo] || '')}">
+  </div>`;
   // A station attached to THIS COMPUTER ("This Device's Station" button in the sidebar),
   // or failing that an account-level link, auto-attaches it (no dropdown needed — see
   // performGarmentSkuLog). Neither set gets a dropdown here instead, always visible so it's
@@ -11157,7 +11004,11 @@ function renderGarmentSkuRows(batch) {
   const needsStationPicker = !getEffectiveReceiveStationName() && receiveStations.length > 0;
   const onShiftStations = needsStationPicker ? receiveStations.filter(s => isStationOnShift(s)) : [];
   let html = `<table><thead><tr><th>SKU</th><th>Qty Order</th><th>Qty Received</th><th>Remaining</th><th>Status</th><th>Log Received</th><th></th></tr></thead><tbody>`;
+  let shownCount = 0;
   batch.skus.forEach((s, si) => {
+    if (needle && !batchNameMatches && !(s.sku || '').toLowerCase().includes(needle)) return;
+    if (localNeedle && !(s.sku || '').toLowerCase().includes(localNeedle)) return;
+    shownCount++;
     const order = Number(s.qtyOrder) || 0;
     const received = Number(s.qtyReceived) || 0;
     const remaining = Math.max(0, order - received);
@@ -11195,12 +11046,13 @@ function renderGarmentSkuRows(batch) {
     </tr>`;
   });
   html += `</tbody></table>`;
-  return html;
+  if (!shownCount) html = `<div class="empty-state">Takde SKU yang sepadan carian.</div>`;
+  return searchBoxHtml + html;
 }
 
-function renderGarmentBatchBody(batch) {
+function renderGarmentBatchBody(batch, searchQ) {
   return `<div class="garment-batch-body" style="padding:14px 16px 16px; border-top:1px solid var(--border);">
-    ${renderGarmentSkuRows(batch)}
+    ${renderGarmentSkuRows(batch, searchQ)}
     <div class="form-grid" style="grid-template-columns: 1.3fr 1fr; margin-top:14px;">
       <div class="field">
         <label>SKU</label>
@@ -11260,7 +11112,11 @@ function renderGarmentOrderTab() {
     const amaran = garmentComputeAmaran(batch);
     const putawayStatus = garmentBatchPutawayStatus(batch);
     const { qtyOrder, qtyReceived } = garmentBatchTotals(batch);
-    const expanded = garmentExpandedBatches.has(batch.batchNo);
+    // While a search is active, every batch that matched (this one only renders at all if it did —
+    // see visibleBatches above) auto-opens so a matching SKU is visible immediately, no extra click
+    // needed to expand it first. Clearing the search reverts to whatever was manually
+    // expanded/collapsed before, since garmentExpandedBatches itself is never touched by this.
+    const expanded = garmentExpandedBatches.has(batch.batchNo) || !!searchQ.trim();
     // Collapsed cards sit as compact tiles in the grid; an opened card spans the full grid
     // width so its SKU table/add-SKU form has enough room instead of squeezing into one tile.
     return `<div class="card garment-batch-card" style="padding:0; overflow:hidden;${expanded ? ' grid-column: 1 / -1;' : ''}">
@@ -11280,7 +11136,7 @@ function renderGarmentOrderTab() {
         </div>
         <div style="text-align:center; margin-top:8px;"><span class="nav-group-chevron" style="font-size:11px; color:var(--text-muted); display:inline-block; transform:rotate(${expanded ? '0' : '-90'}deg);">▾</span></div>
       </div>
-      ${expanded ? renderGarmentBatchBody(batch) : ''}
+      ${expanded ? renderGarmentBatchBody(batch, searchQ) : ''}
     </div>`;
   }
 
@@ -11305,6 +11161,20 @@ function renderGarmentOrderTab() {
       <div class="garment-batch-grid" style="opacity:0.7;">${doneBatches.map(garmentBatchCardHtml).join('')}</div>`;
   }
   wrap.innerHTML = sectionsHtml;
+
+  // Re-renders the whole tab on every keystroke (same as every other search field in this app), so
+  // this input's own DOM node gets replaced — refocus + restore the cursor position afterward so
+  // typing feels continuous instead of needing a re-click after each character.
+  wrap.querySelectorAll('.garment-sku-local-search').forEach(inp => {
+    inp.addEventListener('input', (e) => {
+      const batchNo = e.target.dataset.batch;
+      const cursorPos = e.target.selectionStart;
+      garmentSkuLocalSearch[batchNo] = e.target.value;
+      renderGarmentOrderTab();
+      const newInp = document.querySelector(`.garment-sku-local-search[data-batch="${CSS.escape(batchNo)}"]`);
+      if (newInp) { newInp.focus(); newInp.setSelectionRange(cursorPos, cursorPos); }
+    });
+  });
 
   // Card header toggles expand/collapse — the delete (✕) button sits inside the header too, so
   // it bails out of the toggle instead of also opening/closing the card.
@@ -11641,7 +11511,11 @@ let inboundRecords = []; // [{ orderNumber, fromBoutique, totalOrderQty, created
 function loadInboundRecords() {
   try { inboundRecords = JSON.parse(localStorage.getItem(INBOUND_STO_KEY)) || []; } catch (e) { inboundRecords = []; }
 }
-function saveInboundRecords() { localStorage.setItem(INBOUND_STO_KEY, JSON.stringify(inboundRecords)); }
+function saveInboundRecords() {
+  inboundRecords = dedupeStoRecordsByOrderNumber(inboundRecords);
+  backfillNaturalSyncIds(inboundRecords);
+  localStorage.setItem(INBOUND_STO_KEY, JSON.stringify(inboundRecords));
+}
 
 const INBOUND_PROGRESS_OPTIONS = ['Active', 'On Progress', 'Complete'];
 
@@ -11769,7 +11643,7 @@ function renderInboundStoTable() {
   const wrap = document.getElementById('inboundStoTableWrap');
   if (!list.length) { wrap.innerHTML = `<div class="empty-state">No inbound STOs yet. Add one above.</div>`; return; }
 
-  let html = `<table><thead><tr><th>STO No.</th><th>From Boutique</th><th>Qty</th><th>Created Date</th><th>Days Waiting</th><th>Status</th><th>Alert</th></tr></thead><tbody>`;
+  let html = `<table><thead><tr><th>STO No.</th><th>From Boutique</th><th>Qty</th><th>Created Date</th><th>Days Waiting</th><th>Status</th><th>Alert</th><th></th></tr></thead><tbody>`;
   list.forEach(({ r, a, waiting }) => {
     html += `<tr>
       <td class="mono-name">${escapeHtml(r.orderNumber)}</td>
@@ -11779,10 +11653,22 @@ function renderInboundStoTable() {
       <td>${waiting === null ? '-' : waiting}</td>
       <td>${escapeHtml(r.progress || 'Active')}</td>
       <td><span class="badge ${amaranBadgeClass(a)}">${amaranLabel(a)}</span></td>
+      <td><button type="button" class="btn-ghost inbound-sto-delete-btn" data-order="${escapeHtml(r.orderNumber)}" style="padding:4px 10px; color:var(--red); border-color:var(--red);">Delete</button></td>
     </tr>`;
   });
   html += `</tbody></table>`;
   wrap.innerHTML = html;
+  wrap.querySelectorAll('.inbound-sto-delete-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const orderNumber = e.currentTarget.dataset.order;
+      if (!confirm(`Delete STO "${orderNumber}"? This removes it completely from this list — this cannot be undone.`)) return;
+      const idx = inboundRecords.findIndex(r => r.orderNumber === orderNumber);
+      if (idx === -1) return;
+      inboundRecords.splice(idx, 1);
+      saveInboundRecords();
+      renderInboundAll();
+    });
+  });
 }
 
 function renderInboundStoTab() {
@@ -11813,12 +11699,13 @@ function mapRowToInboundRecord(row) {
 }
 function upsertInboundRecords(newRecs) {
   let added = 0, updated = 0, removed = 0;
+  const newlyAdded = [];
   newRecs.forEach(nr => {
     if (!nr.orderNumber || isInboundExcludedLocation(nr.fromBoutique)) return;
     const { status, ...rest } = nr;
     const idx = inboundRecords.findIndex(r => r.orderNumber === nr.orderNumber);
     if (isInboundTrackedStatus(status)) {
-      if (idx === -1) { inboundRecords.push({ ...rest, progress: 'Active' }); added++; }
+      if (idx === -1) { const rec = { ...rest, progress: 'Active' }; inboundRecords.push(rec); newlyAdded.push(rec); added++; }
       else { inboundRecords[idx] = { ...inboundRecords[idx], ...rest }; updated++; }
     } else if (idx !== -1) {
       inboundRecords.splice(idx, 1);
@@ -11826,6 +11713,7 @@ function upsertInboundRecords(newRecs) {
     }
   });
   saveInboundRecords();
+  newlyAdded.forEach(rec => markStoJustCreatedByThisDevice('Inbound_STO', rec));
   return { added, updated, removed };
 }
 const INBOUND_LAST_UPLOAD_KEY = 'sto_inbound_last_upload_v1';
@@ -11930,8 +11818,10 @@ document.getElementById('addInboundStoBtn').addEventListener('click', () => {
     return;
   }
 
-  inboundRecords.push({ orderNumber, fromBoutique, totalOrderQty, createdDate, progress: 'Active' });
+  const newRec = { orderNumber, fromBoutique, totalOrderQty, createdDate, progress: 'Active' };
+  inboundRecords.push(newRec);
   saveInboundRecords();
+  markStoJustCreatedByThisDevice('Inbound_STO', newRec);
 
   note.textContent = `"${orderNumber}" added.`;
   note.style.color = '#4bb583';
@@ -11997,7 +11887,7 @@ function renderReceiveStationsTab() {
       // Manually forced ON/OFF (or a station whose name isn't tagged Day/Night at all) means nobody's
       // being auto-pulled from Staff Schedule — tick who's actually there instead, from a checklist
       // of Active, Role = Receiver staff (same pool the Auto Day/Night fill draws from).
-      const eligibleNames = staffRoster.filter(st => st.active !== false && st.role === 'Receiver').map(st => st.name).sort();
+      const eligibleNames = staffRoster.filter(st => st.active !== false && staffRoleFunction(st.role) === 'Receiver').map(st => st.name).sort();
       const current = s.manpower || [];
       const summaryText = current.length ? current.map(escapeHtml).join(', ') : '— pilih staff —';
       const checklistHtml = eligibleNames.length
@@ -12011,7 +11901,7 @@ function renderReceiveStationsTab() {
       <td>${manpowerCell}</td>
       <td>${onShift && autoCap.weekday !== null ? formatQty(autoCap.weekday) : '—'}</td>
       <td>${onShift && autoCap.weekend !== null ? formatQty(autoCap.weekend) : '—'}</td>
-      <td><button type="button" class="btn-ghost receive-station-enabled-toggle-btn" data-idx="${i}" title="Click to cycle: Auto (follows This Device's Station) → Force ON → Force OFF → back to Auto" style="padding:4px 10px;"><span class="badge ${onShift ? 'badge-green' : 'badge-gray'}">${statusLabel}</span></button></td>
+      <td><button type="button" class="btn-ghost receive-station-enabled-toggle-btn" data-idx="${i}" title="Click to cycle: Auto (${shiftLabel ? `follows the ${shiftLabel} shift on Staff Schedule` : `follows This Device's Station`}) → Force ON → Force OFF → back to Auto" style="padding:4px 10px;"><span class="badge ${onShift ? 'badge-green' : 'badge-gray'}">${statusLabel}</span></button></td>
       <td>${rowHasTarget ? `<span class="badge ${overTarget ? 'badge-red' : 'badge-green'}">${formatQty(currentLoadQty)} / ${escapeHtml(String(effTarget))}</span>` : formatQty(currentLoadQty)}</td>
       <td class="row-actions">
         <button class="icon-btn remove-receive-station-btn" data-idx="${i}" title="Delete">✕</button>
