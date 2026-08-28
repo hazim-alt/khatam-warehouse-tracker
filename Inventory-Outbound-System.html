@@ -849,12 +849,14 @@
           <div class="chart-card">
             <h3>Picker Target Progress (Total)</h3>
             <div style="display:flex; gap:16px; align-items:stretch;">
-              <div class="chart-wrap" style="position:relative; flex:0 0 auto; width:150px; height:150px;">
-                <canvas id="pickerTargetChart"></canvas>
-                <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none;">
-                  <div id="pickerTargetPctText" style="font-size:20px; font-weight:700; font-family:Georgia, serif;">—</div>
-                  <div id="pickerTargetQtyText" style="font-size:10px; color:var(--text-muted); margin-top:2px; text-align:center; padding:0 6px;">No targets set</div>
+              <div style="display:flex; flex-direction:column; align-items:center; flex:0 0 auto; width:150px;">
+                <div class="chart-wrap" style="position:relative; width:150px; height:150px;">
+                  <canvas id="pickerTargetChart"></canvas>
+                  <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
+                    <div id="pickerTargetPctText" style="font-size:20px; font-weight:700; font-family:Georgia, serif;">—</div>
+                  </div>
                 </div>
+                <div id="pickerTargetQtyText" style="font-size:10px; color:var(--text-muted); margin-top:6px; text-align:center; padding:0 6px;">No targets set</div>
               </div>
               <div style="flex:1; min-width:0;">
                 <div class="data-note" style="margin:0 0 6px;">Top 3 lowest today</div>
@@ -865,12 +867,14 @@
           <div class="chart-card">
             <h3>Packing Target Progress (Total)</h3>
             <div style="display:flex; gap:16px; align-items:stretch;">
-              <div class="chart-wrap" style="position:relative; flex:0 0 auto; width:110px; height:110px;">
-                <canvas id="packerTargetChart"></canvas>
-                <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none;">
-                  <div id="packerTargetPctText" style="font-size:16px; font-weight:700; font-family:Georgia, serif;">—</div>
-                  <div id="packerTargetQtyText" style="font-size:9px; color:var(--text-muted); margin-top:2px; text-align:center; padding:0 4px;">No target set</div>
+              <div style="display:flex; flex-direction:column; align-items:center; flex:0 0 auto; width:110px;">
+                <div class="chart-wrap" style="position:relative; width:110px; height:110px;">
+                  <canvas id="packerTargetChart"></canvas>
+                  <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
+                    <div id="packerTargetPctText" style="font-size:16px; font-weight:700; font-family:Georgia, serif;">—</div>
+                  </div>
                 </div>
+                <div id="packerTargetQtyText" style="font-size:9px; color:var(--text-muted); margin-top:6px; text-align:center; padding:0 4px;">No target set</div>
               </div>
               <div class="chart-wrap" style="position:relative; flex:1; min-width:0;">
                 <canvas id="stationTargetChart"></canvas>
@@ -940,12 +944,14 @@
           <div class="chart-card">
             <h3>Receive Station Target Progress</h3>
             <div style="display:flex; gap:16px; align-items:stretch;">
-              <div class="chart-wrap" style="position:relative; flex:0 0 auto; width:100px; height:100px;">
-                <canvas id="inboundTargetChart"></canvas>
-                <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none;">
-                  <div id="inboundTargetPctText" style="font-size:14px; font-weight:700; font-family:Georgia, serif;">—</div>
-                  <div id="inboundTargetQtyText" style="font-size:9px; color:var(--text-muted); margin-top:2px; text-align:center; padding:0 3px;">No target set</div>
+              <div style="display:flex; flex-direction:column; align-items:center; flex:0 0 auto; width:100px;">
+                <div class="chart-wrap" style="position:relative; width:100px; height:100px;">
+                  <canvas id="inboundTargetChart"></canvas>
+                  <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
+                    <div id="inboundTargetPctText" style="font-size:14px; font-weight:700; font-family:Georgia, serif;">—</div>
+                  </div>
                 </div>
+                <div id="inboundTargetQtyText" style="font-size:9px; color:var(--text-muted); margin-top:6px; text-align:center; padding:0 3px;">No target set</div>
               </div>
               <div class="chart-wrap" style="position:relative; flex:1; min-width:0;">
                 <canvas id="receiveStationTargetChart"></canvas>
@@ -1198,6 +1204,10 @@
   <section class="tab-panel" id="tab-stations">
     <p class="section-title">Daily Targets (Overall)</p>
     <div class="card" style="margin-bottom:24px;">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+        <button type="button" class="btn-ghost" id="campaignModeToggleBtn" style="padding:4px 10px;" title="Click to switch Campaign Mode ON or OFF"><span class="badge badge-gray" id="campaignModeBadge">Campaign Mode: OFF</span></button>
+        <span class="data-note" style="margin:0;">OFF (default) = hari-hari biasa, tak campaign — ikut kuantiti Order sahaja, semua target di bawah disembunyikan. ON = target campaign di bawah aktif; nombor yang disimpan akan kembali automatik bila ON semula, tak perlu taip semula.</span>
+      </div>
       <div class="data-note" style="margin:0 0 10px; font-weight:700; color:var(--text); text-transform:uppercase; letter-spacing:0.04em; font-size:11px;">Weekday (Mon–Fri)</div>
       <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom:18px;">
         <div class="field">
@@ -1707,7 +1717,7 @@
 
   <section class="tab-panel" id="tab-inbound-putaway">
     <p class="section-title">Putaway</p>
-    <div class="data-note" style="margin-bottom:14px;">Rollcages/trolleys with items waiting to be put away — from Garment Order receiving. Click "Putaway Done" once everything's been placed on the rack.</div>
+    <div class="data-note" style="margin-bottom:14px;">Rollcages/trolleys with items waiting to be put away — from Garment Order receiving. Click "Putaway Done" once EVERYTHING's been placed on the rack, or click a SKU tile itself once just that SKU is done — it turns green. Once every SKU is confirmed this way, the rollcage frees up automatically.</div>
     <div id="putawayTableWrap"></div>
   </section>
 
@@ -2651,6 +2661,57 @@ function loadDailyTargets() {
   } catch (e) { /* keep defaults */ }
 }
 function saveDailyTargets() { localStorage.setItem(DAILY_TARGETS_KEY, JSON.stringify(dailyTargets)); }
+// Campaign Mode: OFF is the default "normal day" state — no team-wide target applies, so
+// operations just track actual Order Qty (dailyTargets stays blank and every target donut hides,
+// via the existing "blank field hides the donut" behavior). Turning it ON restores whatever
+// campaign numbers were last saved, without needing to retype them, because those numbers are kept
+// separately in dailyTargetsCampaignSnapshot and are untouched while OFF.
+const CAMPAIGN_MODE_KEY = 'sto_campaign_mode_v1';
+const DAILY_TARGETS_CAMPAIGN_SNAPSHOT_KEY = 'sto_daily_targets_campaign_snapshot_v1';
+let campaignMode = true;
+let dailyTargetsCampaignSnapshot = {
+  picker: { weekday: null, weekend: null },
+  packer: { weekday: null, weekend: null },
+  inbound: { weekday: null, weekend: null }
+};
+function anyDailyTargetSet(obj) {
+  return ['picker', 'packer', 'inbound'].some(k => {
+    const t = (obj || {})[k] || {};
+    return t.weekday !== null && t.weekday !== undefined || t.weekend !== null && t.weekend !== undefined;
+  });
+}
+function loadCampaignMode() {
+  const raw = localStorage.getItem(CAMPAIGN_MODE_KEY);
+  if (raw === 'on') campaignMode = true;
+  else if (raw === 'off') campaignMode = false;
+  // First time this device has ever seen Campaign Mode (no flag saved yet): default to ON only if
+  // this install already has real target numbers sitting in dailyTargets — that means someone was
+  // already relying on them, so don't blank them out from under her on upgrade.
+  else campaignMode = anyDailyTargetSet(dailyTargets);
+}
+function saveCampaignMode() { localStorage.setItem(CAMPAIGN_MODE_KEY, campaignMode ? 'on' : 'off'); }
+function loadDailyTargetsCampaignSnapshot() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(DAILY_TARGETS_CAMPAIGN_SNAPSHOT_KEY));
+    if (raw && typeof raw === 'object') {
+      ['picker', 'packer', 'inbound'].forEach(key => {
+        const v = raw[key];
+        if (v && typeof v === 'object') {
+          dailyTargetsCampaignSnapshot[key] = { weekday: v.weekday ?? null, weekend: v.weekend ?? null };
+        }
+      });
+    }
+  } catch (e) { /* keep defaults */ }
+  // Migration for installs that already had real campaign numbers before this feature existed:
+  // if Campaign Mode came out ON (see loadCampaignMode above) but no snapshot has been saved yet,
+  // treat whatever is currently in dailyTargets as the campaign snapshot so it's preserved the
+  // first time she ever switches OFF.
+  if (campaignMode && !anyDailyTargetSet(dailyTargetsCampaignSnapshot) && anyDailyTargetSet(dailyTargets)) {
+    dailyTargetsCampaignSnapshot = JSON.parse(JSON.stringify(dailyTargets));
+    saveDailyTargetsCampaignSnapshot();
+  }
+}
+function saveDailyTargetsCampaignSnapshot() { localStorage.setItem(DAILY_TARGETS_CAMPAIGN_SNAPSHOT_KEY, JSON.stringify(dailyTargetsCampaignSnapshot)); }
 function isWeekendToday(now) { const d = (now || new Date()).getDay(); return d === 0 || d === 6; }
 // The target actually in effect right now for a given area ('picker' | 'packer' | 'inbound').
 function effectiveDailyTarget(key) {
@@ -2754,6 +2815,30 @@ function inboundTodayTotalQty() {
   const garmentQty = garmentReceiveLogs.filter(l => l.date === today).reduce((sum, l) => sum + (Number(l.qty) || 0), 0);
   return stoQty + garmentQty;
 }
+// --- Campaign Mode OFF fallback -----------------------------------------------------------------
+// With no fixed pcs/day figure set, the target donuts/bars instead track the LIVE order backlog —
+// total Order Qty of everything not yet done right now, plus whatever's already been finished
+// today (target = backlog + achievedToday). That total stays stable as the day goes on: completing
+// an order just moves its qty from "remaining" into "achieved" rather than changing the total, so
+// the bar behaves exactly like a real target even though nobody typed a number in. New orders
+// created during the day naturally grow the total. Once Campaign Mode is back ON, these are
+// bypassed entirely in favour of the fixed Team Setup figures.
+function pickerBacklogQty() {
+  return records.filter(r => !r.pickingCompletedDate && !isRecordOnlyExcludedPickers(r)).reduce((sum, r) => sum + (parseFloat(r.totalOrderQty) || 0), 0);
+}
+function packerBacklogQty() {
+  return records.filter(r => !r.packingCompletedDate).reduce((sum, r) => sum + (parseFloat(r.totalOrderQty) || 0), 0);
+}
+function inboundBacklogQty() {
+  const stoBacklog = inboundRecords.filter(r => !r.receivingCompletedDate).reduce((sum, r) => sum + (parseFloat(r.totalOrderQty) || 0), 0);
+  // garmentBatchTotals/garmentBatchStatus are declared further down in this same script — fine to
+  // reference here since this function only ever runs after the whole script has loaded.
+  const garmentBacklog = garmentOrders.filter(b => garmentBatchStatus(b) !== 'Complete').reduce((sum, b) => {
+    const t = garmentBatchTotals(b);
+    return sum + Math.max(0, t.qtyOrder - t.qtyReceived);
+  }, 0);
+  return stoBacklog + garmentBacklog;
+}
 
 let records = [];
 let sla = { default: 3, byButik: {} };
@@ -2794,6 +2879,8 @@ function loadData() {
   loadStaffSchedule();
   loadRollcages();
   loadDailyTargets();
+  loadCampaignMode();
+  loadDailyTargetsCampaignSnapshot();
   loadGarmentOrders();
   loadGarmentReceiveLogs();
   migrateGarmentPutawayAssignments();
@@ -3837,8 +3924,13 @@ let pickerTargetChart = null;
 // individual picker targets — a stable, predictable department-level number that doesn't shift
 // just because someone forgot to set (or changed) their own personal target.
 function renderPickerTargetProgress() {
-  const totalTarget = Number(effectiveDailyTarget('picker')) || 0;
   const totalAchieved = pickerTodayTotalQty();
+  let totalTarget = Number(effectiveDailyTarget('picker')) || 0;
+  let usingBacklog = false;
+  if (!totalTarget && !campaignMode) {
+    totalTarget = pickerBacklogQty() + totalAchieved;
+    usingBacklog = true;
+  }
 
   const pctText = document.getElementById('pickerTargetPctText');
   const qtyText = document.getElementById('pickerTargetQtyText');
@@ -3847,7 +3939,7 @@ function renderPickerTargetProgress() {
   if (!totalTarget) {
     pctText.textContent = '—';
     pctText.style.color = '';
-    qtyText.textContent = 'No overall picker target set yet — set it in Team Setup.';
+    qtyText.textContent = campaignMode ? 'No overall picker target set yet — set it in Team Setup.' : 'No picking backlog right now.';
     if (pickerTargetChart) { pickerTargetChart.destroy(); pickerTargetChart = null; }
     return;
   }
@@ -3857,7 +3949,9 @@ function renderPickerTargetProgress() {
   const color = targetBarHex(rawPct);
   pctText.textContent = rawPct + '%';
   pctText.style.color = color;
-  qtyText.textContent = `${formatQty(totalAchieved)} / ${formatQty(totalTarget)} pcs today`;
+  qtyText.textContent = usingBacklog
+    ? `${formatQty(totalAchieved)} / ${formatQty(totalTarget)} pcs (current order backlog)`
+    : `${formatQty(totalAchieved)} / ${formatQty(totalTarget)} pcs today`;
 
   if (pickerTargetChart) pickerTargetChart.destroy();
   pickerTargetChart = new Chart(canvas.getContext('2d'), {
@@ -3919,24 +4013,41 @@ function renderStationTargetProgress() {
   // clutters the chart with an empty 0/target bar.
   const onShiftStations = packingStations.filter(s => isStationOnShift(s));
   let rows;
+  const allPackingQtyToday = () => records
+    .filter(r => r.packingCompletedDate === today)
+    .reduce((sum, r) => sum + (parseFloat(r.totalOrderQty) || 0), 0);
   if (packingStations.length && !onShiftStations.length) {
     const overallTarget = effectiveDailyTarget('packer');
-    const qty = records
-      .filter(r => r.packingCompletedDate === today)
-      .reduce((sum, r) => sum + (parseFloat(r.totalOrderQty) || 0), 0);
-    rows = (overallTarget && overallTarget > 0) ? [{ name: 'Packing', qty, target: Number(overallTarget) }] : [];
+    const qty = allPackingQtyToday();
+    if (overallTarget && overallTarget > 0) {
+      rows = [{ name: 'Packing', qty, target: Number(overallTarget) }];
+    } else if (!campaignMode) {
+      // Campaign Mode OFF, no fixed figure — fall back to the live order backlog as the target.
+      rows = [{ name: 'Packing', qty, target: packerBacklogQty() + qty }];
+    } else {
+      rows = [];
+    }
   } else {
     // On-shift stations share the same auto-derived target (overall Packer Daily Target split
     // evenly across just those on shift right now).
     const autoCapTarget = effectiveOf(autoIndividualTargetPair('packer', onShiftStations.length));
-    rows = (autoCapTarget && autoCapTarget > 0 ? onShiftStations : [])
-      .map(s => {
+    if (autoCapTarget && autoCapTarget > 0) {
+      rows = onShiftStations.map(s => {
         const qty = records
           .filter(r => r.packingStation === s.name && r.packingCompletedDate === today)
           .reduce((sum, r) => sum + (parseFloat(r.totalOrderQty) || 0), 0);
         return { name: s.name, qty, target: Number(autoCapTarget) };
       });
+    } else if (!campaignMode) {
+      // No fixed number to split per station without a campaign target — collapse to one
+      // aggregate bar for the whole team instead, same backlog-based target as above.
+      const qty = allPackingQtyToday();
+      rows = [{ name: 'Packing', qty, target: packerBacklogQty() + qty }];
+    } else {
+      rows = [];
+    }
   }
+  if (rows.length === 1 && rows[0].target === 0) rows = [];
 
   const canvas = document.getElementById('stationTargetChart');
   const emptyEl = document.getElementById('stationTargetEmpty');
@@ -3994,8 +4105,13 @@ let packerTargetChart = null;
 // Targets (Overall) Packer value, not a sum of individual packing station targets, so it stays
 // stable regardless of which stations have their own target set.
 function renderPackerTargetProgress() {
-  const totalTarget = Number(effectiveDailyTarget('packer')) || 0;
   const totalAchieved = packerTodayTotalQty();
+  let totalTarget = Number(effectiveDailyTarget('packer')) || 0;
+  let usingBacklog = false;
+  if (!totalTarget && !campaignMode) {
+    totalTarget = packerBacklogQty() + totalAchieved;
+    usingBacklog = true;
+  }
 
   const pctText = document.getElementById('packerTargetPctText');
   const qtyText = document.getElementById('packerTargetQtyText');
@@ -4005,7 +4121,7 @@ function renderPackerTargetProgress() {
   if (!totalTarget) {
     pctText.textContent = '—';
     pctText.style.color = '';
-    qtyText.textContent = 'No overall packer target set yet — set it in Team Setup.';
+    qtyText.textContent = campaignMode ? 'No overall packer target set yet — set it in Team Setup.' : 'No packing backlog right now.';
     if (packerTargetChart) { packerTargetChart.destroy(); packerTargetChart = null; }
     return;
   }
@@ -4015,7 +4131,9 @@ function renderPackerTargetProgress() {
   const color = targetBarHex(rawPct);
   pctText.textContent = rawPct + '%';
   pctText.style.color = color;
-  qtyText.textContent = `${formatQty(totalAchieved)} / ${formatQty(totalTarget)} pcs today`;
+  qtyText.textContent = usingBacklog
+    ? `${formatQty(totalAchieved)} / ${formatQty(totalTarget)} pcs (current order backlog)`
+    : `${formatQty(totalAchieved)} / ${formatQty(totalTarget)} pcs today`;
 
   if (packerTargetChart) packerTargetChart.destroy();
   packerTargetChart = new Chart(canvas.getContext('2d'), {
@@ -5351,6 +5469,46 @@ document.getElementById('saveDailyTargetsBtn').addEventListener('click', () => {
   saveDailyTargets();
   clearDailyTargetsDirty();
 });
+function renderCampaignModeBadge() {
+  const badge = document.getElementById('campaignModeBadge');
+  if (!badge) return;
+  badge.textContent = 'Campaign Mode: ' + (campaignMode ? 'ON' : 'OFF');
+  badge.className = 'badge ' + (campaignMode ? 'badge-green' : 'badge-gray');
+  updateDailyTargetInputsEnabled();
+}
+// While OFF, the 6 fields are locked (not just blanked) — typing straight into them while OFF would
+// silently overwrite dailyTargets without touching the saved campaign snapshot, breaking the "ON
+// restores exactly what was there before" promise. Switch ON first to edit campaign numbers.
+function updateDailyTargetInputsEnabled() {
+  const ids = ['inputDailyTargetPickerWeekday', 'inputDailyTargetPickerWeekend', 'inputDailyTargetPackerWeekday', 'inputDailyTargetPackerWeekend', 'inputDailyTargetInboundWeekday', 'inputDailyTargetInboundWeekend'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = !campaignMode;
+  });
+}
+document.getElementById('campaignModeToggleBtn').addEventListener('click', () => {
+  if (campaignMode) {
+    // Turning OFF: snapshot whatever's currently active as "the campaign numbers" (so they come
+    // back exactly as-is next time), then blank the live targets — blank fields already hide their
+    // donuts everywhere else in the app, so this alone puts everything back to Order-Qty-only.
+    dailyTargetsCampaignSnapshot = JSON.parse(JSON.stringify(dailyTargets));
+    saveDailyTargetsCampaignSnapshot();
+    dailyTargets = { picker: { weekday: null, weekend: null }, packer: { weekday: null, weekend: null }, inbound: { weekday: null, weekend: null } };
+    campaignMode = false;
+  } else {
+    // Turning ON: restore the last-saved campaign numbers without asking her to retype them.
+    dailyTargets = JSON.parse(JSON.stringify(dailyTargetsCampaignSnapshot));
+    campaignMode = true;
+  }
+  saveCampaignMode();
+  saveDailyTargets();
+  clearDailyTargetsDirty();
+  renderDailyTargetsInputs();
+  renderCampaignModeBadge();
+  renderPickerTargetProgress(); renderPickersList(); renderPickerLowestList();
+  renderPackerTargetProgress(); renderStationsTab(); renderStationTargetProgress();
+  renderInboundTargetProgress(); renderReceiveStationsTab(); renderReceiveStationTargetProgress();
+});
 // Changing an overall target also re-splits it across every registered picker/station, so the
 // individual tables (and their dashboard charts) need to refresh alongside the "Total" donut.
 wireDailyTargetInput('inputDailyTargetPickerWeekday', 'picker', 'weekday', () => { renderPickerTargetProgress(); renderPickersList(); renderPickerLowestList(); });
@@ -6149,7 +6307,7 @@ function attachPostponedDoNosListener() {
 // in the file would throw "Cannot access before initialization". Calling this only from inside the
 // functions below (which only ever run after the whole script has finished loading) avoids that.
 function syncSettingsKeys() {
-  return [SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, STICKER_KEY, DAILY_TARGETS_KEY, INBOUND_ALERT_SETTINGS_KEY, EMAILJS_SETTINGS_KEY, ADMIN_PASSWORD_KEY, PACKING_STATION_RR_KEY, STAFF_SCHEDULE_KEY, STATION_PRESENCE_KEY];
+  return [SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, STICKER_KEY, DAILY_TARGETS_KEY, CAMPAIGN_MODE_KEY, DAILY_TARGETS_CAMPAIGN_SNAPSHOT_KEY, INBOUND_ALERT_SETTINGS_KEY, EMAILJS_SETTINGS_KEY, ADMIN_PASSWORD_KEY, PACKING_STATION_RR_KEY, STAFF_SCHEDULE_KEY, STATION_PRESENCE_KEY];
 }
 const FB_SETTINGS_TABLE = 'AppSettings';
 function pushSettingsDiff() {
@@ -6198,6 +6356,8 @@ function applySettingsSnapshot() {
     loadEmailjsSettings();
     loadInboundAlertSettings();
     loadDailyTargets();
+    loadCampaignMode();
+    loadDailyTargetsCampaignSnapshot();
     loadStaffSchedule();
     loadStationPresence();
     // Daily Targets' inputs are a static section (not tied to any tab-switch re-render), so unlike
@@ -6205,6 +6365,7 @@ function applySettingsSnapshot() {
     // visible fields need their own explicit repaint or they'd keep showing stale numbers until a
     // full page reload.
     renderDailyTargetsInputs();
+    renderCampaignModeBadge();
     if (typeof renderStaffScheduleGrid === 'function') renderStaffScheduleGrid();
     // Another device's presence heartbeat (or its explicit deselect) just changed live ON/OFF for a
     // scheduled station — refresh everywhere that status shows.
@@ -10478,26 +10639,40 @@ function renderPutawayTab() {
     (rc.putawayItems || []).forEach(it => {
       const key = it.sku || it.batchNo || '-';
       if (!groupIndex[key]) {
-        groupIndex[key] = { sku: it.sku, batchNos: new Set(), qty: 0, latestDate: it.date };
+        groupIndex[key] = { key, sku: it.sku, batchNos: new Set(), qty: 0, latestDate: it.date, done: true };
         grouped.push(groupIndex[key]);
       }
       const g = groupIndex[key];
       if (it.batchNo) g.batchNos.add(it.batchNo);
       g.qty += Number(it.qty) || 0;
       if (!g.latestDate || (it.date && it.date > g.latestDate)) g.latestDate = it.date;
+      // A SKU only counts as done here once every raw log entry sharing that SKU has been ticked.
+      if (!it.done) g.done = false;
     });
-    const itemsHtml = grouped.map(g => `<tr>
-      <td class="mono-name">${escapeHtml(g.sku || '-')}</td>
-      <td>${escapeHtml([...g.batchNos].join(', ') || '-')}</td>
-      <td>${formatQty(g.qty)}</td>
-      <td>${formatDateLabel(g.latestDate)}</td>
-    </tr>`).join('');
+    // Small tiles in a wrapping grid instead of one long table — a rollcage with 15-20+ SKUs used
+    // to stretch this card way down the page; tiles let it grow sideways instead. Click a tile once
+    // that SKU is physically on the rack — it turns green — or use "Putaway Done" above to finish
+    // the whole rollcage in one go.
+    const itemsHtml = grouped.map(g => {
+      const doneStyle = g.done ? 'background:var(--green-bg); border:1px solid var(--green);' : 'background:var(--bg); border:1px solid var(--border);';
+      return `<div class="putaway-sku-tile" data-rollcage="${escapeHtml(rc.name)}" data-sku="${escapeHtml(g.key)}" style="${doneStyle} border-radius:8px; padding:8px 10px; cursor:pointer;" title="${g.done ? 'Click to undo' : 'Click once this SKU has been placed on the rack'}">
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:6px;">
+          <div class="mono-name" style="font-size:12.5px; font-weight:700; overflow-wrap:anywhere;">${escapeHtml(g.sku || '-')}</div>
+          ${g.done ? `<span style="font-size:13px; color:var(--green); flex:0 0 auto;">✓</span>` : ''}
+        </div>
+        <div style="font-size:11px; color:var(--text-muted); margin-top:2px; overflow-wrap:anywhere;">${escapeHtml([...g.batchNos].join(', ') || '-')}</div>
+        <div style="display:flex; align-items:baseline; justify-content:space-between; margin-top:6px;">
+          <span style="font-size:14px; font-weight:700;">${formatQty(g.qty)}</span>
+          <span style="font-size:10px; color:var(--text-muted);">${formatDateLabel(g.latestDate)}</span>
+        </div>
+      </div>`;
+    }).join('');
     return `<div class="card" style="margin-bottom:16px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;">
         <span class="mono-name" style="font-size:15px;">${escapeHtml(rc.name)}</span>
         <button type="button" class="btn-primary putaway-tab-done-btn" data-name="${escapeHtml(rc.name)}">Putaway Done</button>
       </div>
-      <table><thead><tr><th>SKU</th><th>Batch No.</th><th>Qty</th><th>Date Logged</th></tr></thead><tbody>${itemsHtml}</tbody></table>
+      <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:8px;">${itemsHtml}</div>
     </div>`;
   }).join('');
 
@@ -10516,6 +10691,12 @@ function renderPutawayTab() {
       renderRollcagesList();
       renderRollcageUsageBoards();
       renderGarmentOrderTab();
+    });
+  });
+
+  wrap.querySelectorAll('.putaway-sku-tile').forEach(tile => {
+    tile.addEventListener('click', () => {
+      toggleRollcageSkuPutawayDone(tile.dataset.rollcage, tile.dataset.sku);
     });
   });
 }
@@ -10973,6 +11154,43 @@ function markGarmentSkusPutawayDoneForRollcage(rollcageName) {
     });
   });
   saveGarmentOrders();
+}
+// Clicking one SKU tile in the Putaway tab, for when only SOME of a rollcage's SKUs have actually
+// been placed on the rack so far (the "Putaway Done" button is all-or-nothing for the whole
+// rollcage). Toggles every raw putawayItems entry sharing that SKU, cascades the same done/pending
+// flip to the matching Garment Order putawayAssignments (keeps that badge in sync), and — once every
+// SKU logged into this rollcage has been confirmed this way — auto-frees the rollcage exactly like
+// pressing "Putaway Done" would, so nothing's left dangling at 100% with the rollcage still "in use".
+function toggleRollcageSkuPutawayDone(rollcageName, groupKey) {
+  const rc = rollcages.find(r => r.name === rollcageName);
+  if (!rc) return;
+  const items = (rc.putawayItems || []).filter(it => (it.sku || it.batchNo || '-') === groupKey);
+  if (!items.length) return;
+  const newDone = !items.every(it => it.done);
+  items.forEach(it => { it.done = newDone; });
+  // Cascade only when this group is genuinely keyed by a real SKU (the rare item with no SKU at
+  // all falls back to its batchNo as the group key, which garmentOrders.skus can't be matched by).
+  const realSku = items[0].sku;
+  if (realSku) {
+    garmentOrders.forEach(b => {
+      b.skus.forEach(s => {
+        if (s.sku !== realSku) return;
+        (s.putawayAssignments || []).forEach(a => {
+          if (a.rollcage === rollcageName) a.status = newDone ? 'done' : 'pending';
+        });
+      });
+    });
+    saveGarmentOrders();
+  }
+  if ((rc.putawayItems || []).length && rc.putawayItems.every(it => it.done)) {
+    rc.putawayInUse = false;
+    rc.putawayItems = [];
+  }
+  saveRollcages();
+  renderPutawayTab();
+  renderRollcagesList();
+  renderRollcageUsageBoards();
+  renderGarmentOrderTab();
 }
 
 // The one SKU row currently in "Edit SKU/Qty" mode, as `${batchNo}::${sidx}`, or null — click Edit
@@ -12336,31 +12554,50 @@ function renderReceiveStationTargetProgress() {
   // split and appear as bars.
   const onShiftStations = receiveStations.filter(s => isStationOnShift(s));
   let rows;
-  if (receiveStations.length && !onShiftStations.length) {
-    const overallTarget = effectiveDailyTarget('inbound');
-    // Sum EVERYTHING received today, regardless of which (if any) station it's tagged with — a
-    // per-station sum would miss "general" garment logs (no station attached, since nothing was on
-    // shift when they were logged), which is exactly the situation this fallback exists for.
-    const stoQty = inboundRecords
+  // Sum EVERYTHING received today, regardless of which (if any) station it's tagged with — a
+  // per-station sum would miss "general" garment logs (no station attached, since nothing was on
+  // shift when they were logged), which is exactly the situation this fallback exists for.
+  const allReceivedTodayTotals = () => {
+    const sto = inboundRecords
       .filter(r => r.receivingCompletedDate === today)
       .reduce((sum, r) => sum + (parseFloat(r.totalOrderQty) || 0), 0);
-    const garmentQty = garmentReceiveLogs
+    const garment = garmentReceiveLogs
       .filter(l => l.date === today)
       .reduce((sum, l) => sum + (Number(l.qty) || 0), 0);
-    const totals = { sto: stoQty, garment: garmentQty };
-    rows = (overallTarget && overallTarget > 0)
-      ? [{ name: 'Receiving', sto: totals.sto, garment: totals.garment, qty: totals.sto + totals.garment, target: Number(overallTarget) }]
-      : [];
+    return { sto, garment };
+  };
+  if (receiveStations.length && !onShiftStations.length) {
+    const overallTarget = effectiveDailyTarget('inbound');
+    const totals = allReceivedTodayTotals();
+    if (overallTarget && overallTarget > 0) {
+      rows = [{ name: 'Receiving', sto: totals.sto, garment: totals.garment, qty: totals.sto + totals.garment, target: Number(overallTarget) }];
+    } else if (!campaignMode) {
+      // Campaign Mode OFF, no fixed figure — fall back to the live order backlog as the target.
+      const qty = totals.sto + totals.garment;
+      rows = [{ name: 'Receiving', sto: totals.sto, garment: totals.garment, qty, target: inboundBacklogQty() + qty }];
+    } else {
+      rows = [];
+    }
   } else {
     // On-shift stations share the same auto-derived target (overall Inbound Daily Target split
     // evenly across just those on shift right now).
     const autoCapTarget = effectiveOf(autoIndividualTargetPair('inbound', onShiftStations.length));
-    rows = (autoCapTarget && autoCapTarget > 0 ? onShiftStations : [])
-      .map(s => {
+    if (autoCapTarget && autoCapTarget > 0) {
+      rows = onShiftStations.map(s => {
         const { sto, garment } = receiveStationTodayQtyBySource(s.name, today);
         return { name: s.name, sto, garment, qty: sto + garment, target: Number(autoCapTarget) };
       });
+    } else if (!campaignMode) {
+      // No fixed number to split per station without a campaign target — collapse to one
+      // aggregate bar for the whole team instead, same backlog-based target as above.
+      const totals = allReceivedTodayTotals();
+      const qty = totals.sto + totals.garment;
+      rows = [{ name: 'Receiving', sto: totals.sto, garment: totals.garment, qty, target: inboundBacklogQty() + qty }];
+    } else {
+      rows = [];
+    }
   }
+  if (rows.length === 1 && rows[0].target === 0) rows = [];
 
   const canvas = document.getElementById('receiveStationTargetChart');
   const emptyEl = document.getElementById('receiveStationTargetEmpty');
@@ -12571,8 +12808,13 @@ let inboundTargetChart = null;
 // Targets (Overall) Inbound value, not a sum of individual receive station targets. Achieved qty
 // combines boutique-STO receiving with garment order receiving, same as the per-station chart.
 function renderInboundTargetProgress() {
-  const totalTarget = Number(effectiveDailyTarget('inbound')) || 0;
   const totalAchieved = inboundTodayTotalQty();
+  let totalTarget = Number(effectiveDailyTarget('inbound')) || 0;
+  let usingBacklog = false;
+  if (!totalTarget && !campaignMode) {
+    totalTarget = inboundBacklogQty() + totalAchieved;
+    usingBacklog = true;
+  }
 
   const pctText = document.getElementById('inboundTargetPctText');
   const qtyText = document.getElementById('inboundTargetQtyText');
@@ -12582,7 +12824,7 @@ function renderInboundTargetProgress() {
   if (!totalTarget) {
     pctText.textContent = '—';
     pctText.style.color = '';
-    qtyText.textContent = 'No overall inbound target set yet — set it in Team Setup.';
+    qtyText.textContent = campaignMode ? 'No overall inbound target set yet — set it in Team Setup.' : 'No receiving backlog right now.';
     if (inboundTargetChart) { inboundTargetChart.destroy(); inboundTargetChart = null; }
     return;
   }
@@ -12592,7 +12834,9 @@ function renderInboundTargetProgress() {
   const color = targetBarHex(rawPct);
   pctText.textContent = rawPct + '%';
   pctText.style.color = color;
-  qtyText.textContent = `${formatQty(totalAchieved)} / ${formatQty(totalTarget)} pcs today`;
+  qtyText.textContent = usingBacklog
+    ? `${formatQty(totalAchieved)} / ${formatQty(totalTarget)} pcs (current order backlog)`
+    : `${formatQty(totalAchieved)} / ${formatQty(totalTarget)} pcs today`;
 
   if (inboundTargetChart) inboundTargetChart.destroy();
   inboundTargetChart = new Chart(canvas.getContext('2d'), {
@@ -12639,6 +12883,7 @@ loadData();
 stationPresenceHeartbeat(); // refresh this device's own station presence right away, don't wait up to 60s
 renderAll();
 renderDailyTargetsInputs();
+renderCampaignModeBadge();
 renderLastUploadNote();
 renderLastUploadNoteInbound();
 // Adds a 👁 show/hide toggle to a password field — wraps it in a positioning div and inserts the
