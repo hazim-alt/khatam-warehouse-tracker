@@ -609,13 +609,15 @@
   }
   .bulk-toolbar select { min-width: 140px; }
 
-  .kc-label-btn, .kc-do-btn, .kc-picker-btn, .kc-station-btn {
+  .kc-label-btn, .kc-do-btn, .kc-picker-btn, .kc-station-btn, .kc-fleet-dispatch-btn, .kc-fleet-deliver-btn {
     margin-top: 6px; width: 100%; background: var(--gold); color: #fff; border: none;
     padding: 5px 6px; font-size: 11px; font-weight: 700; border-radius: 3px; cursor: pointer;
   }
-  .kc-label-btn:hover, .kc-do-btn:hover, .kc-picker-btn:hover, .kc-station-btn:hover { background: #a97d35; }
+  .kc-label-btn:hover, .kc-do-btn:hover, .kc-picker-btn:hover, .kc-station-btn:hover, .kc-fleet-dispatch-btn:hover, .kc-fleet-deliver-btn:hover { background: #a97d35; }
   .kc-do-btn { background: var(--navy); }
   .kc-do-btn:hover { background: #2a221e; }
+  .kc-fleet-deliver-btn { background: var(--green); }
+  .kc-fleet-deliver-btn:hover { filter: brightness(0.9); }
   /* DO Issued column: several STO cards sharing the same DO No. collapse into one card — the
      STO list stays tucked away behind a toggle so the column reads as "one DO = one card". */
   .kc-do-group-toggle {
@@ -7958,15 +7960,14 @@ function closeFleetDispatchConfirmModal() {
   fleetDispatchPendingPeople = [];
   fleetDispatchPendingConfirm = null;
 }
-// Requires a password from the driver OR any assigned assistant — whichever of them actually has
-// one registered — before running `onConfirmed`; runs it immediately if NONE of them have a
-// password set. `purpose` ('dispatch' or 'delivery') only affects the modal wording, not the check.
+// Used to require the driver/assistant's own password before Out of Delivery / Delivered /
+// reverting a trip's status. Removed per Fleet team feedback: in practice only the supervisor/team
+// leader ever touches this board — the driver never logs into the system at all, just shows up to
+// physically collect the DO — so gating on the DRIVER's password only added friction for the
+// person actually using it, with no real security benefit. Runs `onConfirmed` immediately now;
+// kept as its own function (rather than inlining `onConfirmed()` at every call site) so this can be
+// turned back on in one place later if the workflow ever changes back.
 function requireDispatchPassword(people, onConfirmed, purpose) {
-  const withPassword = (people || []).filter(p => p.driverPassword);
-  if (withPassword.length) {
-    openFleetDispatchConfirmModal(withPassword, onConfirmed, purpose);
-    return;
-  }
   onConfirmed();
 }
 document.getElementById('fleetTripModalDispatchBtn').addEventListener('click', () => {
@@ -8236,12 +8237,24 @@ function fleetTripCardHtml(t) {
   const destText = destinations.length ? destinations.map(d => escapeHtml(d)).join(', ') : 'No destination set';
   const doHtml = doNos.length ? `<div class="kc-butik" style="opacity:0.6; font-size:11px;">${doNos.length} DO: ${doNos.map(d => escapeHtml(d)).join(', ')}</div>` : '';
   const deliveredHtml = (t.status === 'Completed' && t.deliveryDate) ? `<div class="kc-sub-info">Delivered: ${formatDateLabel(t.deliveryDate)}</div>` : '';
+  // Feedback from the Fleet team: only a supervisor/team leader actually touches this board (the
+  // driver just physically shows up to collect the DO), so dragging a card between columns is
+  // clunky for a one-person, click-based workflow. A one-click button per stage does the exact same
+  // status change the drag used to (openFleetTripEditModal already has the "Out of Delivery" button
+  // inside it; openFleetDeliveryConfirmModal is the same "Confirm Delivery" popup dragging into
+  // Completed used to open) — dragging still works too, this is just an easier alternative.
+  const quickActionBtn = t.status === 'Scheduled'
+    ? `<button type="button" class="kc-fleet-dispatch-btn" data-id="${escapeHtml(t.id)}">🚚 Out of Delivery</button>`
+    : t.status === 'Out of Delivery'
+    ? `<button type="button" class="kc-fleet-deliver-btn" data-id="${escapeHtml(t.id)}">✓ Confirm Delivery</button>`
+    : '';
   return `<div class="kanban-card" draggable="true" data-id="${escapeHtml(t.id)}">
     <div class="kc-top-row"><div class="kc-order">${driverText}</div></div>
     <div class="kc-butik">${destText}</div>
     ${doHtml}
     <div class="kc-sub-info">${formatDateLabel(t.date)}</div>
     ${deliveredHtml}
+    ${quickActionBtn}
   </div>`;
 }
 // Trip Schedule board defaults to showing only TODAY's trips per column (otherwise a future-dated
@@ -8278,6 +8291,28 @@ function renderFleetKanban() {
       e.dataTransfer.effectAllowed = 'move';
     });
     card.addEventListener('dragend', () => card.classList.remove('dragging'));
+  });
+
+  // One-click alternative to dragging a card into "Out of Delivery" / "Completed" — reuses the
+  // exact same fleetKanbanApplyDrop path (including the past-dated Admin password gate) that
+  // dropping a dragged card onto those columns already runs, so both ways behave identically.
+  board.querySelectorAll('.kc-fleet-dispatch-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const trip = fleetTrips.find(t => t.id === btn.dataset.id);
+      if (!trip) return;
+      if (isFleetTripPastLocked(trip)) requireAdminPassword(() => fleetKanbanApplyDrop(trip, 'Out of Delivery'));
+      else fleetKanbanApplyDrop(trip, 'Out of Delivery');
+    });
+  });
+  board.querySelectorAll('.kc-fleet-deliver-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const trip = fleetTrips.find(t => t.id === btn.dataset.id);
+      if (!trip) return;
+      if (isFleetTripPastLocked(trip)) requireAdminPassword(() => fleetKanbanApplyDrop(trip, 'Completed'));
+      else fleetKanbanApplyDrop(trip, 'Completed');
+    });
   });
 
   board.querySelectorAll('.kanban-col').forEach(col => {
