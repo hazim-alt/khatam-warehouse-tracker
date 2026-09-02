@@ -148,10 +148,36 @@
      viewport width. Check the STO Count by Boutique chart isn't clipped on the actual TV after
      turning this on — fixed-width chart canvases are the one thing zoom doesn't scale perfectly. */
   #tab-dashboard.dash-size-large.active { zoom: 1.3; --dash-zoom: 1.3; }
-  .dash-topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-shrink: 0; }
-  .dash-topbar-brand { display: flex; align-items: center; }
+  /* Grid (not flex space-between) so the clock sits at the true visual center of the topbar
+     regardless of how much wider dash-topbar-right (slide nav + dropdown + button) is than the
+     logo on the left — flex space-between with an auto-margin middle child can't do that since it
+     just splits the LEFTOVER space, which isn't symmetric when the two ends differ in width. */
+  .dash-topbar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin-bottom: 14px; flex-shrink: 0; gap: 10px; }
+  .dash-topbar-brand { display: flex; align-items: center; justify-self: start; }
   .dash-topbar-brand img { height: 34px; width: auto; display: block; }
-  .dash-topbar-right { display: flex; align-items: center; gap: 16px; }
+  .dash-topbar-right { display: flex; align-items: center; gap: 16px; justify-self: end; flex-wrap: wrap; }
+  /* Live digital clock + day/date card — sits centered between the logo and the slide/display
+     controls, so it's always visible no matter which Dashboard slide (Outbound/Inbound/Fleet) is
+     showing, which is the point on a TV/big-screen view. Ticks every second via setInterval
+     (see updateDashTopbarClock). */
+  .dash-topbar-clock {
+    justify-self: center; display: flex; flex-direction: column; align-items: center;
+    padding: 6px 26px; border: 1px solid rgba(199,155,74,0.35); border-radius: 10px;
+    background: linear-gradient(180deg, rgba(199,155,74,0.10), rgba(199,155,74,0.02));
+  }
+  .dash-clock-time {
+    font-family: Georgia, serif; font-size: 28px; font-weight: 700; letter-spacing: 0.06em;
+    color: var(--gold); line-height: 1.15; font-variant-numeric: tabular-nums;
+  }
+  .dash-clock-date {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text-muted); margin-top: 2px;
+  }
+  .dash-duty-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 18px; margin: 0 0 14px; padding: 8px 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; flex-shrink: 0; }
+  .dash-duty-bar:empty { display: none; }
+  .dash-duty-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+  .dash-duty-item strong { color: var(--text); font-weight: 700; }
+  .dash-duty-divider { width: 1px; align-self: stretch; background: var(--border); }
 
   .section-title {
     font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); font-weight: 700;
@@ -175,15 +201,69 @@
   /* Reports tab — each module (Outbound/Fleet/Inbound/Garment) sits in its own bordered panel so the
      tab reads as distinct report sections rather than one long unbroken list of cards. A soft white
      overlay (rather than a new bg color) lifts each panel just enough off the card behind it while
-     staying on-theme with every other dark surface in the app. */
-  .report-module-box { background: rgba(255,255,255,0.025); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; margin-bottom: 20px; }
+     staying on-theme with every other dark surface in the app. A subtle shadow + slightly rounder
+     corners than a plain .card give it a touch more polish, since this is the one tab meant to be
+     screenshotted/presented, not just worked in. */
+  .report-module-box { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px; padding: 22px 24px; margin-bottom: 20px; box-shadow: 0 4px 14px rgba(0,0,0,0.18); }
   .report-module-box:last-child { margin-bottom: 0; }
-  .report-module-box .section-title { margin-bottom: 16px; }
+  .report-module-box .section-title { margin-bottom: 18px; font-size: 13px; color: var(--text); letter-spacing: 0.07em; }
   .report-module-box > .kpi-grid:last-child { margin-bottom: 0; }
-  .report-target-box { background: rgba(199,155,74,0.06); border: 1px solid rgba(199,155,74,0.3); border-left: 3px solid var(--gold); border-radius: 6px; padding: 14px 16px; margin-top: 18px; }
-  .report-target-box .report-target-heading { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gold); font-weight: 700; margin-bottom: 10px; }
+  /* Every KPI grid's FIRST card is the running "Total" — set apart as the hero number (bigger,
+     gold-accented) so the eye lands there first, with the breakdown cards reading as supporting
+     detail rather than every box competing equally for attention. A soft lift-on-hover on every
+     card (not just the primary one) gives the whole grid a little more life than a flat, static
+     wall of identical boxes — especially noticeable when a fresh install/empty range shows nothing
+     but zeros. */
+  .report-module-box .kpi-card,
+  .report-target-box .kpi-card { transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
+  .report-module-box .kpi-card:hover,
+  .report-target-box .kpi-card:hover { transform: translateY(-2px); border-color: var(--gold); box-shadow: 0 6px 14px rgba(0,0,0,0.22); }
+  .report-module-box .kpi-card.report-kpi-primary { background: linear-gradient(165deg, rgba(199,155,74,0.14), rgba(199,155,74,0.02)); border-top-color: var(--gold); }
+  .report-module-box .kpi-card.report-kpi-primary .kpi-num { font-size: 32px; color: var(--gold); }
+  .report-module-box .kpi-card.report-kpi-primary .kpi-label { color: var(--text); font-weight: 700; text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.05em; }
+  .report-target-box { background: rgba(199,155,74,0.06); border: 1px solid rgba(199,155,74,0.3); border-left: 3px solid var(--gold); border-radius: 8px; padding: 16px 18px; margin-top: 20px; }
+  .report-target-box .report-target-heading { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gold); font-weight: 700; margin-bottom: 12px; }
   .report-target-box .kpi-grid { margin-bottom: 0; }
-  .report-target-box .kpi-card { background: rgba(0,0,0,0.15); }
+  .report-target-box .kpi-card { background: rgba(0,0,0,0.18); }
+  /* The "pick a date range" nudge inside an otherwise-empty Target Achievement box used to look like
+     a stray warning label floating in space — give it its own quiet row instead. */
+  #reportOutboundTargetNote:not(:empty), #reportInboundTargetNote:not(:empty) { padding: 2px 0 4px; }
+
+  /* Executive summary strip — the very first thing on the Reports tab: a handful of BIG headline
+     numbers (not boxed, not competing with anything else) so whoever opens this tab gets the whole
+     picture in one glance before scrolling into any section's detail. Empty (no stats for the
+     current module filter) collapses to nothing via JS, not CSS, so it never leaves a dead gap. */
+  .report-exec-summary:empty { display: none; }
+  .report-exec-summary { display: flex; align-items: stretch; justify-content: space-around; flex-wrap: wrap; gap: 20px; margin: 18px 0 26px; padding: 22px 12px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .report-exec-stat { text-align: center; min-width: 130px; flex: 1; }
+  .report-exec-stat .report-exec-num { font-size: 42px; font-weight: 700; font-family: Georgia, serif; line-height: 1; color: var(--text); }
+  .report-exec-stat.warn .report-exec-num { color: var(--red); }
+  .report-exec-stat .report-exec-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 10px; font-weight: 700; }
+  .report-exec-divider { width: 1px; align-self: stretch; background: var(--border); }
+
+  /* Health bars — a single slim proportion bar per module (e.g. Late/Due Soon/Normal, or
+     Scheduled/Out of Delivery/Delivered) so the status split reads as one visual shape instead of
+     needing to compare 4-5 separate KPI numbers by eye. Zero-total ranges (nothing to show yet)
+     collapse via JS same as the exec summary. */
+  .report-health-bar-wrap:empty { display: none; }
+  .report-health-bar-wrap { margin-bottom: 18px; }
+  .report-health-bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: var(--gray-bg); }
+  .report-health-bar-segment:first-child { border-top-left-radius: 5px; border-bottom-left-radius: 5px; }
+  .report-health-bar-segment:last-child { border-top-right-radius: 5px; border-bottom-right-radius: 5px; }
+  .report-health-legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 10px; }
+  .report-health-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+  .report-health-legend-dot { width: 8px; height: 8px; border-radius: 2px; flex: 0 0 auto; }
+  .report-health-legend-item strong { color: var(--text); font-weight: 700; }
+
+  /* Formal detailed table — zebra striping + a bolded totals row give the Boutique breakdown the
+     look of an actual printed/exported report rather than just another in-app data grid. */
+  .report-detail-table table { font-size: 13px; }
+  .report-detail-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+  .report-detail-table tbody tr:hover { background: rgba(199,155,74,0.06); }
+  .report-detail-table td, .report-detail-table th { padding: 10px 12px; }
+  .report-detail-table td:not(:first-child), .report-detail-table th:not(:first-child) { text-align: right; }
+  .report-detail-table tr.report-detail-total-row { border-top: 2px solid var(--border); font-weight: 700; }
+  .report-detail-table tr.report-detail-total-row td { color: var(--gold); padding-top: 12px; }
 
   .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }
   .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 18px; }
@@ -766,15 +846,7 @@
   <button type="button" class="btn-ghost" id="deviceStationBtn" style="width:100%; text-align:left; padding:4px 10px; font-size:11px; margin:0 0 10px;">📍 <span id="deviceStationBtnLabel">This device's station: — none —</span></button>
   <nav class="tabs">
     <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
-    <button type="button" class="nav-group-toggle" id="navGroupOutboundToggle" data-group="navGroupOutbound">
-      <span>Outbound</span><span class="nav-group-chevron">▾</span>
-    </button>
-    <div class="nav-group" id="navGroupOutbound">
-      <button class="tab-btn" data-tab="senarai">STO List</button>
-      <button class="tab-btn" data-tab="papan">Progress Board</button>
-      <button class="tab-btn" data-tab="delivered" data-perm="delivered-outbound">Delivery Status</button>
-      <button class="tab-btn" data-tab="sla">SLA Settings</button>
-    </div>
+    <button class="tab-btn" data-tab="dashboard-summary">Dashboard Summary</button>
     <button type="button" class="nav-group-toggle" id="navGroupInboundToggle" data-group="navGroupInbound">
       <span>Inbound</span><span class="nav-group-chevron">▾</span>
     </button>
@@ -784,6 +856,15 @@
       <button class="tab-btn" data-tab="inbound-board">Progress Board</button>
       <button class="tab-btn" data-tab="inbound-putaway">Putaway</button>
       <button class="tab-btn" data-tab="inbound-sla">SLA Settings</button>
+    </div>
+    <button type="button" class="nav-group-toggle" id="navGroupOutboundToggle" data-group="navGroupOutbound">
+      <span>Outbound</span><span class="nav-group-chevron">▾</span>
+    </button>
+    <div class="nav-group" id="navGroupOutbound">
+      <button class="tab-btn" data-tab="senarai">STO List</button>
+      <button class="tab-btn" data-tab="papan">Progress Board</button>
+      <button class="tab-btn" data-tab="delivered" data-perm="delivered-outbound">Delivery Status</button>
+      <button class="tab-btn" data-tab="sla">SLA Settings</button>
     </div>
     <button type="button" class="nav-group-toggle" id="navGroupFleetToggle" data-group="navGroupFleet">
       <span>Operation Fleet</span><span class="nav-group-chevron">▾</span>
@@ -820,6 +901,10 @@
   <section class="tab-panel active" id="tab-dashboard">
     <div class="dash-topbar">
       <div class="dash-topbar-brand"><img src="data:image/png;base64,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" alt="KHATAM"></div>
+      <div class="dash-topbar-clock">
+        <div class="dash-clock-time" id="dashClockTime">--:--:--</div>
+        <div class="dash-clock-date" id="dashClockDate">—</div>
+      </div>
       <div class="dash-topbar-right">
         <div class="dash-slide-nav">
           <button type="button" class="dash-slide-arrow" id="dashSlidePrev" aria-label="Previous slide">&#8249;</button>
@@ -836,7 +921,8 @@
     </div>
     <div class="dash-slides" id="dashSlides">
       <div class="dash-slide active" data-slide="outbound">
-        <p class="section-title">Outbound Performance Summary</p>
+        <p class="section-title" id="outboundDashTitle">Outbound Performance Summary</p>
+        <div class="dash-duty-bar" id="dashDutyBarOutbound"></div>
         <div class="kpi-grid" id="kpiGrid"></div>
 
         <div class="charts-row">
@@ -915,7 +1001,8 @@
       </div>
 
       <div class="dash-slide" data-slide="inbound">
-        <p class="section-title">Inbound Performance Summary</p>
+        <p class="section-title" id="inboundDashTitle">Inbound Performance Summary</p>
+        <div class="dash-duty-bar" id="dashDutyBarInbound"></div>
 
         <div class="charts-row kpi-row" style="grid-template-columns: 1fr 1fr; align-items:start;">
           <div>
@@ -1022,6 +1109,110 @@
           </div>
         </div>
       </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-dashboard-summary">
+    <p class="section-title">Dashboard Summary</p>
+    <div class="card">
+      <div class="data-note" id="dashSummaryUpdatedNote" style="margin-bottom:0;">Live snapshot — current status across all modules (not date-filtered).</div>
+
+      <div id="dashSummaryExecWrap" class="report-exec-summary"></div>
+
+      <p class="section-title" style="margin-top:0;">Module Health</p>
+      <div class="charts-row" style="grid-template-columns: repeat(4, 1fr);">
+        <div class="chart-card">
+          <h3>📦 Outbound STO</h3>
+          <div style="display:flex; flex-direction:column; align-items:center;">
+            <div class="chart-wrap" style="position:relative; width:120px; height:120px;">
+              <canvas id="dashSummaryOutboundPie"></canvas>
+              <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
+                <div id="dashSummaryOutboundPct" style="font-size:20px; font-weight:700; font-family:Georgia, serif; white-space:nowrap;">—</div>
+              </div>
+            </div>
+            <div id="dashSummaryOutboundLegend" style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;"></div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>📥 Inbound STO</h3>
+          <div style="display:flex; flex-direction:column; align-items:center;">
+            <div class="chart-wrap" style="position:relative; width:120px; height:120px;">
+              <canvas id="dashSummaryInboundPie"></canvas>
+              <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
+                <div id="dashSummaryInboundPct" style="font-size:20px; font-weight:700; font-family:Georgia, serif; white-space:nowrap;">—</div>
+              </div>
+            </div>
+            <div id="dashSummaryInboundLegend" style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;"></div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>🧵 Garment Order</h3>
+          <div style="display:flex; flex-direction:column; align-items:center;">
+            <div class="chart-wrap" style="position:relative; width:120px; height:120px;">
+              <canvas id="dashSummaryGarmentPie"></canvas>
+              <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
+                <div id="dashSummaryGarmentPct" style="font-size:20px; font-weight:700; font-family:Georgia, serif; white-space:nowrap;">—</div>
+              </div>
+            </div>
+            <div id="dashSummaryGarmentLegend" style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;"></div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>🚚 Fleet — Today</h3>
+          <div style="display:flex; flex-direction:column; align-items:center;">
+            <div class="chart-wrap" style="position:relative; width:120px; height:120px;">
+              <canvas id="dashSummaryFleetPie"></canvas>
+              <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
+                <div id="dashSummaryFleetPct" style="font-size:20px; font-weight:700; font-family:Georgia, serif; white-space:nowrap;">—</div>
+              </div>
+            </div>
+            <div id="dashSummaryFleetLegend" style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;"></div>
+          </div>
+        </div>
+      </div>
+
+      <p class="section-title">🎯 Today's Target Achievement</p>
+      <div class="charts-row" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="chart-card">
+          <h3>Picker</h3>
+          <div style="display:flex; flex-direction:column; align-items:center;">
+            <div class="chart-wrap" style="position:relative; width:110px; height:110px;">
+              <canvas id="dashSummaryPickerPie"></canvas>
+              <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
+                <div id="dashSummaryPickerPct" style="font-size:16px; font-weight:700; font-family:Georgia, serif;">—</div>
+              </div>
+            </div>
+            <div id="dashSummaryPickerLegend" style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;"></div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>Packer</h3>
+          <div style="display:flex; flex-direction:column; align-items:center;">
+            <div class="chart-wrap" style="position:relative; width:110px; height:110px;">
+              <canvas id="dashSummaryPackerPie"></canvas>
+              <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
+                <div id="dashSummaryPackerPct" style="font-size:16px; font-weight:700; font-family:Georgia, serif;">—</div>
+              </div>
+            </div>
+            <div id="dashSummaryPackerLegend" style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;"></div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>Inbound</h3>
+          <div style="display:flex; flex-direction:column; align-items:center;">
+            <div class="chart-wrap" style="position:relative; width:110px; height:110px;">
+              <canvas id="dashSummaryInboundTargetPie"></canvas>
+              <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
+                <div id="dashSummaryInboundTargetPct" style="font-size:16px; font-weight:700; font-family:Georgia, serif;">—</div>
+              </div>
+            </div>
+            <div id="dashSummaryInboundTargetLegend" style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;"></div>
+          </div>
+        </div>
+      </div>
+
+      <p class="section-title">⚠️ Needs Attention</p>
+      <div class="card" style="margin-bottom:0;"><div id="dashSummaryAttentionWrap" class="scroll-table"></div></div>
     </div>
   </section>
 
@@ -1571,10 +1762,13 @@
         </select>
         <button type="button" class="btn-primary" id="reportDownloadExcelBtn">⬇ Download Excel</button>
       </div>
-      <div class="data-note" id="reportRangeNote" style="margin-bottom:16px;"></div>
+      <div class="data-note" id="reportRangeNote" style="margin-bottom:0;"></div>
+
+      <div id="reportExecSummaryWrap" class="report-exec-summary"></div>
 
       <div id="reportSection-outbound" class="report-module-box">
         <p class="section-title">📦 Outbound Progress</p>
+        <div id="reportOutboundHealthBar" class="report-health-bar-wrap"></div>
         <div class="kpi-grid" id="reportOutboundKpiGrid"></div>
         <div class="report-target-box">
           <div class="report-target-heading">🎯 Target Achievement — Picker / Packer</div>
@@ -1585,13 +1779,16 @@
 
       <div id="reportSection-fleet" class="report-module-box">
         <p class="section-title">🚚 Fleet / Delivery Progress</p>
+        <div id="reportFleetHealthBar" class="report-health-bar-wrap"></div>
         <div class="kpi-grid" id="reportFleetKpiGrid"></div>
       </div>
 
       <div id="reportSection-inbound" class="report-module-box" style="margin-bottom:0;">
         <p class="section-title">📥 Inbound Progress — STO From Boutique</p>
+        <div id="reportInboundHealthBar" class="report-health-bar-wrap"></div>
         <div class="kpi-grid" id="reportInboundKpiGrid"></div>
         <p class="section-title" style="margin-top:20px;">🧵 Inbound Progress — Garment Order</p>
+        <div id="reportGarmentHealthBar" class="report-health-bar-wrap"></div>
         <div class="kpi-grid" id="reportGarmentKpiGrid"></div>
         <div class="report-target-box">
           <div class="report-target-heading">🎯 Target Achievement — Inbound (STO + Garment combined)</div>
@@ -1602,8 +1799,8 @@
     </div>
 
     <div class="card" id="reportSection-boutique">
-      <p class="section-title" style="font-size:13px; margin-bottom:8px;">Performance by Boutique</p>
-      <div id="butikReportWrap"></div>
+      <p class="section-title" style="font-size:13px; margin-bottom:8px;">Detailed Report — Performance by Boutique</p>
+      <div id="butikReportWrap" class="report-detail-table"></div>
     </div>
   </section>
 
@@ -3533,6 +3730,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.add('active');
     document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
     if (btn.dataset.tab === 'dashboard') renderDashboard();
+    if (btn.dataset.tab === 'dashboard-summary') renderDashboardSummary();
     if (btn.dataset.tab === 'papan') renderKanban();
     if (btn.dataset.tab === 'delivered') renderDeliveredTab();
     if (btn.dataset.tab === 'sla') renderSlaTab();
@@ -4186,7 +4384,96 @@ function renderPackerTargetProgress() {
   });
 }
 
-function renderDashboard() { renderKpis(); renderCharts(); renderLateStoList(); renderPickerTargetProgress(); renderPickerLowestList(); renderPackerTargetProgress(); renderStationTargetProgress(); renderNextToPick(); renderUrgent(); }
+function renderDashboard() { renderDashDutyBarOutbound(); renderKpis(); renderCharts(); renderLateStoList(); renderPickerTargetProgress(); renderPickerLowestList(); renderPackerTargetProgress(); renderStationTargetProgress(); renderNextToPick(); renderUrgent(); }
+
+// Today's date + who's on duty as PIC / Backup PIC, shown at the top of EACH module's own Dashboard
+// slide (Outbound slide shows Outbound's PIC/Backup, Inbound slide shows Inbound's) rather than one
+// shared bar for both. Pulled automatically from Staff Schedule: any Active roster entry whose
+// Department matches (Inbound/Outbound) and whose Role is a "PIC ..." or "Backup PIC ..." tier (see
+// STAFF_ROLE_OPTIONS/normalizeStaffRole), and who's actually on duty TODAY per staffSchedule (i.e.
+// not 'Off' or 'Leave' — 'Normal'/'Day'/'Night' all count as working). If more than one person
+// matches a slot (e.g. 2 PIC Pickers both on shift), all their names show joined by ", " rather
+// than picking just one arbitrarily.
+function staffStatusToday(staff) {
+  return (staffSchedule[staff.id] && staffSchedule[staff.id][todayStr()]) || 'Normal';
+}
+function staffOnDutyToday(staff) {
+  const status = staffStatusToday(staff);
+  return status !== 'Off' && status !== 'Leave';
+}
+function dashDutyNamesFor(department, tierPrefix) {
+  return staffRoster
+    .filter(s => s.active !== false && s.department === department && String(s.role || '').startsWith(tierPrefix) && staffOnDutyToday(s))
+    .map(s => s.name)
+    .filter(Boolean);
+}
+// Same idea but matched against the FULL role string (e.g. 'PIC Picker') rather than just the
+// tier prefix — used where Picker and Packer need to be shown as separate rows instead of lumped
+// together under one "PIC"/"Backup PIC" line.
+function dashDutyNamesForExactRole(department, exactRole) {
+  return staffRoster
+    .filter(s => s.active !== false && s.department === department && String(s.role || '') === exactRole && staffOnDutyToday(s))
+    .map(s => s.name)
+    .filter(Boolean);
+}
+// Headcount actually on duty TODAY for a function (Picker/Packer/Receiver) within a department —
+// counts EVERY tier (plain staff, PIC, Backup PIC all still physically work that function day to
+// day), same "not Off/Leave" definition as staffOnDutyToday, so it moves in step with the PIC rows.
+function dashDutyManpowerCount(department, fn) {
+  return staffRoster.filter(s => s.active !== false && s.department === department && staffRoleFunction(s.role) === fn && staffOnDutyToday(s)).length;
+}
+// Total on-duty headcount for a WHOLE department, regardless of function — used for Inbound, which
+// (unlike Outbound's Picker/Packer split) is shown as one combined row.
+function dashDutyManpowerTotal(department) {
+  return staffRoster.filter(s => s.active !== false && s.department === department && staffOnDutyToday(s)).length;
+}
+// Same shape as the Manpower counters above, but counting who's marked 'Leave' TODAY specifically
+// (not 'Off' — Off just means not scheduled to work that day at all, Leave is an actual absence).
+function dashDutyLeaveCount(department, fn) {
+  return staffRoster.filter(s => s.active !== false && s.department === department && staffRoleFunction(s.role) === fn && staffStatusToday(s) === 'Leave').length;
+}
+function dashDutyLeaveTotal(department) {
+  return staffRoster.filter(s => s.active !== false && s.department === department && staffStatusToday(s) === 'Leave').length;
+}
+function renderDashDutyBarForModule(wrapId, department, icon, moduleLabel) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  const nameListOrDash = (names) => names.length ? escapeHtml(names.join(', ')) : '—';
+  const pic = dashDutyNamesFor(department, 'PIC ');
+  const backup = dashDutyNamesFor(department, 'Backup PIC ');
+  const manpower = dashDutyManpowerTotal(department);
+  const onLeave = dashDutyLeaveTotal(department);
+  wrap.innerHTML = `<div class="dash-duty-item">${icon} ${escapeHtml(moduleLabel)} PIC: <strong>${nameListOrDash(pic)}</strong> &nbsp;|&nbsp; Backup: <strong>${nameListOrDash(backup)}</strong> &nbsp;|&nbsp; 👥 Manpower: <strong>${manpower}</strong> &nbsp;|&nbsp; 🏖️ On Leave: <strong>${onLeave}</strong></div>`;
+}
+// The date itself now lives in each slide's own title (" — 2 Sep 2026", same pattern the Fleet
+// slide's title already used) rather than as a separate line in the duty bar below it.
+// Outbound has 2 functions sharing one department (Picker + Packer), so — unlike Inbound, which is
+// just Receiver — its PIC/Backup PIC are shown as 2 separate rows instead of one combined line.
+function renderDashDutyBarOutbound() {
+  const title = document.getElementById('outboundDashTitle');
+  if (title) title.textContent = `Outbound Performance Summary`;
+  const wrap = document.getElementById('dashDutyBarOutbound');
+  if (!wrap) return;
+  const nameListOrDash = (names) => names.length ? escapeHtml(names.join(', ')) : '—';
+  const pickerPic = dashDutyNamesForExactRole('Outbound', 'PIC Picker');
+  const pickerBackup = dashDutyNamesForExactRole('Outbound', 'Backup PIC Picker');
+  const packerPic = dashDutyNamesForExactRole('Outbound', 'PIC Packer');
+  const packerBackup = dashDutyNamesForExactRole('Outbound', 'Backup PIC Packer');
+  const pickerManpower = dashDutyManpowerCount('Outbound', 'Picker');
+  const packerManpower = dashDutyManpowerCount('Outbound', 'Packer');
+  const pickerLeave = dashDutyLeaveCount('Outbound', 'Picker');
+  const packerLeave = dashDutyLeaveCount('Outbound', 'Packer');
+  wrap.innerHTML = `
+    <div class="dash-duty-item">🧺 Picker PIC: <strong>${nameListOrDash(pickerPic)}</strong> &nbsp;|&nbsp; Backup: <strong>${nameListOrDash(pickerBackup)}</strong> &nbsp;|&nbsp; 👥 Manpower: <strong>${pickerManpower}</strong> &nbsp;|&nbsp; 🏖️ On Leave: <strong>${pickerLeave}</strong></div>
+    <div class="dash-duty-divider"></div>
+    <div class="dash-duty-item">📦 Packer PIC: <strong>${nameListOrDash(packerPic)}</strong> &nbsp;|&nbsp; Backup: <strong>${nameListOrDash(packerBackup)}</strong> &nbsp;|&nbsp; 👥 Manpower: <strong>${packerManpower}</strong> &nbsp;|&nbsp; 🏖️ On Leave: <strong>${packerLeave}</strong></div>
+  `;
+}
+function renderDashDutyBarInbound() {
+  const title = document.getElementById('inboundDashTitle');
+  if (title) title.textContent = `Inbound Performance Summary`;
+  renderDashDutyBarForModule('dashDutyBarInbound', 'Inbound', '📥', 'Inbound');
+}
 
 // Every boutique name the system already knows about, from ANY existing data — outbound STO
 // records, printed DO records (used by Operation Fleet), and boutiques already registered in SLA
@@ -5780,6 +6067,7 @@ function getCurrentUser() {
 // user can be granted access via one module without the other.
 const PERMISSION_TABS = [
   { id: 'dashboard', label: 'Dashboard' },
+  { id: 'dashboard-summary', label: 'Dashboard Summary' },
   { id: 'senarai', label: 'STO List (Outbound)' },
   { id: 'papan', label: 'Progress Board (Outbound)' },
   { id: 'delivered-outbound', label: 'Delivery Status (Outbound)' },
@@ -8391,7 +8679,7 @@ function fleetDashTodayRows() {
 }
 
 function renderFleetDashKpis() {
-  document.getElementById('fleetDashTitle').textContent = `Fleet Schedule Summary — ${formatDateLabel(todayStr())}`;
+  document.getElementById('fleetDashTitle').textContent = `Fleet Schedule Summary`;
   const rows = fleetDashTodayRows();
   const countFor = (label) => rows.filter(r => r.statusLabel === label).length;
   const cards = [
@@ -8590,12 +8878,339 @@ function renderReportRangeNote() {
 // exist. Mark a card `neutralAtZero: true` to opt into this; totals/stage counts that are already
 // neutral-colored (cls: '') are unaffected either way.
 function reportKpiHtml(cards) {
-  return cards.map(c => {
+  return cards.map((c, i) => {
     const cls = (c.neutralAtZero && Number(c.num) === 0) ? '' : c.cls;
-    return `<div class="kpi-card ${cls}"><div class="kpi-num">${c.num}</div><div class="kpi-label">${escapeHtml(c.label)}</div></div>`;
+    // First card in any Reports KPI grid is always the running "Total" — styled as the hero number
+    // (see .report-kpi-primary) so it reads first, with the rest as supporting breakdown detail.
+    const primaryCls = i === 0 ? ' report-kpi-primary' : '';
+    return `<div class="kpi-card${primaryCls} ${cls}"><div class="kpi-num">${c.num}</div><div class="kpi-label">${escapeHtml(c.label)}</div></div>`;
   }).join('');
 }
 
+// Executive summary strip — a handful of big headline numbers up top (Total + one risk/attention
+// figure per in-scope module), so opening this tab gives the whole picture before scrolling into
+// any section's detail. Respects the module filter, same as everything else on this tab.
+function renderReportExecSummary() {
+  const wrap = document.getElementById('reportExecSummaryWrap');
+  if (!wrap) return;
+  const moduleKey = document.getElementById('reportModuleSelect').value;
+  const stats = [];
+  if (moduleKey === 'all' || moduleKey === 'outbound') {
+    const outRange = records.filter(r => reportDateInRange(r.createdDate));
+    let late = 0;
+    outRange.forEach(r => { if (computeAmaran(r) === 'LATE') late++; });
+    stats.push({ num: outRange.length, label: 'Total Outbound STO' });
+    stats.push({ num: late, label: 'Late STO', warn: late > 0 });
+  }
+  if (moduleKey === 'all' || moduleKey === 'fleet') {
+    const tripsInRange = fleetTrips.filter(t => reportDateInRange(t.date));
+    let stops = 0;
+    tripsInRange.forEach(t => { stops += fleetTripDestinationsArray(t).length; });
+    stats.push({ num: stops, label: 'Fleet Stops' });
+  }
+  if (moduleKey === 'all' || moduleKey === 'inbound') {
+    const inRange = inboundRecords.filter(r => reportDateInRange(r.createdDate));
+    const gmRange = garmentOrders.filter(b => reportDateInRange(b.orderDate));
+    let critical = 0;
+    inRange.forEach(r => { if (inboundComputeAmaran(r) === 'CRITICAL') critical++; });
+    stats.push({ num: inRange.length + gmRange.length, label: 'Total Inbound' });
+    stats.push({ num: critical, label: 'Critical Inbound', warn: critical > 0 });
+  }
+  wrap.innerHTML = stats.map((s, i) => {
+    const divider = i > 0 ? `<div class="report-exec-divider"></div>` : '';
+    return `${divider}<div class="report-exec-stat${s.warn ? ' warn' : ''}"><div class="report-exec-num">${formatQty(s.num)}</div><div class="report-exec-label">${escapeHtml(s.label)}</div></div>`;
+  }).join('');
+}
+// One slim proportion bar + legend per module — a status split reads as a single shape instead of
+// needing to compare several separate KPI numbers by eye. Empty segments list (nothing in range at
+// all) renders nothing, which the .report-health-bar-wrap:empty CSS rule collapses cleanly.
+function reportHealthBarHtml(segments) {
+  const total = segments.reduce((s, x) => s + x.count, 0);
+  if (!total) return '';
+  const bar = segments.map(seg => {
+    const pct = (seg.count / total) * 100;
+    return pct > 0 ? `<div class="report-health-bar-segment" style="flex:0 0 ${pct}%; background:${seg.color};" title="${escapeHtml(seg.label)}: ${seg.count}"></div>` : '';
+  }).join('');
+  const legend = segments.filter(seg => seg.count > 0).map(seg => {
+    const pct = Math.round((seg.count / total) * 100);
+    return `<div class="report-health-legend-item"><span class="report-health-legend-dot" style="background:${seg.color};"></span><strong>${seg.count}</strong> ${escapeHtml(seg.label)} (${pct}%)</div>`;
+  }).join('');
+  return `<div class="report-health-bar">${bar}</div><div class="report-health-legend">${legend}</div>`;
+}
+// Dashboard Summary tab — a compact, always-live cross-module snapshot for a boss/exec view (no
+// date range picker, unlike Reports; every number is "right now", not a range). Headline stats
+// reuse the same .report-exec-summary styling as Reports' Executive Summary. Module Health and
+// Today's Target Achievement render as small doughnut/pie charts (center % + dot-legend below)
+// rather than the horizontal bars used in Reports, since a quick visual scan is the point here.
+// Needs Attention pulls the worst few items across all 3 modules into one short combined list so
+// a boss doesn't have to open each tab separately to see what's urgent.
+let dashSummaryCharts = {};
+function renderDashboardSummary() {
+  renderDashSummaryExec();
+  renderDashSummaryOutboundPie();
+  renderDashSummaryInboundPie();
+  renderDashSummaryGarmentPie();
+  renderDashSummaryFleetPie();
+  renderDashSummaryPickerTargetPie();
+  renderDashSummaryPackerTargetPie();
+  renderDashSummaryInboundTargetPie();
+  renderDashSummaryAttentionList();
+}
+function renderDashSummaryExec() {
+  const wrap = document.getElementById('dashSummaryExecWrap');
+  if (!wrap) return;
+  const activeSto = records.filter(r => r.progress !== 'Shipped');
+  const lateSto = activeSto.filter(r => computeAmaran(r) === 'LATE').length;
+
+  const openInboundSto = inboundRecords.filter(r => (r.progress || 'Active') !== 'Complete');
+  const criticalInboundSto = openInboundSto.filter(r => inboundComputeAmaran(r) === 'CRITICAL').length;
+
+  const openGarment = garmentOrders.filter(b => garmentBatchStatus(b) !== 'Complete');
+  const criticalGarment = openGarment.filter(b => garmentComputeAmaran(b) === 'CRITICAL').length;
+
+  const fleetToday = fleetTrips.filter(t => t.date === todayStr()).length;
+
+  const stats = [
+    { num: activeSto.length, label: 'Active Outbound STO' },
+    { num: lateSto, label: 'Late Outbound STO', warn: lateSto > 0 },
+    { num: openInboundSto.length, label: 'Open Inbound STO' },
+    { num: openGarment.length, label: 'Open Garment Batches' },
+    { num: criticalInboundSto, label: 'Critical Inbound STO', warn: criticalInboundSto > 0 },
+    { num: criticalGarment, label: 'Critical Garment', warn: criticalGarment > 0 },
+    { num: fleetToday, label: 'Fleet Trips Today' },
+  ];
+  wrap.innerHTML = stats.map((s, i) =>
+    `${i > 0 ? '<div class="report-exec-divider"></div>' : ''}<div class="report-exec-stat${s.warn ? ' warn' : ''}"><div class="report-exec-num">${formatQty(s.num)}</div><div class="report-exec-label">${escapeHtml(s.label)}</div></div>`
+  ).join('');
+}
+// Generic status-breakdown doughnut: colored ring + a SHORT center number only (e.g. "82%" — never
+// combined with a word, so it can't overflow the small circle) + a bold qualifier line (e.g.
+// "Normal") plus a dot-legend of raw counts, both rendered BELOW the circle instead of crammed
+// inside it. Used for the 4 Module Health cards (Outbound / Inbound STO / Garment / Fleet Today).
+function dashSummaryDonut(canvasId, pctElId, legendElId, segments, pct, color, qualifierLabel, emptyMsg) {
+  const canvas = document.getElementById(canvasId);
+  const pctEl = document.getElementById(pctElId);
+  const legendEl = document.getElementById(legendElId);
+  if (!canvas || !pctEl || !legendEl) return;
+  if (dashSummaryCharts[canvasId]) { dashSummaryCharts[canvasId].destroy(); dashSummaryCharts[canvasId] = null; }
+  const total = segments.reduce((s, x) => s + x.count, 0);
+  if (!total) {
+    pctEl.textContent = '—';
+    pctEl.style.color = '';
+    legendEl.textContent = emptyMsg || 'No data yet.';
+    return;
+  }
+  pctEl.textContent = pct + '%';
+  pctEl.style.color = color;
+  const dots = segments.filter(s => s.count > 0).map(s =>
+    `<div style="display:flex; align-items:center; gap:5px; justify-content:center;"><span style="width:7px; height:7px; border-radius:50%; background:${s.color}; flex:0 0 auto;"></span>${s.count} ${escapeHtml(s.label)}</div>`
+  ).join('');
+  legendEl.innerHTML = `<div style="font-weight:700; color:${color}; margin-bottom:5px;">${escapeHtml(qualifierLabel)}</div>${dots}`;
+  dashSummaryCharts[canvasId] = new Chart(canvas.getContext('2d'), {
+    type: 'doughnut',
+    data: { labels: segments.map(s => s.label), datasets: [{ data: segments.map(s => s.count), backgroundColor: segments.map(s => s.color), borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: false } } }
+  });
+}
+function renderDashSummaryOutboundPie() {
+  let late = 0, akan = 0, ok = 0;
+  records.filter(r => r.progress !== 'Shipped').forEach(r => {
+    const a = computeAmaran(r);
+    if (a === 'LATE') late++; else if (a === 'Due Soon') akan++; else if (a === 'OK') ok++;
+  });
+  const total = late + akan + ok;
+  const normalPct = total ? Math.round((ok / total) * 100) : 0;
+  dashSummaryDonut('dashSummaryOutboundPie', 'dashSummaryOutboundPct', 'dashSummaryOutboundLegend', [
+    { label: 'Late', count: late, color: KPI_COLOR_HEX.red },
+    { label: 'Due Soon', count: akan, color: KPI_COLOR_HEX.amber },
+    { label: 'Normal', count: ok, color: KPI_COLOR_HEX.green },
+  ], normalPct, targetBarHex(normalPct), 'Normal', 'No active STO right now.');
+}
+function renderDashSummaryInboundPie() {
+  let critical = 0, warning = 0, ok = 0;
+  inboundRecords.filter(r => (r.progress || 'Active') !== 'Complete').forEach(r => {
+    const a = inboundComputeAmaran(r);
+    if (a === 'CRITICAL') critical++; else if (a === 'WARNING') warning++; else if (a === 'OK') ok++;
+  });
+  const total = critical + warning + ok;
+  const normalPct = total ? Math.round((ok / total) * 100) : 0;
+  dashSummaryDonut('dashSummaryInboundPie', 'dashSummaryInboundPct', 'dashSummaryInboundLegend', [
+    { label: 'Critical', count: critical, color: KPI_COLOR_HEX.red },
+    { label: 'Warning', count: warning, color: KPI_COLOR_HEX.amber },
+    { label: 'Normal', count: ok, color: KPI_COLOR_HEX.green },
+  ], normalPct, targetBarHex(normalPct), 'Normal', 'No open inbound STO right now.');
+}
+function renderDashSummaryGarmentPie() {
+  let pending = 0, partial = 0, complete = 0;
+  garmentOrders.forEach(b => {
+    const s = garmentBatchStatus(b);
+    if (s === 'Pending') pending++; else if (s === 'Partial') partial++; else if (s === 'Complete') complete++;
+  });
+  const total = pending + partial + complete;
+  const completePct = total ? Math.round((complete / total) * 100) : 0;
+  dashSummaryDonut('dashSummaryGarmentPie', 'dashSummaryGarmentPct', 'dashSummaryGarmentLegend', [
+    { label: 'Complete', count: complete, color: KPI_COLOR_HEX.green },
+    { label: 'Partial', count: partial, color: KPI_COLOR_HEX.amber },
+    { label: 'Pending', count: pending, color: KPI_COLOR_HEX.red },
+  ], completePct, targetBarHex(completePct), 'Complete', 'No garment orders yet.');
+}
+function renderDashSummaryFleetPie() {
+  const tripsToday = fleetTrips.filter(t => t.date === todayStr());
+  const destStatuses = [];
+  tripsToday.forEach(t => { fleetTripDestinationsArray(t).forEach(dest => destStatuses.push(fleetTripDestinationEffectiveStatus(t, dest))); });
+  const countFor = (s) => destStatuses.filter(x => x === s).length;
+  const delivered = countFor('Completed');
+  const total = destStatuses.length;
+  const deliveredPct = total ? Math.round((delivered / total) * 100) : 0;
+  dashSummaryDonut('dashSummaryFleetPie', 'dashSummaryFleetPct', 'dashSummaryFleetLegend', [
+    { label: 'Delivered', count: delivered, color: KPI_COLOR_HEX.green },
+    { label: 'Out of Delivery', count: countFor('Out of Delivery'), color: KPI_COLOR_HEX.amber },
+    { label: 'Scheduled', count: countFor('Scheduled'), color: KPI_COLOR_HEX.blue },
+    { label: 'Reschedule', count: countFor('Reschedule'), color: KPI_COLOR_HEX.amber },
+    { label: 'No Trip', count: countFor('No Trip'), color: KPI_COLOR_HEX.track },
+  ], deliveredPct, targetBarHex(deliveredPct), 'Delivered', 'No trips scheduled today.');
+}
+// Achieved-vs-target doughnut (green/amber/red ring "filled" up to Achieved%, grey for the rest) —
+// same visual language as the existing Dashboard's Picker/Packer/Inbound target donuts, just sized
+// down for this summary row. Honors Campaign Mode's live-backlog fallback exactly like those do.
+function renderDashSummaryTargetDonut(canvasId, pctElId, legendElId, achieved, target, usingBacklog, emptyMsg) {
+  const canvas = document.getElementById(canvasId);
+  const pctEl = document.getElementById(pctElId);
+  const legendEl = document.getElementById(legendElId);
+  if (!canvas || !pctEl || !legendEl) return;
+  if (dashSummaryCharts[canvasId]) { dashSummaryCharts[canvasId].destroy(); dashSummaryCharts[canvasId] = null; }
+  if (!target) {
+    pctEl.textContent = '—';
+    pctEl.style.color = '';
+    legendEl.textContent = emptyMsg;
+    return;
+  }
+  const rawPct = Math.round((achieved / target) * 100);
+  const displayPct = Math.min(100, rawPct);
+  const color = targetBarHex(rawPct);
+  pctEl.textContent = rawPct + '%';
+  pctEl.style.color = color;
+  legendEl.textContent = usingBacklog ? `${formatQty(achieved)} / ${formatQty(target)} pcs (backlog)` : `${formatQty(achieved)} / ${formatQty(target)} pcs today`;
+  dashSummaryCharts[canvasId] = new Chart(canvas.getContext('2d'), {
+    type: 'doughnut',
+    data: { labels: ['Achieved', 'Remaining'], datasets: [{ data: [displayPct, 100 - displayPct], backgroundColor: [color, KPI_COLOR_HEX.track], borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+  });
+}
+function renderDashSummaryPickerTargetPie() {
+  const achieved = pickerTodayTotalQty();
+  let target = Number(effectiveDailyTarget('picker')) || 0;
+  let usingBacklog = false;
+  if (!target && !campaignMode) { target = pickerBacklogQty() + achieved; usingBacklog = true; }
+  renderDashSummaryTargetDonut('dashSummaryPickerPie', 'dashSummaryPickerPct', 'dashSummaryPickerLegend', achieved, target, usingBacklog, campaignMode ? 'No picker target set.' : 'No picking backlog right now.');
+}
+function renderDashSummaryPackerTargetPie() {
+  const achieved = packerTodayTotalQty();
+  let target = Number(effectiveDailyTarget('packer')) || 0;
+  let usingBacklog = false;
+  if (!target && !campaignMode) { target = packerBacklogQty() + achieved; usingBacklog = true; }
+  renderDashSummaryTargetDonut('dashSummaryPackerPie', 'dashSummaryPackerPct', 'dashSummaryPackerLegend', achieved, target, usingBacklog, campaignMode ? 'No packer target set.' : 'No packing backlog right now.');
+}
+function renderDashSummaryInboundTargetPie() {
+  const achieved = inboundTodayTotalQty();
+  let target = Number(effectiveDailyTarget('inbound')) || 0;
+  let usingBacklog = false;
+  if (!target && !campaignMode) { target = inboundBacklogQty() + achieved; usingBacklog = true; }
+  renderDashSummaryTargetDonut('dashSummaryInboundTargetPie', 'dashSummaryInboundTargetPct', 'dashSummaryInboundTargetLegend', achieved, target, usingBacklog, campaignMode ? 'No inbound target set.' : 'No inbound backlog right now.');
+}
+// Combined "worst of the worst" list across all 3 modules — top 3 most-overdue Outbound STOs, top
+// 2 most-critical Inbound STOs, top 2 most-critical Garment batches — so a boss sees exactly what
+// needs attention without opening each tab separately. Empty state reads as reassuring, not blank.
+function renderDashSummaryAttentionList() {
+  const wrap = document.getElementById('dashSummaryAttentionWrap');
+  if (!wrap) return;
+  const rows = [];
+  records.filter(r => r.progress !== 'Shipped' && computeAmaran(r) === 'LATE')
+    .map(r => ({ r, due: computeDueDate(r) }))
+    .sort((a, b) => daysDiffFromToday(a.due) - daysDiffFromToday(b.due))
+    .slice(0, 3)
+    .forEach(({ r, due }) => rows.push({ module: '📦 Outbound', ref: r.orderNumber, party: r.toWarehouse || '-', detail: `${Math.abs(daysDiffFromToday(due))} days late` }));
+
+  inboundRecords.filter(r => (r.progress || 'Active') !== 'Complete' && inboundComputeAmaran(r) === 'CRITICAL')
+    .map(r => ({ r, waiting: inboundDaysWaiting(r) || 0 }))
+    .sort((a, b) => b.waiting - a.waiting)
+    .slice(0, 2)
+    .forEach(({ r, waiting }) => rows.push({ module: '📥 Inbound STO', ref: r.orderNumber, party: r.fromBoutique || '-', detail: `${waiting} days waiting` }));
+
+  garmentOrders.filter(b => garmentBatchStatus(b) !== 'Complete' && garmentComputeAmaran(b) === 'CRITICAL')
+    .map(b => ({ b, waiting: garmentDaysWaiting(b) || 0 }))
+    .sort((a, b) => b.waiting - a.waiting)
+    .slice(0, 2)
+    .forEach(({ b, waiting }) => rows.push({ module: '🧵 Garment', ref: b.batchNo, party: b.garmentName || '-', detail: `${waiting} days waiting` }));
+
+  if (!rows.length) { wrap.innerHTML = `<div class="empty-state">Nothing urgent right now — all modules healthy.</div>`; return; }
+  let html = `<table><thead><tr><th>Module</th><th>Ref</th><th>Boutique / Name</th><th>Status</th></tr></thead><tbody>`;
+  rows.forEach(row => {
+    html += `<tr><td>${row.module}</td><td class="mono-name">${escapeHtml(row.ref || '-')}</td><td>${escapeHtml(row.party)}</td><td><span class="badge badge-red">${escapeHtml(row.detail)}</span></td></tr>`;
+  });
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+}
+function renderReportOutboundHealthBar() {
+  const wrap = document.getElementById('reportOutboundHealthBar');
+  if (!wrap) return;
+  const outRange = records.filter(r => reportDateInRange(r.createdDate));
+  let late = 0, akan = 0, ok = 0;
+  outRange.forEach(r => {
+    const a = computeAmaran(r);
+    if (a === 'LATE') late++; else if (a === 'Due Soon') akan++; else if (a === 'OK') ok++;
+  });
+  wrap.innerHTML = reportHealthBarHtml([
+    { label: 'Late', count: late, color: KPI_COLOR_HEX.red },
+    { label: 'Due Soon', count: akan, color: KPI_COLOR_HEX.amber },
+    { label: 'Normal', count: ok, color: KPI_COLOR_HEX.green },
+  ]);
+}
+function renderReportFleetHealthBar() {
+  const wrap = document.getElementById('reportFleetHealthBar');
+  if (!wrap) return;
+  const tripsInRange = fleetTrips.filter(t => reportDateInRange(t.date));
+  const destStatuses = [];
+  tripsInRange.forEach(t => { fleetTripDestinationsArray(t).forEach(dest => destStatuses.push(fleetTripDestinationEffectiveStatus(t, dest))); });
+  const countFor = (s) => destStatuses.filter(x => x === s).length;
+  wrap.innerHTML = reportHealthBarHtml([
+    { label: 'Delivered', count: countFor('Completed'), color: KPI_COLOR_HEX.green },
+    { label: 'Out of Delivery', count: countFor('Out of Delivery'), color: KPI_COLOR_HEX.amber },
+    { label: 'Scheduled', count: countFor('Scheduled'), color: KPI_COLOR_HEX.blue },
+    { label: 'Reschedule', count: countFor('Reschedule'), color: KPI_COLOR_HEX.amber },
+    { label: 'No Trip', count: countFor('No Trip'), color: KPI_COLOR_HEX.track },
+  ]);
+}
+function renderReportInboundHealthBar() {
+  const wrap = document.getElementById('reportInboundHealthBar');
+  if (!wrap) return;
+  const inRange = inboundRecords.filter(r => reportDateInRange(r.createdDate));
+  let critical = 0, warning = 0, ok = 0;
+  inRange.forEach(r => {
+    const a = inboundComputeAmaran(r);
+    if (a === 'CRITICAL') critical++; else if (a === 'WARNING') warning++; else if (a === 'OK') ok++;
+  });
+  wrap.innerHTML = reportHealthBarHtml([
+    { label: 'Critical', count: critical, color: KPI_COLOR_HEX.red },
+    { label: 'Warning', count: warning, color: KPI_COLOR_HEX.amber },
+    { label: 'Normal', count: ok, color: KPI_COLOR_HEX.green },
+  ]);
+}
+function renderReportGarmentHealthBar() {
+  const wrap = document.getElementById('reportGarmentHealthBar');
+  if (!wrap) return;
+  const gmRange = garmentOrders.filter(b => reportDateInRange(b.orderDate));
+  let pending = 0, partial = 0, complete = 0;
+  gmRange.forEach(b => {
+    const s = garmentBatchStatus(b);
+    if (s === 'Pending') pending++; else if (s === 'Partial') partial++; else if (s === 'Complete') complete++;
+  });
+  wrap.innerHTML = reportHealthBarHtml([
+    { label: 'Complete', count: complete, color: KPI_COLOR_HEX.green },
+    { label: 'Partial', count: partial, color: KPI_COLOR_HEX.amber },
+    { label: 'Pending', count: pending, color: KPI_COLOR_HEX.red },
+  ]);
+}
 // Sum of the Daily Target (Team Setup -> Daily Targets Overall) that actually applied on each
 // calendar day between fromIso/toIso inclusive — weekday and weekend days use their own separate
 // number, same as effectiveDailyTarget does for "today" alone, just added up across a whole range.
@@ -8778,8 +9393,10 @@ function renderButikPerformanceTable() {
   if (!keys.length) { wrap.innerHTML = `<div class="empty-state">No data yet.</div>`; return; }
 
   let html = `<table><thead><tr><th>Boutique</th><th>Total STO</th><th>Total Qty</th><th>Late</th><th>Due Soon</th><th>Normal</th><th>Risk Rate</th></tr></thead><tbody>`;
+  const grand = { total: 0, qty: 0, lewat: 0, akan: 0, ok: 0 };
   keys.sort().forEach(k => {
     const g = groups[k];
+    grand.total += g.total; grand.qty += g.qty; grand.lewat += g.lewat; grand.akan += g.akan; grand.ok += g.ok;
     const kadar = g.total ? Math.round(((g.lewat + g.akan) / g.total) * 100) : 0;
     html += `<tr>
       <td class="mono-name">${escapeHtml(k)}</td>
@@ -8791,6 +9408,17 @@ function renderButikPerformanceTable() {
       <td>${kadar}%</td>
     </tr>`;
   });
+  // A formal report reads as incomplete without a grand total row closing out every column.
+  const grandKadar = grand.total ? Math.round(((grand.lewat + grand.akan) / grand.total) * 100) : 0;
+  html += `<tr class="report-detail-total-row">
+    <td>TOTAL (${keys.length} boutique${keys.length === 1 ? '' : 's'})</td>
+    <td>${grand.total}</td>
+    <td>${formatQty(grand.qty)}</td>
+    <td>${grand.lewat}</td>
+    <td>${grand.akan}</td>
+    <td>${grand.ok}</td>
+    <td>${grandKadar}%</td>
+  </tr>`;
   html += `</tbody></table>`;
   wrap.innerHTML = html;
 }
@@ -8813,16 +9441,24 @@ function applyReportModuleFilter() {
 }
 function renderLaporan() {
   renderReportRangeNote();
+  renderReportExecSummary();
   renderReportOutboundKpis();
+  renderReportOutboundHealthBar();
   renderReportOutboundTargetKpis();
   renderReportFleetKpis();
+  renderReportFleetHealthBar();
   renderReportInboundKpis();
+  renderReportInboundHealthBar();
   renderReportGarmentKpis();
+  renderReportGarmentHealthBar();
   renderReportInboundTargetKpis();
   renderButikPerformanceTable();
   applyReportModuleFilter();
 }
-document.getElementById('reportModuleSelect').addEventListener('change', applyReportModuleFilter);
+document.getElementById('reportModuleSelect').addEventListener('change', () => {
+  applyReportModuleFilter();
+  renderReportExecSummary();
+});
 function applyReportRange(fromVal, toVal) {
   if (fromVal && toVal && fromVal > toVal) { alert('"From" date must be on or before "To" date.'); return; }
   reportRangeFrom = fromVal || null;
@@ -8870,9 +9506,9 @@ function reportPct(n, total) {
 function reportRangeLabelText() {
   return (reportRangeFrom && reportRangeTo)
     ? (reportRangeFrom === reportRangeTo ? formatDateLabel(reportRangeFrom) : `${formatDateLabel(reportRangeFrom)} - ${formatDateLabel(reportRangeTo)}`)
-    : reportRangeFrom ? `Dari ${formatDateLabel(reportRangeFrom)}`
-    : reportRangeTo ? `Sehingga ${formatDateLabel(reportRangeTo)}`
-    : 'Keseluruhan (semua tarikh)';
+    : reportRangeFrom ? `From ${formatDateLabel(reportRangeFrom)}`
+    : reportRangeTo ? `Until ${formatDateLabel(reportRangeTo)}`
+    : 'All dates';
 }
 
 // Each module builds its OWN block of lines (no header, no trailing blank line) — the full summary
@@ -8987,7 +9623,7 @@ function buildReportTopLateLines() {
   });
   const topLate = Object.entries(groups).filter(([, g]) => g.lewat > 0).sort((a, b) => b[1].lewat - a[1].lewat).slice(0, 5);
   if (!topLate.length) return [];
-  return ['*🔴 BOUTIQUE PERLU PERHATIAN (Late)*', ...topLate.map(([name, g]) => `• ${name}: ${g.lewat} Late${g.akan ? `, ${g.akan} Due Soon` : ''}`)];
+  return ['*🔴 BOUTIQUES NEEDING ATTENTION (Late)*', ...topLate.map(([name, g]) => `• ${name}: ${g.lewat} Late${g.akan ? `, ${g.akan} Due Soon` : ''}`)];
 }
 
 function buildReportSummaryText() {
@@ -13274,6 +13910,7 @@ function renderInboundTargetProgress() {
 }
 
 function renderInboundDashboard() {
+  renderDashDutyBarInbound();
   renderInboundKpis();
   renderGarmentKpis();
   renderInboundCharts();
@@ -13299,6 +13936,19 @@ function renderInboundAll() {
 
 document.getElementById('todayLabel').textContent =
   new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+// Live digital clock + day/date in the Dashboard topbar — ticks every second, independent of any
+// tab render cycle, so it stays accurate even if the Dashboard tab sits open all day on a TV screen.
+function updateDashTopbarClock() {
+  const timeEl = document.getElementById('dashClockTime');
+  const dateEl = document.getElementById('dashClockDate');
+  if (!timeEl || !dateEl) return;
+  const now = new Date();
+  timeEl.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+  dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+updateDashTopbarClock();
+setInterval(updateDashTopbarClock, 1000);
 
 loadData();
 stationPresenceHeartbeat(); // refresh this device's own station presence right away, don't wait up to 60s
