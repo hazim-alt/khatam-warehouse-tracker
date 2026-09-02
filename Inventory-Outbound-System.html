@@ -794,7 +794,18 @@
       <button class="tab-btn" data-tab="fleet-driver-trip">Driver Trip</button>
       <button class="tab-btn" data-tab="delivered" data-perm="delivered-fleet">Delivery Status</button>
     </div>
-    <button class="tab-btn" data-tab="stations">Team Setup</button>
+    <button type="button" class="nav-group-toggle" id="navGroupTeamToggle" data-group="navGroupTeam">
+      <span>Team Setup</span><span class="nav-group-chevron">▾</span>
+    </button>
+    <div class="nav-group" id="navGroupTeam">
+      <button class="tab-btn" data-tab="team-targets">Daily Targets</button>
+      <button class="tab-btn" data-tab="team-pickers">Pickers</button>
+      <button class="tab-btn" data-tab="team-rollcages">Rollcages / Trolleys</button>
+      <button class="tab-btn" data-tab="team-packing">Packing Stations</button>
+      <button class="tab-btn" data-tab="team-receiving">Receive Stations</button>
+      <button class="tab-btn" data-tab="team-drivers">Drivers</button>
+      <button class="tab-btn" data-tab="team-admin">Admin &amp; Access</button>
+    </div>
     <button class="tab-btn" data-tab="staff-schedule">Staff Schedule</button>
     <button class="tab-btn" data-tab="laporan">Reports</button>
   </nav>
@@ -1201,7 +1212,7 @@
     </div>
   </section>
 
-  <section class="tab-panel" id="tab-stations">
+  <section class="tab-panel" id="tab-team-targets">
     <p class="section-title">Daily Targets (Overall)</p>
     <div class="card" style="margin-bottom:24px;">
       <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
@@ -1244,7 +1255,9 @@
         <span class="data-note" id="dailyTargetsDirtyNote" style="margin:0; color:var(--amber); display:none;">Unsaved changes — click Save before leaving this tab.</span>
       </div>
     </div>
+  </section>
 
+  <section class="tab-panel" id="tab-team-pickers">
     <p class="section-title">Pickers</p>
     <div class="card" style="margin-bottom:24px;">
       <div class="form-grid" style="grid-template-columns: 1fr auto; margin-bottom:16px;">
@@ -1264,7 +1277,9 @@
         <span class="data-note" id="pickersDirtyNote" style="margin:0; color:var(--amber); display:none;">Unsaved changes — click Save before leaving this tab.</span>
       </div>
     </div>
+  </section>
 
+  <section class="tab-panel" id="tab-team-rollcages">
     <p class="section-title">Rollcages / Trolleys</p>
     <div class="card" style="margin-bottom:24px;">
       <div class="form-grid" style="grid-template-columns: 1fr auto; margin-bottom:16px;">
@@ -1283,7 +1298,9 @@
         <span class="data-note" id="rollcagesDirtyNote" style="margin:0; color:var(--amber); display:none;">Unsaved changes — click Save before leaving this tab.</span>
       </div>
     </div>
+  </section>
 
+  <section class="tab-panel" id="tab-team-packing">
     <p class="section-title">Packing Stations</p>
     <div class="card">
       <div class="form-grid" style="grid-template-columns: 1fr 1.4fr auto; margin-bottom:16px;">
@@ -1306,7 +1323,9 @@
         <span class="data-note" id="packingStationsDirtyNote" style="margin:0; color:var(--amber); display:none;">Unsaved changes — click Save before leaving this tab.</span>
       </div>
     </div>
+  </section>
 
+  <section class="tab-panel" id="tab-team-receiving">
     <p class="section-title">Receive Stations</p>
     <div class="card">
       <div class="form-grid" style="grid-template-columns: 1fr 1.4fr auto; margin-bottom:16px;">
@@ -1329,7 +1348,9 @@
         <span class="data-note" id="receiveStationsDirtyNote" style="margin:0; color:var(--amber); display:none;">Unsaved changes — click Save before leaving this tab.</span>
       </div>
     </div>
+  </section>
 
+  <section class="tab-panel" id="tab-team-drivers">
     <p class="section-title">Drivers</p>
     <div class="card">
       <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr auto; margin-bottom:16px;">
@@ -1356,8 +1377,10 @@
         <span class="data-note" id="driversDirtyNote" style="margin:0; color:var(--amber); display:none;">Unsaved changes — click Save before leaving this tab.</span>
       </div>
     </div>
+  </section>
 
-    <p class="section-title" style="margin-top:24px;">Admin Password (Operation Fleet)</p>
+  <section class="tab-panel" id="tab-team-admin">
+    <p class="section-title" style="margin-top:0;">Admin Password (Operation Fleet)</p>
     <div class="card">
       <div class="data-note" style="margin:0 0 14px;">Once a trip's date is in the past, it becomes a locked log — editing it (moving its card, changing driver/destination/DO, plate no., deleting it, or scheduling a brand-new trip for that day) needs this Admin password first. Leave this blank to leave past dates unlocked (no change from before). This is a soft lock stored in this browser only, same as driver passwords — not real server-side security.</div>
       <div class="form-grid" style="grid-template-columns: 1fr auto;">
@@ -1375,7 +1398,7 @@
     <div id="userMgmtSection" style="display:none;">
       <p class="section-title" style="margin-top:24px;">Users &amp; Access (Login)</p>
       <div class="card">
-        <div class="data-note" style="margin:0 0 14px;">Each staff logs in with their own username &amp; password, and only sees the tabs you tick for them below. Admin/Team Lead accounts always have full access to everything, including this page. Team Setup itself is always Admin-only — it's not one of the toggle-able tabs. This login is stored in this browser only, same as the other passwords in this app — a soft access-control layer, not real server-side security.</div>
+        <div class="data-note" style="margin:0 0 14px;">Each staff logs in with their own username &amp; password, and only sees the tabs you tick for them below. Admin/Team Lead accounts always have full access to everything, including this page. Within Team Setup, "Admin &amp; Access" (this page — Admin Password, Users, Cloud Sync) always stays Admin/Team Lead-only no matter what — it's not one of the toggle-able tabs. The other Team Setup pages (Daily Targets, Pickers, Rollcages / Trolleys, Packing Stations, Receive Stations, Drivers) CAN be individually granted below, same as any other tab. This login is stored in this browser only, same as the other passwords in this app — a soft access-control layer, not real server-side security.</div>
         <div id="usersTableWrap"></div>
         <button type="button" class="btn-primary" id="addUserBtn" style="margin-top:12px;">+ Add User</button>
       </div>
@@ -1542,6 +1565,11 @@
           <option value="inbound">📥 Inbound (STO + Garment Order)</option>
         </select>
         <button type="button" class="btn-primary" id="reportCopySummaryBtn">📋 Copy</button>
+        <select id="reportExportTypeSelect" title="Summary = totals/percentages per section. Details = full row-by-row list.">
+          <option value="summary">Summary</option>
+          <option value="details">Details</option>
+        </select>
+        <button type="button" class="btn-primary" id="reportDownloadExcelBtn">⬇ Download Excel</button>
       </div>
       <div class="data-note" id="reportRangeNote" style="margin-bottom:16px;"></div>
 
@@ -2976,6 +3004,15 @@ function daysDiffFromToday(iso) {
   const today = new Date(todayStr() + 'T00:00:00');
   const d = new Date(iso + 'T00:00:00');
   return Math.round((d - today) / 86400000);
+}
+// General from/to day-count, used for "how long did this actually take" duration columns in Reports
+// (e.g. Created Date -> completion date) — returns null when either date is missing, i.e. not
+// finished yet, rather than a misleading 0 or negative number.
+function daysBetweenIso(fromIso, toIso) {
+  if (!fromIso || !toIso) return null;
+  const a = new Date(fromIso + 'T00:00:00');
+  const b = new Date(toIso + 'T00:00:00');
+  return Math.round((b - a) / 86400000);
 }
 function addDays(iso, n) {
   const d = new Date(iso + 'T00:00:00');
@@ -5729,9 +5766,14 @@ function getCurrentUser() {
   if (!username) return null;
   return loadAppUsers().find(u => u.username === username) || null;
 }
-// Every tab that can be individually granted to a non-Admin user. "Team Setup" (stations) is
-// deliberately NOT in this list — it holds Admin Password / Users management / Drivers, and stays
-// Admin/Team Lead-only no matter what, so a non-admin can never be manually granted it by mistake.
+// Every tab that can be individually granted to a non-Admin user. Team Setup used to be ONE
+// Admin-only "stations" tab holding everything (Daily Targets, Pickers, Rollcages, Packing/Receive
+// Stations, Drivers, Admin Password, Users, Cloud Sync) — it's since been split into separate pages
+// so most of them CAN be granted individually below (e.g. a shift lead who only needs Pickers +
+// Packing Stations, without handing them Users & Access or the Admin Password too). Only
+// 'team-admin' (Admin Password / Users management / Cloud Sync) is deliberately NOT in this list —
+// see the blanket block in userCanAccessTab below — since those control who-can-do-what and
+// cross-device sync, so they stay Admin/Team Lead-only no matter what.
 // Note: "Delivery Status" is ONE physical tab/panel, but it has two separate nav entries (one
 // under Outbound, one under Fleet) — each entry is gated by its own permission id below
 // ('delivered-outbound' / 'delivered-fleet', matched via each button's data-perm attribute), so a
@@ -5751,12 +5793,19 @@ const PERMISSION_TABS = [
   { id: 'fleet-board', label: 'Trip Schedule (Fleet)' },
   { id: 'fleet-driver-trip', label: 'Driver Trip (Fleet)' },
   { id: 'delivered-fleet', label: 'Delivery Status (Fleet)' },
+  { id: 'team-targets', label: 'Daily Targets (Team Setup)' },
+  { id: 'team-pickers', label: 'Pickers (Team Setup)' },
+  { id: 'team-rollcages', label: 'Rollcages / Trolleys (Team Setup)' },
+  { id: 'team-packing', label: 'Packing Stations (Team Setup)' },
+  { id: 'team-receiving', label: 'Receive Stations (Team Setup)' },
+  { id: 'team-drivers', label: 'Drivers (Team Setup)' },
   { id: 'laporan', label: 'Reports' },
 ];
 function userCanAccessTab(user, tabId) {
   if (!user) return false;
   if (user.isAdmin) return true;
-  if (tabId === 'stations') return false;
+  // Admin Password / Users management / Cloud Sync — always Admin/Team Lead-only, never grantable.
+  if (tabId === 'team-admin') return false;
   // Staff Roster/Schedule used to live inside Admin-only Team Setup before it got its own tab —
   // keeping it Admin/Team Lead-only preserves that same access level rather than accidentally
   // opening it up to anyone via PERMISSION_TABS.
@@ -8991,6 +9040,249 @@ document.getElementById('reportCopySummaryBtn').addEventListener('click', (e) =>
   copyTextToClipboard(text, e.currentTarget);
 });
 
+// --- Report -> Excel/CSV export --------------------------------------------------------------
+// Same numbers as the on-screen KPI cards / "Copy" text (recomputed independently, same reasoning
+// as buildReportOutboundLines etc. — stays correct even if the visual layout changes later), just
+// laid out as a plain Section / Metric / Count / Percent table instead of WhatsApp-style lines, so
+// it's easy for anyone to open in Excel, skim, sort, or drop into a pivot table.
+function buildExcelOutboundRows() {
+  const outRange = records.filter(r => reportDateInRange(r.createdDate));
+  const outStage = {}; PROGRESS_OPTIONS.forEach(p => { outStage[p] = 0; });
+  let outLate = 0, outAkan = 0, outOk = 0;
+  outRange.forEach(r => {
+    const p = r.progress || 'Active';
+    if (outStage[p] !== undefined) outStage[p]++;
+    const a = computeAmaran(r);
+    if (a === 'LATE') outLate++; else if (a === 'Due Soon') outAkan++; else if (a === 'OK') outOk++;
+  });
+  const outTotal = outRange.length;
+  const outActiveTotal = outLate + outAkan + outOk;
+  const rows = [['Outbound', 'Total STO', outTotal, '']];
+  PROGRESS_OPTIONS.forEach(p => rows.push(['Outbound', PROGRESS_LABELS[p] || p, outStage[p], reportPct(outStage[p], outTotal)]));
+  rows.push(['Outbound', 'Late', outLate, reportPct(outLate, outActiveTotal)]);
+  rows.push(['Outbound', 'Due Soon', outAkan, reportPct(outAkan, outActiveTotal)]);
+  rows.push(['Outbound', 'Normal', outOk, reportPct(outOk, outActiveTotal)]);
+  // Avg Duration = Created Date -> Packing Complete, averaged across only the ones that actually
+  // reached Packing Complete within the range — not everything in-flight, since those don't have a
+  // real duration yet.
+  const outDurations = outRange.map(r => daysBetweenIso(r.createdDate, r.packingCompletedDate)).filter(d => d !== null);
+  if (outDurations.length) {
+    const avgDuration = Math.round((outDurations.reduce((s, d) => s + d, 0) / outDurations.length) * 10) / 10;
+    rows.push(['Outbound', 'Avg Duration to Pack Complete (days)', avgDuration, `n=${outDurations.length}`]);
+  }
+  if (reportRangeFrom && reportRangeTo) {
+    ['picker', 'packer'].forEach(key => {
+      const label = key === 'picker' ? 'Picker' : 'Packer';
+      const achieved = key === 'picker' ? reportPickerAchievedQty() : reportPackerAchievedQty();
+      const target = reportDailyTargetSum(key, reportRangeFrom, reportRangeTo);
+      rows.push(['Outbound', `${label} Target Achieved (pcs)`, achieved, target === null ? 'No target set' : `${formatQty(target)} target (${Math.round((achieved / (target || 1)) * 100)}%)`]);
+    });
+  }
+  return rows;
+}
+function buildExcelFleetRows() {
+  const tripsInRange = fleetTrips.filter(t => reportDateInRange(t.date));
+  const destStatuses = [];
+  tripsInRange.forEach(t => { fleetTripDestinationsArray(t).forEach(dest => destStatuses.push(fleetTripDestinationEffectiveStatus(t, dest))); });
+  const fleetTotal = destStatuses.length;
+  const fleetCountFor = (s) => destStatuses.filter(x => x === s).length;
+  const rows = [['Fleet / Delivery', 'Total Stops', fleetTotal, '']];
+  [['Scheduled', 'Scheduled'], ['Out of Delivery', 'Out of Delivery'], ['Completed', 'Delivered'], ['Reschedule', 'Reschedule'], ['No Trip', 'No Trip']].forEach(([key, label]) => {
+    const n = fleetCountFor(key);
+    rows.push(['Fleet / Delivery', label, n, reportPct(n, fleetTotal)]);
+  });
+  return rows;
+}
+function buildExcelInboundRows() {
+  const inRange = inboundRecords.filter(r => reportDateInRange(r.createdDate));
+  const inStage = { Active: 0, 'On Progress': 0, Complete: 0 };
+  let inCritical = 0, inWarning = 0;
+  inRange.forEach(r => {
+    const s = r.progress || 'Active';
+    if (inStage[s] !== undefined) inStage[s]++;
+    const a = inboundComputeAmaran(r);
+    if (a === 'CRITICAL') inCritical++; else if (a === 'WARNING') inWarning++;
+  });
+  const inTotal = inRange.length;
+  const rows = [
+    ['Inbound - STO From Boutique', 'Total Inbound', inTotal, ''],
+    ['Inbound - STO From Boutique', 'Active', inStage.Active, reportPct(inStage.Active, inTotal)],
+    ['Inbound - STO From Boutique', 'On Progress', inStage['On Progress'], reportPct(inStage['On Progress'], inTotal)],
+    ['Inbound - STO From Boutique', 'Complete', inStage.Complete, reportPct(inStage.Complete, inTotal)],
+    ['Inbound - STO From Boutique', 'Critical', inCritical, reportPct(inCritical, inTotal)],
+    ['Inbound - STO From Boutique', 'Warning', inWarning, reportPct(inWarning, inTotal)],
+  ];
+  // Avg Duration = Created Date -> Receiving Complete, averaged across only the ones actually
+  // received within the range.
+  const inDurations = inRange.map(r => daysBetweenIso(r.createdDate, r.receivingCompletedDate)).filter(d => d !== null);
+  if (inDurations.length) {
+    const avgInDuration = Math.round((inDurations.reduce((s, d) => s + d, 0) / inDurations.length) * 10) / 10;
+    rows.push(['Inbound - STO From Boutique', 'Avg Duration to Receiving Complete (days)', avgInDuration, `n=${inDurations.length}`]);
+  }
+  const gmRange = garmentOrders.filter(b => reportDateInRange(b.orderDate));
+  let gmPending = 0, gmPartial = 0, gmComplete = 0;
+  gmRange.forEach(b => {
+    const s = garmentBatchStatus(b);
+    if (s === 'Pending') gmPending++; else if (s === 'Partial') gmPartial++; else if (s === 'Complete') gmComplete++;
+  });
+  const gmTotal = gmRange.length;
+  rows.push(
+    ['Inbound - Garment Order', 'Total Batch', gmTotal, ''],
+    ['Inbound - Garment Order', 'Pending', gmPending, reportPct(gmPending, gmTotal)],
+    ['Inbound - Garment Order', 'Partial', gmPartial, reportPct(gmPartial, gmTotal)],
+    ['Inbound - Garment Order', 'Complete', gmComplete, reportPct(gmComplete, gmTotal)]
+  );
+  // Avg Duration = Order Date -> Last Received Date, per SKU line, across only SKUs that have
+  // actually received something within the range.
+  const gmDurations = [];
+  gmRange.forEach(b => b.skus.forEach(s => {
+    const d = daysBetweenIso(b.orderDate, s.lastReceivedDate);
+    if (d !== null) gmDurations.push(d);
+  }));
+  if (gmDurations.length) {
+    const avgGmDuration = Math.round((gmDurations.reduce((s, d) => s + d, 0) / gmDurations.length) * 10) / 10;
+    rows.push(['Inbound - Garment Order', 'Avg Duration to Last Received (days)', avgGmDuration, `n=${gmDurations.length}`]);
+  }
+  if (reportRangeFrom && reportRangeTo) {
+    const achieved = reportInboundAchievedQty();
+    const target = reportDailyTargetSum('inbound', reportRangeFrom, reportRangeTo);
+    rows.push(['Inbound (combined)', 'Target Achieved (pcs)', achieved, target === null ? 'No target set' : `${formatQty(target)} target (${Math.round((achieved / (target || 1)) * 100)}%)`]);
+  }
+  return rows;
+}
+function buildExcelBoutiqueRows() {
+  const groups = {};
+  records.filter(r => reportDateInRange(r.createdDate)).forEach(r => {
+    const key = r.toWarehouse || '(No Boutique)';
+    if (!groups[key]) groups[key] = { total: 0, lewat: 0, akan: 0, ok: 0, qty: 0 };
+    groups[key].total++;
+    groups[key].qty += parseFloat(r.totalOrderQty) || 0;
+    const a = computeAmaran(r);
+    if (a === 'LATE') groups[key].lewat++;
+    if (a === 'Due Soon') groups[key].akan++;
+    if (a === 'OK') groups[key].ok++;
+  });
+  return Object.keys(groups).sort().map(k => {
+    const g = groups[k];
+    const kadar = g.total ? Math.round(((g.lewat + g.akan) / g.total) * 100) : 0;
+    return [k, g.total, g.qty, g.lewat, g.akan, g.ok, `${kadar}%`];
+  });
+}
+// --- Details rows: one line per actual record/SKU (not aggregated) — same date-range filter as
+// everything else on this tab, just laid out raw so it can be sorted/filtered/pivoted in Excel.
+function buildExcelOutboundDetailRows() {
+  return records.filter(r => reportDateInRange(r.createdDate)).map(r => {
+    const a = computeAmaran(r);
+    const due = computeDueDate(r);
+    const pickerNames = (r.pickerInfo && r.pickerInfo.names) ? r.pickerInfo.names.filter(Boolean).join(', ') : '';
+    // Duration = Created Date -> Packing Complete (the last outbound milestone before it hands off
+    // to Fleet for actual delivery) — blank/"-" while still in progress, not yet a real duration.
+    const duration = daysBetweenIso(r.createdDate, r.packingCompletedDate);
+    return [r.orderNumber || '', r.toWarehouse || '', Number(r.totalOrderQty) || 0, r.createdDate || '', due || '', progressLabel(r.progress || 'Active'), amaranLabel(a), pickerNames, r.packingStation || '', duration === null ? '-' : duration];
+  });
+}
+function buildExcelFleetDetailRows() {
+  const rows = [];
+  fleetTrips.filter(t => reportDateInRange(t.date)).forEach(t => {
+    const doNos = Array.isArray(t.doNos) ? t.doNos.join(', ') : '';
+    fleetTripDestinationsArray(t).forEach(dest => {
+      rows.push([t.date || '', t.driverName || '', fleetTripAssistantsArray(t).join(', '), dest, fleetTripDestinationEffectiveStatus(t, dest), doNos]);
+    });
+  });
+  return rows;
+}
+function buildExcelInboundDetailRows() {
+  return inboundRecords.filter(r => reportDateInRange(r.createdDate)).map(r => {
+    const a = inboundComputeAmaran(r);
+    const waiting = inboundDaysWaiting(r);
+    // Duration = Created Date -> Receiving Complete — blank/"-" while still waiting to be received.
+    const duration = daysBetweenIso(r.createdDate, r.receivingCompletedDate);
+    return [r.orderNumber || '', r.fromBoutique || '', Number(r.totalOrderQty) || 0, r.createdDate || '', waiting === null ? '' : waiting, r.progress || 'Active', amaranLabel(a), r.receivingCompletedDate || '', duration === null ? '-' : duration];
+  });
+}
+function buildExcelGarmentDetailRows() {
+  const rows = [];
+  garmentOrders.filter(b => reportDateInRange(b.orderDate)).forEach(b => {
+    b.skus.forEach(s => {
+      // Duration = Order Date -> Last Received Date — blank/"-" for a SKU never received yet.
+      const duration = daysBetweenIso(b.orderDate, s.lastReceivedDate);
+      rows.push([b.batchNo || '', b.garmentName || '', b.orderDate || '', s.sku || '', Number(s.qtyOrder) || 0, Number(s.qtyReceived) || 0, garmentSkuStatus(s), s.lastReceivedDate || '', duration === null ? '-' : duration]);
+    });
+  });
+  return rows;
+}
+document.getElementById('reportDownloadExcelBtn').addEventListener('click', () => {
+  const moduleKey = document.getElementById('reportModuleSelect').value;
+  const exportType = document.getElementById('reportExportTypeSelect').value;
+  const wb = XLSX.utils.book_new();
+  const rangeSlug = (reportRangeFrom && reportRangeTo)
+    ? (reportRangeFrom === reportRangeTo ? reportRangeFrom : `${reportRangeFrom}_to_${reportRangeTo}`)
+    : 'all-time';
+
+  if (exportType === 'details') {
+    if (moduleKey === 'all' || moduleKey === 'outbound') {
+      const sheet = XLSX.utils.aoa_to_sheet([
+        ['STO No.', 'Boutique', 'Qty', 'Created Date', 'Due Date', 'Status', 'Alert', 'Picker(s)', 'Packing Station', 'Duration (days)'],
+        ...buildExcelOutboundDetailRows(),
+      ]);
+      sheet['!cols'] = [{ wch: 16 }, { wch: 26 }, { wch: 10 }, { wch: 13 }, { wch: 13 }, { wch: 12 }, { wch: 10 }, { wch: 20 }, { wch: 16 }, { wch: 14 }];
+      XLSX.utils.book_append_sheet(wb, sheet, 'Outbound STO');
+    }
+    if (moduleKey === 'all' || moduleKey === 'fleet') {
+      const sheet = XLSX.utils.aoa_to_sheet([
+        ['Date', 'Driver', 'Assistant', 'Destination', 'Status', 'DO No(s)'],
+        ...buildExcelFleetDetailRows(),
+      ]);
+      sheet['!cols'] = [{ wch: 13 }, { wch: 20 }, { wch: 20 }, { wch: 26 }, { wch: 16 }, { wch: 30 }];
+      XLSX.utils.book_append_sheet(wb, sheet, 'Fleet Trips');
+    }
+    if (moduleKey === 'all' || moduleKey === 'inbound') {
+      const stoSheet = XLSX.utils.aoa_to_sheet([
+        ['STO No.', 'From Boutique', 'Qty', 'Created Date', 'Days Waiting', 'Status', 'Alert', 'Receiving Completed Date', 'Duration (days)'],
+        ...buildExcelInboundDetailRows(),
+      ]);
+      stoSheet['!cols'] = [{ wch: 16 }, { wch: 26 }, { wch: 10 }, { wch: 13 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 20 }, { wch: 14 }];
+      XLSX.utils.book_append_sheet(wb, stoSheet, 'Inbound STO');
+
+      const gmSheet = XLSX.utils.aoa_to_sheet([
+        ['Batch No.', 'Garment Name', 'Order Date', 'SKU', 'Qty Order', 'Qty Received', 'Status', 'Last Received Date', 'Duration (days)'],
+        ...buildExcelGarmentDetailRows(),
+      ]);
+      gmSheet['!cols'] = [{ wch: 20 }, { wch: 20 }, { wch: 13 }, { wch: 22 }, { wch: 11 }, { wch: 12 }, { wch: 10 }, { wch: 18 }, { wch: 14 }];
+      XLSX.utils.book_append_sheet(wb, gmSheet, 'Garment Order SKUs');
+    }
+    XLSX.writeFile(wb, `report-details-${moduleKey}-${rangeSlug}.xlsx`);
+    return;
+  }
+
+  const summaryRows = [];
+  if (moduleKey === 'all' || moduleKey === 'outbound') summaryRows.push(...buildExcelOutboundRows());
+  if (moduleKey === 'all' || moduleKey === 'fleet') summaryRows.push(...buildExcelFleetRows());
+  if (moduleKey === 'all' || moduleKey === 'inbound') summaryRows.push(...buildExcelInboundRows());
+  const summarySheet = XLSX.utils.aoa_to_sheet([
+    ['REPORT PROGRESS'],
+    [reportRangeLabelText()],
+    [],
+    ['Section', 'Metric', 'Count', 'Percent / Target'],
+    ...summaryRows,
+  ]);
+  summarySheet['!cols'] = [{ wch: 26 }, { wch: 30 }, { wch: 12 }, { wch: 26 }];
+  XLSX.utils.book_append_sheet(wb, summarySheet, 'Ringkasan');
+
+  // Rides along with Outbound, same as the on-screen table (see applyReportModuleFilter).
+  if (moduleKey === 'all' || moduleKey === 'outbound') {
+    const boutiqueRows = buildExcelBoutiqueRows();
+    const boutiqueSheet = XLSX.utils.aoa_to_sheet([
+      ['Boutique', 'Total STO', 'Total Qty', 'Late', 'Due Soon', 'Normal', 'Risk Rate'],
+      ...boutiqueRows,
+    ]);
+    boutiqueSheet['!cols'] = [{ wch: 30 }, { wch: 10 }, { wch: 11 }, { wch: 8 }, { wch: 10 }, { wch: 8 }, { wch: 10 }];
+    XLSX.utils.book_append_sheet(wb, boutiqueSheet, 'Boutique Performance');
+  }
+
+  XLSX.writeFile(wb, `report-summary-${moduleKey}-${rangeSlug}.xlsx`);
+});
+
 /* ---------- Progress Board (Kanban) ---------- */
 let selectedCartons = new Set();
 // Each column filters independently — keyed by "column key". For the 4 non-Packing stages the
@@ -10812,6 +11104,14 @@ function renderAll() {
 const GARMENT_ORDERS_KEY = 'sto_garment_orders_v1';
 let garmentOrders = []; // [{ batchNo, orderDate, skus: [{ sku, size, qtyOrder, qtyReceived, lastReceivedDate }] }]
 let garmentExpandedBatches = new Set(); // in-memory only — which batch cards are open
+// The one batch card currently showing its Order Date as an editable input (in-memory only, like
+// garmentSkuEditingKey below) — Admin/Team Lead only, since Order Date drives every "duration"/
+// date-range calculation across Reports for this batch.
+let garmentBatchDateEditingKey = null;
+// Same idea, for the Received Date shown once a batch has actually received something — corrects a
+// wrong/late-logged date (e.g. staff only got round to logging it in the system days after it
+// physically happened). Admin/Team Lead only, since it feeds Reports/duration/daily totals too.
+let garmentBatchReceivedDateEditingKey = null;
 function loadGarmentOrders() {
   try { garmentOrders = JSON.parse(localStorage.getItem(GARMENT_ORDERS_KEY)) || []; } catch (e) { garmentOrders = []; }
   // Migrate from the old flat structure (one row = one batch = one SKU) to the new nested
@@ -11048,6 +11348,12 @@ function migrateGarmentPutawayAssignments() {
   // says. This also acts as an ongoing self-healing safety net, not just a one-time migration.
   rollcages.forEach(rc => {
     (rc.putawayItems || []).forEach(it => {
+      // Already confirmed via its own SKU tile in the Putaway tab (see toggleRollcageSkuPutawayDone)
+      // — it's kept in putawayItems just so the tile stays visible and green, so it's NOT still
+      // physically pending despite still being in this array. Without this check, this reconcile
+      // loop would re-inject a fresh "pending" assignment on every page load and silently undo her
+      // tick.
+      if (it.done) return;
       const b = garmentOrders.find(bb => bb.batchNo === it.batchNo);
       const s = b && b.skus.find(sk => sk.sku === it.sku);
       if (!s) return;
@@ -11109,6 +11415,13 @@ function garmentBatchTotals(batch) {
   const qtyReceived = batch.skus.reduce((sum, s) => sum + (Number(s.qtyReceived) || 0), 0);
   return { qtyOrder, qtyReceived };
 }
+// Most recent lastReceivedDate across every SKU in the batch — the date the batch's receiving was
+// actually finished (or last touched), null if nothing's been received yet at all.
+function garmentBatchLastReceivedDate(batch) {
+  const dates = batch.skus.map(s => s.lastReceivedDate).filter(Boolean);
+  if (!dates.length) return null;
+  return dates.reduce((max, d) => (d > max ? d : max));
+}
 // Status is evaluated per-SKU (not off the raw summed pcs) so a "Close Short" on one SKU is
 // respected — otherwise a batch could stay stuck on Partial forever even after every SKU inside
 // it has been resolved.
@@ -11139,7 +11452,14 @@ function garmentBatchPutawayStatus(batch) {
   const assignments = [];
   batch.skus.forEach(s => { (s.putawayAssignments || []).forEach(a => assignments.push(a)); });
   if (!assignments.length) return null;
-  return assignments.every(a => a.status === 'done') ? 'Done' : 'Pending';
+  // "Pending" vs "Done" is derived live from rc.putawayItems — whatever's ACTUALLY still sitting in
+  // a rollcage right now, not yet ticked — rather than trusting each assignment's own .status field.
+  // That field can drift out of sync (a stale "pending" left behind by a renamed/deleted rollcage,
+  // or one written before an older version of this reconcile logic existed) and would otherwise
+  // permanently stick a fully-shelved batch on "Pending" forever with no way to clear it.
+  const skuSet = new Set(batch.skus.map(s => s.sku));
+  const stillPending = rollcages.some(rc => (rc.putawayItems || []).some(it => it.batchNo === batch.batchNo && skuSet.has(it.sku) && !it.done));
+  return stillPending ? 'Pending' : 'Done';
 }
 function garmentPutawayBadgeClass(status) { return status === 'Done' ? 'badge-green' : 'badge-amber'; }
 // Called once a rollcage's "Putaway Done" is clicked — cascades that completion down to every SKU
@@ -11337,13 +11657,38 @@ function renderGarmentOrderTab() {
     const expanded = garmentExpandedBatches.has(batch.batchNo) || !!searchQ.trim();
     // Collapsed cards sit as compact tiles in the grid; an opened card spans the full grid
     // width so its SKU table/add-SKU form has enough room instead of squeezing into one tile.
+    // Once a batch is fully wrapped up (receiving Complete AND putaway Done/not applicable), only
+    // Admin/Team Lead can still delete it — everyone else can keep editing it (adjust qty, close
+    // short, etc.) but the ✕ is hidden entirely rather than shown-then-blocked, so it's clear at a
+    // glance who can act on it. Still-pending batches stay deletable by anyone as before.
+    const isFullyDone = isBatchFullyDone(batch);
+    const currentUser = getCurrentUser();
+    const canDeleteBatch = !isFullyDone || !!(currentUser && currentUser.isAdmin);
+    const lastReceivedDate = garmentBatchLastReceivedDate(batch);
     return `<div class="card garment-batch-card" style="padding:0; overflow:hidden;${expanded ? ' grid-column: 1 / -1;' : ''}">
       <div class="garment-batch-header" data-batch="${escapeHtml(batch.batchNo)}" style="padding:14px 16px; cursor:pointer;">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;">
           <span class="mono-name" style="font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(batch.batchNo)}</span>
-          <button type="button" class="icon-btn remove-garment-batch-btn" data-batch="${escapeHtml(batch.batchNo)}" title="Delete batch">✕</button>
+          ${canDeleteBatch ? `<button type="button" class="icon-btn remove-garment-batch-btn" data-batch="${escapeHtml(batch.batchNo)}" title="Delete batch">✕</button>` : ''}
         </div>
-        <div class="data-note" style="margin:0 0 10px;">${formatDateLabel(batch.orderDate)}</div>
+        <div class="data-note garment-batch-date-row" data-batch="${escapeHtml(batch.batchNo)}" style="margin:0 0 4px; display:flex; align-items:center; gap:6px;">
+          <span style="color:var(--text-muted); font-size:10px; text-transform:uppercase; letter-spacing:0.03em;">Order:</span>
+          ${garmentBatchDateEditingKey === batch.batchNo
+            ? `<input type="date" class="garment-batch-date-input" data-batch="${escapeHtml(batch.batchNo)}" value="${escapeHtml(batch.orderDate || '')}" style="max-width:150px;">
+               <button type="button" class="icon-btn garment-batch-date-save-btn" data-batch="${escapeHtml(batch.batchNo)}" title="Save">✓</button>
+               <button type="button" class="icon-btn garment-batch-date-cancel-btn" data-batch="${escapeHtml(batch.batchNo)}" title="Cancel">✕</button>`
+            : `<span>${formatDateLabel(batch.orderDate)}</span>${(currentUser && currentUser.isAdmin) ? `<button type="button" class="icon-btn garment-batch-date-edit-btn" data-batch="${escapeHtml(batch.batchNo)}" title="Edit Order Date (Admin/Team Lead only)">✎</button>` : ''}`
+          }
+        </div>
+        ${(lastReceivedDate || garmentBatchReceivedDateEditingKey === batch.batchNo) ? `<div class="data-note garment-batch-received-date-row" data-batch="${escapeHtml(batch.batchNo)}" style="margin:0 0 10px; display:flex; align-items:center; gap:6px;">
+          <span style="color:var(--text-muted); font-size:10px; text-transform:uppercase; letter-spacing:0.03em;">Received:</span>
+          ${garmentBatchReceivedDateEditingKey === batch.batchNo
+            ? `<input type="date" class="garment-batch-received-date-input" data-batch="${escapeHtml(batch.batchNo)}" value="${escapeHtml(lastReceivedDate || '')}" style="max-width:150px;">
+               <button type="button" class="icon-btn garment-batch-received-date-save-btn" data-batch="${escapeHtml(batch.batchNo)}" title="Save">✓</button>
+               <button type="button" class="icon-btn garment-batch-received-date-cancel-btn" data-batch="${escapeHtml(batch.batchNo)}" title="Cancel">✕</button>`
+            : `<span>${formatDateLabel(lastReceivedDate)}</span>${(currentUser && currentUser.isAdmin) ? `<button type="button" class="icon-btn garment-batch-received-date-edit-btn" data-batch="${escapeHtml(batch.batchNo)}" title="Edit Received Date (Admin/Team Lead only) — applies to every SKU already received in this batch">✎</button>` : ''}`
+          }
+        </div>` : ''}
         <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;">
           <span class="data-note" style="margin:0;">${batch.skus.length} SKU · ${formatQty(qtyReceived)}/${formatQty(qtyOrder)} pcs</span>
           <span class="badge ${garmentStatusBadgeClass(status)}">Receive: ${status}</span>
@@ -11398,7 +11743,7 @@ function renderGarmentOrderTab() {
   // it bails out of the toggle instead of also opening/closing the card.
   wrap.querySelectorAll('.garment-batch-header').forEach(header => {
     header.addEventListener('click', (e) => {
-      if (e.target.closest('.remove-garment-batch-btn')) return;
+      if (e.target.closest('.remove-garment-batch-btn') || e.target.closest('.garment-batch-date-row') || e.target.closest('.garment-batch-received-date-row')) return;
       const batchNo = header.dataset.batch;
       if (garmentExpandedBatches.has(batchNo)) garmentExpandedBatches.delete(batchNo);
       else garmentExpandedBatches.add(batchNo);
@@ -11438,6 +11783,82 @@ function renderGarmentOrderTab() {
         renderRollcagesList();
         renderRollcageUsageBoards();
       }
+    });
+  });
+
+  // Order Date edit — Admin/Team Lead only (the ✎ button itself is only rendered for them, see
+  // garmentBatchCardHtml above), since this date drives every Reports duration/date-range
+  // calculation for the batch, not just a display label.
+  wrap.querySelectorAll('.garment-batch-date-edit-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      garmentBatchDateEditingKey = btn.dataset.batch;
+      renderGarmentOrderTab();
+    });
+  });
+  wrap.querySelectorAll('.garment-batch-date-cancel-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      garmentBatchDateEditingKey = null;
+      renderGarmentOrderTab();
+    });
+  });
+  wrap.querySelectorAll('.garment-batch-date-save-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const user = getCurrentUser();
+      if (!user || !user.isAdmin) { alert('Admin/Team Lead only.'); garmentBatchDateEditingKey = null; renderGarmentOrderTab(); return; }
+      const batchNo = btn.dataset.batch;
+      const input = wrap.querySelector(`.garment-batch-date-input[data-batch="${CSS.escape(batchNo)}"]`);
+      const newDate = input ? input.value : '';
+      if (!newDate) { alert('Pick a valid date first.'); return; }
+      const batch = garmentOrders.find(b => b.batchNo === batchNo);
+      if (batch) { batch.orderDate = newDate; saveGarmentOrders(); }
+      garmentBatchDateEditingKey = null;
+      renderGarmentOrderTab();
+    });
+  });
+
+  // Received Date edit — Admin/Team Lead only, same reasoning as Order Date above. Corrects
+  // lastReceivedDate on every SKU that's already received something in this batch (never touches a
+  // SKU still sitting at 0 received), plus every garmentReceiveLogs entry for this batch, so the
+  // correction is fully consistent across Duration calcs AND the "today's totals" Reports pull from
+  // that log — a stale log date would otherwise contradict the corrected receiving date everywhere.
+  wrap.querySelectorAll('.garment-batch-received-date-edit-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      garmentBatchReceivedDateEditingKey = btn.dataset.batch;
+      renderGarmentOrderTab();
+    });
+  });
+  wrap.querySelectorAll('.garment-batch-received-date-cancel-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      garmentBatchReceivedDateEditingKey = null;
+      renderGarmentOrderTab();
+    });
+  });
+  wrap.querySelectorAll('.garment-batch-received-date-save-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const user = getCurrentUser();
+      if (!user || !user.isAdmin) { alert('Admin/Team Lead only.'); garmentBatchReceivedDateEditingKey = null; renderGarmentOrderTab(); return; }
+      const batchNo = btn.dataset.batch;
+      const input = wrap.querySelector(`.garment-batch-received-date-input[data-batch="${CSS.escape(batchNo)}"]`);
+      const newDate = input ? input.value : '';
+      if (!newDate) { alert('Pick a valid date first.'); return; }
+      const batch = garmentOrders.find(b => b.batchNo === batchNo);
+      if (batch) {
+        let touched = false;
+        batch.skus.forEach(s => { if (s.lastReceivedDate) { s.lastReceivedDate = newDate; touched = true; } });
+        if (touched) saveGarmentOrders();
+        let logsTouched = false;
+        garmentReceiveLogs.forEach(l => { if (l.batchNo === batchNo) { l.date = newDate; logsTouched = true; } });
+        if (logsTouched) saveGarmentReceiveLogs();
+      }
+      garmentBatchReceivedDateEditingKey = null;
+      renderGarmentOrderTab();
+      renderInboundAll();
     });
   });
 
