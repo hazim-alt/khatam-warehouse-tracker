@@ -2093,6 +2093,20 @@
     <div class="do-form-grid">
       <div class="field"><label>DO No.</label><input type="text" id="doNo" readonly></div>
       <div class="field"><label>DO Issued Date</label><input type="date" id="doDeliveryDate"></div>
+      <div class="field">
+        <label>Delivery Method</label>
+        <select id="doDeliveryMethod">
+          <option value="Own Fleet">Own Fleet</option>
+          <option value="Lalamove">Lalamove</option>
+          <option value="Grab">Grab</option>
+          <option value="Ninja Van">Ninja Van</option>
+          <option value="Other Courier">Other Courier</option>
+        </select>
+      </div>
+      <div class="field" id="doCourierTrackingField" style="display:none;">
+        <label>Courier Tracking No. <span style="color:var(--text-muted); font-weight:400;">(optional)</span></label>
+        <input type="text" id="doCourierTrackingNo" placeholder="e.g. Lalamove order ID">
+      </div>
       <div class="field full data-note" id="doBatchNote" style="margin:-4px 0 0;"></div>
       <div class="field full data-note" id="doLockNote" style="display:none; margin:-4px 0 0;"></div>
     </div>
@@ -3560,7 +3574,7 @@ function updateResetUndoButtons() {
   if (undoInboundStoBtn) undoInboundStoBtn.style.display = localStorage.getItem(INBOUND_STO_RESET_SNAPSHOT_KEY) ? '' : 'none';
 }
 document.getElementById('resetProgressBtn').addEventListener('click', () => {
-  if (!confirm('Reset the Progress Board? Every STO moves back to Active, and any Carton No. / DO No. / picker(s) / packing station already assigned to them is cleared (Carton No. and DO No. counters reset to 0 too). Boutique SLA settings, boutique codes/addresses, label From-details and registered Packing Stations are kept. Click "Undo Reset" right after if this was a mistake — it stops working once you reset again.')) return;
+  if (!confirm('Reset the Progress Board? Every STO moves back to Active, and any Carton No. / DO No. / picker(s) / packing station / rollcage already assigned to them is cleared (Carton No. and DO No. counters reset to 0 too). Boutique SLA settings, boutique codes/addresses, label From-details and registered Packing Stations are kept. Click "Undo Reset" right after if this was a mistake — it stops working once you reset again.')) return;
   localStorage.setItem(PROGRESS_BOARD_RESET_SNAPSHOT_KEY, JSON.stringify({
     records: JSON.parse(JSON.stringify(records)),
     doRecords: JSON.parse(JSON.stringify(doRecords)),
@@ -3578,16 +3592,26 @@ document.getElementById('resetProgressBtn').addEventListener('click', () => {
     delete r.packerName;
     delete r.pickingCompletedDate;
     delete r.packingCompletedDate;
+    delete r.rollcageNos;
+    delete r.rollcageNo;
   });
   saveRecords();
-  localStorage.removeItem(CARTON_COUNTER_KEY);
-  localStorage.removeItem(DO_COUNTER_KEY);
-  localStorage.removeItem(PACKING_STATION_RR_KEY);
+  // These 3 keys are synced SETTINGS (see syncSettingsKeys), and pushSettingsDiff() only ever
+  // pushes a key whose local value is non-null (see its `local !== null` guard) — removeItem()
+  // leaves the key null locally, so the reset would silently never reach Firebase, and the next
+  // realtime settings snapshot (from ANY unrelated change elsewhere) would resurrect the OLD stale
+  // value right back into localStorage, making the reset look like it "didn't work" a moment later
+  // on a synced setup. Writing an explicit reset VALUE instead (same as a real edit would) keeps
+  // pushSettingsDiff() able to see and propagate it.
+  localStorage.setItem(CARTON_COUNTER_KEY, JSON.stringify({}));
+  setDoCounter(0);
+  localStorage.setItem(PACKING_STATION_RR_KEY, '0');
   doRecords = [];
   saveDoRecords();
   selectedCartons.clear();
   renderAll();
   updateResetUndoButtons();
+  pushSettingsDiff();
 });
 document.getElementById('undoResetProgressBtn').addEventListener('click', () => {
   const raw = localStorage.getItem(PROGRESS_BOARD_RESET_SNAPSHOT_KEY);
@@ -3598,12 +3622,15 @@ document.getElementById('undoResetProgressBtn').addEventListener('click', () => 
   saveRecords();
   doRecords = snap.doRecords;
   saveDoRecords();
-  if (snap.cartonCounter !== null) localStorage.setItem(CARTON_COUNTER_KEY, snap.cartonCounter); else localStorage.removeItem(CARTON_COUNTER_KEY);
-  if (snap.doCounter !== null) localStorage.setItem(DO_COUNTER_KEY, snap.doCounter); else localStorage.removeItem(DO_COUNTER_KEY);
-  if (snap.packingStationRR !== null) localStorage.setItem(PACKING_STATION_RR_KEY, snap.packingStationRR); else localStorage.removeItem(PACKING_STATION_RR_KEY);
+  // Same non-null-value requirement as the reset above (see comment there) — write an explicit
+  // fallback value instead of removeItem() so the undo actually propagates over cloud sync too.
+  localStorage.setItem(CARTON_COUNTER_KEY, snap.cartonCounter !== null ? snap.cartonCounter : JSON.stringify({}));
+  localStorage.setItem(DO_COUNTER_KEY, snap.doCounter !== null ? snap.doCounter : '0');
+  localStorage.setItem(PACKING_STATION_RR_KEY, snap.packingStationRR !== null ? snap.packingStationRR : '0');
   localStorage.removeItem(PROGRESS_BOARD_RESET_SNAPSHOT_KEY);
   renderAll();
   updateResetUndoButtons();
+  pushSettingsDiff();
 });
 
 // Scoped to Fleet's own trip scheduling data only — wipes every scheduled/dispatched/delivered
@@ -4615,6 +4642,16 @@ function renderDeliveredTab() {
   // it is. It stays visible on the Progress Board's "DO Issued" column (with its own "Print DO"
   // button) same as before; it just doesn't need a row on this tab too.
   let list = buildDoGroupsFromShippedRecords(shippedRecords).filter(g => !!g.doNo).map(group => {
+    const doRec = doRecords.find(d => d.doNo === group.doNo);
+    const isCourier = !!(doRec && doRec.deliveryMethod && doRec.deliveryMethod !== 'Own Fleet');
+    const totalCarton = group.records.reduce((sum, r) => sum + (r.cartonLock ? r.cartonLock.totalCarton : 0), 0);
+    // Courier DOs (Lalamove/Grab/Other) never have a Fleet trip at all — Outbound's own "Mark
+    // Delivered" click (Progress Board DO Issued card) is what flips this to Delivered instead.
+    if (isCourier) {
+      const status = doRec.courierDeliveredDate ? 'Delivered' : 'Courier — Pending';
+      const dateVal = doRec.courierDeliveredDate || null;
+      return { group, trip: null, doRec, isCourier, status, totalCarton, dateVal };
+    }
     const trip = group.doNo ? fleetTripForDoNo(group.doNo) : null;
     // A DO with no CURRENT trip is either freshly printed (never attempted — "DO Issued") or was
     // freed up after a driver failed to reach it last trip ("Reschedule") — fleetIsDoPostponed
@@ -4623,9 +4660,8 @@ function renderDeliveredTab() {
       : trip.status === 'Completed' ? 'Delivered'
       : trip.status === 'Out of Delivery' ? 'Out of Delivery'
       : 'Scheduled';
-    const totalCarton = group.records.reduce((sum, r) => sum + (r.cartonLock ? r.cartonLock.totalCarton : 0), 0);
     const dateVal = status === 'Delivered' ? (trip && trip.deliveryDate) : (trip && trip.date);
-    return { group, trip, status, totalCarton, dateVal };
+    return { group, trip, doRec, isCourier, status, totalCarton, dateVal };
   });
 
   if (search) {
@@ -4653,6 +4689,7 @@ function renderDeliveredTab() {
   // so DO Issued gets its own distinct hue, kept consistent with the Fleet Dashboard's own badges.
   const statusBadge = (status) => {
     if (status === 'Delivered') return `<span class="badge badge-green">Delivered</span>`;
+    if (status === 'Courier — Pending') return `<span class="badge badge-gold" title="Sent via courier, not yet marked Delivered — see Progress Board's DO Issued column.">Courier — Pending</span>`;
     if (status === 'Out of Delivery') return `<span class="badge badge-amber">Out of Delivery</span>`;
     if (status === 'Scheduled') return `<span class="badge badge-blue">Scheduled</span>`;
     if (status === 'Reschedule') return `<span class="badge badge-red" title="Driver didn't reach this destination last trip — its DO is freed up for a new trip.">⏸ Reschedule</span>`;
@@ -4662,17 +4699,22 @@ function renderDeliveredTab() {
   let html = `<table><thead><tr>
     <th>Boutique</th><th>DO No.</th><th>Status</th><th>Driver</th><th>Assistant</th><th>Total STO</th><th>Total Carton</th><th>Date</th>
   </tr></thead><tbody>`;
-  list.forEach(({ group, trip, status, totalCarton, dateVal }, idx) => {
+  list.forEach(({ group, trip, doRec, isCourier, status, totalCarton, dateVal }, idx) => {
     const assistants = trip ? fleetTripAssistantsArray(trip) : [];
     const doLinkHtml = group.doNo
       ? `<button type="button" class="delivered-do-link" data-do="${escapeHtml(group.doNo)}">${escapeHtml(group.doNo)}</button>`
       : 'No DO yet';
+    // Courier DOs show the delivery method (Lalamove/Grab/Other) + tracking no. in place of a
+    // Driver name — there's no Fleet driver involved for these.
+    const driverCellHtml = isCourier
+      ? `📮 ${escapeHtml(doRec.deliveryMethod)}${doRec.courierTrackingNo ? ' <span style="color:var(--text-muted);">(' + escapeHtml(doRec.courierTrackingNo) + ')</span>' : ''}`
+      : escapeHtml(trip && trip.driverName ? trip.driverName : '-');
     html += `<tr>
       <td>${escapeHtml(group.boutique)}</td>
       <td class="mono-name">${doLinkHtml}</td>
       <td>${statusBadge(status)}</td>
-      <td>${escapeHtml(trip && trip.driverName ? trip.driverName : '-')}</td>
-      <td>${escapeHtml(assistants.length ? assistants.join(', ') : '-')}</td>
+      <td>${driverCellHtml}</td>
+      <td>${escapeHtml(isCourier ? '-' : (assistants.length ? assistants.join(', ') : '-'))}</td>
       <td>${group.records.length ? `<button type="button" class="delivered-sto-link" data-row-idx="${idx}">${group.records.length}</button>` : group.records.length}</td>
       <td>${totalCarton}</td>
       <td>${dateVal ? escapeHtml(formatDateLabel(dateVal)) : '-'}</td>
@@ -7424,6 +7466,7 @@ function autoAttachDoNosToTrips() {
     const current = new Set(t.doNos || []);
     let tripChanged = false;
     doRecords.forEach(d => {
+      if (d.deliveryMethod && d.deliveryMethod !== 'Own Fleet') return; // courier DO — never auto-attaches to a Fleet trip
       if (!d.boutique || !dests.some(dest => boutiqueMatch(dest, d.boutique))) return;
       if (current.has(d.doNo) || takenByOthers.has(d.doNo)) return;
       current.add(d.doNo);
@@ -7478,7 +7521,10 @@ function renderTripDoPicker(excludeTripId) {
     updateDispatchBtnState();
     return;
   }
-  const available = doRecords.filter(d => alreadyOnThisTrip.has(d.doNo) || (!taken.has(d.doNo) && [...fleetSelectedDestinationChips].some(dest => boutiqueMatch(dest, d.boutique)))).slice()
+  // Courier DOs (Lalamove/Grab/Other) never show up here — Outbound already decided those skip
+  // Fleet entirely when the DO was printed (see doDeliveryMethod), so there's nothing for a driver
+  // trip to pick up.
+  const available = doRecords.filter(d => (!d.deliveryMethod || d.deliveryMethod === 'Own Fleet') && (alreadyOnThisTrip.has(d.doNo) || (!taken.has(d.doNo) && [...fleetSelectedDestinationChips].some(dest => boutiqueMatch(dest, d.boutique))))).slice()
     .sort((a, b) => (b.createdDate || '').localeCompare(a.createdDate || ''));
   if (!available.length) {
     wrap.innerHTML = `<div class="empty-state" style="padding:16px;">No DO printed yet for the selected destination(s) — print one from the Progress Board, or come back later once it's ready.</div>`;
@@ -8570,6 +8616,10 @@ function fleetPendingStoCartonByBoutique() {
   });
   const result = {};
   doRecords.forEach(d => {
+    // Courier DOs (Lalamove/Grab/Other) never touch Fleet at all — Outbound handles them entirely
+    // from the Progress Board, so they're excluded from this Dashboard's "Today's Trips" board too
+    // (which is specifically Fleet's own live ops view of what its drivers still need to cover).
+    if (d.deliveryMethod && d.deliveryMethod !== 'Own Fleet') return;
     if (!d.boutique || completedDoNos.has(d.doNo)) return;
     const bucket = result[d.boutique] || (result[d.boutique] = { sto: 0, carton: 0, doCount: 0 });
     bucket.doCount++;
@@ -10115,6 +10165,12 @@ function doGroupCardHtml(group) {
   // those live on the Delivery Status tab instead.)
   const isPostponed = group.doNo && fleetIsDoPostponed(group.doNo);
   const expanded = kanbanDoGroupExpanded.has(group.key);
+  // Courier DOs (Lalamove/Grab/Other — decided by Outbound at DO-print time, see doDeliveryMethod)
+  // never go through a Fleet trip at all — Outbound marks them Delivered directly right here, which
+  // is what actually removes the card from this column (isDoLockedByDispatch treats a delivered
+  // courier DO the same as a dispatched Own Fleet one).
+  const doRec = group.doNo ? doRecords.find(d => d.doNo === group.doNo) : null;
+  const isCourier = !!(doRec && doRec.deliveryMethod && doRec.deliveryMethod !== 'Own Fleet');
   return `<div class="kanban-card${isSelected ? ' selected' : ''}" draggable="true" data-group-ids='${idsJson}'>
     <div class="kc-top-row">
       <div class="kc-order">${escapeHtml(group.doNo || 'No DO yet')}</div>
@@ -10124,6 +10180,7 @@ function doGroupCardHtml(group) {
     <div class="kc-meta">
       <span>${recs.length} STO${recs.length > 1 ? 's' : ''} · Qty ${formatQty(totalQty)}</span>
       <span class="badge badge-blue" style="padding:2px 7px;">● Done</span>
+      ${isCourier ? `<span class="badge badge-gold" style="padding:2px 7px;" title="${doRec.courierTrackingNo ? 'Tracking: ' + escapeHtml(doRec.courierTrackingNo) : 'No tracking no. entered'}">📮 ${escapeHtml(doRec.deliveryMethod)}</span>` : ''}
       ${isPostponed ? `<span class="badge badge-amber" style="padding:2px 7px;" title="Driver didn't reach this destination last trip — attach it to a new trip when ready.">⏸ Reschedule</span>` : ''}
     </div>
     ${recs.length > 1 ? `
@@ -10132,7 +10189,23 @@ function doGroupCardHtml(group) {
       ${recs.map(r => `<div class="kc-do-group-row"><span class="mono-name">${escapeHtml(r.orderNumber)}</span><span>Qty ${formatQty(r.totalOrderQty)}</span></div>`).join('')}
     </div>` : ''}
     <button type="button" class="kc-do-group-btn" data-group-ids='${idsJson}'>Print DO</button>
+    ${isCourier ? `<button type="button" class="kc-courier-delivered-btn" data-do="${escapeHtml(group.doNo)}" style="margin-top:6px;">✓ Mark Delivered (${escapeHtml(doRec.deliveryMethod)})</button>` : ''}
   </div>`;
+}
+
+// Outbound's own "it's been delivered" confirmation for a courier DO (Lalamove/Grab/Other) — there's
+// no Fleet trip to mark Completed for these, so this is the ONLY thing that closes them out. Once
+// set, isDoLockedByDispatch treats this DO exactly like a dispatched Own Fleet one: it drops off the
+// Progress Board's DO Issued column and stops being eligible to fold new STO(s) into.
+function markCourierDoDelivered(doNo) {
+  const doRec = doRecords.find(d => d.doNo === doNo);
+  if (!doRec) return;
+  const trackingInput = prompt(`Mark "${doNo}" as Delivered via ${doRec.deliveryMethod}.\n\nTracking No. (optional, leave blank to skip):`, doRec.courierTrackingNo || '');
+  if (trackingInput === null) return; // Cancelled
+  if (trackingInput.trim()) doRec.courierTrackingNo = trackingInput.trim();
+  doRec.courierDeliveredDate = todayStr();
+  saveDoRecords();
+  renderKanban();
 }
 
 // Cards belonging to `stage` (and, for Packing, a specific `station` lane — undefined means
@@ -10294,6 +10367,13 @@ function renderKanban() {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       openDOModalForBatch(JSON.parse(btn.dataset.groupIds || '[]'));
+    });
+  });
+
+  board.querySelectorAll('.kc-courier-delivered-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      markCourierDoDelivered(btn.dataset.do);
     });
   });
 
@@ -11005,9 +11085,13 @@ function applyDoLockUI() {
     : '';
 }
 
-// A DO is "closed" once it's actually gone out — any trip carrying its DO No. has reached
-// Out of Delivery or Completed. Before that, it's still fair game to fold more STO(s) into.
+// A DO is "closed" once it's actually gone out — either an Own Fleet trip carrying its DO No. has
+// reached Out of Delivery/Completed, OR (for a courier DO — Lalamove/Grab/Other, which never goes
+// through a Fleet trip at all) Outbound has marked it Delivered themselves (doRec.courierDeliveredDate
+// set — see markCourierDoDelivered). Before that, it's still fair game to fold more STO(s) into.
 function isDoLockedByDispatch(doNo) {
+  const doRec = doRecords.find(d => d.doNo === doNo);
+  if (doRec && doRec.deliveryMethod && doRec.deliveryMethod !== 'Own Fleet') return !!doRec.courierDeliveredDate;
   return fleetTrips.some(t => Array.isArray(t.doNos) && t.doNos.includes(doNo) && (t.status === 'Out of Delivery' || t.status === 'Completed'));
 }
 // Finds an already-printed DO for this boutique that hasn't gone Out of Delivery yet, so a
@@ -11063,16 +11147,29 @@ function openDOModalForBatch(orderNumbers) {
     doCurrentBatch = { orderNumbers: mergedOrderNumbers, boutique: existing.boutique, doNo: existing.doNo };
     document.getElementById('doNo').value = existing.doNo;
     document.getElementById('doDeliveryDate').value = existing.deliveryDate || todayStr();
+    document.getElementById('doDeliveryMethod').value = existing.deliveryMethod || 'Own Fleet';
+    document.getElementById('doCourierTrackingNo').value = existing.courierTrackingNo || '';
   } else {
     doCurrentBatch = { orderNumbers: allOrderNumbers, boutique, doNo: null };
     document.getElementById('doNo').value = formatDoNo(boutique, getDoCounter() + 1);
     document.getElementById('doDeliveryDate').value = todayStr();
+    document.getElementById('doDeliveryMethod').value = 'Own Fleet';
+    document.getElementById('doCourierTrackingNo').value = '';
   }
+  updateDoCourierFieldVisibility();
 
   applyDoLockUI();
   renderDOPreview();
   document.getElementById('doModal').classList.remove('hidden');
 }
+// The Courier Tracking No. field only makes sense once a non-"Own Fleet" method is picked — this is
+// also the moment the Outbound team makes the "does this go via our own driver or a courier" call
+// (see doPrintBtn below, which locks the choice in on the doRec once printed).
+function updateDoCourierFieldVisibility() {
+  const method = document.getElementById('doDeliveryMethod').value;
+  document.getElementById('doCourierTrackingField').style.display = (method === 'Own Fleet') ? 'none' : '';
+}
+document.getElementById('doDeliveryMethod').addEventListener('change', updateDoCourierFieldVisibility);
 function closeDOModal() {
   document.getElementById('doModal').classList.add('hidden');
   doCurrentBatch = null;
@@ -11161,6 +11258,8 @@ document.getElementById('doPrintBtn').addEventListener('click', () => {
 
   if (doRec) {
     doRec.deliveryDate = document.getElementById('doDeliveryDate').value || todayStr();
+    doRec.deliveryMethod = document.getElementById('doDeliveryMethod').value || 'Own Fleet';
+    doRec.courierTrackingNo = (document.getElementById('doCourierTrackingNo').value || '').trim();
     saveDoRecords();
   }
 
