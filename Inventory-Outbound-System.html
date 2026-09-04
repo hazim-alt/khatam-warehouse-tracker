@@ -2188,6 +2188,7 @@
         </select>
         <select id="inboundFilterButik"><option value="">All Boutiques</option></select>
       </div>
+      <div class="data-note" id="inboundStoTotalNote" style="margin-bottom:10px;"></div>
       <div id="inboundStoTableWrap"></div>
     </div>
   </section>
@@ -3328,10 +3329,11 @@ function packerBacklogQty() {
 }
 function inboundBacklogQty() {
   const stoBacklog = inboundRecords.filter(r => !r.receivingCompletedDate).reduce((sum, r) => sum + (parseFloat(r.totalOrderQty) || 0), 0);
-  // garmentBatchTotals/garmentBatchStatus are declared further down in this same script — fine to
-  // reference here since this function only ever runs after the whole script has loaded.
+  // garmentBatchTotalsForBacklog/garmentBatchStatus are declared further down in this same script —
+  // fine to reference here since this function only ever runs after the whole script has loaded.
+  // Merchandise/Accessories SKU lines are excluded from this backlog (see garmentBatchTotalsForBacklog).
   const garmentBacklog = garmentOrders.filter(b => garmentBatchStatus(b) !== 'Complete').reduce((sum, b) => {
-    const t = garmentBatchTotals(b);
+    const t = garmentBatchTotalsForBacklog(b);
     return sum + Math.max(0, t.qtyOrder - t.qtyReceived);
   }, 0);
   return stoBacklog + garmentBacklog;
@@ -4463,7 +4465,10 @@ let pickerTargetChart = null;
 // just because someone forgot to set (or changed) their own personal target.
 function renderPickerTargetProgress() {
   const totalAchieved = pickerTodayTotalQty();
-  let totalTarget = Number(effectiveDailyTarget('picker')) || 0;
+  // Campaign Mode OFF means the target fields in Team Setup are inactive/hidden entirely (per their
+  // own label text), even if a number is still saved in them — so only read the saved figure when
+  // Campaign Mode is actually ON; while OFF this must fall straight through to the backlog below.
+  let totalTarget = campaignMode ? (Number(effectiveDailyTarget('picker')) || 0) : 0;
   let usingBacklog = false;
   if (!totalTarget && !campaignMode) {
     totalTarget = pickerBacklogQty() + totalAchieved;
@@ -4644,7 +4649,8 @@ let packerTargetChart = null;
 // stable regardless of which stations have their own target set.
 function renderPackerTargetProgress() {
   const totalAchieved = packerTodayTotalQty();
-  let totalTarget = Number(effectiveDailyTarget('packer')) || 0;
+  // Same Campaign Mode OFF => ignore the saved figure entirely rule as renderPickerTargetProgress.
+  let totalTarget = campaignMode ? (Number(effectiveDailyTarget('packer')) || 0) : 0;
   let usingBacklog = false;
   if (!totalTarget && !campaignMode) {
     totalTarget = packerBacklogQty() + totalAchieved;
@@ -10805,21 +10811,23 @@ function renderDashSummaryTargetDonut(canvasId, pctElId, legendElId, achieved, t
 }
 function renderDashSummaryPickerTargetPie() {
   const achieved = pickerTodayTotalQty();
-  let target = Number(effectiveDailyTarget('picker')) || 0;
+  // Campaign Mode OFF => ignore whatever's saved in Team Setup entirely, same rule as
+  // renderPickerTargetProgress — only read the saved figure while Campaign Mode is actually ON.
+  let target = campaignMode ? (Number(effectiveDailyTarget('picker')) || 0) : 0;
   let usingBacklog = false;
   if (!target && !campaignMode) { target = pickerBacklogQty() + achieved; usingBacklog = true; }
   renderDashSummaryTargetDonut('dashSummaryPickerPie', 'dashSummaryPickerPct', 'dashSummaryPickerLegend', achieved, target, usingBacklog, campaignMode ? 'No picker target set.' : 'No picking backlog right now.');
 }
 function renderDashSummaryPackerTargetPie() {
   const achieved = packerTodayTotalQty();
-  let target = Number(effectiveDailyTarget('packer')) || 0;
+  let target = campaignMode ? (Number(effectiveDailyTarget('packer')) || 0) : 0;
   let usingBacklog = false;
   if (!target && !campaignMode) { target = packerBacklogQty() + achieved; usingBacklog = true; }
   renderDashSummaryTargetDonut('dashSummaryPackerPie', 'dashSummaryPackerPct', 'dashSummaryPackerLegend', achieved, target, usingBacklog, campaignMode ? 'No packer target set.' : 'No packing backlog right now.');
 }
 function renderDashSummaryInboundTargetPie() {
   const achieved = inboundTodayTotalQty();
-  let target = Number(effectiveDailyTarget('inbound')) || 0;
+  let target = campaignMode ? (Number(effectiveDailyTarget('inbound')) || 0) : 0;
   let usingBacklog = false;
   if (!target && !campaignMode) { target = inboundBacklogQty() + achieved; usingBacklog = true; }
   renderDashSummaryTargetDonut('dashSummaryInboundTargetPie', 'dashSummaryInboundTargetPct', 'dashSummaryInboundTargetLegend', achieved, target, usingBacklog, campaignMode ? 'No inbound target set.' : 'No inbound backlog right now.');
@@ -13583,7 +13591,7 @@ function parseGarmentImportSheet(sheetRows) {
       const cell = r[GARMENT_TEMPLATE_FIXED_COLS];
       const qty = Number(cell);
       if (!cell || !qty) return;
-      out.push({ batchNo, garmentName, sku: sku || 'Item', qtyOrder: qty, orderDate });
+      out.push({ batchNo, garmentName, sku: sku || 'Item', qtyOrder: qty, orderDate, category });
       return;
     }
     const sizeLabels = garmentSizeLabelsForCategory(category);
@@ -13593,7 +13601,7 @@ function parseGarmentImportSheet(sheetRows) {
       const cell = r[GARMENT_TEMPLATE_FIXED_COLS + idx];
       const qty = Number(cell);
       if (!cell || !qty) return; // blank / zero -> that size wasn't ordered
-      out.push({ batchNo, garmentName, sku: sku ? `${sku}-${label}` : label, qtyOrder: qty, orderDate });
+      out.push({ batchNo, garmentName, sku: sku ? `${sku}-${label}` : label, qtyOrder: qty, orderDate, category });
     });
   });
   return out;
@@ -13618,15 +13626,16 @@ function upsertGarmentImportRows(importRows) {
       const existingSku = batch.skus.find(s => (s.sku || '').trim().toLowerCase() === row.sku.toLowerCase());
       if (existingSku) {
         existingSku.qtyOrder = row.qtyOrder;
+        if (row.category) existingSku.category = row.category;
         skusUpdated++;
       } else {
-        batch.skus.push({ sku: row.sku, qtyOrder: row.qtyOrder, qtyReceived: 0 });
+        batch.skus.push({ sku: row.sku, qtyOrder: row.qtyOrder, qtyReceived: 0, category: row.category || '' });
         skusAdded++;
       }
     } else if (!batch.skus.length) {
       // No SKU given and the batch has nothing yet — still create a first line item, same as the
       // manual "Add Batch" form does when SKU is left blank.
-      batch.skus.push({ sku: '', qtyOrder: row.qtyOrder, qtyReceived: 0 });
+      batch.skus.push({ sku: '', qtyOrder: row.qtyOrder, qtyReceived: 0, category: row.category || '' });
       skusAdded++;
     }
   });
@@ -13828,6 +13837,18 @@ function garmentBatchTotals(batch) {
   const qtyOrder = batch.skus.reduce((sum, s) => sum + (Number(s.qtyOrder) || 0), 0);
   const qtyReceived = batch.skus.reduce((sum, s) => sum + (Number(s.qtyReceived) || 0), 0);
   return { qtyOrder, qtyReceived };
+}
+// Same totals, but skipping any SKU line whose Category was Merchandise/Accessories — used only by
+// inboundBacklogQty() so the Inbound receiving target/backlog charts don't count merch/accessories
+// pcs against the receiving KPI. Batch status/progress elsewhere (garmentBatchTotals above) still
+// counts everything, so batch cards themselves are unaffected.
+function garmentBatchTotalsForBacklog(batch) {
+  return (batch.skus || []).reduce((acc, s) => {
+    if (garmentIsQtyOnlyCategory(s.category)) return acc;
+    acc.qtyOrder += Number(s.qtyOrder) || 0;
+    acc.qtyReceived += Number(s.qtyReceived) || 0;
+    return acc;
+  }, { qtyOrder: 0, qtyReceived: 0 });
 }
 // Most recent lastReceivedDate across every SKU in the batch — the date the batch's receiving was
 // actually finished (or last touched), null if nothing's been received yet at all.
@@ -14477,8 +14498,8 @@ function renderGarmentOrderTab() {
         // no "-Size" suffix in that case, the line item is just the SKU (or "Item" if SKU left blank).
         const lineSku = inp.dataset.size ? (sku ? `${sku}-${inp.dataset.size}` : inp.dataset.size) : (sku || 'Item');
         const existing = batch.skus.find(s => (s.sku || '').trim().toLowerCase() === lineSku.toLowerCase());
-        if (existing) existing.qtyOrder = qty;
-        else batch.skus.push({ sku: lineSku, qtyOrder: qty, qtyReceived: 0 });
+        if (existing) { existing.qtyOrder = qty; existing.category = category; }
+        else batch.skus.push({ sku: lineSku, qtyOrder: qty, qtyReceived: 0, category });
         added++;
       });
       if (!added) {
@@ -14535,7 +14556,7 @@ document.getElementById('addGarmentOrderBtn').addEventListener('click', () => {
       const qty = Number(inp.value);
       if (!inp.value || !qty) return;
       const lineSku = inp.dataset.size ? (sku ? `${sku}-${inp.dataset.size}` : inp.dataset.size) : (sku || 'Item');
-      skus.push({ sku: lineSku, qtyOrder: qty, qtyReceived: 0 });
+      skus.push({ sku: lineSku, qtyOrder: qty, qtyReceived: 0, category });
     });
   } else if (sku) {
     skus.push({ sku, qtyOrder: 0, qtyReceived: 0 });
@@ -14700,6 +14721,14 @@ function renderInboundStoTable() {
   if (filterAmaran) list = list.filter(x => x.a === filterAmaran);
   if (filterButik) list = list.filter(x => x.r.fromBoutique === filterButik);
   list.sort((x, y) => (INBOUND_AMARAN_RANK[x.a] - INBOUND_AMARAN_RANK[y.a]) || ((y.waiting || 0) - (x.waiting || 0)));
+
+  // Total pcs across whatever's currently showing (all STOs, or narrowed by the Alert/Boutique
+  // filters above) — the per-row Qty column alone doesn't give her the running total she needs.
+  const totalNoteEl = document.getElementById('inboundStoTotalNote');
+  if (totalNoteEl) {
+    const totalQty = list.reduce((sum, x) => sum + (parseFloat(x.r.totalOrderQty) || 0), 0);
+    totalNoteEl.textContent = `Total: ${formatQty(totalQty)} pcs across ${list.length} STO${list.length === 1 ? '' : 's'}${(filterAmaran || filterButik) ? ' (filtered)' : ''}.`;
+  }
 
   const wrap = document.getElementById('inboundStoTableWrap');
   if (!list.length) { wrap.innerHTML = `<div class="empty-state">No inbound STOs yet. Add one above.</div>`; return; }
@@ -15340,7 +15369,10 @@ let garmentProgressChart = null;
 // Received or Remaining, since it's neither: it's a permanent gap, not something still pending.
 function renderGarmentProgressChart() {
   let totalOrder = 0, totalReceived = 0, totalShort = 0;
+  // Merchandise/Accessories SKU lines are excluded here too — same rule as the Inbound
+  // Target/backlog charts, since they aren't tracked against the receiving KPI.
   garmentOrders.forEach(b => b.skus.forEach(s => {
+    if (garmentIsQtyOnlyCategory(s.category)) return;
     const order = Number(s.qtyOrder) || 0;
     const received = Number(s.qtyReceived) || 0;
     totalOrder += order;
@@ -15414,34 +15446,33 @@ function renderReceiveStationTargetProgress() {
     return { sto, garment };
   };
   if (receiveStations.length && !onShiftStations.length) {
-    const overallTarget = effectiveDailyTarget('inbound');
+    // Campaign Mode OFF => ignore whatever's saved in Team Setup entirely, even if a number is
+    // still sitting in the field — only look at it when Campaign Mode is actually ON.
+    const overallTarget = campaignMode ? effectiveDailyTarget('inbound') : 0;
     const totals = allReceivedTodayTotals();
     if (overallTarget && overallTarget > 0) {
       rows = [{ name: 'Receiving', sto: totals.sto, garment: totals.garment, qty: totals.sto + totals.garment, target: Number(overallTarget) }];
-    } else if (!campaignMode) {
-      // Campaign Mode OFF, no fixed figure — fall back to the live order backlog as the target.
+    } else {
+      // No fixed figure set — fall back to the live order backlog as the target, regardless of
+      // Campaign Mode, so this chart always shows the real outstanding backlog when nothing's set.
       const qty = totals.sto + totals.garment;
       rows = [{ name: 'Receiving', sto: totals.sto, garment: totals.garment, qty, target: inboundBacklogQty() + qty }];
-    } else {
-      rows = [];
     }
   } else {
     // On-shift stations share the same auto-derived target (overall Inbound Daily Target split
-    // evenly across just those on shift right now).
-    const autoCapTarget = effectiveOf(autoIndividualTargetPair('inbound', onShiftStations.length));
+    // evenly across just those on shift right now) — again, only while Campaign Mode is ON.
+    const autoCapTarget = campaignMode ? effectiveOf(autoIndividualTargetPair('inbound', onShiftStations.length)) : 0;
     if (autoCapTarget && autoCapTarget > 0) {
       rows = onShiftStations.map(s => {
         const { sto, garment } = receiveStationTodayQtyBySource(s.name, today);
         return { name: s.name, sto, garment, qty: sto + garment, target: Number(autoCapTarget) };
       });
-    } else if (!campaignMode) {
-      // No fixed number to split per station without a campaign target — collapse to one
-      // aggregate bar for the whole team instead, same backlog-based target as above.
+    } else {
+      // No fixed number to split per station — collapse to one aggregate bar for the whole team
+      // instead, backed by the live order backlog, regardless of Campaign Mode.
       const totals = allReceivedTodayTotals();
       const qty = totals.sto + totals.garment;
       rows = [{ name: 'Receiving', sto: totals.sto, garment: totals.garment, qty, target: inboundBacklogQty() + qty }];
-    } else {
-      rows = [];
     }
   }
   if (rows.length === 1 && rows[0].target === 0) rows = [];
@@ -15656,7 +15687,9 @@ let inboundTargetChart = null;
 // combines boutique-STO receiving with garment order receiving, same as the per-station chart.
 function renderInboundTargetProgress() {
   const totalAchieved = inboundTodayTotalQty();
-  let totalTarget = Number(effectiveDailyTarget('inbound')) || 0;
+  // Campaign Mode OFF => ignore whatever's saved in Team Setup entirely, same rule as
+  // renderPickerTargetProgress/renderPackerTargetProgress.
+  let totalTarget = campaignMode ? (Number(effectiveDailyTarget('inbound')) || 0) : 0;
   let usingBacklog = false;
   if (!totalTarget && !campaignMode) {
     totalTarget = inboundBacklogQty() + totalAchieved;
