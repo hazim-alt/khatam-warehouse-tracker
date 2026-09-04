@@ -584,6 +584,23 @@
   .kanban-card:active { cursor: grabbing; }
   .kanban-card.dragging { opacity: 0.4; }
   .kanban-card.selected { border-color: var(--navy); box-shadow: 0 0 0 1px var(--navy); }
+  .rm-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+  .rm-card {
+    background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--gold);
+    border-radius: 6px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;
+  }
+  .rm-card.rm-card-empty { opacity: 0.5; border-left-color: var(--border); }
+  .rm-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .rm-card-rollno { font-weight: 700; font-family: Georgia, serif; font-size: 14px; color: var(--gold); }
+  .rm-card-fabric { font-size: 12.5px; font-weight: 600; }
+  .rm-card-sub { font-size: 11.5px; color: var(--text-muted); }
+  .rm-card-meter { font-size: 20px; font-weight: 700; line-height: 1.1; }
+  .rm-card-meter-label { font-size: 10.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+  .rm-card-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; gap: 8px; }
+  .rm-card-actions { margin-top: 4px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .rm-card-actions input[type="number"] { width: 72px; padding: 6px 8px; font-size: 12px; flex: none; }
+  .rm-card-actions select { flex: 1; min-width: 90px; padding: 6px 8px; font-size: 12px; }
+  .rm-card-actions button { flex: 1; min-width: 90px; }
   .kanban-card .kc-top-row { display: flex; align-items: flex-start; gap: 6px; margin-bottom: 3px; }
   .kanban-card .kc-select { margin-top: 2px; flex-shrink: 0; cursor: pointer; }
   .kanban-card .kc-order { font-weight: 700; font-family: Georgia, serif; font-size: 13px; word-break: break-word; overflow-wrap: break-word; }
@@ -755,6 +772,24 @@
   .do-form-grid .field.full { grid-column: 1 / -1; }
   .do-form-grid input { width: 100%; }
   .do-form-grid input[readonly] { background: var(--gray-bg); color: var(--text-muted); }
+  .rm-form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 12px; margin-bottom: 16px; }
+  .rm-form-grid.rm-form-grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .rm-form-grid .field.full { grid-column: 1 / -1; }
+  .rm-form-grid .field.full-2 { grid-column: span 2; }
+  .rm-form-grid input { width: 100%; }
+  @media (max-width: 560px) { .rm-form-grid { grid-template-columns: 1fr 1fr; } .rm-form-grid.rm-form-grid-4 { grid-template-columns: 1fr 1fr; } }
+  .rm-form-section-label { font-size: 11px; font-weight: 700; color: var(--gold); text-transform: uppercase; letter-spacing: 0.04em; margin: 4px 0 8px; }
+  .rm-form-divider { border: none; border-top: 1px solid var(--border); margin: 4px 0 16px; }
+  .rm-receive-layout { display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: start; }
+  @media (max-width: 900px) { .rm-receive-layout { grid-template-columns: 1fr; } }
+  .rm-receive-form-card, .rm-receive-summary-card { margin: 0; }
+  .rm-receive-summary-card { position: sticky; top: 12px; }
+  .rm-summary-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 12.5px; padding: 4px 0; }
+  .rm-summary-label { color: var(--text-muted); }
+  .rm-summary-value { font-weight: 600; text-align: right; }
+  .rm-summary-total { text-align: center; margin-top: 6px; }
+  .rm-summary-total-label { font-size: 10.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .rm-summary-total-value { font-size: 28px; font-weight: 800; color: var(--gold); font-family: Georgia, serif; }
 
   .do-preview-wrap { display: flex; justify-content: center; margin-bottom: 18px; overflow-x: auto; padding: 14px; background: #14110f; border-radius: 8px; }
   .do-doc {
@@ -849,6 +884,17 @@
   <nav class="tabs">
     <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
     <button class="tab-btn" data-tab="dashboard-summary">Dashboard Summary</button>
+    <button type="button" class="nav-group-toggle" id="navGroupRawMaterialToggle" data-group="navGroupRawMaterial">
+      <span>Raw Material</span><span class="nav-group-chevron">▾</span>
+    </button>
+    <div class="nav-group" id="navGroupRawMaterial">
+      <button class="tab-btn" data-tab="rm-import">Import Data</button>
+      <button class="tab-btn" data-tab="rm-receive">Receive</button>
+      <button class="tab-btn" data-tab="rm-pick">Pick</button>
+      <button class="tab-btn" data-tab="rm-sto">Create STO</button>
+      <button class="tab-btn" data-tab="rm-stock">Stock Balance</button>
+      <button class="tab-btn" data-tab="rm-history">History</button>
+    </div>
     <button type="button" class="nav-group-toggle" id="navGroupInboundToggle" data-group="navGroupInbound">
       <span>Inbound</span><span class="nav-group-chevron">▾</span>
     </button>
@@ -1215,6 +1261,213 @@
 
       <p class="section-title">⚠️ Needs Attention</p>
       <div class="card" style="margin-bottom:0;"><div id="dashSummaryAttentionWrap" class="scroll-table"></div></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-rm-import">
+    <p class="section-title">Import Data (Raw Material)</p>
+    <div class="card">
+      <p class="rm-form-section-label" style="margin-top:0;">Roll IN + Roll Out (Full Workbook)</p>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <span class="data-note" style="margin:0;">Ada data lama dalam Google Sheet/Excel? Upload je terus keseluruhan file (semua tab sekali) di sini — sistem akan cari tab "Roll IN" dan "Roll Out" sendiri dan import kedua-duanya sekali gus, ikut turutan yang betul.</span>
+        <button type="button" class="btn-ghost" id="downloadRmReceiveTemplateBtn">⬇ Download Template</button>
+      </div>
+      <div class="dropzone" id="rmReceiveDropzone">
+        <div class="dropzone-icon">⬆</div>
+        <div class="upload-row">
+          <label class="upload-btn-label">
+            Choose File
+            <input type="file" id="rmReceiveFileInput" accept=".csv,.xlsx,.xls">
+          </label>
+          <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx file here</span>
+        </div>
+        <div class="upload-hint" style="margin-top:10px;">Boleh upload 1 file .xlsx yang ada banyak tab (macam Google Sheet awak — download as .xlsx dari File → Download). Sistem baca tab yang namanya ada "Roll IN" dan "Roll Out" secara automatik. Tab lain (STO, STO Items, Balance, Users) diabaikan — tak perlu buang. Column dalam tab Roll IN: Fabric Name, Fabric Code, GSM, Color Code, Color Name, Roll No., Meter, Date, Staff, Timestamp, Batch, Invoice No., Notes (sama order macam sheet biasa).</div>
+      </div>
+      <div class="upload-status" id="rmReceiveUploadStatus"></div>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <p class="rm-form-section-label" style="margin-top:0;">Pick (Roll OUT) History Only</p>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <span class="data-note" style="margin:0;">Import rekod Pick lama (history) — akan tolak stock roll berkenaan. Import Roll IN dulu supaya Roll No. dah wujud.</span>
+        <button type="button" class="btn-ghost" id="downloadRmPickTemplateBtn">⬇ Download Template</button>
+      </div>
+      <div class="dropzone" id="rmPickDropzone">
+        <div class="dropzone-icon">⬆</div>
+        <div class="upload-row">
+          <label class="upload-btn-label">
+            Choose File
+            <input type="file" id="rmPickFileInput" accept=".csv,.xlsx,.xls">
+          </label>
+          <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx file here</span>
+        </div>
+        <div class="upload-hint" style="margin-top:10px;">Columns: Roll No. (must already exist), Meter Taken, Purpose, Date.</div>
+      </div>
+      <div class="upload-status" id="rmPickUploadStatus"></div>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <p class="rm-form-section-label" style="margin-top:0;">Create STO / Roll Out History Only</p>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <span class="data-note" style="margin:0;">Untuk upload tab "Roll Out" bersendirian (satu file, satu tab) — kalau file penuh (banyak tab) dah diupload atas, tak perlu guna ni lagi.</span>
+        <button type="button" class="btn-ghost" id="downloadRmStoTemplateBtn">⬇ Download Template</button>
+      </div>
+      <div class="dropzone" id="rmStoDropzone">
+        <div class="dropzone-icon">⬆</div>
+        <div class="upload-row">
+          <label class="upload-btn-label">
+            Choose File
+            <input type="file" id="rmStoFileInput" accept=".csv,.xlsx,.xls">
+          </label>
+          <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx file here</span>
+        </div>
+        <div class="upload-hint" style="margin-top:10px;">Columns (same order as a typical Roll Out sheet): Fabric Name, Fabric Code, Color Code, Color Name, Roll No., Meter, Date, Staff, Timestamp (ignored), Notes, Destination, STO No., Status (optional — defaults to Completed).</div>
+      </div>
+      <div class="upload-status" id="rmStoUploadStatus"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-rm-receive">
+    <p class="section-title">Receive Roll (Roll IN)</p>
+    <div class="rm-receive-layout">
+      <div class="card rm-receive-form-card">
+        <p class="rm-form-section-label">Fabric Details</p>
+        <div class="rm-form-grid rm-form-grid-4">
+          <div class="field full"><label>Fabric Name</label><input type="text" id="rmFabricName" placeholder="e.g. Cotton Voile"></div>
+          <div class="field"><label>Fabric Code</label><input type="text" id="rmFabricCode"></div>
+          <div class="field"><label>GSM</label><input type="text" id="rmGsm"></div>
+          <div class="field"><label>Color Code</label><input type="text" id="rmColorCode"></div>
+          <div class="field"><label>Color Name</label><input type="text" id="rmColorName"></div>
+        </div>
+        <hr class="rm-form-divider">
+        <p class="rm-form-section-label">Roll Info</p>
+        <div class="rm-form-grid rm-form-grid-4">
+          <div class="field"><label>Number of Rolls</label><input type="number" min="1" step="1" id="rmNumberOfRolls" placeholder="e.g. 3"></div>
+          <div class="field"><label>Date</label><input type="date" id="rmReceiveDate"></div>
+          <div class="field"><label>Received By</label><input type="text" id="rmReceivedBy" placeholder="(optional)"></div>
+          <div class="field"><label>Batch</label><input type="text" id="rmBatch" placeholder="(optional)"></div>
+          <div class="field"><label>Invoice No.</label><input type="text" id="rmInvoiceNo" placeholder="(optional)"></div>
+          <div class="field full-2"><label>Notes</label><input type="text" id="rmReceiveNotes" placeholder="(optional)"></div>
+        </div>
+        <hr class="rm-form-divider">
+        <p class="rm-form-section-label">Roll List</p>
+        <div class="field">
+          <div class="data-note" id="rmRollListHint" style="margin:2px 0 8px;">Fill in Number of Rolls first to generate Roll No.</div>
+          <div id="rmRollListWrap"></div>
+        </div>
+        <button type="button" class="btn-primary" id="rmReceiveSaveBtn" style="width:100%; margin-top:6px;">Save Roll IN</button>
+      </div>
+      <div class="card rm-receive-summary-card">
+        <p class="rm-form-section-label">Receiving Summary</p>
+        <div id="rmReceiveSummaryWrap"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-rm-pick">
+    <p class="section-title">Send Roll (Roll Out)</p>
+    <div class="card">
+      <div class="field">
+        <label>STO No. (required)</label>
+        <select id="rmPickStoSelect"><option value="">-- select STO No. --</option></select>
+      </div>
+      <div id="rmPickStoHint" class="data-note" style="color:#e0685c;"></div>
+      <div class="rm-form-grid" style="grid-template-columns: 1fr auto; margin-top:10px;">
+        <div class="field"><label>Roll No.</label><input type="text" id="rmPickRollInput" placeholder="Scan roll (sends immediately - entire roll balance)"></div>
+        <div class="field" style="align-self:flex-end;"><button type="button" class="btn-ghost" id="rmPickScanBtn">Scan</button></div>
+      </div>
+      <div id="rmPickScanResult" class="data-note"></div>
+      <div id="rmPickCompleteWrap" style="display:none; margin-top:10px;">
+        <button type="button" class="btn-primary" id="rmPickCompleteBtn" style="width:100%;">✅ Complete</button>
+      </div>
+      <div class="data-note" style="margin-top:10px;">Meter Out fills in automatically = entire roll balance when the scan succeeds.</div>
+      <div class="rm-form-grid rm-form-grid-4" style="margin-top:10px;">
+        <div class="field"><label>Meter Out</label><input type="text" id="rmPickMeterOut" readonly></div>
+        <div class="field"><label>Date</label><input type="date" id="rmPickDate"></div>
+        <div class="field"><label>Destination</label><input type="text" id="rmPickDestination" readonly></div>
+        <div class="field"><label>Notes</label><input type="text" id="rmPickNotes" placeholder="(optional)"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <p class="section-title" style="margin-top:0; font-size:13px;">Items in Selected STO</p>
+      <div id="rmPickStoItemsWrap"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-rm-sto">
+    <p class="section-title">Create New STO</p>
+    <div class="card">
+      <div class="rm-form-grid rm-form-grid-4">
+        <div class="field"><label>STO No.</label><input type="text" id="rmStoNoInput" placeholder="Auto-generated"></div>
+        <div class="field"><label>Destination</label><input type="text" id="rmStoDestSelect" placeholder="e.g. Sewing Factory A"></div>
+        <div class="field"><label>Date</label><input type="date" id="rmStoDateInput"></div>
+        <div class="field full"><label>Notes</label><input type="text" id="rmStoNotesInput" placeholder="(optional)"></div>
+      </div>
+      <hr class="rm-form-divider">
+      <p class="rm-form-section-label">Items To Pick</p>
+      <div id="rmStoItemsWrap"></div>
+      <div class="rm-form-grid rm-form-grid-4" style="margin-top:8px;">
+        <div class="field"><label>Fabric</label><select id="rmStoItemFabricSelect"><option value="">Select fabric…</option></select></div>
+        <div class="field"><label>Colour</label><select id="rmStoItemColorSelect"><option value="">Select colour…</option></select></div>
+        <div class="field"><label>Quantity (Rolls)</label><input type="number" min="1" step="1" id="rmStoItemQtyInput" placeholder="e.g. 3"></div>
+        <div class="field" style="align-self:flex-end;"><button type="button" class="btn-ghost" id="rmStoAddItemBtn" style="width:100%;">+ Add Item</button></div>
+      </div>
+      <button type="button" class="btn-primary" id="rmStoCreateBtn" style="width:100%; margin-top:14px;">Create STO</button>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <p class="rm-form-section-label" style="margin-top:0;">Bulk Add Items (Excel/CSV)</p>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <span class="data-note" style="margin:0;">Isi STO No./Destination/Date kat atas macam biasa, then upload file ni untuk terus tambah banyak item ke "Items To Pick" sekali gus (tak payah pilih satu-satu). Sistem auto-pilih roll ikut Fabric Name + Color Code (roll No. terkecil dulu).</span>
+        <button type="button" class="btn-ghost" id="downloadRmStoQtyTemplateBtn">⬇ Download Template</button>
+      </div>
+      <div class="dropzone" id="rmStoQtyDropzone">
+        <div class="dropzone-icon">⬆</div>
+        <div class="upload-row">
+          <label class="upload-btn-label">
+            Choose File
+            <input type="file" id="rmStoQtyFileInput" accept=".csv,.xlsx,.xls">
+          </label>
+          <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx file here</span>
+        </div>
+        <div class="upload-hint" style="margin-top:10px;">Columns: Fabric Name, Color Code, Qty.</div>
+      </div>
+      <div class="upload-status" id="rmStoQtyUploadStatus"></div>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <p class="section-title" style="margin-top:0; font-size:13px;">Fabric STO List</p>
+      <input type="text" id="rmStoSearchInput" placeholder="Search STO No. / Fabric / Destination...">
+      <div id="rmStoTableWrap" class="scroll-table" style="margin-top:10px;"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-rm-stock">
+    <p class="section-title">Stock Balance (Raw Material)</p>
+    <div class="card">
+      <p class="section-title" style="margin-top:0; font-size:13px;">Summary — by Fabric + Color</p>
+      <input type="text" id="rmStockSummarySearchInput" placeholder="Search Fabric Name / Code / Color...">
+      <div id="rmStockSummaryTableWrap" class="scroll-table" style="margin-top:10px;"></div>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+        <p class="section-title" style="margin:0; font-size:13px;">Detail — by Roll</p>
+        <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted);"><input type="checkbox" id="rmStockHideEmptyToggle" checked> Hide empty rolls (0 meter left)</label>
+      </div>
+      <input type="text" id="rmStockDetailSearchInput" placeholder="Search Fabric Name / Code / Color / Roll No...">
+      <div id="rmStockDetailTableWrap" class="scroll-table" style="margin-top:10px;"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-rm-history">
+    <p class="section-title">History (Raw Material)</p>
+    <div class="card">
+      <div class="filters" style="align-items:center; margin-bottom:10px; flex-wrap:wrap;">
+        <input type="text" id="rmHistorySearchInput" placeholder="Search Fabric Name / Code / Color / Roll No / Destination...">
+        <select id="rmHistoryTypeSelect">
+          <option value="all">All Types</option>
+          <option value="Roll IN">Roll IN</option>
+          <option value="Pick">Pick (Roll OUT)</option>
+          <option value="STO">STO (Transfer)</option>
+        </select>
+      </div>
+      <div id="rmHistoryTableWrap" class="scroll-table"></div>
     </div>
   </section>
 
@@ -3135,6 +3388,7 @@ function loadData() {
   autoAttachDoNosToTrips();
   loadEmailjsSettings();
   loadStationPresence();
+  loadRawMaterialData();
   // Cleans up any STO No. duplicates already sitting in storage (e.g. from two devices each adding
   // the same STO No. before they'd ever synced with each other — see backfillNaturalSyncIds above)
   // and makes sure every record has a stable id going forward, right from the moment data loads —
@@ -3760,6 +4014,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
     if (btn.dataset.tab === 'dashboard') renderDashboard();
     if (btn.dataset.tab === 'dashboard-summary') renderDashboardSummary();
+    if (btn.dataset.tab === 'rm-import') renderRmImportTab();
+    if (btn.dataset.tab === 'rm-receive') renderRmReceiveTab();
+    if (btn.dataset.tab === 'rm-pick') renderRmPickTab();
+    if (btn.dataset.tab === 'rm-sto') renderRmStoTab();
+    if (btn.dataset.tab === 'rm-stock') renderRmStockTab();
+    if (btn.dataset.tab === 'rm-history') renderRmHistoryTab();
     if (btn.dataset.tab === 'papan') renderKanban();
     if (btn.dataset.tab === 'delivered') renderDeliveredTab();
     if (btn.dataset.tab === 'sla') renderSlaTab();
@@ -6112,6 +6372,12 @@ function getCurrentUser() {
 const PERMISSION_TABS = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'dashboard-summary', label: 'Dashboard Summary' },
+  { id: 'rm-import', label: 'Import Data (Raw Material)' },
+  { id: 'rm-receive', label: 'Receive (Raw Material)' },
+  { id: 'rm-pick', label: 'Pick (Raw Material)' },
+  { id: 'rm-sto', label: 'Create STO (Raw Material)' },
+  { id: 'rm-stock', label: 'Stock Balance (Raw Material)' },
+  { id: 'rm-history', label: 'History (Raw Material)' },
   { id: 'senarai', label: 'STO List (Outbound)' },
   { id: 'papan', label: 'Progress Board (Outbound)' },
   { id: 'delivered-outbound', label: 'Delivery Status (Outbound)' },
@@ -6770,6 +7036,1256 @@ function attachSettingsListener() {
   });
 }
 
+/* ================= Raw Material (Fabric Roll) module =================
+ * A separate department (Receive / Pick / Create STO / Stock Balance / History) tracking fabric
+ * rolls rather than finished garments. Simplifications vs the full Outbound STO pipeline (flagged
+ * to Shaila when this was built, since she can ask to expand any of these later):
+ *  - "Create STO" here is a single-step record (no carton/DO/Fleet dispatch integration) — creating
+ *    it immediately deducts the roll's meterRemaining (fabric is treated as already leaving stock at
+ *    that point), and it only tracks Active -> Completed, no picking/packing stages.
+ *  - "Pick" (Roll OUT, for cutting/production) also deducts meterRemaining immediately.
+ *  - Every roll gets one globally-unique, sequential Roll No. (RL-00001, RL-00002, ...) generated at
+ *    Receive time — never reused, so History/Stock Balance can always trace it back to its batch.
+ */
+const RM_ROLLS_KEY = 'sto_rm_rolls_v1';
+const RM_PICKS_KEY = 'sto_rm_picks_v1';
+const RM_STOS_KEY = 'sto_rm_stos_v1';
+const RM_ROLL_COUNTER_KEY = 'sto_rm_roll_counter_v1';
+const RM_STO_COUNTER_KEY = 'sto_rm_sto_counter_v1';
+
+let rawMaterialRolls = []; // [{ id, rollNo, fabricName, fabricCode, gsm, colorCode, colorName, meter, meterRemaining, receivedDate, notes, createdAt }]
+let rawMaterialPicks = []; // [{ id, rollId, rollNo, fabricName, fabricCode, colorCode, colorName, meterTaken, purpose, date }]
+let rawMaterialStos = []; // [{ id, stoNo, rollId, rollNo, fabricName, fabricCode, colorCode, colorName, meter, destination, date, status: 'Active'|'Completed', notes }]
+
+function loadRawMaterialData() {
+  try { rawMaterialRolls = JSON.parse(localStorage.getItem(RM_ROLLS_KEY)) || []; } catch (e) { rawMaterialRolls = []; }
+  try { rawMaterialPicks = JSON.parse(localStorage.getItem(RM_PICKS_KEY)) || []; } catch (e) { rawMaterialPicks = []; }
+  try { rawMaterialStos = JSON.parse(localStorage.getItem(RM_STOS_KEY)) || []; } catch (e) { rawMaterialStos = []; }
+}
+function saveRawMaterialRolls() { localStorage.setItem(RM_ROLLS_KEY, JSON.stringify(rawMaterialRolls)); }
+function saveRawMaterialPicks() { localStorage.setItem(RM_PICKS_KEY, JSON.stringify(rawMaterialPicks)); }
+function saveRawMaterialStos() { localStorage.setItem(RM_STOS_KEY, JSON.stringify(rawMaterialStos)); }
+
+function getRmRollCounter() { return Math.max(0, Number(localStorage.getItem(RM_ROLL_COUNTER_KEY)) || 0); }
+function setRmRollCounter(n) { localStorage.setItem(RM_ROLL_COUNTER_KEY, String(Math.max(0, Number(n) || 0))); }
+function formatRmRollNo(n) { return 'RL-' + String(n).padStart(5, '0'); }
+function getRmStoCounter() { return Math.max(0, Number(localStorage.getItem(RM_STO_COUNTER_KEY)) || 0); }
+function setRmStoCounter(n) { localStorage.setItem(RM_STO_COUNTER_KEY, String(Math.max(0, Number(n) || 0))); }
+function formatRmStoNo(n) { return 'RM-STO-' + String(n).padStart(5, '0'); }
+function genRmId() { return 'rm_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+function rmAvailableRolls() { return rawMaterialRolls.filter(r => (Number(r.meterRemaining) || 0) > 0); }
+
+/* ---- Fabric Roll sticker label printing ---- */
+// Confirmed by physically measuring a fully-ejected blank sticker with a ruler: the real label
+// stock is 70mm WIDE x 50mm TALL (landscape), not 50x70 portrait as earlier driver preset names
+// suggested. @page/.rl-label now matches that landscape shape directly. Content itself is still
+// authored in a portrait-shaped box (48mm x 68mm, matching her sticker's reading layout) and
+// rotated 90° in CSS to fit the landscape physical page — same rotation technique as before, just
+// re-based on the corrected page dimensions.
+const ROLL_LABEL_PRINT_CSS = `
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; }
+  .rl-label {
+    width: 70mm; height: 50mm;
+    background: #fff;
+    margin: 0 auto;
+    position: relative;
+    overflow: hidden;
+    page-break-after: always;
+  }
+  .rl-label:last-child { page-break-after: auto; }
+  .rl-label-inner {
+    width: 48mm; height: 68mm;
+    position: absolute; top: 50%; left: 50%;
+    margin-top: -34mm; margin-left: -24mm;
+    transform: rotate(90deg);
+    transform-origin: center center;
+    color: #1a1a1a;
+    padding: 1.2mm;
+    display: flex; flex-direction: column; justify-content: space-between; gap: 0.9mm;
+    box-sizing: border-box;
+  }
+  .rl-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 2mm; }
+  .rl-brand { font-size: 4.2mm; font-weight: 800; letter-spacing: 0.03em; flex-shrink: 0; }
+  .rl-header-right { font-size: 1.8mm; font-weight: 700; text-align: right; letter-spacing: 0.02em; text-transform: uppercase; color: #55463f; line-height: 1.25; }
+  .rl-divider { border: none; border-top: 0.25mm solid #ddd6c8; margin: 0; }
+  .rl-label-sm { font-size: 1.8mm; letter-spacing: 0.03em; text-transform: uppercase; color: #7a6f61; font-weight: 700; margin-bottom: 0.25mm; }
+  .rl-fabric-name { font-size: 3.6mm; font-weight: 800; word-break: break-word; }
+  .rl-cols { display: flex; gap: 2.5mm; }
+  .rl-col { flex: 1; min-width: 0; }
+  .rl-val { font-size: 2.6mm; font-weight: 700; word-break: break-word; }
+  .rl-rollno { font-size: 6mm; font-weight: 800; letter-spacing: 0.02em; word-break: break-word; }
+  .rl-icon-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8mm 2.5mm; }
+  .rl-icon-item { display: flex; align-items: center; gap: 1mm; min-width: 0; }
+  .rl-ic { font-size: 3.4mm; flex-shrink: 0; line-height: 1; }
+  .rl-val-sm { font-size: 2.4mm; font-weight: 700; word-break: break-word; }
+  .rl-qr-wrap { display: flex; justify-content: center; }
+  .rl-qr-box { width: 12mm; height: 12mm; flex-shrink: 0; }
+  .rl-qr-box img, .rl-qr-box canvas { display: block; width: 100% !important; height: 100% !important; }
+  @page { size: 70mm 50mm; margin: 0; }
+`;
+function buildRmRollLabelInnerHtml(roll) {
+  const dateLabel = roll.receivedDate ? formatDateLabel(roll.receivedDate) : '-';
+  return `
+    <div class="rl-label-inner">
+      <div class="rl-header">
+        <div class="rl-brand">KHATAM</div>
+        <div class="rl-header-right">FABRIC ROLL<br>LABEL</div>
+      </div>
+      <hr class="rl-divider">
+      <div>
+        <div class="rl-label-sm">FABRIC</div>
+        <div class="rl-fabric-name">${escapeHtml(roll.fabricName || '-')}</div>
+      </div>
+      <div class="rl-cols">
+        <div class="rl-col"><div class="rl-label-sm">FABRIC CODE</div><div class="rl-val">${escapeHtml(roll.fabricCode || '-')}</div></div>
+        <div class="rl-col"><div class="rl-label-sm">COLOR CODE</div><div class="rl-val">${escapeHtml(roll.colorCode || '-')}</div></div>
+      </div>
+      <hr class="rl-divider">
+      <div>
+        <div class="rl-label-sm">ROLL NO.</div>
+        <div class="rl-rollno">${escapeHtml(roll.rollNo)}</div>
+      </div>
+      <hr class="rl-divider">
+      <div class="rl-icon-grid">
+        <div class="rl-icon-item"><span class="rl-ic">⚙️</span><div><div class="rl-label-sm">GSM</div><div class="rl-val-sm">${escapeHtml(roll.gsm || '-')}</div></div></div>
+        <div class="rl-icon-item"><span class="rl-ic">📏</span><div><div class="rl-label-sm">METER</div><div class="rl-val-sm">${formatQty(roll.meter)} M</div></div></div>
+        <div class="rl-icon-item"><span class="rl-ic">🎨</span><div><div class="rl-label-sm">COLOR</div><div class="rl-val-sm">${escapeHtml(roll.colorName || '-')}</div></div></div>
+        <div class="rl-icon-item"><span class="rl-ic">📅</span><div><div class="rl-label-sm">RECEIVED</div><div class="rl-val-sm">${escapeHtml(dateLabel)}</div></div></div>
+      </div>
+      <div class="rl-qr-wrap"><div class="rl-qr-box"></div></div>
+    </div>
+  `;
+}
+// Builds one label per roll (real QRCode.js canvas rendered off-screen, then baked into a plain
+// <img> data URL) and prints them all via a hidden same-page iframe — same pattern the
+// carton/DO sticker printing already uses elsewhere in this app.
+function printRmRollLabels(rolls) {
+  if (!rolls || !rolls.length) return;
+  const tempHolder = document.createElement('div');
+  tempHolder.style.position = 'fixed';
+  tempHolder.style.left = '-99999px';
+  tempHolder.style.top = '0';
+  document.body.appendChild(tempHolder);
+
+  let labelsHtml = '';
+  rolls.forEach(roll => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'rl-label';
+    wrapper.innerHTML = buildRmRollLabelInnerHtml(roll);
+    tempHolder.appendChild(wrapper);
+    const qrBox = wrapper.querySelector('.rl-qr-box');
+    if (qrBox && window.QRCode) {
+      new QRCode(qrBox, { text: roll.rollNo, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M });
+      const canvas = qrBox.querySelector('canvas');
+      if (canvas) qrBox.innerHTML = `<img src="${canvas.toDataURL('image/png')}" style="width:100%;height:100%;display:block;">`;
+    }
+    labelsHtml += wrapper.outerHTML;
+    tempHolder.removeChild(wrapper);
+  });
+  tempHolder.remove();
+
+  const fullHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Print Fabric Roll Label(s)</title><style>${ROLL_LABEL_PRINT_CSS}</style></head><body>${labelsHtml}</body></html>`;
+
+  let printFrame = document.getElementById('rmRollLabelPrintFrame');
+  if (printFrame) printFrame.remove();
+  printFrame = document.createElement('iframe');
+  printFrame.id = 'rmRollLabelPrintFrame';
+  printFrame.style.position = 'fixed';
+  printFrame.style.right = '0';
+  printFrame.style.bottom = '0';
+  printFrame.style.width = '0';
+  printFrame.style.height = '0';
+  printFrame.style.border = '0';
+  document.body.appendChild(printFrame);
+
+  const cleanup = () => { if (printFrame && printFrame.parentNode) printFrame.remove(); };
+  printFrame.onload = () => {
+    setTimeout(() => {
+      try {
+        printFrame.contentWindow.onafterprint = cleanup;
+        printFrame.contentWindow.focus();
+        printFrame.contentWindow.print();
+      } catch (err) {
+        alert('Failed to open the print dialog: ' + err.message);
+        cleanup();
+      }
+      setTimeout(cleanup, 15000);
+    }, 60);
+  };
+  printFrame.srcdoc = fullHtml;
+}
+
+/* ---- Import Data (bulk upload hub) ---- */
+function renderRmImportTab() {
+  // Static dropzones — nothing to (re)render, just clear any leftover status message from a
+  // previous visit so it doesn't look like a stale result from this session.
+  ['rmReceiveUploadStatus', 'rmPickUploadStatus', 'rmStoUploadStatus'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = ''; el.className = 'upload-status'; }
+  });
+}
+
+/* ---- Receive (Roll IN) ---- */
+function renderRmRollListPreview() {
+  const wrap = document.getElementById('rmRollListWrap');
+  const hint = document.getElementById('rmRollListHint');
+  const n = Math.max(0, Math.floor(Number(document.getElementById('rmNumberOfRolls').value) || 0));
+  if (!n) { wrap.innerHTML = ''; hint.style.display = ''; return; }
+  hint.style.display = 'none';
+  // Preview only — the real numbers are (re)assigned from the live counter at Save time, so two
+  // people filling this form on different devices at once can't ever collide on the same Roll No.
+  const startNo = getRmRollCounter() + 1;
+  let html = `<div class="rm-card-grid">`;
+  for (let i = 0; i < n; i++) {
+    html += `<div class="rm-card">
+      <div class="rm-card-rollno">${escapeHtml(formatRmRollNo(startNo + i))}</div>
+      <div class="rm-card-actions">
+        <span class="rm-card-meter-label">Meter</span>
+        <input type="number" min="0" step="0.01" class="rm-roll-meter-input" data-idx="${i}" placeholder="e.g. 50" style="flex:1; width:auto;">
+      </div>
+    </div>`;
+  }
+  html += `</div>`;
+  wrap.innerHTML = html;
+}
+document.getElementById('rmNumberOfRolls').addEventListener('input', renderRmRollListPreview);
+function renderRmReceiveSummary() {
+  const wrap = document.getElementById('rmReceiveSummaryWrap');
+  const fabricName = document.getElementById('rmFabricName').value.trim();
+  const fabricCode = document.getElementById('rmFabricCode').value.trim();
+  const gsm = document.getElementById('rmGsm').value.trim();
+  const colorCode = document.getElementById('rmColorCode').value.trim();
+  const colorName = document.getElementById('rmColorName').value.trim();
+  const n = Math.max(0, Math.floor(Number(document.getElementById('rmNumberOfRolls').value) || 0));
+  const date = document.getElementById('rmReceiveDate').value;
+  const meterInputs = [...document.querySelectorAll('.rm-roll-meter-input')];
+  const totalMeter = meterInputs.reduce((sum, i) => sum + (Number(i.value) || 0), 0);
+  const startNo = getRmRollCounter() + 1;
+  const rollRange = n ? (n === 1 ? formatRmRollNo(startNo) : `${formatRmRollNo(startNo)} – ${formatRmRollNo(startNo + n - 1)}`) : '—';
+
+  if (!fabricName && !fabricCode && !n) {
+    wrap.innerHTML = `<div class="empty-state">Fill in the form to see a live summary here.</div>`;
+    return;
+  }
+  wrap.innerHTML = `
+    <div class="rm-summary-row"><span class="rm-summary-label">Fabric</span><span class="rm-summary-value">${escapeHtml(fabricName || '-')}${fabricCode ? ` <span class="rm-card-sub">(${escapeHtml(fabricCode)})</span>` : ''}</span></div>
+    <div class="rm-summary-row"><span class="rm-summary-label">GSM</span><span class="rm-summary-value">${escapeHtml(gsm || '-')}</span></div>
+    <div class="rm-summary-row"><span class="rm-summary-label">Color</span><span class="rm-summary-value">${escapeHtml(colorName || colorCode || '-')}</span></div>
+    <hr class="rm-form-divider" style="margin:10px 0;">
+    <div class="rm-summary-row"><span class="rm-summary-label">Rolls</span><span class="rm-summary-value">${n || 0}</span></div>
+    <div class="rm-summary-row"><span class="rm-summary-label">Roll No.</span><span class="rm-summary-value">${rollRange}</span></div>
+    <div class="rm-summary-row"><span class="rm-summary-label">Date</span><span class="rm-summary-value">${date ? formatDateLabel(date) : '-'}</span></div>
+    ${document.getElementById('rmBatch').value.trim() ? `<div class="rm-summary-row"><span class="rm-summary-label">Batch</span><span class="rm-summary-value">${escapeHtml(document.getElementById('rmBatch').value.trim())}</span></div>` : ''}
+    ${document.getElementById('rmInvoiceNo').value.trim() ? `<div class="rm-summary-row"><span class="rm-summary-label">Invoice</span><span class="rm-summary-value">${escapeHtml(document.getElementById('rmInvoiceNo').value.trim())}</span></div>` : ''}
+    <hr class="rm-form-divider" style="margin:10px 0;">
+    <div class="rm-summary-total"><div class="rm-summary-total-label">Total Meter</div><div class="rm-summary-total-value">${formatQty(totalMeter)} m</div></div>
+  `;
+}
+document.querySelector('.rm-receive-form-card').addEventListener('input', renderRmReceiveSummary);
+function renderRmReceiveTab() {
+  if (!document.getElementById('rmReceiveDate').value) document.getElementById('rmReceiveDate').value = todayStr();
+  renderRmRollListPreview();
+  renderRmReceiveSummary();
+}
+document.getElementById('rmReceiveSaveBtn').addEventListener('click', () => {
+  const fabricName = document.getElementById('rmFabricName').value.trim();
+  const fabricCode = document.getElementById('rmFabricCode').value.trim();
+  const gsm = document.getElementById('rmGsm').value.trim();
+  const colorCode = document.getElementById('rmColorCode').value.trim();
+  const colorName = document.getElementById('rmColorName').value.trim();
+  const n = Math.max(0, Math.floor(Number(document.getElementById('rmNumberOfRolls').value) || 0));
+  const date = document.getElementById('rmReceiveDate').value || todayStr();
+  const receivedBy = document.getElementById('rmReceivedBy').value.trim();
+  const batchNo = document.getElementById('rmBatch').value.trim();
+  const invoiceNo = document.getElementById('rmInvoiceNo').value.trim();
+  const notes = document.getElementById('rmReceiveNotes').value.trim();
+  if (!fabricName && !fabricCode) { alert('Fill in at least Fabric Name or Fabric Code.'); return; }
+  if (!n) { alert('Fill in Number of Rolls first.'); return; }
+  const meterInputs = [...document.querySelectorAll('.rm-roll-meter-input')];
+  const meters = meterInputs.map(i => Math.max(0, Number(i.value) || 0));
+  if (meters.some(m => !m)) { alert('Fill in Meter for every roll.'); return; }
+
+  let counter = getRmRollCounter();
+  const createdRolls = [];
+  meters.forEach(m => {
+    counter++;
+    const roll = {
+      id: genRmId(), rollNo: formatRmRollNo(counter),
+      fabricName, fabricCode, gsm, colorCode, colorName,
+      meter: m, meterRemaining: m, receivedDate: date,
+      receivedBy, batchNo, invoiceNo, notes, createdAt: Date.now()
+    };
+    rawMaterialRolls.push(roll);
+    createdRolls.push(roll);
+  });
+  setRmRollCounter(counter);
+  saveRawMaterialRolls();
+
+  document.getElementById('rmFabricName').value = '';
+  document.getElementById('rmFabricCode').value = '';
+  document.getElementById('rmGsm').value = '';
+  document.getElementById('rmColorCode').value = '';
+  document.getElementById('rmColorName').value = '';
+  document.getElementById('rmNumberOfRolls').value = '';
+  document.getElementById('rmReceivedBy').value = '';
+  document.getElementById('rmBatch').value = '';
+  document.getElementById('rmInvoiceNo').value = '';
+  document.getElementById('rmReceiveNotes').value = '';
+  renderRmRollListPreview();
+  renderRmReceiveSummary();
+  if (confirm(`Saved ${n} roll(s) (${createdRolls[0].rollNo}${createdRolls.length > 1 ? ` – ${createdRolls[createdRolls.length - 1].rollNo}` : ''}). Print sticker label(s) now?`)) {
+    printRmRollLabels(createdRolls);
+  }
+});
+
+/* ---- Pick / Send Roll (Roll OUT) ----
+   Two-step flow with Create STO: Create STO reserves rolls (status 'Open', stock untouched).
+   Here, staff scans the physical Roll No. against the chosen "Open" STO to confirm it's actually
+   leaving the warehouse — that scan+Complete is what finally deducts meterRemaining. */
+let rmPickMatchedItemId = null;
+function rmOpenStoNos() {
+  return [...new Set(rawMaterialStos.filter(s => s.status === 'Open').map(s => s.stoNo))].sort();
+}
+function renderRmPickTab() {
+  const stoSelect = document.getElementById('rmPickStoSelect');
+  const hint = document.getElementById('rmPickStoHint');
+  const dateInput = document.getElementById('rmPickDate');
+  if (!dateInput.value) dateInput.value = todayStr();
+  const prevVal = stoSelect.value;
+  const openStoNos = rmOpenStoNos();
+  stoSelect.innerHTML = `<option value="">-- select STO No. --</option>` + openStoNos.map(no => `<option value="${escapeHtml(no)}">${escapeHtml(no)}</option>`).join('');
+  if (openStoNos.includes(prevVal)) stoSelect.value = prevVal;
+  hint.textContent = openStoNos.length ? '' : `No "Open" STO. Ask Admin to create an STO first in the STO tab.`;
+  resetRmPickScan();
+  renderRmPickStoItems();
+}
+function resetRmPickScan() {
+  rmPickMatchedItemId = null;
+  document.getElementById('rmPickRollInput').value = '';
+  document.getElementById('rmPickScanResult').textContent = '';
+  document.getElementById('rmPickScanResult').style.color = '';
+  document.getElementById('rmPickCompleteWrap').style.display = 'none';
+  document.getElementById('rmPickMeterOut').value = '';
+  document.getElementById('rmPickDestination').value = '';
+  document.getElementById('rmPickNotes').value = '';
+}
+function renderRmPickStoItems() {
+  const stoSelect = document.getElementById('rmPickStoSelect');
+  const wrap = document.getElementById('rmPickStoItemsWrap');
+  if (!stoSelect.value) { wrap.innerHTML = `<div class="empty-state">Pilih STO No. dulu untuk lihat item.</div>`; return; }
+  const items = rawMaterialStos.filter(s => s.stoNo === stoSelect.value);
+  if (!items.length) { wrap.innerHTML = `<div class="empty-state">Takde item dalam STO ni.</div>`; return; }
+  let html = `<div class="rm-card-grid">`;
+  items.forEach(s => {
+    const badgeClass = s.status === 'Completed' ? 'badge-green' : 'badge-blue';
+    html += `<div class="rm-card">
+      <div class="rm-card-head">
+        <div>
+          <div class="rm-card-rollno">${escapeHtml(s.rollNo)}</div>
+          <div class="rm-card-fabric">${escapeHtml(s.fabricName || '-')}</div>
+          <div class="rm-card-sub">${escapeHtml(s.colorName || s.colorCode || '-')}</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="rm-card-meter">${formatQty(s.meter)}</div>
+          <div class="rm-card-meter-label">meter</div>
+        </div>
+      </div>
+      <div class="rm-card-row"><span class="badge ${badgeClass}">${escapeHtml(s.status)}</span></div>
+    </div>`;
+  });
+  html += `</div>`;
+  wrap.innerHTML = html;
+}
+function scanRmPickRoll() {
+  const stoSelect = document.getElementById('rmPickStoSelect');
+  const rollInput = document.getElementById('rmPickRollInput');
+  const resultEl = document.getElementById('rmPickScanResult');
+  const rollNo = rollInput.value.trim();
+  if (!stoSelect.value) { resultEl.textContent = 'Pilih STO No. dulu.'; resultEl.style.color = '#e0685c'; return; }
+  if (!rollNo) { resultEl.textContent = 'Scan atau taip Roll No. dulu.'; resultEl.style.color = '#e0685c'; return; }
+  const item = rawMaterialStos.find(s => s.stoNo === stoSelect.value && s.rollNo.toLowerCase() === rollNo.toLowerCase());
+  if (!item) {
+    resultEl.textContent = `Roll No. "${rollNo}" bukan sebahagian STO ${stoSelect.value}.`;
+    resultEl.style.color = '#e0685c';
+    document.getElementById('rmPickCompleteWrap').style.display = 'none';
+    return;
+  }
+  if (item.status === 'Completed') {
+    resultEl.textContent = `Roll ${item.rollNo} dah pun dihantar (Completed).`;
+    resultEl.style.color = '#e0685c';
+    document.getElementById('rmPickCompleteWrap').style.display = 'none';
+    return;
+  }
+  rmPickMatchedItemId = item.id;
+  resultEl.textContent = `✓ ${item.rollNo} — ${item.fabricName || ''} (${item.colorName || item.colorCode || ''}) dijumpai.`;
+  resultEl.style.color = '#7cc47c';
+  document.getElementById('rmPickMeterOut').value = `${formatQty(item.meter)} m`;
+  document.getElementById('rmPickDestination').value = item.destination || '';
+  document.getElementById('rmPickNotes').value = item.notes || '';
+  document.getElementById('rmPickCompleteWrap').style.display = 'block';
+}
+function completeRmPickScan() {
+  if (!rmPickMatchedItemId) return;
+  const item = rawMaterialStos.find(s => s.id === rmPickMatchedItemId);
+  if (!item) return;
+  const notes = (document.getElementById('rmPickNotes').value || '').trim();
+  const date = document.getElementById('rmPickDate').value || todayStr();
+  const roll = rawMaterialRolls.find(r => r.id === item.rollId);
+  if (roll) roll.meterRemaining = Math.max(0, Math.round((Number(roll.meterRemaining) - Number(item.meter)) * 100) / 100);
+  item.status = 'Completed';
+  item.date = date;
+  if (notes) item.notes = notes;
+  saveRawMaterialRolls();
+  saveRawMaterialStos();
+  renderRmPickTab();
+}
+document.getElementById('rmPickStoSelect').addEventListener('change', () => { resetRmPickScan(); renderRmPickStoItems(); });
+document.getElementById('rmPickScanBtn').addEventListener('click', scanRmPickRoll);
+document.getElementById('rmPickRollInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); scanRmPickRoll(); } });
+document.getElementById('rmPickCompleteBtn').addEventListener('click', completeRmPickScan);
+
+/* ---- Create STO (fabric transfer) ---- */
+function rmAllBoutiqueNames() {
+  const names = new Set();
+  records.forEach(r => { if (r.toWarehouse) names.add(r.toWarehouse); });
+  (sla.extraButiks || []).forEach(b => { if (b) names.add(b); });
+  return [...names].sort();
+}
+// Draft items for the STO currently being built in the form (cleared after Create STO / tab entry).
+// Each draft item is a GROUP: "N rolls of this Fabric+Color", holding the actual roll ids picked
+// (lowest Roll No. first) so she never has to hunt through hundreds of individual rolls — she just
+// picks a fabric and says how many rolls to send.
+let rmStoDraftItems = [];
+function rmStoFabricKey(r) { return [r.fabricName || '', r.fabricCode || ''].join('|||'); }
+function rmStoFabricGroupKey(r) { return [r.fabricName || '', r.fabricCode || '', r.colorCode || '', r.colorName || ''].join('|||'); }
+function rmStoDraftedRollIds() { return new Set(rmStoDraftItems.flatMap(item => item.rollIds)); }
+// Rolls already reserved on an "Open" STO (created but not yet physically scanned/sent at the Pick
+// tab) — still physically in the warehouse, but committed, so a NEW STO shouldn't be allowed to
+// reserve the same roll again.
+function rmReservedRollIds() { return new Set(rawMaterialStos.filter(s => s.status === 'Open' && s.rollId).map(s => s.rollId)); }
+function rmStoFabricGroups() {
+  const draftedIds = rmStoDraftedRollIds();
+  const reservedIds = rmReservedRollIds();
+  const groups = new Map();
+  rmAvailableRolls().forEach(r => {
+    if (draftedIds.has(r.id) || reservedIds.has(r.id)) return;
+    const key = rmStoFabricGroupKey(r);
+    if (!groups.has(key)) groups.set(key, { key, fabricKey: rmStoFabricKey(r), fabricName: r.fabricName, fabricCode: r.fabricCode, colorCode: r.colorCode, colorName: r.colorName, rolls: [] });
+    groups.get(key).rolls.push(r);
+  });
+  groups.forEach(g => g.rolls.sort((a, b) => (a.rollNo || '').localeCompare(b.rollNo || '')));
+  return [...groups.values()].sort((a, b) => (a.fabricName || '').localeCompare(b.fabricName || ''));
+}
+function rmStoFabricNameGroups() {
+  const groups = rmStoFabricGroups();
+  const byFabric = new Map();
+  groups.forEach(g => {
+    if (!byFabric.has(g.fabricKey)) byFabric.set(g.fabricKey, { fabricKey: g.fabricKey, fabricName: g.fabricName, fabricCode: g.fabricCode, rollCount: 0, totalMeter: 0 });
+    const entry = byFabric.get(g.fabricKey);
+    entry.rollCount += g.rolls.length;
+    entry.totalMeter += g.rolls.reduce((sum, r) => sum + (Number(r.meterRemaining) || 0), 0);
+  });
+  return [...byFabric.values()].sort((a, b) => (a.fabricName || '').localeCompare(b.fabricName || ''));
+}
+function renderRmStoForm() {
+  const dateInput = document.getElementById('rmStoDateInput');
+  const fabricSelect = document.getElementById('rmStoItemFabricSelect');
+  if (!dateInput.value) dateInput.value = todayStr();
+  const prevFabricVal = fabricSelect.value;
+  const fabricGroups = rmStoFabricNameGroups();
+  fabricSelect.innerHTML = `<option value="">Select fabric…</option>` + fabricGroups.map(g =>
+    `<option value="${escapeHtml(g.fabricKey)}">${escapeHtml(g.fabricName || '-')}${g.fabricCode ? ` (${escapeHtml(g.fabricCode)})` : ''} — ${g.rollCount} roll(s), ${formatQty(g.totalMeter)}m total</option>`
+  ).join('');
+  if (fabricGroups.some(g => g.fabricKey === prevFabricVal)) fabricSelect.value = prevFabricVal;
+  renderRmStoColorOptions();
+  renderRmStoItemsList();
+}
+function renderRmStoColorOptions() {
+  const fabricSelect = document.getElementById('rmStoItemFabricSelect');
+  const colorSelect = document.getElementById('rmStoItemColorSelect');
+  const prevColorVal = colorSelect.value;
+  const groups = rmStoFabricGroups().filter(g => g.fabricKey === fabricSelect.value);
+  colorSelect.innerHTML = `<option value="">Select colour…</option>` + groups.map(g => {
+    const totalMeter = g.rolls.reduce((sum, r) => sum + (Number(r.meterRemaining) || 0), 0);
+    return `<option value="${escapeHtml(g.key)}">${escapeHtml(g.colorName || g.colorCode || '-')} — ${g.rolls.length} roll(s), ${formatQty(totalMeter)}m total</option>`;
+  }).join('');
+  if (groups.some(g => g.key === prevColorVal)) colorSelect.value = prevColorVal;
+}
+function renderRmStoItemsList() {
+  const wrap = document.getElementById('rmStoItemsWrap');
+  if (!rmStoDraftItems.length) { wrap.innerHTML = `<div class="empty-state">No items added yet — pick a fabric below and click "+ Add Item".</div>`; return; }
+  let html = '';
+  rmStoDraftItems.forEach((item, i) => {
+    html += `<div class="rm-card-row" style="padding:6px 0; border-bottom:1px solid var(--border);">
+      <span>${escapeHtml(item.fabricName || '-')} (${escapeHtml(item.colorName || item.colorCode || '-')}) — ${item.rollIds.length} roll(s): ${escapeHtml(item.rollNos.join(', '))}</span>
+      <span style="display:flex; align-items:center; gap:8px;">
+        <strong>${formatQty(item.totalMeter)} m</strong>
+        <button type="button" class="btn-ghost rm-sto-item-remove-btn" data-idx="${i}">Remove</button>
+      </span>
+    </div>`;
+  });
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('.rm-sto-item-remove-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      rmStoDraftItems.splice(Number(btn.dataset.idx), 1);
+      renderRmStoForm();
+    });
+  });
+}
+function addRmStoItem() {
+  const fabricSelect = document.getElementById('rmStoItemFabricSelect');
+  const colorSelect = document.getElementById('rmStoItemColorSelect');
+  const qtyInput = document.getElementById('rmStoItemQtyInput');
+  const qty = Math.max(0, Math.floor(Number(qtyInput.value) || 0));
+  if (!fabricSelect.value) { alert('Pick a fabric first.'); return; }
+  if (!colorSelect.value) { alert('Pick a colour first.'); return; }
+  if (!qty) { alert('Enter Quantity (Rolls) first.'); return; }
+  const group = rmStoFabricGroups().find(g => g.key === colorSelect.value);
+  if (!group || group.rolls.length < qty) {
+    alert(`Only ${group ? group.rolls.length : 0} roll(s) available for this fabric/colour.`);
+    return;
+  }
+  const picked = group.rolls.slice(0, qty);
+  rmStoDraftItems.push({
+    fabricName: group.fabricName, fabricCode: group.fabricCode, colorCode: group.colorCode, colorName: group.colorName,
+    rollIds: picked.map(r => r.id), rollNos: picked.map(r => r.rollNo),
+    totalMeter: Math.round(picked.reduce((sum, r) => sum + (Number(r.meterRemaining) || 0), 0) * 100) / 100
+  });
+  qtyInput.value = '';
+  renderRmStoForm();
+}
+function createRmStoFromForm() {
+  const stoNoInput = document.getElementById('rmStoNoInput');
+  const destSelect = document.getElementById('rmStoDestSelect');
+  const dateInput = document.getElementById('rmStoDateInput');
+  const notesInput = document.getElementById('rmStoNotesInput');
+  const destination = destSelect.value;
+  const date = dateInput.value || todayStr();
+  const notes = (notesInput.value || '').trim();
+  if (!destination) { alert('Pick a destination first.'); return; }
+  if (!rmStoDraftItems.length) { alert('Add at least one item to pick first.'); return; }
+  const stoNo = stoNoInput.value.trim();
+  if (!stoNo) { alert('Enter an STO No. first.'); return; }
+  if (rawMaterialStos.some(s => s.stoNo === stoNo)) {
+    alert(`STO No. "${stoNo}" already exists — pick a different number.`);
+    return;
+  }
+  // Keep the RM-STO-##### counter roughly in sync so future auto-numbered imports don't collide
+  // with manually-typed numbers that happen to follow the same pattern.
+  const manualMatch = /^RM-STO-(\d+)$/i.exec(stoNo);
+  if (manualMatch && Number(manualMatch[1]) > getRmStoCounter()) setRmStoCounter(Number(manualMatch[1]));
+  // Reserve only — the roll stays physically in stock (meterRemaining untouched) until staff
+  // scans it at the Pick (Roll Out) tab and hits Complete, which is what actually deducts it.
+  rmStoDraftItems.forEach(item => {
+    item.rollIds.forEach(rollId => {
+      const roll = rawMaterialRolls.find(r => r.id === rollId);
+      if (!roll) return;
+      const meter = Number(roll.meterRemaining) || 0;
+      rawMaterialStos.push({
+        id: genRmId(), stoNo, rollId: roll.id, rollNo: roll.rollNo,
+        fabricName: roll.fabricName, fabricCode: roll.fabricCode, colorCode: roll.colorCode, colorName: roll.colorName,
+        meter, destination, date, status: 'Open', notes
+      });
+    });
+  });
+  saveRawMaterialStos();
+  rmStoDraftItems = [];
+  stoNoInput.value = '';
+  notesInput.value = '';
+  destSelect.value = '';
+  renderRmStoTab();
+}
+// Bulk ADD ITEMS (not full STOs) from a spreadsheet — appends to the same rmStoDraftItems list
+// the manual Fabric/Colour/Quantity "+ Add Item" button uses, so she still fills STO No./
+// Destination/Date once in the form and clicks "Create STO" once at the end. Matches rolls by
+// Fabric Name + Color Code only (her template's exact 2 columns), lowest Roll No. first.
+function parseRmStoQtyImportSheet(sheetRows) {
+  const out = [];
+  sheetRows.slice(1).forEach(r => {
+    if (!r || !r.some(v => String(v ?? '').trim() !== '')) return;
+    const fabricName = String(r[0] ?? '').trim();
+    const colorCode = String(r[1] ?? '').trim();
+    const qty = Math.max(0, Math.floor(Number(r[2]) || 0));
+    if (!fabricName || !qty) return;
+    out.push({ fabricName, colorCode, qty });
+  });
+  return out;
+}
+function upsertRmStoQtyImportRows(importRows) {
+  let addedItems = 0, skippedNoMatch = 0, skippedNoStock = 0;
+  importRows.forEach(row => {
+    const draftedIds = rmStoDraftedRollIds();
+    const reservedIds = rmReservedRollIds();
+    const matches = rawMaterialRolls.filter(r =>
+      (Number(r.meterRemaining) || 0) > 0 && !draftedIds.has(r.id) && !reservedIds.has(r.id) &&
+      (r.fabricName || '').trim().toLowerCase() === row.fabricName.toLowerCase() &&
+      (r.colorCode || '').trim().toLowerCase() === row.colorCode.toLowerCase()
+    ).sort((a, b) => (a.rollNo || '').localeCompare(b.rollNo || ''));
+    if (!matches.length) { skippedNoMatch++; return; }
+    if (matches.length < row.qty) { skippedNoStock++; return; }
+    const picked = matches.slice(0, row.qty);
+    rmStoDraftItems.push({
+      fabricName: picked[0].fabricName, fabricCode: picked[0].fabricCode, colorCode: picked[0].colorCode, colorName: picked[0].colorName,
+      rollIds: picked.map(r => r.id), rollNos: picked.map(r => r.rollNo),
+      totalMeter: Math.round(picked.reduce((sum, r) => sum + (Number(r.meterRemaining) || 0), 0) * 100) / 100
+    });
+    addedItems++;
+  });
+  return { addedItems, skippedNoMatch, skippedNoStock };
+}
+function processUploadedRmStoQtyFile(file) {
+  const statusEl = document.getElementById('rmStoQtyUploadStatus');
+  statusEl.textContent = 'Processing file...';
+  statusEl.className = 'upload-status';
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      let sheetRows = [];
+      if (ext === 'csv') {
+        const text = String(evt.target.result).replace(/^﻿/, '');
+        sheetRows = parseCsvRows(text);
+      } else {
+        const wb = XLSX.read(evt.target.result, { type: 'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        sheetRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+      }
+      const mapped = parseRmStoQtyImportSheet(sheetRows);
+      const { addedItems, skippedNoMatch, skippedNoStock } = upsertRmStoQtyImportRows(mapped);
+      let msg = `Success: ${addedItems} item(s) added to Items To Pick below.`;
+      if (skippedNoMatch) msg += ` ${skippedNoMatch} row(s) skipped (no roll found for that Fabric Name + Color Code).`;
+      if (skippedNoStock) msg += ` ${skippedNoStock} row(s) skipped (not enough stock).`;
+      statusEl.textContent = msg;
+      statusEl.className = 'upload-status ok';
+      renderRmStoForm();
+    } catch (err) {
+      statusEl.textContent = 'Failed to process file: ' + err.message;
+      statusEl.className = 'upload-status err';
+    }
+  };
+  reader.onerror = () => { statusEl.textContent = 'Failed to read file.'; statusEl.className = 'upload-status err'; };
+  if (ext === 'csv') reader.readAsText(file);
+  else reader.readAsArrayBuffer(file);
+}
+document.getElementById('rmStoQtyFileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  processUploadedRmStoQtyFile(file);
+  e.target.value = '';
+});
+const rmStoQtyDropzone = document.getElementById('rmStoQtyDropzone');
+['dragenter', 'dragover'].forEach(evtName => {
+  rmStoQtyDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); rmStoQtyDropzone.classList.add('dragover'); });
+});
+['dragleave', 'drop'].forEach(evtName => {
+  rmStoQtyDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); rmStoQtyDropzone.classList.remove('dragover'); });
+});
+rmStoQtyDropzone.addEventListener('drop', (e) => {
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (file) processUploadedRmStoQtyFile(file);
+});
+document.getElementById('downloadRmStoQtyTemplateBtn').addEventListener('click', () => {
+  const wsData = [
+    ['Fabric Name', 'Color Code', 'Qty'],
+    ['Cotton Voile', 'RED01', 5],
+    ['Satin Silk', 'BLU02', 3],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [{ wch: 18 }, { wch: 14 }, { wch: 8 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'STO Items');
+  XLSX.writeFile(wb, 'raw_material_sto_items_template.xlsx');
+});
+// Groups the flat rawMaterialStos records (one per roll) by STO No. into a single card per STO —
+// she doesn't want to see the same STO No. repeated once per roll it contains.
+function rmStoGroupsByStoNo() {
+  const groups = new Map();
+  rawMaterialStos.forEach(s => {
+    if (!groups.has(s.stoNo)) groups.set(s.stoNo, { stoNo: s.stoNo, destination: s.destination, date: s.date, notes: s.notes, pickedBy: s.pickedBy, items: [] });
+    groups.get(s.stoNo).items.push(s);
+  });
+  return [...groups.values()];
+}
+function renderRmStoListTable() {
+  const search = (document.getElementById('rmStoSearchInput').value || '').trim().toLowerCase();
+  const wrap = document.getElementById('rmStoTableWrap');
+  let list = rmStoGroupsByStoNo().sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.stoNo || '').localeCompare(a.stoNo || ''));
+  if (search) list = list.filter(g => [g.stoNo, g.destination, ...g.items.flatMap(s => [s.fabricName, s.fabricCode, s.colorCode, s.colorName, s.rollNo])].filter(Boolean).join(' ').toLowerCase().includes(search));
+  if (!list.length) { wrap.innerHTML = `<div class="empty-state">No fabric STO created yet.</div>`; return; }
+  let html = `<div class="rm-card-grid">`;
+  list.forEach(g => {
+    const allCompleted = g.items.every(s => s.status === 'Completed');
+    const badgeClass = allCompleted ? 'badge-green' : 'badge-blue';
+    const totalMeter = g.items.reduce((sum, s) => sum + (Number(s.meter) || 0), 0);
+    const fabricLabel = [...new Set(g.items.map(s => s.fabricName).filter(Boolean))].join(', ') || '-';
+    const rollNos = g.items.map(s => s.rollNo).filter(Boolean).join(', ');
+    html += `<div class="rm-card">
+      <div class="rm-card-head">
+        <div>
+          <div class="rm-card-rollno">${escapeHtml(g.stoNo)}</div>
+          <div class="rm-card-fabric">${escapeHtml(fabricLabel)}</div>
+          <div class="rm-card-sub rm-sto-toggle" style="cursor:pointer; user-select:none;">
+            <span class="rm-sto-toggle-icon">▸</span> ${g.items.length} roll(s)
+          </div>
+          <div class="rm-sto-rolls" style="display:none; font-size:11px; color:var(--text-muted); margin-top:2px;">${escapeHtml(rollNos)}</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="rm-card-meter">${formatQty(totalMeter)}</div>
+          <div class="rm-card-meter-label">meter</div>
+        </div>
+      </div>
+      <div class="rm-card-row"><span>→ ${escapeHtml(g.destination || '-')}</span><span class="rm-card-sub">${formatDateLabel(g.date)}${g.pickedBy ? ` · ${escapeHtml(g.pickedBy)}` : ''}</span></div>
+      <div class="rm-card-row">
+        <span class="badge ${badgeClass}">${allCompleted ? 'Completed' : 'Open'}</span>
+        ${!allCompleted ? `<button type="button" class="btn-ghost rm-sto-complete-btn" data-sto="${escapeHtml(g.stoNo)}" title="Guna kalau tak sempat scan kat Pick tab">Mark All Sent</button>` : ''}
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  wrap.innerHTML = html;
+
+  wrap.querySelectorAll('.rm-sto-toggle').forEach(el => {
+    el.addEventListener('click', () => {
+      const rollsEl = el.nextElementSibling;
+      const icon = el.querySelector('.rm-sto-toggle-icon');
+      const expanded = rollsEl.style.display !== 'none';
+      rollsEl.style.display = expanded ? 'none' : 'block';
+      if (icon) icon.textContent = expanded ? '▸' : '▾';
+    });
+  });
+  wrap.querySelectorAll('.rm-sto-complete-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!confirm(`Tandakan semua roll dalam STO ${btn.dataset.sto} sebagai dah dihantar (tanpa scan satu-satu)?`)) return;
+      rawMaterialStos.forEach(s => {
+        if (s.stoNo !== btn.dataset.sto || s.status === 'Completed') return;
+        s.status = 'Completed';
+        const roll = rawMaterialRolls.find(r => r.id === s.rollId);
+        if (roll) roll.meterRemaining = Math.max(0, Math.round((Number(roll.meterRemaining) - Number(s.meter)) * 100) / 100);
+      });
+      saveRawMaterialRolls();
+      saveRawMaterialStos();
+      renderRmStoListTable();
+    });
+  });
+}
+function renderRmStoTab() { renderRmStoForm(); renderRmStoListTable(); }
+document.getElementById('rmStoSearchInput').addEventListener('input', renderRmStoListTable);
+document.getElementById('rmStoAddItemBtn').addEventListener('click', addRmStoItem);
+document.getElementById('rmStoCreateBtn').addEventListener('click', createRmStoFromForm);
+document.getElementById('rmStoItemFabricSelect').addEventListener('change', renderRmStoColorOptions);
+
+/* ---- Stock Balance ---- */
+function renderRmStockSummaryTable() {
+  const search = (document.getElementById('rmStockSummarySearchInput').value || '').trim().toLowerCase();
+  const wrap = document.getElementById('rmStockSummaryTableWrap');
+  const groups = {};
+  rawMaterialRolls.forEach(r => {
+    const key = [r.fabricCode || r.fabricName || '', r.colorCode || r.colorName || ''].join('||');
+    if (!groups[key]) groups[key] = { fabricName: r.fabricName, fabricCode: r.fabricCode, gsm: r.gsm, colorCode: r.colorCode, colorName: r.colorName, totalMeter: 0, totalRolls: 0, rollsWithStock: 0 };
+    const g = groups[key];
+    g.totalMeter += Number(r.meterRemaining) || 0;
+    g.totalRolls++;
+    if ((Number(r.meterRemaining) || 0) > 0) g.rollsWithStock++;
+  });
+  let list = Object.values(groups);
+  if (search) list = list.filter(g => [g.fabricName, g.fabricCode, g.colorCode, g.colorName].filter(Boolean).join(' ').toLowerCase().includes(search));
+  list.sort((a, b) => (a.fabricName || '').localeCompare(b.fabricName || ''));
+  if (!list.length) { wrap.innerHTML = `<div class="empty-state">No fabric received yet.</div>`; return; }
+  let html = `<div class="rm-card-grid">`;
+  list.forEach(g => {
+    html += `<div class="rm-card">
+      <div class="rm-card-fabric">${escapeHtml(g.fabricName || '-')}${g.fabricCode ? ` <span class="rm-card-sub">(${escapeHtml(g.fabricCode)})</span>` : ''}</div>
+      <div class="rm-card-sub">${escapeHtml(g.colorName || g.colorCode || '-')}${g.gsm ? ` · ${escapeHtml(g.gsm)} GSM` : ''}</div>
+      <div class="rm-card-row" style="margin-top:4px;">
+        <div>
+          <div class="rm-card-meter">${formatQty(g.totalMeter)}</div>
+          <div class="rm-card-meter-label">Total meter</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="rm-card-meter">${g.rollsWithStock}/${g.totalRolls}</div>
+          <div class="rm-card-meter-label">rolls w/ stock</div>
+        </div>
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  wrap.innerHTML = html;
+}
+function renderRmStockDetailTable() {
+  const search = (document.getElementById('rmStockDetailSearchInput').value || '').trim().toLowerCase();
+  const hideEmpty = document.getElementById('rmStockHideEmptyToggle').checked;
+  const wrap = document.getElementById('rmStockDetailTableWrap');
+  let list = rawMaterialRolls.slice();
+  if (hideEmpty) list = list.filter(r => (Number(r.meterRemaining) || 0) > 0);
+  if (search) list = list.filter(r => [r.fabricName, r.fabricCode, r.colorCode, r.colorName, r.rollNo].filter(Boolean).join(' ').toLowerCase().includes(search));
+  list.sort((a, b) => (b.rollNo || '').localeCompare(a.rollNo || ''));
+  if (!list.length) { wrap.innerHTML = `<div class="empty-state">No rolls to show.</div>`; return; }
+  let html = `<div class="rm-card-grid">`;
+  list.forEach(r => {
+    const empty = (Number(r.meterRemaining) || 0) <= 0;
+    html += `<div class="rm-card${empty ? ' rm-card-empty' : ''}">
+      <div class="rm-card-head">
+        <div>
+          <div class="rm-card-rollno">${escapeHtml(r.rollNo)}</div>
+          <div class="rm-card-fabric">${escapeHtml(r.fabricName || '-')}${r.fabricCode ? ` <span class="rm-card-sub">(${escapeHtml(r.fabricCode)})</span>` : ''}</div>
+          <div class="rm-card-sub">${escapeHtml(r.colorName || r.colorCode || '-')}${r.gsm ? ` · ${escapeHtml(r.gsm)} GSM` : ''}</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="rm-card-meter">${formatQty(r.meterRemaining)}</div>
+          <div class="rm-card-meter-label">/ ${formatQty(r.meter)} m</div>
+        </div>
+      </div>
+      <div class="rm-card-sub">Received ${formatDateLabel(r.receivedDate)}${r.batchNo ? ` · Batch ${escapeHtml(r.batchNo)}` : ''}${r.invoiceNo ? ` · Inv. ${escapeHtml(r.invoiceNo)}` : ''}</div>
+      <div class="rm-card-row" style="gap:6px; margin-top:2px;">
+        <button type="button" class="btn-ghost rm-reprint-label-btn" data-id="${escapeHtml(r.id)}" style="flex:1;">🖨 Print Sticker</button>
+        <button type="button" class="btn-ghost rm-delete-roll-btn" data-id="${escapeHtml(r.id)}" style="flex:0 0 auto; color:#e0685c;">🗑 Delete</button>
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('.rm-reprint-label-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const roll = rawMaterialRolls.find(r => r.id === btn.dataset.id);
+      if (roll) printRmRollLabels([roll]);
+    });
+  });
+  wrap.querySelectorAll('.rm-delete-roll-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const roll = rawMaterialRolls.find(r => r.id === btn.dataset.id);
+      if (!roll) return;
+      if (rmReservedRollIds().has(roll.id)) {
+        alert(`Roll ${roll.rollNo} sedang reserved dalam STO yang "Open" — complete atau batalkan STO tu dulu sebelum delete roll ni.`);
+        return;
+      }
+      if (!confirm(`Padam roll ${roll.rollNo} (${roll.fabricName || '-'})? Tindakan ni tak boleh undo.`)) return;
+      rawMaterialRolls = rawMaterialRolls.filter(r => r.id !== roll.id);
+      saveRawMaterialRolls();
+      renderRmStockTab();
+    });
+  });
+}
+function renderRmStockTab() { renderRmStockSummaryTable(); renderRmStockDetailTable(); }
+document.getElementById('rmStockSummarySearchInput').addEventListener('input', renderRmStockSummaryTable);
+document.getElementById('rmStockDetailSearchInput').addEventListener('input', renderRmStockDetailTable);
+document.getElementById('rmStockHideEmptyToggle').addEventListener('change', renderRmStockDetailTable);
+
+/* ---- History ---- */
+function rmHistoryRows() {
+  const rows = [];
+  rawMaterialRolls.forEach(r => {
+    const bits = [r.notes, r.batchNo ? `Batch ${r.batchNo}` : '', r.invoiceNo ? `Inv. ${r.invoiceNo}` : '', r.receivedBy ? `by ${r.receivedBy}` : ''].filter(Boolean);
+    rows.push({ type: 'Roll IN', date: r.receivedDate, rollNo: r.rollNo, fabricName: r.fabricName, fabricCode: r.fabricCode, colorName: r.colorName, colorCode: r.colorCode, meter: r.meter, detail: bits.join(' · ') || '-', sortTs: r.createdAt || 0 });
+  });
+  rawMaterialPicks.forEach(p => {
+    rows.push({ type: 'Pick', date: p.date, rollNo: p.rollNo, fabricName: p.fabricName, fabricCode: p.fabricCode, colorName: p.colorName, colorCode: p.colorCode, meter: p.meterTaken, detail: p.purpose || '-', sortTs: 0 });
+  });
+  rawMaterialStos.forEach(s => {
+    const bits = [`${s.stoNo} → ${s.destination || '-'}`, s.pickedBy ? `by ${s.pickedBy}` : '', s.notes || ''].filter(Boolean);
+    rows.push({ type: 'STO', date: s.date, rollNo: s.rollNo, fabricName: s.fabricName, fabricCode: s.fabricCode, colorName: s.colorName, colorCode: s.colorCode, meter: s.meter, detail: bits.join(' · '), sortTs: 0 });
+  });
+  return rows.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.sortTs - a.sortTs));
+}
+function renderRmHistoryTab() {
+  const search = (document.getElementById('rmHistorySearchInput').value || '').trim().toLowerCase();
+  const typeFilter = document.getElementById('rmHistoryTypeSelect').value;
+  const wrap = document.getElementById('rmHistoryTableWrap');
+  let rows = rmHistoryRows();
+  if (typeFilter !== 'all') rows = rows.filter(r => r.type === typeFilter);
+  if (search) rows = rows.filter(r => [r.rollNo, r.fabricName, r.fabricCode, r.colorName, r.colorCode, r.detail].filter(Boolean).join(' ').toLowerCase().includes(search));
+  if (!rows.length) { wrap.innerHTML = `<div class="empty-state">No transactions yet.</div>`; return; }
+  const typeBadge = (t) => t === 'Roll IN' ? `<span class="badge badge-green">Roll IN</span>` : t === 'Pick' ? `<span class="badge badge-amber">Pick (Out)</span>` : `<span class="badge badge-blue">STO</span>`;
+  let html = `<div class="rm-card-grid">`;
+  rows.forEach(r => {
+    html += `<div class="rm-card">
+      <div class="rm-card-row">
+        ${typeBadge(r.type)}
+        <span class="rm-card-sub">${formatDateLabel(r.date)}</span>
+      </div>
+      <div class="rm-card-rollno">${escapeHtml(r.rollNo || '-')}</div>
+      <div class="rm-card-fabric">${escapeHtml(r.fabricName || '-')}${r.fabricCode ? ` <span class="rm-card-sub">(${escapeHtml(r.fabricCode)})</span>` : ''}</div>
+      <div class="rm-card-sub">${escapeHtml(r.colorName || r.colorCode || '-')}</div>
+      <div class="rm-card-meter" style="font-size:16px;">${formatQty(r.meter)} m</div>
+      <div class="rm-card-sub">${escapeHtml(r.detail)}</div>
+    </div>`;
+  });
+  html += `</div>`;
+  wrap.innerHTML = html;
+}
+document.getElementById('rmHistorySearchInput').addEventListener('input', renderRmHistoryTab);
+document.getElementById('rmHistoryTypeSelect').addEventListener('change', renderRmHistoryTab);
+
+/* ---- Bulk import from Excel/CSV (for bringing in old data from a spreadsheet) ----
+ * Receive import sets meterRemaining directly from the sheet, so it's the one place that
+ * establishes "current stock". Pick/STO history imports are log-only (History tab + traceability)
+ * and deliberately do NOT touch meterRemaining — the assumption is the Receive sheet's Meter
+ * Remaining column already reflects everything that happened up to now, so re-deducting for
+ * imported history would double-count it. */
+
+/* -- Receive (Roll IN + current stock) import --
+ * Column order mirrors a typical "Roll IN" sheet: Fabric Name, Fabric Code, GSM, Color Code,
+ * Color Name, Roll No., Meter, Date, Staff, Timestamp (ignored), Batch, Invoice No., Notes — plus
+ * an optional trailing Meter Remaining column (index 13) for a current-balance-only import. Rolls
+ * import full (meterRemaining = meter) unless that column is filled in, so the normal flow is:
+ * import Roll IN first, then import Roll Out / STO history afterwards to deduct correctly. */
+function parseRmReceiveImportSheet(sheetRows) {
+  const out = [];
+  sheetRows.slice(1).forEach(r => {
+    if (!r || !r.some(v => String(v ?? '').trim() !== '')) return;
+    const fabricName = String(r[0] ?? '').trim();
+    const fabricCode = String(r[1] ?? '').trim();
+    const gsm = String(r[2] ?? '').trim();
+    const colorCode = String(r[3] ?? '').trim();
+    const colorName = String(r[4] ?? '').trim();
+    const rollNoRaw = String(r[5] ?? '').trim();
+    const meter = Number(r[6]);
+    const receivedDateRaw = r[7];
+    const receivedBy = String(r[8] ?? '').trim();
+    // r[9] = Timestamp, ignored
+    const batchNo = String(r[10] ?? '').trim();
+    const invoiceNo = String(r[11] ?? '').trim();
+    const notes = String(r[12] ?? '').trim();
+    const meterRemainingRaw = r[13];
+    if (!fabricName && !fabricCode) return;
+    if (!meter || meter <= 0) return;
+    let meterRemaining = Number(meterRemainingRaw);
+    if (meterRemainingRaw === '' || meterRemainingRaw === undefined || meterRemainingRaw === null || isNaN(meterRemaining) || meterRemaining < 0) meterRemaining = meter;
+    if (meterRemaining > meter) meterRemaining = meter;
+    const receivedDate = parseFlexibleDateToIso(receivedDateRaw) || todayStr();
+    out.push({ fabricName, fabricCode, gsm, colorCode, colorName, rollNoRaw, meter, meterRemaining, receivedDate, receivedBy, batchNo, invoiceNo, notes });
+  });
+  return out;
+}
+function upsertRmReceiveImportRows(importRows) {
+  let added = 0, skippedDup = 0;
+  let counter = getRmRollCounter();
+  importRows.forEach(row => {
+    let rollNo = row.rollNoRaw;
+    if (rollNo) {
+      if (rawMaterialRolls.some(r => r.rollNo === rollNo)) { skippedDup++; return; }
+      const m = rollNo.match(/^RL-(\d+)$/i);
+      if (m && Number(m[1]) > counter) counter = Number(m[1]);
+    } else {
+      counter++;
+      rollNo = formatRmRollNo(counter);
+    }
+    rawMaterialRolls.push({
+      id: genRmId(), rollNo,
+      fabricName: row.fabricName, fabricCode: row.fabricCode, gsm: row.gsm,
+      colorCode: row.colorCode, colorName: row.colorName,
+      meter: row.meter, meterRemaining: row.meterRemaining,
+      receivedDate: row.receivedDate, receivedBy: row.receivedBy, batchNo: row.batchNo, invoiceNo: row.invoiceNo,
+      notes: row.notes, createdAt: Date.now()
+    });
+    added++;
+  });
+  setRmRollCounter(counter);
+  saveRawMaterialRolls();
+  return { added, skippedDup };
+}
+// Accepts either a single-sheet file (treated as Roll IN) or the WHOLE workbook exported straight
+// from Google Sheets (all tabs in one .xlsx) — it looks for a sheet named like "Roll IN" and one
+// named like "Roll Out" (or "STO") and imports both in the right order (Roll IN first, so the Roll
+// Out import's Roll No. lookups resolve), so Shaila can upload her whole sheet in one go instead of
+// exporting/uploading each tab separately.
+function processUploadedRmReceiveFile(file) {
+  const statusEl = document.getElementById('rmReceiveUploadStatus');
+  statusEl.textContent = 'Processing file...';
+  statusEl.className = 'upload-status';
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      const msgs = [];
+      if (ext === 'csv') {
+        const text = String(evt.target.result).replace(/^﻿/, '');
+        const sheetRows = parseCsvRows(text);
+        const mapped = parseRmReceiveImportSheet(sheetRows);
+        const { added, skippedDup } = upsertRmReceiveImportRows(mapped);
+        msgs.push(`Roll IN: ${added} roll(s) added${skippedDup ? `, ${skippedDup} skipped (duplicate Roll No.)` : ''}.`);
+      } else {
+        const wb = XLSX.read(evt.target.result, { type: 'array' });
+        const rollInSheetName = wb.SheetNames.find(n => /roll\s*in/i.test(n));
+        const rollOutSheetName = wb.SheetNames.find(n => /roll\s*out/i.test(n));
+        const sheetToRows = (name) => XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '' });
+
+        if (!rollInSheetName && !rollOutSheetName) {
+          // No recognizable sheet names — fall back to treating the first sheet as Roll IN, same
+          // as a plain single-sheet upload.
+          const mapped = parseRmReceiveImportSheet(sheetToRows(wb.SheetNames[0]));
+          const { added, skippedDup } = upsertRmReceiveImportRows(mapped);
+          msgs.push(`Roll IN: ${added} roll(s) added${skippedDup ? `, ${skippedDup} skipped (duplicate Roll No.)` : ''}.`);
+        } else {
+          if (rollInSheetName) {
+            const mapped = parseRmReceiveImportSheet(sheetToRows(rollInSheetName));
+            const { added, skippedDup } = upsertRmReceiveImportRows(mapped);
+            msgs.push(`Roll IN: ${added} roll(s) added${skippedDup ? `, ${skippedDup} skipped (duplicate Roll No.)` : ''}.`);
+          }
+          if (rollOutSheetName) {
+            const mapped = parseRmStoImportSheet(sheetToRows(rollOutSheetName));
+            const { added, skippedNoRoll } = upsertRmStoImportRows(mapped);
+            msgs.push(`Roll Out: ${added} STO record(s) added${skippedNoRoll ? `, ${skippedNoRoll} skipped (Roll No. not found)` : ''}.`);
+          }
+        }
+      }
+      statusEl.textContent = 'Success — ' + msgs.join(' ');
+      statusEl.className = 'upload-status ok';
+      renderRmReceiveTab();
+    } catch (err) {
+      statusEl.textContent = 'Failed to process file: ' + err.message;
+      statusEl.className = 'upload-status err';
+    }
+  };
+  reader.onerror = () => { statusEl.textContent = 'Failed to read file.'; statusEl.className = 'upload-status err'; };
+  if (ext === 'csv') reader.readAsText(file);
+  else reader.readAsArrayBuffer(file);
+}
+document.getElementById('rmReceiveFileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  processUploadedRmReceiveFile(file);
+  e.target.value = '';
+});
+const rmReceiveDropzone = document.getElementById('rmReceiveDropzone');
+['dragenter', 'dragover'].forEach(evtName => {
+  rmReceiveDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); rmReceiveDropzone.classList.add('dragover'); });
+});
+['dragleave', 'drop'].forEach(evtName => {
+  rmReceiveDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); rmReceiveDropzone.classList.remove('dragover'); });
+});
+rmReceiveDropzone.addEventListener('drop', (e) => {
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (file) processUploadedRmReceiveFile(file);
+});
+document.getElementById('downloadRmReceiveTemplateBtn').addEventListener('click', () => {
+  const wsData = [
+    ['Fabric Name', 'Fabric Code', 'GSM', 'Color Code', 'Color Name', 'Roll No.', 'Meter', 'Date', 'Staff', 'Timestamp (ignored)', 'Batch', 'Invoice No.', 'Notes', 'Meter Remaining (optional)'],
+    ['Cotton Voile', 'CV-01', '120', 'C-RED', 'Red', 'R-0001', 50, '01/09/2026', 'Suha', '', 'BATCH 1', 'XS202609010001', '', ''],
+    ['Cotton Voile', 'CV-01', '120', 'C-BLU', 'Blue', 'R-0002', 50, '25/08/2026', 'Suha', '', 'BATCH 1', 'XS202608250002', '', 30],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [{ wch: 16 }, { wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 16 }, { wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 22 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Raw Material Roll IN');
+  XLSX.writeFile(wb, 'raw_material_roll_in_template.xlsx');
+});
+
+/* -- Pick (history) import -- */
+function parseRmPickImportSheet(sheetRows) {
+  const out = [];
+  sheetRows.slice(1).forEach(r => {
+    if (!r || !r.some(v => String(v ?? '').trim() !== '')) return;
+    const rollNo = String(r[0] ?? '').trim();
+    const meterTaken = Number(r[1]);
+    const purpose = String(r[2] ?? '').trim();
+    const dateRaw = r[3];
+    if (!rollNo || !meterTaken || meterTaken <= 0) return;
+    const date = parseFlexibleDateToIso(dateRaw) || todayStr();
+    out.push({ rollNo, meterTaken, purpose, date });
+  });
+  return out;
+}
+function upsertRmPickImportRows(importRows) {
+  let added = 0, skippedNoRoll = 0;
+  importRows.forEach(row => {
+    const roll = rawMaterialRolls.find(r => r.rollNo === row.rollNo);
+    if (!roll) { skippedNoRoll++; return; }
+    // Reconstructs history like a ledger: Roll IN import brings the roll in full, so each
+    // imported Pick/STO "out" transaction deducts from it here, same as the manual flows do live.
+    roll.meterRemaining = Math.max(0, Math.round((Number(roll.meterRemaining) - row.meterTaken) * 100) / 100);
+    rawMaterialPicks.push({
+      id: genRmId(), rollId: roll.id, rollNo: roll.rollNo,
+      fabricName: roll.fabricName, fabricCode: roll.fabricCode, colorCode: roll.colorCode, colorName: roll.colorName,
+      meterTaken: row.meterTaken, purpose: row.purpose, date: row.date
+    });
+    added++;
+  });
+  saveRawMaterialRolls();
+  saveRawMaterialPicks();
+  return { added, skippedNoRoll };
+}
+function processUploadedRmPickFile(file) {
+  const statusEl = document.getElementById('rmPickUploadStatus');
+  statusEl.textContent = 'Processing file...';
+  statusEl.className = 'upload-status';
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      let sheetRows = [];
+      if (ext === 'csv') {
+        const text = String(evt.target.result).replace(/^﻿/, '');
+        sheetRows = parseCsvRows(text);
+      } else {
+        const wb = XLSX.read(evt.target.result, { type: 'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        sheetRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+      }
+      const mapped = parseRmPickImportSheet(sheetRows);
+      const { added, skippedNoRoll } = upsertRmPickImportRows(mapped);
+      let msg = `Success: ${added} pick record(s) added.`;
+      if (skippedNoRoll) msg += ` ${skippedNoRoll} row(s) skipped (Roll No. not found — import Receive first).`;
+      statusEl.textContent = msg;
+      statusEl.className = 'upload-status ok';
+      renderRmPickTab();
+    } catch (err) {
+      statusEl.textContent = 'Failed to process file: ' + err.message;
+      statusEl.className = 'upload-status err';
+    }
+  };
+  reader.onerror = () => { statusEl.textContent = 'Failed to read file.'; statusEl.className = 'upload-status err'; };
+  if (ext === 'csv') reader.readAsText(file);
+  else reader.readAsArrayBuffer(file);
+}
+document.getElementById('rmPickFileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  processUploadedRmPickFile(file);
+  e.target.value = '';
+});
+const rmPickDropzone = document.getElementById('rmPickDropzone');
+['dragenter', 'dragover'].forEach(evtName => {
+  rmPickDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); rmPickDropzone.classList.add('dragover'); });
+});
+['dragleave', 'drop'].forEach(evtName => {
+  rmPickDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); rmPickDropzone.classList.remove('dragover'); });
+});
+rmPickDropzone.addEventListener('drop', (e) => {
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (file) processUploadedRmPickFile(file);
+});
+document.getElementById('downloadRmPickTemplateBtn').addEventListener('click', () => {
+  const wsData = [
+    ['Roll No.', 'Meter Taken', 'Purpose', 'Date'],
+    ['RL-00001', 10, 'Cutting - Order KFA-100', '20/08/2026'],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [{ wch: 14 }, { wch: 12 }, { wch: 26 }, { wch: 14 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Raw Material Pick History');
+  XLSX.writeFile(wb, 'raw_material_pick_history_template.xlsx');
+});
+
+/* -- Create STO / Roll Out (history) import --
+ * Column order mirrors a typical "Roll Out" sheet: Fabric Name, Fabric Code, Color Code, Color
+ * Name, Roll No., Meter, Date, Staff, Timestamp (ignored), Notes, Destination, STO No. — plus an
+ * optional trailing Status column (index 12; defaults to Completed, since imported rows are past
+ * transactions). Deducts the matched roll's remaining meter, same as the manual Create STO flow. */
+function parseRmStoImportSheet(sheetRows) {
+  const out = [];
+  sheetRows.slice(1).forEach(r => {
+    if (!r || !r.some(v => String(v ?? '').trim() !== '')) return;
+    const rollNo = String(r[4] ?? '').trim();
+    const meter = Number(r[5]);
+    const dateRaw = r[6];
+    const pickedBy = String(r[7] ?? '').trim();
+    // r[8] = Timestamp, ignored
+    const notes = String(r[9] ?? '').trim();
+    const destination = String(r[10] ?? '').trim();
+    const stoNoRaw = String(r[11] ?? '').trim();
+    const statusRaw = String(r[12] ?? '').trim();
+    if (!meter || meter <= 0) return;
+    const date = parseFlexibleDateToIso(dateRaw) || todayStr();
+    const status = /^(active|belum)/i.test(statusRaw) ? 'Active' : 'Completed';
+    out.push({ stoNoRaw, rollNo, meter, destination, date, pickedBy, status, notes });
+  });
+  return out;
+}
+function upsertRmStoImportRows(importRows) {
+  let added = 0, skippedNoRoll = 0;
+  let counter = getRmStoCounter();
+  importRows.forEach(row => {
+    const roll = row.rollNo ? rawMaterialRolls.find(r => r.rollNo === row.rollNo) : null;
+    if (row.rollNo && !roll) { skippedNoRoll++; return; }
+    if (roll) {
+      // Reconstructs history like a ledger: Roll IN import brings the roll in full, so each
+      // imported Pick/STO "out" transaction deducts from it here, same as the manual flows do live.
+      roll.meterRemaining = Math.max(0, Math.round((Number(roll.meterRemaining) - row.meter) * 100) / 100);
+    }
+    let stoNo = row.stoNoRaw;
+    if (stoNo) {
+      const m = stoNo.match(/^RM-STO-(\d+)$/i);
+      if (m && Number(m[1]) > counter) counter = Number(m[1]);
+    } else {
+      counter++;
+      stoNo = formatRmStoNo(counter);
+    }
+    rawMaterialStos.push({
+      id: genRmId(), stoNo, rollId: roll ? roll.id : null, rollNo: row.rollNo || (roll ? roll.rollNo : ''),
+      fabricName: roll ? roll.fabricName : '', fabricCode: roll ? roll.fabricCode : '',
+      colorCode: roll ? roll.colorCode : '', colorName: roll ? roll.colorName : '',
+      meter: row.meter, destination: row.destination, date: row.date, pickedBy: row.pickedBy, status: row.status, notes: row.notes
+    });
+    added++;
+  });
+  setRmStoCounter(counter);
+  saveRawMaterialRolls();
+  saveRawMaterialStos();
+  return { added, skippedNoRoll };
+}
+function processUploadedRmStoFile(file) {
+  const statusEl = document.getElementById('rmStoUploadStatus');
+  statusEl.textContent = 'Processing file...';
+  statusEl.className = 'upload-status';
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      let sheetRows = [];
+      if (ext === 'csv') {
+        const text = String(evt.target.result).replace(/^﻿/, '');
+        sheetRows = parseCsvRows(text);
+      } else {
+        const wb = XLSX.read(evt.target.result, { type: 'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        sheetRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+      }
+      const mapped = parseRmStoImportSheet(sheetRows);
+      const { added, skippedNoRoll } = upsertRmStoImportRows(mapped);
+      let msg = `Success: ${added} STO record(s) added.`;
+      if (skippedNoRoll) msg += ` ${skippedNoRoll} row(s) skipped (Roll No. not found — import Receive first).`;
+      statusEl.textContent = msg;
+      statusEl.className = 'upload-status ok';
+      renderRmStoTab();
+    } catch (err) {
+      statusEl.textContent = 'Failed to process file: ' + err.message;
+      statusEl.className = 'upload-status err';
+    }
+  };
+  reader.onerror = () => { statusEl.textContent = 'Failed to read file.'; statusEl.className = 'upload-status err'; };
+  if (ext === 'csv') reader.readAsText(file);
+  else reader.readAsArrayBuffer(file);
+}
+document.getElementById('rmStoFileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  processUploadedRmStoFile(file);
+  e.target.value = '';
+});
+const rmStoDropzone = document.getElementById('rmStoDropzone');
+['dragenter', 'dragover'].forEach(evtName => {
+  rmStoDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); rmStoDropzone.classList.add('dragover'); });
+});
+['dragleave', 'drop'].forEach(evtName => {
+  rmStoDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); rmStoDropzone.classList.remove('dragover'); });
+});
+rmStoDropzone.addEventListener('drop', (e) => {
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (file) processUploadedRmStoFile(file);
+});
+document.getElementById('downloadRmStoTemplateBtn').addEventListener('click', () => {
+  const wsData = [
+    ['Fabric Name', 'Fabric Code', 'Color Code', 'Color Name', 'Roll No.', 'Meter', 'Date', 'Staff', 'Timestamp (ignored)', 'Notes', 'Destination', 'STO No.', 'Status (optional)'],
+    ['Cotton Voile', 'CV-01', 'C-RED', 'Red', 'R-0001', 15, '15/08/2026', 'Phantom', '', '', 'Butik Melaka', 'STO-0011', ''],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [{ wch: 16 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 16 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 16 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Raw Material Roll Out');
+  XLSX.writeFile(wb, 'raw_material_roll_out_template.xlsx');
+});
+
 const SYNC_COLLECTIONS = [
   { table: 'STO_Records', getArray: () => records, setArray: (a) => { records = a; saveRecords(); } },
   { table: 'DO_Records', getArray: () => doRecords, setArray: (a) => { doRecords = a; saveDoRecords(); } },
@@ -6783,6 +8299,9 @@ const SYNC_COLLECTIONS = [
   { table: 'Pickers', getArray: () => pickers, setArray: (a) => { pickers = a; savePickers(); } },
   { table: 'Staff_Roster', getArray: () => staffRoster, setArray: (a) => { staffRoster = a; migrateLegacyPicRoles(); pruneNonPickerRosterEntriesFromPickers(); saveStaffRoster(); } },
   { table: 'Rollcages', getArray: () => rollcages, setArray: (a) => { rollcages = a; saveRollcages(); } },
+  { table: 'RawMaterial_Rolls', getArray: () => rawMaterialRolls, setArray: (a) => { rawMaterialRolls = a; saveRawMaterialRolls(); } },
+  { table: 'RawMaterial_Picks', getArray: () => rawMaterialPicks, setArray: (a) => { rawMaterialPicks = a; saveRawMaterialPicks(); } },
+  { table: 'RawMaterial_STOs', getArray: () => rawMaterialStos, setArray: (a) => { rawMaterialStos = a; saveRawMaterialStos(); } },
   {
     table: 'Users',
     getArray: () => loadAppUsers(),
