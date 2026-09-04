@@ -2075,7 +2075,7 @@
           </label>
           <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx file here</span>
         </div>
-        <div class="upload-hint" style="margin-top:10px;">Columns: <strong>Batch No.</strong>, Garment Name, SKU, Category (adult/kids/baby), then one column per size — fill in the quantity under whichever size(s) were ordered. Adult uses row 1's headers (XS-6XL); Kids/Baby use row 2's headers (12-18 Month to 12-13 Years). Each filled size becomes its own line item named "SKU-Size". Order No. is auto-generated as "Batch No.-Garment Name-YYYYMMDD"; same Batch No. + Garment Name on the same day groups into one batch card.</div>
+        <div class="upload-hint" style="margin-top:10px;">Columns: <strong>Batch No.</strong>, Garment Name, SKU, Category (adult/kids/baby/merchandise/accessories), then one column per size — fill in the quantity under whichever size(s) were ordered. Adult uses row 1's headers (XS-6XL); Kids/Baby use row 2's headers (12-18 Month to 12-13 Years). Each filled size becomes its own line item named "SKU-Size". Merchandise/Accessories have no sizes — just put the quantity in the first size column (E) and the line item is named the SKU as-is. Order No. is auto-generated as "Batch No.-Garment Name-YYYYMMDD"; same Batch No. + Garment Name on the same day groups into one batch card.</div>
       </div>
       <div class="upload-status" id="garmentUploadStatus"></div>
       <div style="border-top:1px solid var(--border); margin:16px 0;"></div>
@@ -2100,11 +2100,13 @@
             <option value="adult">Adult</option>
             <option value="kids">Kids</option>
             <option value="baby">Baby</option>
+            <option value="merchandise">Merchandise</option>
+            <option value="accessories">Accessories</option>
           </select>
         </div>
       </div>
       <div class="field" id="newGarmentSizeGridWrap" style="display:none; margin-bottom:10px;">
-        <label>Qty per size (fill in whichever apply)</label>
+        <label id="newGarmentSizeGridLabel">Qty per size (fill in whichever apply)</label>
         <div id="newGarmentSizeGrid" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
       </div>
       <button class="btn-primary" id="addGarmentOrderBtn" style="margin-bottom:16px;">+ Add Batch</button>
@@ -2170,6 +2172,7 @@
     <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
       <p class="section-title" style="margin-bottom:0;">STO From Boutique List</p>
       <div style="display:flex; gap:8px;">
+        <button class="btn-ghost" id="removeBlankBoutiqueInboundBtn">🗑 Buang Tiada Nama Butik</button>
         <button class="btn-ghost" id="undoResetInboundStoBtn" style="display:none;">↩ Undo Reset</button>
         <button class="btn-ghost" id="resetInboundStoBtn">Reset STO Progress</button>
       </div>
@@ -3946,6 +3949,17 @@ document.getElementById('undoResetInboundStoBtn').addEventListener('click', () =
   localStorage.removeItem(INBOUND_STO_RESET_SNAPSHOT_KEY);
   renderInboundAll();
   updateResetUndoButtons();
+});
+// One-off cleanup: removes any already-imported Inbound STO whose "From Boutique" is blank —
+// upsertInboundRecords() now skips these on future uploads, but existing blank ones from past
+// uploads (before that fix) need a manual sweep here.
+document.getElementById('removeBlankBoutiqueInboundBtn').addEventListener('click', () => {
+  const blankCount = inboundRecords.filter(r => !String(r.fromBoutique || '').trim()).length;
+  if (!blankCount) { alert('Takde STO dengan From Boutique kosong dalam senarai ni.'); return; }
+  if (!confirm(`Buang ${blankCount} STO yang tiada nama butik? Tindakan ni tak boleh undo.`)) return;
+  inboundRecords = inboundRecords.filter(r => String(r.fromBoutique || '').trim());
+  saveInboundRecords();
+  renderInboundAll();
 });
 
 function renderCartonCounterNote() {
@@ -7376,13 +7390,27 @@ function renderRmPickStoItems() {
   if (!stoSelect.value) { wrap.innerHTML = `<div class="empty-state">Pilih STO No. dulu untuk lihat item.</div>`; return; }
   const items = rawMaterialStos.filter(s => s.stoNo === stoSelect.value);
   if (!items.length) { wrap.innerHTML = `<div class="empty-state">Takde item dalam STO ni.</div>`; return; }
-  let html = `<div class="rm-card-grid">`;
-  items.forEach(s => {
-    const badgeClass = s.status === 'Completed' ? 'badge-green' : 'badge-blue';
-    html += `<div class="rm-card">
+  const doneCount = items.filter(s => s.status === 'Completed').length;
+  let html = `<div class="data-note" style="margin-bottom:8px;">${doneCount} / ${items.length} roll dah dihantar (Completed).</div>`;
+  // Only list rolls that have actually been scanned (Completed, or scanned and pending Complete) —
+  // no roll-no. "suggestions" shown for items still Open/unscanned, since staff pick rolls at random.
+  const scanned = items.filter(s => s.status === 'Completed' || s.id === rmPickMatchedItemId)
+    .sort((a, b) => (a.status === 'Completed') - (b.status === 'Completed'));
+  if (!scanned.length) {
+    html += `<div class="empty-state">Belum ada roll discan lagi.</div>`;
+    wrap.innerHTML = html;
+    return;
+  }
+  html += `<div class="rm-card-grid">`;
+  scanned.forEach(s => {
+    const isDone = s.status === 'Completed';
+    const isJustScanned = s.id === rmPickMatchedItemId && !isDone;
+    const badgeClass = isDone ? 'badge-green' : 'badge-blue';
+    const cardStyle = isJustScanned ? 'border-color:#7cc47c; box-shadow:0 0 0 1px #7cc47c;' : '';
+    html += `<div class="rm-card" style="${cardStyle}">
       <div class="rm-card-head">
         <div>
-          <div class="rm-card-rollno">${escapeHtml(s.rollNo)}</div>
+          <div class="rm-card-rollno">${isDone ? '✅ ' : ''}${escapeHtml(s.rollNo)}</div>
           <div class="rm-card-fabric">${escapeHtml(s.fabricName || '-')}</div>
           <div class="rm-card-sub">${escapeHtml(s.colorName || s.colorCode || '-')}</div>
         </div>
@@ -7391,11 +7419,17 @@ function renderRmPickStoItems() {
           <div class="rm-card-meter-label">meter</div>
         </div>
       </div>
-      <div class="rm-card-row"><span class="badge ${badgeClass}">${escapeHtml(s.status)}</span></div>
+      <div class="rm-card-row"><span class="badge ${badgeClass}">${isDone ? 'Completed' : 'Scanned — tunggu Complete'}</span>${isJustScanned ? '<span class="data-note" style="margin:0;">← baru scan</span>' : ''}</div>
     </div>`;
   });
   html += `</div>`;
   wrap.innerHTML = html;
+}
+function rmPickColorMatches(a, b) {
+  const ac = (a.colorCode || '').trim().toLowerCase();
+  const bc = (b.colorCode || '').trim().toLowerCase();
+  if (ac && bc) return ac === bc;
+  return (a.colorName || '').trim().toLowerCase() === (b.colorName || '').trim().toLowerCase();
 }
 function scanRmPickRoll() {
   const stoSelect = document.getElementById('rmPickStoSelect');
@@ -7404,19 +7438,77 @@ function scanRmPickRoll() {
   const rollNo = rollInput.value.trim();
   if (!stoSelect.value) { resultEl.textContent = 'Pilih STO No. dulu.'; resultEl.style.color = '#e0685c'; return; }
   if (!rollNo) { resultEl.textContent = 'Scan atau taip Roll No. dulu.'; resultEl.style.color = '#e0685c'; return; }
-  const item = rawMaterialStos.find(s => s.stoNo === stoSelect.value && s.rollNo.toLowerCase() === rollNo.toLowerCase());
+  // Clear + refocus the field right away in every case — she's scanning one after another with a
+  // physical scanner, so the box needs to be empty and ready for the next scan immediately.
+  rollInput.value = '';
+  rollInput.focus();
+
+  // Staff can grab ANY physical roll off the shelf — it doesn't have to be the exact roll no.
+  // that Create STO auto-reserved, as long as it's the same fabric + colour that STO needs.
+  const roll = rawMaterialRolls.find(r => (r.rollNo || '').toLowerCase() === rollNo.toLowerCase());
+  if (!roll) {
+    resultEl.textContent = `Roll No. "${rollNo}" tak jumpa dalam stock.`;
+    resultEl.style.color = '#e0685c';
+    document.getElementById('rmPickCompleteWrap').style.display = 'none';
+    rmPickMatchedItemId = null;
+    renderRmPickStoItems();
+    return;
+  }
+  if ((Number(roll.meterRemaining) || 0) <= 0) {
+    resultEl.textContent = `Roll ${roll.rollNo} dah takde baki (0m) — tak boleh hantar.`;
+    resultEl.style.color = '#e0685c';
+    document.getElementById('rmPickCompleteWrap').style.display = 'none';
+    rmPickMatchedItemId = null;
+    renderRmPickStoItems();
+    return;
+  }
+  const reservedElsewhere = rawMaterialStos.some(s => s.rollId === roll.id && s.status === 'Open' && s.stoNo !== stoSelect.value);
+  if (reservedElsewhere) {
+    resultEl.textContent = `Roll ${roll.rollNo} dah reserved untuk STO lain.`;
+    resultEl.style.color = '#e0685c';
+    document.getElementById('rmPickCompleteWrap').style.display = 'none';
+    rmPickMatchedItemId = null;
+    renderRmPickStoItems();
+    return;
+  }
+  const completedElsewhere = rawMaterialStos.some(s => s.rollId === roll.id && s.status === 'Completed');
+  if (completedElsewhere) {
+    resultEl.textContent = `Roll ${roll.rollNo} dah pun dihantar sebelum ni (Completed).`;
+    resultEl.style.color = '#e0685c';
+    document.getElementById('rmPickCompleteWrap').style.display = 'none';
+    rmPickMatchedItemId = null;
+    renderRmPickStoItems();
+    return;
+  }
+
+  // Prefer the exact placeholder item (if she happened to scan the originally auto-picked roll),
+  // otherwise fall back to any Open item in this STO needing the same fabric + colour.
+  let item = rawMaterialStos.find(s => s.stoNo === stoSelect.value && s.status !== 'Completed' && s.rollId === roll.id);
   if (!item) {
-    resultEl.textContent = `Roll No. "${rollNo}" bukan sebahagian STO ${stoSelect.value}.`;
+    item = rawMaterialStos.find(s => s.stoNo === stoSelect.value && s.status !== 'Completed'
+      && (s.fabricName || '').trim().toLowerCase() === (roll.fabricName || '').trim().toLowerCase()
+      && rmPickColorMatches(s, roll));
+  }
+  if (!item) {
+    resultEl.textContent = `Roll ${roll.rollNo} (${roll.fabricName || '-'} / ${roll.colorName || roll.colorCode || '-'}) bukan fabric/warna yang diperlukan dalam STO ${stoSelect.value}, atau item dah penuh.`;
     resultEl.style.color = '#e0685c';
     document.getElementById('rmPickCompleteWrap').style.display = 'none';
+    rmPickMatchedItemId = null;
+    renderRmPickStoItems();
     return;
   }
-  if (item.status === 'Completed') {
-    resultEl.textContent = `Roll ${item.rollNo} dah pun dihantar (Completed).`;
-    resultEl.style.color = '#e0685c';
-    document.getElementById('rmPickCompleteWrap').style.display = 'none';
-    return;
+
+  // Substitute the scanned roll's real identity into this item slot (releases the original
+  // placeholder roll back to available stock since it's no longer referenced by any Open item).
+  if (item.rollId !== roll.id) {
+    item.rollId = roll.id;
+    item.rollNo = roll.rollNo;
+    item.fabricCode = roll.fabricCode;
+    item.colorCode = roll.colorCode;
+    item.colorName = roll.colorName;
   }
+  item.meter = Number(roll.meterRemaining) || 0;
+
   rmPickMatchedItemId = item.id;
   resultEl.textContent = `✓ ${item.rollNo} — ${item.fabricName || ''} (${item.colorName || item.colorCode || ''}) dijumpai.`;
   resultEl.style.color = '#7cc47c';
@@ -7424,6 +7516,7 @@ function scanRmPickRoll() {
   document.getElementById('rmPickDestination').value = item.destination || '';
   document.getElementById('rmPickNotes').value = item.notes || '';
   document.getElementById('rmPickCompleteWrap').style.display = 'block';
+  renderRmPickStoItems();
 }
 function completeRmPickScan() {
   if (!rmPickMatchedItemId) return;
@@ -7443,6 +7536,15 @@ function completeRmPickScan() {
 document.getElementById('rmPickStoSelect').addEventListener('change', () => { resetRmPickScan(); renderRmPickStoItems(); });
 document.getElementById('rmPickScanBtn').addEventListener('click', scanRmPickRoll);
 document.getElementById('rmPickRollInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); scanRmPickRoll(); } });
+// Barcode scanners "type" characters far faster than a human — if a scanner isn't configured to
+// send an Enter/Tab afterward, this still auto-triggers the scan once typing pauses (~120ms with
+// no further keystroke), so she never has to press Enter herself either way.
+let rmPickScanDebounceTimer = null;
+document.getElementById('rmPickRollInput').addEventListener('input', (e) => {
+  clearTimeout(rmPickScanDebounceTimer);
+  if (!e.target.value.trim()) return;
+  rmPickScanDebounceTimer = setTimeout(scanRmPickRoll, 120);
+});
 document.getElementById('rmPickCompleteBtn').addEventListener('click', completeRmPickScan);
 
 /* ---- Create STO (fabric transfer) ---- */
@@ -13430,6 +13532,12 @@ function saveGarmentOrders() { localStorage.setItem(GARMENT_ORDERS_KEY, JSON.str
 const GARMENT_TEMPLATE_FIXED_COLS = 4; // Batch No., Garment Name, SKU, Category
 const GARMENT_SIZES_ADULT = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '6XL'];
 const GARMENT_SIZES_KIDS_BABY = [null, null, '12-18 Month', '18-24 Month', '2-3 Years', '4-5 Years', '6-7 Years', '8-9 Years', '10-11 Years', '12-13 Years'];
+// Merchandise/Accessories don't have clothing sizes — they're a single quantity per SKU instead of
+// a size grid. Line item is named just "<SKU>" (no "-Size" suffix), same as leaving Category blank.
+const GARMENT_QTY_ONLY_CATEGORIES = new Set(['merchandise', 'merch', 'accessories', 'accessory']);
+function garmentIsQtyOnlyCategory(category) {
+  return GARMENT_QTY_ONLY_CATEGORIES.has(String(category || '').trim().toLowerCase());
+}
 function garmentSizeLabelsForCategory(category) {
   const c = String(category || '').trim().toLowerCase();
   if (c === 'adult') return GARMENT_SIZES_ADULT;
@@ -13438,8 +13546,15 @@ function garmentSizeLabelsForCategory(category) {
 }
 // Same size-per-category list, but as small qty inputs for the manual "Add Batch" / "Add SKU"
 // forms — one input per real size in that category (skips the two null placeholders Kids/Baby
-// share with Adult's unused E,F columns in the import template).
+// share with Adult's unused E,F columns in the import template). Merchandise/Accessories get a
+// single plain Quantity input instead (data-size="" so the line item is named just the SKU).
 function garmentSizeGridInputsHtml(category) {
+  if (garmentIsQtyOnlyCategory(category)) {
+    return `<div style="min-width:120px;">
+      <label style="font-size:10px; display:block; margin-bottom:2px; color:var(--text-muted);">Quantity</label>
+      <input type="number" min="0" class="garment-size-qty-input" data-size="" placeholder="0" style="width:100%;">
+    </div>`;
+  }
   const labels = (garmentSizeLabelsForCategory(category) || []).filter(Boolean);
   return labels.map(label => `<div style="min-width:88px;">
     <label style="font-size:10px; display:block; margin-bottom:2px; color:var(--text-muted);">${escapeHtml(label)}</label>
@@ -13462,9 +13577,17 @@ function parseGarmentImportSheet(sheetRows) {
     const sku = String(r[2] ?? '').trim();
     const category = r[3];
     if (!rawBatchNo) return;
+    const batchNo = [rawBatchNo, garmentName, datePart].filter(Boolean).join('-');
+    if (garmentIsQtyOnlyCategory(category)) {
+      // No size grid — just a plain quantity in the first size column (E), line item is the SKU as-is.
+      const cell = r[GARMENT_TEMPLATE_FIXED_COLS];
+      const qty = Number(cell);
+      if (!cell || !qty) return;
+      out.push({ batchNo, garmentName, sku: sku || 'Item', qtyOrder: qty, orderDate });
+      return;
+    }
     const sizeLabels = garmentSizeLabelsForCategory(category);
     if (!sizeLabels) return;
-    const batchNo = [rawBatchNo, garmentName, datePart].filter(Boolean).join('-');
     sizeLabels.forEach((label, idx) => {
       if (!label) return;
       const cell = r[GARMENT_TEMPLATE_FIXED_COLS + idx];
@@ -13583,6 +13706,8 @@ document.getElementById('downloadGarmentTemplateBtn').addEventListener('click', 
     ['Batch-1', 'Samim', 'PTX3CFCMD2', 'adult', '', '', 50, 50, '', '', '', '', '', ''],
     ['Batch-1', 'Samim', 'PTX3BCM', 'kids', '', '', '', '', 50, 50, 50, '', '', ''],
     ['Batch-1', 'Samim', 'PTX3BBTB', 'baby', '', '', 50, 50, '', '', '', '', '', ''],
+    ['Batch-1', 'Tote Bag', 'MERCH-01', 'merchandise', 50, '', '', '', '', '', '', '', '', ''],
+    ['Batch-1', 'Keychain', 'ACC-01', 'accessories', 50, '', '', '', '', '', '', '', '', ''],
   ];
   const ws = XLSX.utils.aoa_to_sheet(wsData);
   ws['!cols'] = [{ wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, ...GARMENT_SIZES_ADULT.map(() => ({ wch: 12 }))];
@@ -14324,6 +14449,8 @@ function renderGarmentOrderTab() {
       const grid = Array.from(wrap.querySelectorAll('.garment-new-size-grid')).find(el => el.dataset.batch === batchNo);
       if (!sel.value) { gridWrap.style.display = 'none'; grid.innerHTML = ''; return; }
       grid.innerHTML = garmentSizeGridInputsHtml(sel.value);
+      const label = gridWrap.querySelector('label');
+      if (label) label.textContent = garmentIsQtyOnlyCategory(sel.value) ? 'Quantity' : 'Qty per size (fill in whichever apply)';
       gridWrap.style.display = '';
     });
   });
@@ -14346,7 +14473,9 @@ function renderGarmentOrderTab() {
       sizeInputs.forEach(inp => {
         const qty = Number(inp.value);
         if (!inp.value || !qty) return;
-        const lineSku = sku ? `${sku}-${inp.dataset.size}` : inp.dataset.size;
+        // Qty-only categories (Merchandise/Accessories) render a single input with data-size="" —
+        // no "-Size" suffix in that case, the line item is just the SKU (or "Item" if SKU left blank).
+        const lineSku = inp.dataset.size ? (sku ? `${sku}-${inp.dataset.size}` : inp.dataset.size) : (sku || 'Item');
         const existing = batch.skus.find(s => (s.sku || '').trim().toLowerCase() === lineSku.toLowerCase());
         if (existing) existing.qtyOrder = qty;
         else batch.skus.push({ sku: lineSku, qtyOrder: qty, qtyReceived: 0 });
@@ -14367,8 +14496,10 @@ document.getElementById('inputNewGarmentCategory').addEventListener('change', ()
   const cat = document.getElementById('inputNewGarmentCategory').value;
   const gridWrap = document.getElementById('newGarmentSizeGridWrap');
   const grid = document.getElementById('newGarmentSizeGrid');
+  const gridLabel = document.getElementById('newGarmentSizeGridLabel');
   if (!cat) { gridWrap.style.display = 'none'; grid.innerHTML = ''; return; }
   grid.innerHTML = garmentSizeGridInputsHtml(cat);
+  if (gridLabel) gridLabel.textContent = garmentIsQtyOnlyCategory(cat) ? 'Quantity' : 'Qty per size (fill in whichever apply)';
   gridWrap.style.display = '';
 });
 document.getElementById('addGarmentOrderBtn').addEventListener('click', () => {
@@ -14402,7 +14533,9 @@ document.getElementById('addGarmentOrderBtn').addEventListener('click', () => {
   if (category) {
     document.querySelectorAll('#newGarmentSizeGrid .garment-size-qty-input').forEach(inp => {
       const qty = Number(inp.value);
-      if (inp.value && qty) skus.push({ sku: sku ? `${sku}-${inp.dataset.size}` : inp.dataset.size, qtyOrder: qty, qtyReceived: 0 });
+      if (!inp.value || !qty) return;
+      const lineSku = inp.dataset.size ? (sku ? `${sku}-${inp.dataset.size}` : inp.dataset.size) : (sku || 'Item');
+      skus.push({ sku: lineSku, qtyOrder: qty, qtyReceived: 0 });
     });
   } else if (sku) {
     skus.push({ sku, qtyOrder: 0, qtyReceived: 0 });
@@ -14620,6 +14753,7 @@ function mapRowToInboundRecord(row) {
   return {
     orderNumber: row['Order Number'] || row['STO No.'] || '',
     fromBoutique: row['From Warehouse'] || row['From Boutique'] || '',
+    toWarehouse: row['To Warehouse'] || row['To Boutique'] || '',
     status: row['Status'] || '',
     createdDate: parseUsDateToIso(row['Issued Date'] || row['Created Date']),
     totalOrderQty: row['Total Qty'] || row['Total Order Qty'] || row['Qty'] || '',
@@ -14629,8 +14763,11 @@ function upsertInboundRecords(newRecs) {
   let added = 0, updated = 0, removed = 0;
   const newlyAdded = [];
   newRecs.forEach(nr => {
-    if (!nr.orderNumber || isInboundExcludedLocation(nr.fromBoutique)) return;
-    const { status, ...rest } = nr;
+    // FROM must be a real boutique (excluded if it's one of these internal buckets). TO must be
+    // ONE of these internal buckets — i.e. actually inbound to the Khatam warehouse side, not a
+    // boutique-to-boutique transfer that has nothing to do with this warehouse.
+    if (!nr.orderNumber || !String(nr.fromBoutique || '').trim() || isInboundExcludedLocation(nr.fromBoutique) || !isInboundExcludedLocation(nr.toWarehouse)) return;
+    const { status, toWarehouse, ...rest } = nr;
     const idx = inboundRecords.findIndex(r => r.orderNumber === nr.orderNumber);
     if (isInboundTrackedStatus(status)) {
       if (idx === -1) { const rec = { ...rest, progress: 'Active' }; inboundRecords.push(rec); newlyAdded.push(rec); added++; }
