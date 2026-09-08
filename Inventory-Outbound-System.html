@@ -1045,6 +1045,7 @@
       <button class="tab-btn" data-tab="team-packing">Packing Stations</button>
       <button class="tab-btn" data-tab="team-receiving">Receive Stations</button>
       <button class="tab-btn" data-tab="team-drivers">Drivers</button>
+      <button class="tab-btn" data-tab="team-printers">Printers</button>
       <button class="tab-btn" data-tab="team-admin">Admin &amp; Access</button>
     </div>
     <button class="tab-btn" data-tab="staff-schedule">Staff Schedule</button>
@@ -1565,6 +1566,7 @@
         <p class="section-title" style="margin-top:0; font-size:13px;">Accessories Receiving History</p>
         <input type="text" id="accHistorySearchInput" placeholder="Search Accessories Name...">
         <div id="accHistoryTableWrap" style="margin-top:10px;"></div>
+        <input type="file" id="accEditPhotoFileInput" accept="image/*" style="display:none;">
       </div>
     </div>
     </div>
@@ -1711,6 +1713,14 @@
         </div>
         <button type="button" class="btn-ghost" id="rmPrintSelectedBtn" disabled>🖨 Print Selected (0)</button>
       </div>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px; padding-top:10px; border-top:1px solid var(--border);">
+        <span style="font-size:12px; color:var(--text-muted);">Bulk Edit:</span>
+        <button type="button" class="btn-ghost" id="rmPrintExportBtn">📤 Export to Excel</button>
+        <label class="upload-btn-label" style="margin:0;">
+          📥 Import from Excel
+          <input type="file" id="rmPrintImportFileInput" accept=".csv,.xlsx,.xls" style="display:none;">
+        </label>
+      </div>
       <div id="rmPrintTableWrap" style="margin-top:10px;"></div>
     </div>
     </div>
@@ -1747,7 +1757,51 @@
   <section class="tab-panel" id="tab-rm-price-tag">
     <p class="section-title">Price Tag (Baju)</p>
     <div class="card">
-      <div class="data-note">Under construction — ciri print price tag untuk baju akan ditambah di sini.</div>
+      <p class="rm-form-section-label" style="margin-top:0;">Import Senarai Sticker</p>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <span class="data-note" style="margin:0;">Bukan untuk print terus dalam sistem ni — senarai ni jadi checklist untuk track sticker mana yang dah siap print (kat vendor/printer luar). Upload senarai dari supplier (Series, Supplier, Colour Code, Color Name, Name on Sticker, Batch Number, Size, Quantity, Price) — setiap baris (Colour + Size) jadi satu checklist item.</span>
+        <button type="button" class="btn-ghost" id="downloadPriceTagTemplateBtn">⬇ Download Template</button>
+      </div>
+      <div class="dropzone" id="priceTagDropzone">
+        <div class="dropzone-icon">⬆</div>
+        <div class="upload-row">
+          <label class="upload-btn-label">
+            Choose File
+            <input type="file" id="priceTagFileInput" accept=".csv,.xlsx,.xls">
+          </label>
+          <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx file here</span>
+        </div>
+      </div>
+      <div class="upload-status" id="priceTagUploadStatus"></div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <p class="rm-form-section-label" style="margin-top:0;">SKU Reference (untuk Auto-fill)</p>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <span class="data-note" style="margin:0;">Upload export inventory penuh dari sistem SKU awak (perlu ada column "Title", "Option1 Value" &amp; "SKU" — macam export Shopify). Sistem guna ni untuk cadangkan SKU secara automatik kat checklist bawah. Data ni disimpan dalam browser/computer ni je (tak sync ke cloud sebab saiz dia besar) — kalau buka checklist ni kat computer lain, upload semula file ni kat situ.</span>
+        <span id="skuReferenceStatusNote" class="data-note" style="margin:0; white-space:nowrap;"></span>
+      </div>
+      <div class="dropzone" id="skuReferenceDropzone">
+        <div class="dropzone-icon">⬆</div>
+        <div class="upload-row">
+          <label class="upload-btn-label">
+            Choose File
+            <input type="file" id="skuReferenceFileInput" accept=".csv,.xlsx,.xls">
+          </label>
+          <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx file here</span>
+        </div>
+      </div>
+      <div class="upload-status" id="skuReferenceUploadStatus"></div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+        <p class="section-title" style="margin:0; font-size:13px;">Checklist Print Sticker</p>
+        <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); cursor:pointer;"><input type="checkbox" id="priceTagHideDoneToggle"> Hide series yang dah siap sepenuhnya</label>
+      </div>
+      <input type="text" id="priceTagSearchInput" placeholder="Search Series / Supplier / Name on Sticker / Colour...">
+      <div class="data-note" style="margin-top:6px;">Nak tambah/padam nama printer dalam dropdown "Printer"? Pergi Team Setup → Printers.</div>
+      <div id="priceTagTableWrap" style="margin-top:10px;"></div>
     </div>
   </section>
 
@@ -2082,7 +2136,7 @@
       <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr auto; margin-bottom:16px;">
         <div class="field">
           <label>Driver Name</label>
-          <select id="inputNewDriverName"></select>
+          <input type="text" id="inputNewDriverName" placeholder="e.g. Ahmad Bin Ali">
         </div>
         <div class="field">
           <label>Driver Phone</label>
@@ -2096,12 +2150,29 @@
           <button class="btn-primary" id="addDriverBtn">+ Add Driver</button>
         </div>
       </div>
-      <div class="data-note" style="margin-bottom:14px;">Pick a name from the Staff Schedule tab and click "+ Add Driver" — only staff not already added show up here. Registered drivers show up as autocomplete suggestions when creating a new trip under Operation Fleet.</div>
+      <div class="data-note" style="margin-bottom:14px;">Drivers are their own list here — independent of the Staff Schedule roster. Type a name and click "+ Add Driver". Registered drivers show up as autocomplete suggestions when creating a new trip under Operation Fleet.</div>
       <div id="driversTableWrap"></div>
       <div style="display:flex; align-items:center; gap:12px; margin-top:12px;">
         <button type="button" class="btn-primary" id="saveDriversBtn">Save Drivers</button>
         <span class="data-note" id="driversDirtyNote" style="margin:0; color:var(--amber); display:none;">Unsaved changes — click Save before leaving this tab.</span>
       </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-team-printers">
+    <p class="section-title">Printers</p>
+    <div class="card">
+      <div class="form-grid" style="grid-template-columns: 1fr auto; margin-bottom:16px;">
+        <div class="field">
+          <label>Printer / Vendor Name</label>
+          <input type="text" id="inputNewPriceTagPrinter" placeholder="e.g. Vendor ABC Printing">
+        </div>
+        <div class="field">
+          <button class="btn-primary" id="addPriceTagPrinterBtn">+ Add Printer</button>
+        </div>
+      </div>
+      <div class="data-note" style="margin-bottom:14px;">Registered printers show up as a dropdown in the Price Tag (Baju) checklist, under Raw Material.</div>
+      <div id="priceTagPrintersListWrap"></div>
     </div>
   </section>
 
@@ -2709,6 +2780,18 @@
       <button class="btn-ghost" id="doCancelBtn">Close</button>
       <button class="btn-primary" id="doPrintBtn">Print DO</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="skuMatchProductModal">
+  <div class="modal-box" style="max-width:520px;">
+    <div class="modal-header">
+      <h2>Padankan Series Dengan Produk</h2>
+      <button class="modal-close" id="skuMatchProductCloseBtn">&times;</button>
+    </div>
+    <p class="data-note" id="skuMatchProductSeriesLabel" style="margin-top:0;"></p>
+    <input type="text" id="skuMatchProductSearchInput" placeholder="Search nama produk dalam SKU Reference...">
+    <div id="skuMatchProductListWrap" style="max-height:320px; overflow-y:auto; margin-top:10px; border:1px solid var(--border); border-radius:6px;"></div>
   </div>
 </div>
 
@@ -3701,6 +3784,9 @@ function loadData() {
   loadStationPresence();
   loadRawMaterialData();
   loadAccessoriesReceipts();
+  loadPriceTagStickers();
+  loadPriceTagPrinters();
+  loadSkuReference();
   // Cleans up any STO No. duplicates already sitting in storage (e.g. from two devices each adding
   // the same STO No. before they'd ever synced with each other — see backfillNaturalSyncIds above)
   // and makes sure every record has a stable id going forward, right from the moment data loads —
@@ -4370,6 +4456,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'rm-sto') renderRmStoTab();
     if (btn.dataset.tab === 'rm-stock') renderRmStockTab();
     if (btn.dataset.tab === 'rm-print') setRmPrintItemType(rmPrintItemType);
+    if (btn.dataset.tab === 'rm-price-tag') { renderPriceTagTab(); renderSkuReferenceStatusNote(); }
+    if (btn.dataset.tab === 'team-printers') renderPriceTagPrintersList();
     if (btn.dataset.tab === 'papan') renderKanban();
     if (btn.dataset.tab === 'delivered') renderDeliveredTab();
     if (btn.dataset.tab === 'sla') renderSlaTab();
@@ -6301,17 +6389,10 @@ function populatePickerRosterSelect() {
   const names = staffRoster.filter(s => s.active !== false && staffRoleFunction(s.role) === 'Picker').map(s => s.name).filter(n => !existing.has(n.trim().toLowerCase())).sort();
   list.innerHTML = names.map(n => `<option value="${escapeHtml(n)}"></option>`).join('');
 }
-function populateDriverRosterSelect() {
-  const select = document.getElementById('inputNewDriverName');
-  if (!select) return;
-  const existing = new Set(fleetDrivers.map(d => (d.driverName || '').trim().toLowerCase()));
-  const names = staffRoster.filter(s => s.active !== false).map(s => s.name).filter(n => !existing.has(n.trim().toLowerCase())).sort();
-  if (!names.length) {
-    select.innerHTML = `<option value="">— no unassigned staff in roster —</option>`;
-    return;
-  }
-  select.innerHTML = `<option value="">— pick a staff —</option>` + names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
-}
+// Driver Name is now a free-text field, independent of the Staff Schedule roster — this is kept
+// as a harmless no-op (rather than removed) since it's still called from several places whenever
+// the roster/driver list changes.
+function populateDriverRosterSelect() {}
 
 /* ---------- Rollcages / Trolleys list rendering ---------- */
 function renderRollcagesList() {
@@ -6781,6 +6862,7 @@ const PERMISSION_TABS = [
   { id: 'team-packing', label: 'Packing Stations (Team Setup)' },
   { id: 'team-receiving', label: 'Receive Stations (Team Setup)' },
   { id: 'team-drivers', label: 'Drivers (Team Setup)' },
+  { id: 'team-printers', label: 'Printers (Team Setup)' },
   { id: 'laporan', label: 'Reports' },
 ];
 function userCanAccessTab(user, tabId) {
@@ -7470,6 +7552,263 @@ function loadAccessoriesReceipts() { try { accessoriesReceipts = JSON.parse(loca
 function saveAccessoriesReceipts() { localStorage.setItem(ACC_RECEIPTS_KEY, JSON.stringify(accessoriesReceipts)); }
 function genAccReceiptId() { return 'acc_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 function genAccBatchId() { return 'accb_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+// Price Tag (Baju) — a CHECKLIST only, not a print engine: she prints the actual stickers outside
+// this system (vendor/printer), then comes back here to tick off which ones are done. Imported from
+// whatever sheet the supplier sends (one row per Colour + Size combo), flattened into one array.
+const PRICE_TAG_KEY = 'sto_price_tag_stickers_v1';
+const PRICE_TAG_PRINTERS_KEY = 'sto_price_tag_printers_v1';
+// printedQty = how many of that Colour+Size's stickers have actually been printed so far (can be
+// partial, e.g. 20 of 30) — separate from `quantity`, which is the planned total. sku/printer are
+// filled in by her manually inside the checklist (not part of the supplier's import sheet).
+let priceTagStickers = []; // [{ id, series, supplier, colourCode, colorName, nameOnSticker, batchNumber, size, quantity, price, printedQty, sku, printer, doneAt, createdAt }]
+let priceTagPrinters = []; // [{ name }] — same shape as Pickers/Rollcages, so its Firebase sync key (syncKeyOf) can auto-assign _syncId onto a real object; a plain string array can't hold that property, which silently broke sync (every entry collapsed onto one shared key).
+function loadPriceTagStickers() {
+  try { priceTagStickers = JSON.parse(localStorage.getItem(PRICE_TAG_KEY)) || []; } catch (e) { priceTagStickers = []; }
+  // Migrate any lines saved under the old checkbox-only model (before Qty/SKU/Printer existed) —
+  // a line already ticked "done" carries its full quantity forward as printedQty so it doesn't
+  // silently look unprinted after this update.
+  let migrated = false;
+  priceTagStickers.forEach(p => {
+    if (p.printedQty === undefined) { p.printedQty = p.done ? (Number(p.quantity) || 0) : 0; migrated = true; }
+    if (p.sku === undefined) { p.sku = ''; migrated = true; }
+    if (p.printer === undefined) { p.printer = ''; migrated = true; }
+  });
+  if (migrated) savePriceTagStickers();
+}
+function savePriceTagStickers() { localStorage.setItem(PRICE_TAG_KEY, JSON.stringify(priceTagStickers)); }
+function loadPriceTagPrinters() {
+  try { priceTagPrinters = JSON.parse(localStorage.getItem(PRICE_TAG_PRINTERS_KEY)) || []; } catch (e) { priceTagPrinters = []; }
+  // Migrate any entries saved as bare strings under the old (broken-sync) format into { name } objects.
+  let migrated = false;
+  priceTagPrinters = priceTagPrinters.map(p => {
+    if (typeof p === 'string') { migrated = true; return { name: p }; }
+    return p;
+  });
+  if (migrated) savePriceTagPrinters();
+}
+function savePriceTagPrinters() { localStorage.setItem(PRICE_TAG_PRINTERS_KEY, JSON.stringify(priceTagPrinters)); }
+// Managed from Team Setup → Printers (not inline on the checklist) — same simple add/remove list
+// pattern as Rollcages, just without a "Save" button since there's no per-item state to batch up.
+function renderPriceTagPrintersList() {
+  const wrap = document.getElementById('priceTagPrintersListWrap');
+  if (!wrap) return;
+  if (!priceTagPrinters.length) {
+    wrap.innerHTML = `<div class="empty-state">No printers registered yet. Add one above — it'll show up as a dropdown in the Price Tag (Baju) checklist.</div>`;
+    return;
+  }
+  let html = `<table><thead><tr><th>Printer / Vendor Name</th><th></th></tr></thead><tbody>`;
+  priceTagPrinters.forEach((p, i) => {
+    html += `<tr>
+      <td>${escapeHtml(p.name)}</td>
+      <td class="row-actions"><button class="icon-btn remove-price-tag-printer-btn" data-idx="${i}" title="Delete">✕</button></td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+
+  wrap.querySelectorAll('.remove-price-tag-printer-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = Number(e.target.dataset.idx);
+      const name = priceTagPrinters[idx].name;
+      if (!confirm(`Remove printer "${name}"? (existing checklist lines already set to this printer keep the name as free text.)`)) return;
+      priceTagPrinters.splice(idx, 1);
+      savePriceTagPrinters();
+      renderPriceTagPrintersList();
+    });
+  });
+}
+function addPriceTagPrinterFromInput() {
+  const input = document.getElementById('inputNewPriceTagPrinter');
+  const name = input.value.trim();
+  if (!name) { input.focus(); return; }
+  if (priceTagPrinters.some(p => p.name.toLowerCase() === name.toLowerCase())) { alert('Printer ni dah ada dalam senarai.'); return; }
+  priceTagPrinters.push({ name });
+  savePriceTagPrinters();
+  input.value = '';
+  input.focus();
+  renderPriceTagPrintersList();
+}
+document.getElementById('addPriceTagPrinterBtn').addEventListener('click', addPriceTagPrinterFromInput);
+document.getElementById('inputNewPriceTagPrinter').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); addPriceTagPrinterFromInput(); }
+});
+function genPriceTagId() { return 'ptag_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+// SKU Reference — a bulk lookup table (Title, Size, SKU) from her store's own inventory export,
+// used only to auto-fill the "SKU" column above. Deliberately kept OUT of SYNC_COLLECTIONS: it can
+// run to thousands of rows, and the sync loop diffs every record on every reconcile tick — fine for
+// her actual checklist data, way too heavy for a bulk reference table that's really a local lookup
+// aid. The SKUs it fills in DO sync fine, since those live on priceTagStickers (which IS synced).
+const SKU_REFERENCE_KEY = 'sto_price_tag_sku_reference_v1';
+const SKU_REFERENCE_IMPORTED_AT_KEY = 'sto_price_tag_sku_reference_imported_at_v1';
+let skuReference = []; // [{ title, size, sku }]
+let skuReferenceImportedAt = '';
+function loadSkuReference() {
+  try { skuReference = JSON.parse(localStorage.getItem(SKU_REFERENCE_KEY)) || []; } catch (e) { skuReference = []; }
+  skuReferenceImportedAt = localStorage.getItem(SKU_REFERENCE_IMPORTED_AT_KEY) || '';
+}
+function saveSkuReference() {
+  localStorage.setItem(SKU_REFERENCE_KEY, JSON.stringify(skuReference));
+  localStorage.setItem(SKU_REFERENCE_IMPORTED_AT_KEY, skuReferenceImportedAt);
+}
+// Her export's Title convention is "Product Name - Color" (single dash split, occasionally without
+// a leading space e.g. "Musang- Purple") — everything before the LAST " - "/"- " is the product
+// name, everything after is the colour. Titles with no dash at all (single-variant items) have no
+// colour to extract.
+function skuRefSplitTitle(title) {
+  const m = /^(.+?)\s*-\s*(.+)$/.exec(String(title || '').trim());
+  return m ? { product: m[1].trim(), color: m[2].trim() } : { product: String(title || '').trim(), color: '' };
+}
+function skuNormalizeForMatch(s) { return String(s || '').trim().toUpperCase().replace(/\s+/g, ' '); }
+// Kids sizes in her export read "10-11 Years" while the checklist just has "10-11" (or vice versa)
+// — strip a trailing "Years"/"Year" so both sides compare the same way.
+function skuNormalizeSizeForMatch(s) { return skuNormalizeForMatch(s).replace(/\s*YEARS?$/i, '').trim(); }
+function skuReferenceProductNames() {
+  const set = new Set();
+  skuReference.forEach(r => { const { product } = skuRefSplitTitle(r.title); if (product) set.add(product); });
+  return [...set].sort((a, b) => a.localeCompare(b));
+}
+function renderSkuReferenceStatusNote() {
+  const el = document.getElementById('skuReferenceStatusNote');
+  if (!el) return;
+  if (!skuReference.length) { el.textContent = 'Belum ada SKU Reference diupload.'; return; }
+  const dateLabel = skuReferenceImportedAt ? formatDateLabel(skuReferenceImportedAt.slice(0, 10)) : '';
+  el.textContent = `${skuReference.length} baris loaded${dateLabel ? ` (${dateLabel})` : ''}.`;
+}
+function processUploadedSkuReferenceFile(file) {
+  const statusEl = document.getElementById('skuReferenceUploadStatus');
+  statusEl.textContent = 'Processing file...';
+  statusEl.className = 'upload-status';
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      let objRows = [];
+      if (ext === 'csv') {
+        const text = String(evt.target.result).replace(/^\uFEFF/, '');
+        objRows = parseCsv(text);
+      } else {
+        const wb = XLSX.read(evt.target.result, { type: 'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        objRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+      }
+      if (!objRows.length) throw new Error('File kosong / takde data.');
+      const headerKeys = Object.keys(objRows[0]);
+      const titleKey = headerKeys.find(k => k.trim().toLowerCase() === 'title');
+      const sizeKey = headerKeys.find(k => k.trim().toLowerCase() === 'option1 value');
+      const skuKey = headerKeys.find(k => k.trim().toLowerCase() === 'sku');
+      if (!titleKey || !skuKey) throw new Error('File ni perlu ada column "Title" dan "SKU".');
+      const mapped = objRows.map(r => ({
+        title: String(r[titleKey] || '').trim(),
+        size: sizeKey ? String(r[sizeKey] || '').trim() : '',
+        sku: String(r[skuKey] || '').trim()
+      })).filter(r => r.title && r.sku);
+      skuReference = mapped;
+      skuReferenceImportedAt = new Date().toISOString();
+      saveSkuReference();
+      statusEl.textContent = `Success: ${mapped.length} SKU reference row(s) loaded.`;
+      statusEl.className = 'upload-status ok';
+      renderSkuReferenceStatusNote();
+    } catch (err) {
+      statusEl.textContent = 'Failed to process file: ' + err.message;
+      statusEl.className = 'upload-status err';
+    }
+  };
+  reader.onerror = () => { statusEl.textContent = 'Failed to read file.'; statusEl.className = 'upload-status err'; };
+  if (ext === 'csv') reader.readAsText(file);
+  else reader.readAsArrayBuffer(file);
+}
+document.getElementById('skuReferenceFileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  processUploadedSkuReferenceFile(file);
+  e.target.value = '';
+});
+const skuReferenceDropzone = document.getElementById('skuReferenceDropzone');
+['dragenter', 'dragover'].forEach(evtName => {
+  skuReferenceDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); skuReferenceDropzone.classList.add('dragover'); });
+});
+['dragleave', 'drop'].forEach(evtName => {
+  skuReferenceDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); skuReferenceDropzone.classList.remove('dragover'); });
+});
+skuReferenceDropzone.addEventListener('drop', (e) => {
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (file) processUploadedSkuReferenceFile(file);
+});
+
+// ---- Auto-fill SKU: map a checklist Series to ONE product from the SKU Reference, then apply
+// that mapping across every Colour+Size line in that series (matched on colour + size only, so
+// there's no risk of the wrong product's SKUs bleeding in). Lines that already have a manually
+// typed SKU are left untouched. ----
+let skuMatchCurrentSeriesKey = null;
+function skuMatchScore(query, candidate) {
+  const qTokens = skuNormalizeForMatch(query).split(/[^A-Z0-9]+/).filter(Boolean);
+  const cTokens = new Set(skuNormalizeForMatch(candidate).split(/[^A-Z0-9]+/).filter(Boolean));
+  let hits = 0;
+  qTokens.forEach(t => { if (cTokens.has(t)) hits++; });
+  return hits;
+}
+function renderSkuMatchProductList(query) {
+  const wrap = document.getElementById('skuMatchProductListWrap');
+  const names = skuReferenceProductNames();
+  const q = (query || '').trim().toLowerCase();
+  let list;
+  if (!q) {
+    list = names.slice(0, 30);
+  } else {
+    const substr = names.filter(n => n.toLowerCase().includes(q));
+    if (substr.length) {
+      list = substr.slice(0, 30);
+    } else {
+      list = names.map(n => ({ n, score: skuMatchScore(q, n) })).filter(x => x.score > 0)
+        .sort((a, b) => b.score - a.score).map(x => x.n).slice(0, 30);
+    }
+  }
+  if (!list.length) { wrap.innerHTML = '<div class="empty-state" style="padding:16px;">Takde produk sepadan — cuba search term lain.</div>'; return; }
+  wrap.innerHTML = list.map(n => `<div class="sku-match-product-row" data-name="${escapeHtml(n)}" style="padding:8px 10px; cursor:pointer; border-bottom:1px solid var(--border);">${escapeHtml(n)}</div>`).join('');
+  wrap.querySelectorAll('.sku-match-product-row').forEach(row => {
+    row.addEventListener('click', () => applySkuAutofillForSeries(skuMatchCurrentSeriesKey, row.dataset.name));
+  });
+}
+function openSkuMatchModal(seriesKey) {
+  if (!skuReference.length) { alert('Upload SKU Reference dulu (kat atas checklist) sebelum boleh Auto-fill SKU.'); return; }
+  skuMatchCurrentSeriesKey = seriesKey;
+  const [series] = seriesKey.split('|||');
+  document.getElementById('skuMatchProductSeriesLabel').textContent = `Series: "${series}" — pilih produk yang sepadan dari SKU Reference:`;
+  const searchInput = document.getElementById('skuMatchProductSearchInput');
+  searchInput.value = series;
+  renderSkuMatchProductList(series);
+  document.getElementById('skuMatchProductModal').classList.remove('hidden');
+}
+function closeSkuMatchModal() { document.getElementById('skuMatchProductModal').classList.add('hidden'); skuMatchCurrentSeriesKey = null; }
+document.getElementById('skuMatchProductCloseBtn').addEventListener('click', closeSkuMatchModal);
+document.getElementById('skuMatchProductSearchInput').addEventListener('input', (e) => renderSkuMatchProductList(e.target.value));
+function applySkuAutofillForSeries(seriesKey, productName) {
+  closeSkuMatchModal();
+  const [series, supplier] = seriesKey.split('|||');
+  const lines = priceTagStickers.filter(p => p.series === series && p.supplier === supplier);
+  const refRows = skuReference.filter(r => skuRefSplitTitle(r.title).product.toLowerCase() === productName.toLowerCase());
+  let filled = 0, alreadyHad = 0;
+  const notFound = [];
+  lines.forEach(l => {
+    if (l.sku) { alreadyHad++; return; } // never clobber a manually-typed SKU
+    const wantColor = skuNormalizeForMatch(l.colorName);
+    const wantSize = skuNormalizeSizeForMatch(l.size);
+    const match = refRows.find(r => {
+      const { color } = skuRefSplitTitle(r.title);
+      return skuNormalizeForMatch(color) === wantColor && skuNormalizeSizeForMatch(r.size) === wantSize;
+    });
+    if (match) { l.sku = match.sku; filled++; }
+    else notFound.push(`${l.colorName || '-'} / ${l.size || '-'}`);
+  });
+  savePriceTagStickers();
+  renderPriceTagTab();
+  let msg = `"${productName}" → ${filled} SKU auto-filled.`;
+  if (alreadyHad) msg += ` ${alreadyHad} baris dah ada SKU sedia ada (tak diubah).`;
+  if (notFound.length) msg += `\n\n${notFound.length} baris tak jumpa SKU sepadan (Colour/Size):\n${notFound.join('\n')}`;
+  alert(msg);
+}
 function formatAccCartonNo(n) { return 'ACC-' + String(n).padStart(4, '0'); }
 // Same gap-fill approach as Roll No. (nextAvailableRmRollNumbers) — deleting a carton frees its
 // number back up for the next one received, instead of the sequence only ever climbing.
@@ -7502,6 +7841,19 @@ function accBatchPhotoFor(batchId) {
   if (!batchId) return '';
   const withPhoto = accessoriesReceipts.find(r => r.batchId === batchId && r.photo);
   return withPhoto ? withPhoto.photo : '';
+}
+// Looks up a representative photo for an accessories NAME (any receipt of that name that has one,
+// own or via its batch) — used on the Pick screen so staff can visually match the item on the
+// shelf, without needing to know which specific carton/batch it came from.
+function accPhotoForName(name) {
+  if (!name) return '';
+  const receipts = accessoriesReceipts.filter(r => r.name === name);
+  for (const r of receipts) {
+    if (r.photo) return r.photo;
+    const bp = accBatchPhotoFor(r.batchId);
+    if (bp) return bp;
+  }
+  return '';
 }
 
 // "Reset All Raw Material Data" (Import Data tab, Danger Zone) — wipes every roll/STO/DO/Pick record
@@ -8337,6 +8689,11 @@ document.getElementById('accPhotoInput').addEventListener('change', async (e) =>
   }
 });
 document.getElementById('accPhotoRemoveBtn').addEventListener('click', () => { accPhotoDataUrl = ''; renderAccPhotoPreview(); renderAccReceiveSummary(); });
+// Default KHATAM logo shown in place of a real photo until one's uploaded for that accessories
+// item — easier to spot a "still needs a real photo" row at a glance than a bare dash, and gets
+// swapped out automatically the moment a real photo is attached (this is only ever a fallback).
+const ACC_DEFAULT_PHOTO = 'data:image/png;base64,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9M5vp+IaKUgKY1m8kCvKu3JbuYE4puxWtqAZa85awggjDK5HOdergw46XMElXORD+QQ+l9ViDVgzuZhslR/hbbyJbghHJVRyvXovP/avHPPL26IDOqOrlC/ppJJiqPiX6K/EK7WUUNRATdT6yThf5g099DgiDooD7AK/z5/w4rySFKXEKGGyv8gXD5R7qI8GrKHrY+3kFVCwCCGqQRfdCSGqQcEihKgGBYsQohoULEKIalCwCCGqQcEihKgGBYsQohoULEKIalCwCCGqQcEihKgGBYsQohoULEKIalCwCCGqQcEihKgGBYsQohoULEKIalCwCCGqQcEihKgGBYsQohoULEKIalCwCCGqQcEihKgGBYsQohoULEKIalCwCCGqQcEihKgGBYsQohoULEKIalCwCCGqQcEihKgGBYsQohoULEKIalCwCCGqQcEihKgGBYsQohoULEKIalCwCCGqQcEihKgGBYsQohoULEKIalCwCCGqQcEihKgGBYsQohoULEKIalCwCCGqQcEihKgGBYsQohoULEKIalCwCCGqQcEihKgGBYsQohoULEKIalCwCCGqQcEihKgGBYsQohoULEKIalCwCCGqQcEihKgGBYsQohoULEKIalCwCCGqQcEihKgGBYsQohoULEKIalCwCCGqQcEihKgGBYsQohoULEKIalCwCCGqQcEihKgGBYsQohoULEKIalCwCCGqQcEihKgGBYsQohoULEKIalCwCCGqQcEihKgGBYsQohoULEKIalCwCCGqQcEihKgGBYsQohoULEKIalCwCCGqQcEihKgGBYsQohoULEKIalCwCCGqQcEihKjG/wCNViVQs52ZXQAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyNi0wOS0wOFQwNDoyNDoyNyswMDowMMWBdD4AAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjYtMDktMDhUMDQ6MjQ6MjcrMDA6MDC03MyCAAAAAElFTkSuQmCC';
+
 // Grouped by Accessories Name — summary row shows totals, click the name (or arrow) to expand
 // and reveal individual carton rows. Mirrors renderRmStockSummaryTable()'s expand/collapse pattern.
 let accHistoryExpanded = new Set();
@@ -8369,7 +8726,7 @@ function renderAccHistoryTable() {
     const expanded = q ? true : accHistoryExpanded.has(g.name);
     html += `<tr class="acc-history-summary-row" style="cursor:pointer;" data-acc-name="${escapeHtml(g.name)}">
       <td class="rm-sto-toggle-icon" style="width:24px; cursor:pointer;">${expanded ? '▾' : '▸'}</td>
-      <td>${g.photo ? `<img src="${g.photo}" style="width:36px; height:36px; object-fit:cover; border-radius:4px; display:block;">` : '—'}</td>
+      <td><img src="${g.photo || ACC_DEFAULT_PHOTO}" style="width:36px; height:36px; object-fit:cover; border-radius:4px; display:block;"></td>
       <td><strong>${escapeHtml(g.name)}</strong></td>
       <td>${g.totalCartons}</td>
       <td>${g.totalQty}</td>
@@ -8384,7 +8741,7 @@ function renderAccHistoryTable() {
           ${g.cartons.map(r => {
             const photo = r.photo || accBatchPhotoFor(r.batchId);
             return `<tr>
-              <td>${photo ? `<img src="${photo}" style="width:32px; height:32px; object-fit:cover; border-radius:4px; display:block;">` : '—'}</td>
+              <td><img src="${photo || ACC_DEFAULT_PHOTO}" class="acc-receipt-edit-photo-btn" data-id="${r.id}" data-batch-id="${r.batchId || ''}" title="Klik untuk tukar gambar" style="width:32px; height:32px; object-fit:cover; border-radius:4px; display:block; cursor:pointer;"></td>
               <td>${escapeHtml(r.cartonNo || '-')}</td>
               <td>${escapeHtml(r.qty != null ? String(r.qty) : '-')}</td>
               <td>${escapeHtml(r.receivedBy || '-')}</td>
@@ -8417,7 +8774,41 @@ function renderAccHistoryTable() {
       renderAccHistoryTable();
     });
   });
+  wrap.querySelectorAll('.acc-receipt-edit-photo-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      accEditPhotoTargetId = btn.dataset.id;
+      accEditPhotoTargetBatchId = btn.dataset.batchId || '';
+      document.getElementById('accEditPhotoFileInput').click();
+    });
+  });
 }
+// Edit Photo (per carton/receipt) — a photo is normally only captured once, on the first carton
+// of a Receive batch, and shared across the rest of that batch via accBatchPhotoFor(). Editing
+// always writes the new photo onto the specific row clicked and clears it off every other row in
+// that same batch, so there's never ambiguity about which record "owns" the batch's photo.
+let accEditPhotoTargetId = null;
+let accEditPhotoTargetBatchId = '';
+document.getElementById('accEditPhotoFileInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file || !accEditPhotoTargetId) return;
+  try {
+    const dataUrl = await resizeImageFile(file, 800, 0.7);
+    if (accEditPhotoTargetBatchId) {
+      accessoriesReceipts.forEach(r => { if (r.batchId === accEditPhotoTargetBatchId) r.photo = ''; });
+    }
+    const target = accessoriesReceipts.find(r => r.id === accEditPhotoTargetId);
+    if (target) target.photo = dataUrl;
+    saveAccessoriesReceipts();
+    renderAccHistoryTable();
+  } catch (err) {
+    alert('Gagal load gambar tu. Cuba lagi.');
+  } finally {
+    accEditPhotoTargetId = null;
+    accEditPhotoTargetBatchId = '';
+  }
+});
 function toggleAccHistoryGroup(name) {
   if (accHistoryExpanded.has(name)) accHistoryExpanded.delete(name);
   else accHistoryExpanded.add(name);
@@ -8691,11 +9082,15 @@ function renderRmPickToPickList() {
   [...accCartonGroups.values()].sort((a, b) => (a.name || '').localeCompare(b.name || '')).forEach(g => {
     const remaining = g.total - g.done;
     const isDone = remaining <= 0;
+    const photo = accPhotoForName(g.name) || ACC_DEFAULT_PHOTO;
     html += `<div class="rm-card" style="${isDone ? 'opacity:0.55;' : ''}">
       <div class="rm-card-head">
-        <div>
-          <div class="rm-card-rollno">🧷 ${escapeHtml(g.name || '-')}</div>
-          <div class="rm-card-sub">Accessories (carton)</div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <img src="${photo}" style="width:40px; height:40px; object-fit:cover; border-radius:6px; flex:0 0 auto;">
+          <div>
+            <div class="rm-card-rollno">🧷 ${escapeHtml(g.name || '-')}</div>
+            <div class="rm-card-sub">Accessories (carton)</div>
+          </div>
         </div>
         <div style="text-align:right;">
           <div class="rm-card-meter">${g.total}</div>
@@ -8714,11 +9109,15 @@ function renderRmPickToPickList() {
     const remaining = Math.max(0, (Number(s.qty) || 0) - qtySent);
     const isDone = s.status === 'Completed';
     const badgeLabel = isDone ? 'Dah dihantar' : (qtySent > 0 ? `${qtySent}/${s.qty} dihantar` : 'Belum dihantar');
+    const photo = accPhotoForName(s.accessoriesName) || ACC_DEFAULT_PHOTO;
     html += `<div class="rm-card" style="${isDone ? 'opacity:0.55;' : ''}">
       <div class="rm-card-head">
-        <div>
-          <div class="rm-card-rollno">🧷 ${escapeHtml(s.accessoriesName || '-')}</div>
-          <div class="rm-card-sub">Accessories (tanpa carton)</div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <img src="${photo}" style="width:40px; height:40px; object-fit:cover; border-radius:6px; flex:0 0 auto;">
+          <div>
+            <div class="rm-card-rollno">🧷 ${escapeHtml(s.accessoriesName || '-')}</div>
+            <div class="rm-card-sub">Accessories (tanpa carton)</div>
+          </div>
         </div>
         <div style="text-align:right;">
           <div class="rm-card-meter">${remaining}</div>
@@ -9875,6 +10274,98 @@ document.getElementById('rmPrintSelectRangeBtn').addEventListener('click', () =>
   renderRmPrintTab();
 });
 
+// ---- Bulk edit via Excel round-trip: export whatever's currently showing (respects search +
+// hide-empty), let her fix Fabric/Color/GSM/Meter/Batch/Inv./etc. for many rolls at once in Excel,
+// then re-upload to write those changes back. Matched primarily by the hidden Roll ID column so
+// renaming Roll No. in the sheet still works; falls back to matching by Roll No. if that column
+// is missing or blank.
+document.getElementById('rmPrintExportBtn').addEventListener('click', () => {
+  const search = (document.getElementById('rmPrintSearchInput').value || '').trim().toLowerCase();
+  const hideEmpty = document.getElementById('rmPrintHideEmptyToggle').checked;
+  let list = rawMaterialRolls.slice();
+  if (hideEmpty) list = list.filter(r => (Number(r.meterRemaining) || 0) > 0);
+  if (search) list = list.filter(r => [r.fabricName, r.fabricCode, r.colorCode, r.colorName, r.rollNo].filter(Boolean).join(' ').toLowerCase().includes(search));
+  list.sort((a, b) => (b.rollNo || '').localeCompare(a.rollNo || ''));
+  if (!list.length) { alert('Takde roll untuk export (ikut search/filter sekarang).'); return; }
+  const rows = list.map(r => ({
+    '⚠️ Roll ID': r.id,
+    'Roll No.': r.rollNo || '',
+    'Fabric Name': r.fabricName || '',
+    'Fabric Code': r.fabricCode || '',
+    'Color Name': r.colorName || '',
+    'Color Code': r.colorCode || '',
+    'GSM': r.gsm || '',
+    'Meter (Total)': r.meter != null ? r.meter : '',
+    'Meter Remaining': r.meterRemaining != null ? r.meterRemaining : '',
+    'Received Date': r.receivedDate || '',
+    'Batch No.': r.batchNo || '',
+    'Invoice No.': r.invoiceNo || '',
+    'Notes': r.notes || ''
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Fabric Rolls');
+  XLSX.writeFile(wb, `fabric-rolls-bulk-edit-${todayStr()}.xlsx`);
+});
+document.getElementById('rmPrintImportFileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      const wb = XLSX.read(evt.target.result, { type: 'array', cellDates: true });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+      if (!rows.length) { alert('File kosong / takde data.'); return; }
+      const parseDateCell = (val) => (val instanceof Date && !isNaN(val)) ? toIsoLocal(val) : String(val || '').trim();
+      let updated = 0;
+      const errors = [];
+      rows.forEach((row, idx) => {
+        const lineNo = idx + 2; // +1 for header row, +1 for 1-indexing
+        const rid = String(row['⚠️ Roll ID'] || '').trim();
+        const rollNoVal = String(row['Roll No.'] || '').trim();
+        let roll = null;
+        if (rid) roll = rawMaterialRolls.find(r => r.id === rid);
+        if (!roll && rollNoVal) roll = rawMaterialRolls.find(r => r.rollNo === rollNoVal);
+        if (!roll) { errors.push(`Baris ${lineNo}: Roll "${rollNoVal || rid || '-'}" tak jumpa dalam sistem, dilangkau.`); return; }
+        const newRollNo = rollNoVal || roll.rollNo;
+        if (newRollNo !== roll.rollNo) {
+          const dupe = rawMaterialRolls.some(r => r.id !== roll.id && r.rollNo === newRollNo);
+          if (dupe) { errors.push(`Baris ${lineNo}: Roll No. "${newRollNo}" dah wujud kat roll lain, baris ni dilangkau.`); return; }
+        }
+        const newMeter = Number(row['Meter (Total)']);
+        const newMeterRemaining = Number(row['Meter Remaining']);
+        if (!Number.isFinite(newMeter) || newMeter < 0) { errors.push(`Baris ${lineNo} (${roll.rollNo}): Meter (Total) tak sah, dilangkau.`); return; }
+        if (!Number.isFinite(newMeterRemaining) || newMeterRemaining < 0) { errors.push(`Baris ${lineNo} (${roll.rollNo}): Meter Remaining tak sah, dilangkau.`); return; }
+        if (newMeterRemaining > newMeter) { errors.push(`Baris ${lineNo} (${roll.rollNo}): Meter Remaining lebih besar dari Meter (Total), dilangkau.`); return; }
+        roll.rollNo = newRollNo;
+        roll.fabricName = String(row['Fabric Name'] || '').trim();
+        roll.fabricCode = String(row['Fabric Code'] || '').trim();
+        roll.colorName = String(row['Color Name'] || '').trim();
+        roll.colorCode = String(row['Color Code'] || '').trim();
+        roll.gsm = String(row['GSM'] || '').trim();
+        roll.meter = newMeter;
+        roll.meterRemaining = newMeterRemaining;
+        roll.receivedDate = parseDateCell(row['Received Date']);
+        roll.batchNo = String(row['Batch No.'] || '').trim();
+        roll.invoiceNo = String(row['Invoice No.'] || '').trim();
+        roll.notes = String(row['Notes'] || '').trim();
+        updated++;
+      });
+      saveRawMaterialRolls();
+      renderRmPrintTab();
+      let msg = `${updated} roll berjaya diupdate.`;
+      if (errors.length) msg += `\n\n${errors.length} baris dilangkau:\n${errors.join('\n')}`;
+      alert(msg);
+    } catch (err) {
+      alert('Gagal baca file. Pastikan format .xlsx/.csv betul.');
+    } finally {
+      e.target.value = '';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
 // ---- Print Sticker tab: Accessories carton side (mirrors the Fabric Roll section above) ----
 function accPrintCartonRowHtml(r) {
   const checked = accPrintSelectedIds.has(r.id);
@@ -9978,6 +10469,317 @@ document.getElementById('accPrintSelectRangeBtn').addEventListener('click', () =
   if (!matched) { alert('Takde carton dijumpai dalam range tu.'); return; }
   renderAccPrintTab();
 });
+
+/* ==== Price Tag (Baju) — checklist only, no printing from this system ====
+   Data comes from whatever sheet the supplier/factory sends (Series, Supplier, Colour Code,
+   Color Name, Name on Sticker, Batch Number, Size, Quantity, Price) — one row per Colour+Size.
+   Grouped here by Series (+ Supplier) since that's how she receives each sheet; each line gets a
+   "Done" checkbox to tick once that batch of stickers has actually been printed elsewhere. */
+// Header lookup is name-based (not fixed column positions) so this accepts BOTH the flat
+// Download Template layout AND her supplier's actual "STICKER DETAILS" sheet layout — which has
+// an extra blank spacer column, and Colour Code / Color Name / Price filled in (via merged cells)
+// only on the FIRST row of each colour group, blank on every row after.
+function pricetagFindColIndex(headerRow, aliases) {
+  for (let i = 0; i < headerRow.length; i++) {
+    if (aliases.includes(String(headerRow[i] || '').trim().toUpperCase())) return i;
+  }
+  return -1;
+}
+function parsePriceTagImportSheet(sheetRows) {
+  if (!sheetRows || !sheetRows.length) return [];
+
+  // The header row isn't always row 0 — her real sheet has a "SERIES/SUPPLIER" free-text line and
+  // a brand/code subheader line above it. Find the first row that has BOTH a Size and a Quantity
+  // column — that's the real header, wherever it lands.
+  let headerRowIdx = -1, cols = null;
+  for (let i = 0; i < sheetRows.length; i++) {
+    const row = sheetRows[i] || [];
+    const sizeIdx = pricetagFindColIndex(row, ['SIZE']);
+    const qtyIdx = pricetagFindColIndex(row, ['QUANTITY', 'QTY']);
+    if (sizeIdx !== -1 && qtyIdx !== -1) {
+      headerRowIdx = i;
+      cols = {
+        series: pricetagFindColIndex(row, ['SERIES']),
+        supplier: pricetagFindColIndex(row, ['SUPPLIER']),
+        colourCode: pricetagFindColIndex(row, ['COLOUR CODE', 'COLOR CODE']),
+        colorName: pricetagFindColIndex(row, ['COLOR NAME', 'COLOUR NAME']),
+        nameOnSticker: pricetagFindColIndex(row, ['NAME ON STICKER']),
+        batchNumber: pricetagFindColIndex(row, ['BATCH NUMBER', 'BATCH NO', 'BATCH NO.']),
+        size: sizeIdx,
+        quantity: qtyIdx,
+        price: pricetagFindColIndex(row, ['PRICE']),
+      };
+      break;
+    }
+  }
+  if (!cols) return [];
+
+  // No dedicated Series/Supplier COLUMN (her real sheet doesn't have one) — those two values are
+  // instead crammed into one free-text cell somewhere above the header (e.g. a "SERIES ... /
+  // SUPPLIER ..." label line). Scan every cell above the header for that pattern and reuse it for
+  // every row in the sheet.
+  let fallbackSeries = '', fallbackSupplier = '';
+  if (cols.series === -1 || cols.supplier === -1) {
+    const aboveText = sheetRows.slice(0, headerRowIdx).map(r => (r || []).join('\n')).join('\n');
+    const seriesMatch = /SERIES\s+([^\n\r]+)/i.exec(aboveText);
+    const supplierMatch = /SUPPLIER\s+([^\n\r]+)/i.exec(aboveText);
+    fallbackSeries = seriesMatch ? seriesMatch[1].trim() : '';
+    fallbackSupplier = supplierMatch ? supplierMatch[1].trim() : '';
+  }
+
+  const out = [];
+  let lastColourCode = '', lastColorName = '', lastPrice = '';
+  sheetRows.slice(headerRowIdx + 1).forEach(r => {
+    if (!r || !r.some(v => String(v ?? '').trim() !== '')) return;
+    const get = (idx) => idx === -1 ? '' : String(r[idx] ?? '').trim();
+    const series = cols.series !== -1 ? get(cols.series) : fallbackSeries;
+    const supplier = cols.supplier !== -1 ? get(cols.supplier) : fallbackSupplier;
+    const colourCodeRaw = get(cols.colourCode);
+    const colorNameRaw = get(cols.colorName);
+    const priceRaw = get(cols.price);
+    // Carry the last non-blank Colour Code / Color Name / Price down onto every row that follows —
+    // same as reading a vertically-merged cell visually.
+    if (colourCodeRaw) lastColourCode = colourCodeRaw;
+    if (colorNameRaw) lastColorName = colorNameRaw;
+    if (priceRaw) lastPrice = priceRaw;
+    const nameOnSticker = get(cols.nameOnSticker);
+    const batchNumber = get(cols.batchNumber);
+    const size = get(cols.size);
+    const quantity = Math.max(0, Math.floor(Number(get(cols.quantity)) || 0));
+    if (!series || !size || !quantity) return; // needs at least a Series, Size and Quantity to be a usable checklist line
+    out.push({ series, supplier, colourCode: lastColourCode, colorName: lastColorName, nameOnSticker, batchNumber, size, quantity, price: lastPrice });
+  });
+  return out;
+}
+function upsertPriceTagImportRows(importRows) {
+  let added = 0, skippedDup = 0;
+  importRows.forEach(row => {
+    // Same Series + Colour Code + Batch Number + Size already exists — treat as a duplicate row
+    // from re-uploading the same sheet twice, rather than creating a second checklist line for it.
+    const dupe = priceTagStickers.some(p => p.series === row.series && p.colourCode === row.colourCode && p.batchNumber === row.batchNumber && p.size === row.size);
+    if (dupe) { skippedDup++; return; }
+    priceTagStickers.push({
+      id: genPriceTagId(), series: row.series, supplier: row.supplier, colourCode: row.colourCode,
+      colorName: row.colorName, nameOnSticker: row.nameOnSticker, batchNumber: row.batchNumber,
+      size: row.size, quantity: row.quantity, price: row.price, printedQty: 0, sku: '', printer: '', doneAt: '', createdAt: Date.now()
+    });
+    added++;
+  });
+  savePriceTagStickers();
+  return { added, skippedDup };
+}
+function processUploadedPriceTagFile(file) {
+  const statusEl = document.getElementById('priceTagUploadStatus');
+  statusEl.textContent = 'Processing file...';
+  statusEl.className = 'upload-status';
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      let sheetRows = [];
+      if (ext === 'csv') {
+        const text = String(evt.target.result).replace(/^\uFEFF/, '');
+        sheetRows = parseCsvRows(text);
+      } else {
+        const wb = XLSX.read(evt.target.result, { type: 'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        sheetRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+      }
+      const mapped = parsePriceTagImportSheet(sheetRows);
+      const { added, skippedDup } = upsertPriceTagImportRows(mapped);
+      let msg = `Success: ${added} checklist item(s) added.`;
+      if (skippedDup) msg += ` ${skippedDup} row(s) skipped (dah wujud).`;
+      statusEl.textContent = msg;
+      statusEl.className = 'upload-status ok';
+      renderPriceTagTab();
+    } catch (err) {
+      statusEl.textContent = 'Failed to process file: ' + err.message;
+      statusEl.className = 'upload-status err';
+    }
+  };
+  reader.onerror = () => { statusEl.textContent = 'Failed to read file.'; statusEl.className = 'upload-status err'; };
+  if (ext === 'csv') reader.readAsText(file);
+  else reader.readAsArrayBuffer(file);
+}
+document.getElementById('priceTagFileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  processUploadedPriceTagFile(file);
+  e.target.value = '';
+});
+const priceTagDropzone = document.getElementById('priceTagDropzone');
+['dragenter', 'dragover'].forEach(evtName => {
+  priceTagDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); priceTagDropzone.classList.add('dragover'); });
+});
+['dragleave', 'drop'].forEach(evtName => {
+  priceTagDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); priceTagDropzone.classList.remove('dragover'); });
+});
+priceTagDropzone.addEventListener('drop', (e) => {
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (file) processUploadedPriceTagFile(file);
+});
+document.getElementById('downloadPriceTagTemplateBtn').addEventListener('click', () => {
+  const wsData = [
+    ['Series', 'Supplier', 'Colour Code', 'Color Name', 'Name On Sticker', 'Batch Number', 'Size', 'Quantity', 'Price'],
+    ['PATAWALI - WOMEN KURUNG RIAU', 'MR.ZHOU', '2', 'OPAL BLACK', 'PATAWALI WOMEN KURUNG RIAU OPAL BLACK', 'BT0001', 'XS', 38, 'RM249.00'],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [{ wch: 28 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 32 }, { wch: 14 }, { wch: 8 }, { wch: 10 }, { wch: 10 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Price Tag Stickers');
+  XLSX.writeFile(wb, 'price_tag_sticker_template.xlsx');
+});
+// Grouped by Series + Supplier (however she receives each sheet from the factory) — summary row
+// shows overall progress, expand to tick off individual Colour+Size lines. Mirrors
+// renderAccHistoryTable()'s expand/collapse pattern.
+let priceTagExpanded = new Set();
+// Sorts by the standard garment size progression (reuses GARMENT_SIZES_ADULT from the Garment
+// Order module) — unrecognised sizes (free text some suppliers use) sort after, alphabetically.
+function priceTagSizeOrderIndex(size) {
+  const idx = GARMENT_SIZES_ADULT.indexOf(String(size || '').toUpperCase());
+  return idx === -1 ? 999 : idx;
+}
+function renderPriceTagTab() {
+  const wrap = document.getElementById('priceTagTableWrap');
+  if (!wrap) return;
+  const q = (document.getElementById('priceTagSearchInput').value || '').trim().toLowerCase();
+  const hideDone = document.getElementById('priceTagHideDoneToggle').checked;
+  const rows = priceTagStickers.filter(p => !q || [p.series, p.supplier, p.nameOnSticker, p.colorName, p.colourCode, p.sku].filter(Boolean).join(' ').toLowerCase().includes(q));
+  if (!rows.length) { wrap.innerHTML = '<div class="data-note">Tiada senarai sticker lagi — upload dulu kat atas.</div>'; return; }
+
+  const isLineDone = (l) => (Number(l.printedQty) || 0) >= (Number(l.quantity) || 0) && (Number(l.quantity) || 0) > 0;
+  const groups = new Map();
+  rows.forEach(p => {
+    const key = `${p.series}|||${p.supplier}`;
+    if (!groups.has(key)) groups.set(key, { series: p.series, supplier: p.supplier, lines: [], totalQty: 0, doneQty: 0 });
+    const g = groups.get(key);
+    g.lines.push(p);
+    g.totalQty += Number(p.quantity) || 0;
+    g.doneQty += Math.min(Number(p.printedQty) || 0, Number(p.quantity) || 0);
+  });
+  let groupList = [...groups.values()].sort((a, b) => a.series.localeCompare(b.series));
+  if (hideDone) groupList = groupList.filter(g => g.lines.some(l => !isLineDone(l)));
+  groupList.forEach(g => g.lines.sort((a, b) => (a.colourCode || '').localeCompare(b.colourCode || '') || priceTagSizeOrderIndex(a.size) - priceTagSizeOrderIndex(b.size)));
+
+  if (!groupList.length) { wrap.innerHTML = '<div class="empty-state">Semua siap! 🎉</div>'; return; }
+
+  const printerOptionsHtml = (selected) => `<option value=""></option>` + priceTagPrinters.map(p => p.name).map(name => `<option value="${escapeHtml(name)}" ${selected === name ? 'selected' : ''}>${escapeHtml(name)}</option>`).join('');
+
+  let html = `<table><thead><tr><th></th><th>Series</th><th>Supplier</th><th>Progress</th><th></th></tr></thead><tbody>`;
+  groupList.forEach(g => {
+    const key = `${g.series}|||${g.supplier}`;
+    const expanded = q ? true : priceTagExpanded.has(key);
+    const doneLines = g.lines.filter(l => isLineDone(l)).length;
+    html += `<tr class="acc-history-summary-row" style="cursor:pointer;" data-key="${escapeHtml(key)}">
+      <td class="rm-sto-toggle-icon" style="width:24px; cursor:pointer;">${expanded ? '▾' : '▸'}</td>
+      <td><strong>${escapeHtml(g.series)}</strong></td>
+      <td>${escapeHtml(g.supplier || '-')}</td>
+      <td>${doneLines} / ${g.lines.length} line siap &middot; ${formatQty(g.doneQty)} / ${formatQty(g.totalQty)} pcs</td>
+      <td style="white-space:nowrap; display:flex; gap:6px;">
+        <button type="button" class="btn-ghost price-tag-autofill-sku-btn" data-key="${escapeHtml(key)}">🔍 Auto-fill SKU</button>
+        <button type="button" class="btn-ghost price-tag-delete-series-btn" data-key="${escapeHtml(key)}" style="color:#e0685c;">🗑 Delete Series</button>
+      </td>
+    </tr>
+    <tr class="acc-history-detail-row" style="display:${expanded ? 'table-row' : 'none'};">
+      <td></td>
+      <td colspan="4" style="padding:6px 10px;">
+        <table style="font-size:12px;"><thead><tr>
+          <th>Colour Code</th><th>Color Name</th><th>Name On Sticker</th><th>Batch No.</th><th>Size</th><th>Quantity</th><th>Price</th><th>Qty (dah print)</th><th>SKU</th><th>Printer</th><th></th>
+        </tr></thead><tbody>
+          ${g.lines.map(l => `<tr${isLineDone(l) ? ' style="opacity:0.5;"' : ''}>
+              <td>${escapeHtml(l.colourCode || '-')}</td>
+              <td>${escapeHtml(l.colorName || '-')}</td>
+              <td>${escapeHtml(l.nameOnSticker || '-')}</td>
+              <td>${escapeHtml(l.batchNumber || '-')}</td>
+              <td>${escapeHtml(l.size || '-')}</td>
+              <td>${formatQty(l.quantity)}</td>
+              <td>${escapeHtml(l.price || '-')}</td>
+              <td><input type="number" min="0" class="price-tag-qty-input" data-id="${l.id}" value="${l.printedQty ? l.printedQty : ''}" placeholder="0" style="width:64px;"></td>
+              <td><input type="text" class="price-tag-sku-input" data-id="${l.id}" value="${escapeHtml(l.sku || '')}" placeholder="SKU" style="width:110px;"></td>
+              <td><select class="price-tag-printer-select" data-id="${l.id}" style="width:120px;">${printerOptionsHtml(l.printer || '')}</select></td>
+              <td><button type="button" class="btn-ghost price-tag-delete-line-btn" data-id="${l.id}" style="color:#e0685c;">🗑</button></td>
+            </tr>`).join('')}
+        </tbody></table>
+      </td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+
+  wrap.querySelectorAll('.acc-history-summary-row').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('.rm-sto-toggle-icon')) return;
+      if (e.target.closest('.price-tag-delete-series-btn')) return;
+      if (e.target.closest('.price-tag-autofill-sku-btn')) return;
+      togglePriceTagGroup(row.dataset.key);
+    });
+    const icon = row.querySelector('.rm-sto-toggle-icon');
+    if (icon) icon.addEventListener('click', (e) => { e.stopPropagation(); togglePriceTagGroup(row.dataset.key); });
+  });
+  wrap.querySelectorAll('.price-tag-qty-input').forEach(input => {
+    input.addEventListener('click', (e) => e.stopPropagation());
+    input.addEventListener('change', (e) => {
+      const line = priceTagStickers.find(p => p.id === input.dataset.id);
+      if (!line) return;
+      const val = Math.max(0, Math.floor(Number(input.value) || 0));
+      line.printedQty = val;
+      line.doneAt = (val >= (Number(line.quantity) || 0) && val > 0) ? todayStr() : '';
+      savePriceTagStickers();
+      renderPriceTagTab();
+    });
+  });
+  wrap.querySelectorAll('.price-tag-sku-input').forEach(input => {
+    input.addEventListener('click', (e) => e.stopPropagation());
+    input.addEventListener('change', (e) => {
+      const line = priceTagStickers.find(p => p.id === input.dataset.id);
+      if (!line) return;
+      line.sku = input.value.trim();
+      savePriceTagStickers();
+    });
+  });
+  wrap.querySelectorAll('.price-tag-printer-select').forEach(select => {
+    select.addEventListener('click', (e) => e.stopPropagation());
+    select.addEventListener('change', (e) => {
+      const line = priceTagStickers.find(p => p.id === select.dataset.id);
+      if (!line) return;
+      line.printer = select.value;
+      savePriceTagStickers();
+    });
+  });
+  wrap.querySelectorAll('.price-tag-delete-line-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!confirm('Padam baris checklist ni?')) return;
+      priceTagStickers = priceTagStickers.filter(p => p.id !== btn.dataset.id);
+      savePriceTagStickers();
+      renderPriceTagTab();
+    });
+  });
+  wrap.querySelectorAll('.price-tag-autofill-sku-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openSkuMatchModal(btn.dataset.key);
+    });
+  });
+  wrap.querySelectorAll('.price-tag-delete-series-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const [series, supplier] = btn.dataset.key.split('|||');
+      if (!confirm(`Padam SEMUA checklist untuk Series "${series}"? Tindakan ni tak boleh undo.`)) return;
+      priceTagStickers = priceTagStickers.filter(p => !(p.series === series && p.supplier === supplier));
+      savePriceTagStickers();
+      renderPriceTagTab();
+    });
+  });
+}
+function togglePriceTagGroup(key) {
+  if (priceTagExpanded.has(key)) priceTagExpanded.delete(key);
+  else priceTagExpanded.add(key);
+  renderPriceTagTab();
+}
+document.getElementById('priceTagSearchInput').addEventListener('input', renderPriceTagTab);
+document.getElementById('priceTagHideDoneToggle').addEventListener('change', renderPriceTagTab);
+
 // Fabric Roll / Accessories switch scoped to the Print Sticker tab only (independent of the same
 // switch on the Receive & Pick tab, so flipping one doesn't affect the other).
 let rmPrintItemType = 'fabric';
@@ -10531,6 +11333,8 @@ const SYNC_COLLECTIONS = [
   { table: 'RawMaterial_STOs', getArray: () => rawMaterialStos, setArray: (a) => { rawMaterialStos = a; saveRawMaterialStos(); } },
   { table: 'RawMaterial_DOs', getArray: () => rawMaterialDos, setArray: (a) => { rawMaterialDos = a; saveRawMaterialDos(); } },
   { table: 'Accessories_Receipts', getArray: () => accessoriesReceipts, setArray: (a) => { accessoriesReceipts = a; saveAccessoriesReceipts(); } },
+  { table: 'PriceTag_Stickers', getArray: () => priceTagStickers, setArray: (a) => { priceTagStickers = a; savePriceTagStickers(); } },
+  { table: 'PriceTag_Printers', getArray: () => priceTagPrinters, setArray: (a) => { priceTagPrinters = a; savePriceTagPrinters(); } },
   {
     table: 'Users',
     getArray: () => loadAppUsers(),
@@ -10838,7 +11642,7 @@ function renderDriversTable() {
       fleetDrivers = fleetDrivers.filter(x => x.id !== id);
       saveFleetDrivers();
       renderFleetTab();
-      populateDriverRosterSelect(); // removed driver's name reappears as an unassigned staff option
+      populateDriverRosterSelect(); // no-op now (Driver Name is free-text) — kept for call-site compatibility
     });
   });
 }
@@ -10862,12 +11666,16 @@ document.getElementById('saveDriversBtn').addEventListener('click', () => {
   saveFleetDrivers();
   clearDriversDirty();
 });
-document.getElementById('addDriverBtn').addEventListener('click', () => {
+function addDriverFromInput() {
   const nameInput = document.getElementById('inputNewDriverName');
   const phoneInput = document.getElementById('inputNewDriverPhone');
   const passwordInput = document.getElementById('inputNewDriverPassword');
   const driverName = nameInput.value.trim();
   if (!driverName) { nameInput.focus(); return; }
+  if (fleetDrivers.some(d => (d.driverName || '').trim().toLowerCase() === driverName.toLowerCase())) {
+    alert(`Driver "${driverName}" dah wujud dalam senarai.`);
+    return;
+  }
   fleetDrivers.push({
     id: genFleetId(),
     driverName,
@@ -10875,10 +11683,15 @@ document.getElementById('addDriverBtn').addEventListener('click', () => {
     driverPassword: passwordInput.value.trim()
   });
   saveFleetDrivers();
+  nameInput.value = '';
   phoneInput.value = '';
   passwordInput.value = '';
+  nameInput.focus();
   renderFleetTab();
-  populateDriverRosterSelect(); // just-added name drops off the "unassigned staff" dropdown
+}
+document.getElementById('addDriverBtn').addEventListener('click', addDriverFromInput);
+document.getElementById('inputNewDriverName').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); addDriverFromInput(); }
 });
 
 // Driver is a free-text field on the trip modal (with autocomplete suggestions pulled from Team
@@ -17614,7 +18427,7 @@ function renderGarmentProgressChart() {
   // Side panel breakdown (instead of cramming it under the % inside the ring) — one line per
   // segment, color-dotted to match the ring, so Short doesn't get lost in a single run-on sentence.
   qtyText.innerHTML = `
-    <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;"><span style="width:8px; height:8px; border-radius:50%; background:${color}; flex:0 0 auto;"></span>${formatQty(totalReceived)} / ${formatQty(totalOrder)} pcs received</div>
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;"><span style="width:8px; height:8px; border-radius:50%; background:${KPI_COLOR_HEX.blue}; flex:0 0 auto;"></span>${formatQty(totalReceived)} / ${formatQty(totalOrder)} pcs received</div>
     ${totalShort ? `<div style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:${KPI_COLOR_HEX.red}; flex:0 0 auto;"></span>${formatQty(totalShort)} pcs short</div>` : ''}
   `;
 
@@ -17626,7 +18439,7 @@ function renderGarmentProgressChart() {
     type: 'doughnut',
     data: {
       labels: ['Received', 'Short', 'Remaining'],
-      datasets: [{ data: [receivedData, totalShort, remainingData], backgroundColor: [color, KPI_COLOR_HEX.red, KPI_COLOR_HEX.track], borderWidth: 0 }]
+      datasets: [{ data: [receivedData, totalShort, remainingData], backgroundColor: [KPI_COLOR_HEX.blue, KPI_COLOR_HEX.red, KPI_COLOR_HEX.track], borderWidth: 0 }]
     },
     options: {
       responsive: true, maintainAspectRatio: false, cutout: '75%',
