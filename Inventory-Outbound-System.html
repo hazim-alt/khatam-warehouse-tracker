@@ -3,6 +3,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- Without this, mobile browsers render the page at a fake ~980px "desktop" width and shrink it
+     to fit — every @media (max-width: ...) rule below then never actually triggers on a real phone,
+     since the browser reports that fake width instead of the phone's real (e.g. 390px) screen. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Inventory Department - Warehouse Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -107,6 +111,12 @@
   .garment-batch-card:hover { border-color: var(--navy); }
 
   main { flex: 1; min-width: 0; padding: 28px 36px 60px; margin-left: 240px; transition: margin-left 0.18s ease; }
+  /* Phone-width layout — the sidebar defaults to collapsed here (see loadSidebarCollapsed()) so
+     main already has the full width; this just trims the generous desktop padding down to
+     something that doesn't eat a third of a ~390px screen. */
+  @media (max-width: 700px) {
+    main { padding: 16px 12px 40px; }
+  }
 
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
@@ -4474,7 +4484,12 @@ function applySidebarCollapsed(collapsed) {
   document.body.classList.toggle('sidebar-collapsed', collapsed);
 }
 function loadSidebarCollapsed() {
-  applySidebarCollapsed(localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1');
+  const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+  // No explicit choice saved yet — default to collapsed on a phone-width screen (more room for the
+  // actual content right away) instead of forcing her to tap "Hide sidebar" herself every time.
+  // Once she DOES pick either way, that choice sticks regardless of screen width.
+  const phoneDefault = window.matchMedia('(max-width: 700px)').matches;
+  applySidebarCollapsed(stored === null ? phoneDefault : stored === '1');
 }
 document.getElementById('sidebarCollapseBtn').addEventListener('click', () => {
   applySidebarCollapsed(true);
@@ -15333,12 +15348,21 @@ document.getElementById('putawayRollcageSaveBtn').addEventListener('click', () =
     }
     const srcBatch = garmentOrders.find(b => b.batchNo === putawayRollcagePending.batchNo);
     const srcSku = srcBatch && srcBatch.skus.find(s => s.sku === putawayRollcagePending.sku);
-    putawayRollcageSelectedNames.forEach(val => {
+    // The logged qty is ONE physical delivery — if she splits it across multiple rollcages/trolleys
+    // (e.g. half a box went to TR-1, the rest to RC-2), it must be DIVIDED between them, not copied
+    // in full to each chip. Otherwise the putaway total for that sku ends up a multiple of what was
+    // actually received. Split evenly, remainder going to the last chip so the total still adds up
+    // exactly to the logged qty.
+    const totalQty = Number(putawayRollcagePending.qty) || 0;
+    const n = putawayRollcageSelectedNames.length;
+    const baseShare = Math.floor(totalQty / n);
+    putawayRollcageSelectedNames.forEach((val, i) => {
       const rc = rollcages.find(r => r.name === val);
       if (!rc) return;
+      const share = i === n - 1 ? (totalQty - baseShare * (n - 1)) : baseShare;
       rc.putawayInUse = true;
       rc.putawayItems = rc.putawayItems || [];
-      rc.putawayItems.push({ batchNo: putawayRollcagePending.batchNo, sku: putawayRollcagePending.sku, qty: putawayRollcagePending.qty, date: todayStr() });
+      rc.putawayItems.push({ batchNo: putawayRollcagePending.batchNo, sku: putawayRollcagePending.sku, qty: share, date: todayStr() });
       // Tag the originating SKU line item itself so the batch card's own "Putaway: Pending/Done"
       // badge (garmentBatchPutawayStatus) has something to read — the rollcage's putawayItems list
       // is just a display log, this is what actually drives the badge. PUSH a new assignment entry
@@ -15401,11 +15425,16 @@ function renderPutawayTab() {
       return `<div class="putaway-sku-tile" data-rollcage="${escapeHtml(rc.name)}" data-sku="${escapeHtml(g.key)}" style="${doneStyle} border-radius:8px; padding:8px 10px; cursor:pointer;" title="${g.done ? 'Click to undo' : 'Click once this SKU has been placed on the rack'}">
         <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:6px;">
           <div class="mono-name" style="font-size:12.5px; font-weight:700; overflow-wrap:anywhere;">${escapeHtml(g.sku || '-')}</div>
-          ${g.done ? `<span style="font-size:13px; color:var(--green); flex:0 0 auto;">✓</span>` : ''}
+          <span style="display:flex; align-items:center; gap:4px; flex:0 0 auto;">
+            ${g.done ? `<span style="font-size:13px; color:var(--green);">✓</span>` : ''}
+            <button type="button" class="icon-btn putaway-sku-delete-btn" data-rollcage="${escapeHtml(rc.name)}" data-sku="${escapeHtml(g.key)}" title="Padam SKU ni dari rollcage" style="font-size:11px; padding:0 2px; color:#e0685c;">🗑</button>
+          </span>
         </div>
         <div style="font-size:11px; color:var(--text-muted); margin-top:2px; overflow-wrap:anywhere;">${escapeHtml([...g.batchNos].join(', ') || '-')}</div>
         <div style="display:flex; align-items:baseline; justify-content:space-between; margin-top:6px;">
-          <span style="font-size:14px; font-weight:700;">${formatQty(g.qty)}</span>
+          <span style="font-size:14px; font-weight:700;">${formatQty(g.qty)}
+            <button type="button" class="icon-btn putaway-sku-edit-qty-btn" data-rollcage="${escapeHtml(rc.name)}" data-sku="${escapeHtml(g.key)}" title="Betulkan quantity" style="font-size:11px; padding:0 2px; vertical-align:1px;">✎</button>
+          </span>
           <span style="font-size:10px; color:var(--text-muted);">${formatDateLabel(g.latestDate)}</span>
         </div>
       </div>`;
@@ -15442,6 +15471,61 @@ function renderPutawayTab() {
       toggleRollcageSkuPutawayDone(tile.dataset.rollcage, tile.dataset.sku);
     });
   });
+  wrap.querySelectorAll('.putaway-sku-edit-qty-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation(); // don't also trigger the tile's own click (done/undo toggle)
+      editPutawaySkuQty(btn.dataset.rollcage, btn.dataset.sku);
+    });
+  });
+  wrap.querySelectorAll('.putaway-sku-delete-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deletePutawaySkuTile(btn.dataset.rollcage, btn.dataset.sku);
+    });
+  });
+}
+// Removes this SKU's tile from a rollcage entirely — e.g. it was logged into the wrong rollcage
+// by mistake, or it's a leftover/duplicate entry. Only touches this rollcage's putawayItems log;
+// the Garment Order SKU line itself (and its qtyReceived) is untouched — use "Delete SKU" on the
+// Garment Order batch instead if the whole SKU line needs to go.
+function deletePutawaySkuTile(rollcageName, groupKey) {
+  const rc = rollcages.find(r => r.name === rollcageName);
+  if (!rc) return;
+  const items = (rc.putawayItems || []).filter(it => (it.sku || it.batchNo || '-') === groupKey);
+  if (!items.length) return;
+  const totalQty = items.reduce((sum, it) => sum + (Number(it.qty) || 0), 0);
+  if (!confirm(`Padam "${groupKey}" (${formatQty(totalQty)} pcs) dari "${rollcageName}"? Tindakan ni tak boleh undo.`)) return;
+  rc.putawayItems = (rc.putawayItems || []).filter(it => (it.sku || it.batchNo || '-') !== groupKey);
+  if (!rc.putawayItems.length) rc.putawayInUse = false;
+  saveRollcages();
+  renderPutawayTab();
+  renderRollcagesList();
+  renderRollcageUsageBoards();
+}
+// Lets her correct a tile's quantity directly if it ever drifts from what was actually received
+// (e.g. an old log/rollcage-split issue) — collapses every raw putawayItems entry in this group
+// into one clean entry holding the corrected total, rather than trying to guess how to redistribute
+// the fix across whatever the original log lines were.
+function editPutawaySkuQty(rollcageName, groupKey) {
+  const rc = rollcages.find(r => r.name === rollcageName);
+  if (!rc) return;
+  const items = (rc.putawayItems || []).filter(it => (it.sku || it.batchNo || '-') === groupKey);
+  if (!items.length) return;
+  const currentTotal = items.reduce((sum, it) => sum + (Number(it.qty) || 0), 0);
+  const input = prompt(`Betulkan quantity untuk "${groupKey}" kat "${rollcageName}" (sekarang: ${currentTotal}):`, String(currentTotal));
+  if (input === null) return;
+  const newQty = Math.max(0, Math.floor(Number(input) || 0));
+  if (newQty === currentTotal) return;
+  const first = items[0];
+  rc.putawayItems = (rc.putawayItems || []).filter(it => (it.sku || it.batchNo || '-') !== groupKey);
+  if (newQty > 0) {
+    rc.putawayItems.push({ batchNo: first.batchNo, sku: first.sku, qty: newQty, date: first.date, done: first.done });
+  }
+  if (!rc.putawayItems.length) rc.putawayInUse = false;
+  saveRollcages();
+  renderPutawayTab();
+  renderRollcagesList();
+  renderRollcageUsageBoards();
 }
 
 /* ---------- Packing station assignment (Packing stage) ---------- */
@@ -16508,8 +16592,31 @@ function renderGarmentOrderTab() {
       const batch = garmentOrders.find(b => b.batchNo === btn.dataset.batch);
       const sidx = Number(btn.dataset.sidx);
       if (!confirm('Remove this SKU line from the batch?')) return;
+      const removedSku = batch.skus[sidx] ? batch.skus[sidx].sku : '';
       batch.skus.splice(sidx, 1);
       saveGarmentOrders();
+      // Cascade into Putaway — a deleted SKU line shouldn't leave an orphaned "waiting to be put
+      // away" tile behind on whatever rollcage(s) it was logged into (same sku+batchNo match as
+      // toggleRollcageSkuPutawayDone uses). Frees the rollcage too if that was its last item, same
+      // as finishing putaway normally would.
+      if (removedSku) {
+        let rollcagesChanged = false;
+        rollcages.forEach(rc => {
+          if (!rc.putawayItems || !rc.putawayItems.length) return;
+          const before = rc.putawayItems.length;
+          rc.putawayItems = rc.putawayItems.filter(it => !(it.sku === removedSku && it.batchNo === batch.batchNo));
+          if (rc.putawayItems.length !== before) {
+            rollcagesChanged = true;
+            if (!rc.putawayItems.length) rc.putawayInUse = false;
+          }
+        });
+        if (rollcagesChanged) {
+          saveRollcages();
+          renderPutawayTab();
+          renderRollcagesList();
+          renderRollcageUsageBoards();
+        }
+      }
       renderGarmentOrderTab();
     });
   });
