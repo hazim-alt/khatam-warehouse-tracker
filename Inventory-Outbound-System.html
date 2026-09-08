@@ -14935,7 +14935,7 @@ function markCourierDoDelivered(doNo) {
 // "don't filter by station", null/UNASSIGNED_STATION_KEY means "no station set"), filtered by
 // that column's own search box. Matches STO No., boutique name, boutique code, or station name.
 function kanbanCardsForStage(stage, station) {
-  let list = records.filter(r => (r.progress || 'Active') === stage);
+  let list = records.filter(r => (r.progress || 'Active') === stage && !senaraiIsExcludedBoutique(r.toWarehouse));
   // Once a DO Issued (Shipped) STO's Fleet trip is dispatched (Out of Delivery or Completed), it
   // drops off this board entirely — the driver's already gone, so it's no longer something staff
   // need to act on here. The full record stays visible/searchable in the "Delivery Status" tab.
