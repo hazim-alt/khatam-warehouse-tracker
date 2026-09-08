@@ -7,6 +7,13 @@
      to fit — every @media (max-width: ...) rule below then never actually triggers on a real phone,
      since the browser reports that fake width instead of the phone's real (e.g. 390px) screen. -->
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjogIktIQVRBTSBJbnZlbnRvcnkgVHJhY2tlciIsICJzaG9ydF9uYW1lIjogIktIQVRBTSIsICJzdGFydF91cmwiOiAiLi8iLCAic2NvcGUiOiAiLi8iLCAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwgImJhY2tncm91bmRfY29sb3IiOiAiIzFhMTYxNCIsICJ0aGVtZV9jb2xvciI6ICIjMWExNjE0IiwgImljb25zIjogW3sic3JjIjogIi4vS2hhdGFtX0ljb25fMTkyeDE5Mi5wbmciLCAic2l6ZXMiOiAiMTkyeDE5MiIsICJ0eXBlIjogImltYWdlL3BuZyIsICJwdXJwb3NlIjogImFueSBtYXNrYWJsZSJ9LCB7InNyYyI6ICIuL0toYXRhbV9JY29uXzUxMng1MTIucG5nIiwgInNpemVzIjogIjUxMng1MTIiLCAidHlwZSI6ICJpbWFnZS9wbmciLCAicHVycG9zZSI6ICJhbnkgbWFza2FibGUifV19">
+<meta name="theme-color" content="#1a1614">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="KHATAM">
+<link rel="apple-touch-icon" href="./Khatam_Icon_192x192.png">
 <title>Inventory Department - Warehouse Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -82,6 +89,17 @@
   body.sidebar-collapsed .sidebar-expand-btn { display: flex; }
   body.sidebar-collapsed aside.sidebar { transform: translateX(-100%); }
   body.sidebar-collapsed main { margin-left: 0; }
+  /* On a phone-width screen the sidebar behaves like a normal app's nav drawer instead of a
+     desktop panel that pushes content over: it always floats ON TOP of the page (main never makes
+     room for it, expanded or not) with a dimmed backdrop behind it that closes it on tap — same as
+     tapping outside a menu. Opening a screen from it auto-closes it too (see the tab-btn listener
+     in the sidebar-collapse script section). */
+  .sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 15; }
+  @media (max-width: 700px) {
+    main { margin-left: 0 !important; }
+    aside.sidebar { z-index: 25; box-shadow: 0 0 40px rgba(0,0,0,0.6); }
+    body:not(.sidebar-collapsed) .sidebar-backdrop { display: block; }
+  }
   .brand-eyebrow { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #c9beb0; margin: 0 0 4px; font-weight: 600; }
   .brand-logo { display: block; max-width: 140px; height: auto; margin-bottom: 16px; }
   .brand-title { font-family: Georgia, "Times New Roman", serif; font-size: 20px; margin: 0; font-weight: 700; letter-spacing: 0.01em; line-height: 1.3; }
@@ -951,6 +969,7 @@
 
 <div class="app-shell">
 <button type="button" class="sidebar-expand-btn" id="sidebarExpandBtn" title="Show sidebar" aria-label="Show sidebar">&#9776;</button>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 <aside class="sidebar">
   <div class="brand-block">
     <button type="button" class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Hide sidebar" aria-label="Hide sidebar">&#8249;</button>
@@ -4500,6 +4519,31 @@ document.getElementById('sidebarExpandBtn').addEventListener('click', () => {
   localStorage.setItem(SIDEBAR_COLLAPSED_KEY, '0');
 });
 loadSidebarCollapsed();
+// Tapping the backdrop (the dimmed area behind the drawer on a phone-width screen) closes it —
+// same as tapping outside a menu/drawer in a normal app.
+const sidebarBackdropEl = document.getElementById('sidebarBackdrop');
+if (sidebarBackdropEl) {
+  sidebarBackdropEl.addEventListener('click', () => {
+    applySidebarCollapsed(true);
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, '1');
+  });
+}
+// Picking a screen from the drawer on a phone-width layout closes it automatically afterward —
+// same as any mobile app's nav drawer — instead of leaving it covering the screen she just opened.
+// A separate listener from the main tab-switch one above so it can't interfere with that logic
+// (unsaved-changes guards etc.) — this only ever runs AFTER a tab click has already gone through.
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    // Registered after the main tab-switch handler above, so this runs second — btn only actually
+    // has "active" by now if that handler didn't bail out early on an unsaved-changes guard. Skips
+    // closing the drawer on top of a blocked switch (which would otherwise hide the very screen
+    // she still needs to deal with, e.g. "Save Daily Targets first").
+    if (btn.classList.contains('active') && window.matchMedia('(max-width: 700px)').matches) {
+      applySidebarCollapsed(true);
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, '1');
+    }
+  });
+});
 
 /* ---------- Kanban board horizontal scroll (Progress Board, Fleet, Inbound) ----------
    These boards scroll sideways once there are more columns than fit, but a laptop's plain
