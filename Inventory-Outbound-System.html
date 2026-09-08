@@ -14,6 +14,16 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="KHATAM">
 <link rel="apple-touch-icon" href="./Khatam_Icon_192x192.png">
+<script>
+  // Registers the service worker below the manifest so Chrome/Android treats this
+  // page as a real installable app (full icon, no browser badge, no address bar)
+  // instead of a plain bookmark shortcut.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
+  }
+</script>
 <title>Inventory Department - Warehouse Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
