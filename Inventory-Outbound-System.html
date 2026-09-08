@@ -2795,6 +2795,30 @@
   </div>
 </div>
 
+<div class="modal-overlay hidden" id="priceTagEditLineModal">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-header">
+      <h2>Edit Checklist Line</h2>
+      <button class="modal-close" id="priceTagEditLineCloseBtn">&times;</button>
+    </div>
+    <div class="rm-form-grid rm-form-grid-4">
+      <div class="field"><label>Colour Code</label><input type="text" id="priceTagEditColourCode"></div>
+      <div class="field"><label>Color Name</label><input type="text" id="priceTagEditColorName"></div>
+      <div class="field full-2"><label>Name On Sticker</label><input type="text" id="priceTagEditNameOnSticker"></div>
+      <div class="field"><label>Size</label><input type="text" id="priceTagEditSize"></div>
+      <div class="field"><label>SKU</label><input type="text" id="priceTagEditSku"></div>
+      <div class="field"><label>Batch No.</label><input type="text" id="priceTagEditBatchNumber"></div>
+      <div class="field"><label>Quantity</label><input type="number" min="0" id="priceTagEditQuantity"></div>
+      <div class="field"><label>Price</label><input type="text" id="priceTagEditPrice"></div>
+    </div>
+    <div class="data-note" id="priceTagEditLineModalError" style="color:#e05c5c; display:none; margin-top:10px;"></div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn-ghost" id="priceTagEditLineCancelBtn">Cancel</button>
+      <button class="btn-primary" id="priceTagEditLineSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay hidden" id="rmEditRollModal">
   <div class="modal-box" style="max-width:480px;">
     <div class="modal-header">
@@ -5250,12 +5274,19 @@ function allKnownBoutiqueNames() {
 }
 
 /* ---------- STO List ---------- */
+// "UNUSED PRODUCT" and "CHINA REWASH ITEM" ride through the same STO import pipeline as real
+// customer deliveries, but they're internal stock-holding buckets, not actual boutique
+// destinations — hidden from the STO List (table + boutique filter) entirely.
+const SENARAI_EXCLUDED_BOUTIQUE_NAMES = ['UNUSED PRODUCT', 'CHINA REWASH ITEM'];
+function senaraiIsExcludedBoutique(name) {
+  return SENARAI_EXCLUDED_BOUTIQUE_NAMES.includes((name || '').trim().toUpperCase());
+}
 function populateFilterOptions() {
   const butikSel = document.getElementById('filterButik');
   const statusSel = document.getElementById('filterStatus');
   const curButik = butikSel.value, curStatus = statusSel.value;
 
-  const butiks = [...new Set(records.map(r => r.toWarehouse).filter(Boolean))].sort();
+  const butiks = [...new Set(records.map(r => r.toWarehouse).filter(b => b && !senaraiIsExcludedBoutique(b)))].sort();
   butikSel.innerHTML = '<option value="">All Boutiques</option>' + butiks.map(b => `<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('');
   butikSel.value = curButik;
 
@@ -5288,6 +5319,7 @@ function renderSenaraiTable() {
   const sortBy = document.getElementById('sortBy').value;
 
   let list = records.map(r => ({ r, a: computeAmaran(r), due: computeDueDate(r) })).filter(({ r, a }) => {
+    if (senaraiIsExcludedBoutique(r.toWarehouse)) return false;
     if (filterAmaran && a !== filterAmaran) return false;
     if (filterStatus && r.status !== filterStatus) return false;
     if (filterButik && r.toWarehouse !== filterButik) return false;
@@ -10677,6 +10709,7 @@ function renderPriceTagTab() {
       <td>${doneLines} / ${g.lines.length} line siap &middot; ${formatQty(g.doneQty)} / ${formatQty(g.totalQty)} pcs</td>
       <td style="white-space:nowrap; display:flex; gap:6px;">
         <button type="button" class="btn-ghost price-tag-autofill-sku-btn" data-key="${escapeHtml(key)}">🔍 Auto-fill SKU</button>
+        <button type="button" class="btn-ghost price-tag-copy-sku-btn" data-key="${escapeHtml(key)}">📋 Copy SKU/Batch/Qty</button>
         <button type="button" class="btn-ghost price-tag-delete-series-btn" data-key="${escapeHtml(key)}" style="color:#e0685c;">🗑 Delete Series</button>
       </td>
     </tr>
@@ -10684,20 +10717,23 @@ function renderPriceTagTab() {
       <td></td>
       <td colspan="4" style="padding:6px 10px;">
         <table style="font-size:12px;"><thead><tr>
-          <th>Colour Code</th><th>Color Name</th><th>Name On Sticker</th><th>Batch No.</th><th>Size</th><th>Quantity</th><th>Price</th><th>Qty (dah print)</th><th>SKU</th><th>Printer</th><th></th>
+          <th>Colour Code</th><th>Color Name</th><th>Name On Sticker</th><th>Size</th><th>SKU</th><th>Batch No.</th><th>Quantity</th><th>Price</th>
         </tr></thead><tbody>
           ${g.lines.map(l => `<tr${isLineDone(l) ? ' style="opacity:0.5;"' : ''}>
               <td>${escapeHtml(l.colourCode || '-')}</td>
               <td>${escapeHtml(l.colorName || '-')}</td>
               <td>${escapeHtml(l.nameOnSticker || '-')}</td>
-              <td>${escapeHtml(l.batchNumber || '-')}</td>
               <td>${escapeHtml(l.size || '-')}</td>
-              <td>${formatQty(l.quantity)}</td>
+              <td style="white-space:nowrap;">${escapeHtml(l.sku || '-')} <button type="button" class="btn-ghost price-tag-copy-cell-btn" data-value="${escapeHtml(l.sku || '')}" data-label="SKU" title="Copy SKU">📋</button></td>
+              <td style="white-space:nowrap;">${escapeHtml(l.batchNumber || '-')} <button type="button" class="btn-ghost price-tag-copy-cell-btn" data-value="${escapeHtml(l.batchNumber || '')}" data-label="Batch No." title="Copy Batch No.">📋</button></td>
+              <td style="white-space:nowrap;">${formatQty(l.quantity)} <button type="button" class="btn-ghost price-tag-copy-cell-btn" data-value="${l.quantity != null ? l.quantity : ''}" data-label="Quantity" title="Copy Quantity">📋</button></td>
               <td>${escapeHtml(l.price || '-')}</td>
               <td><input type="number" min="0" class="price-tag-qty-input" data-id="${l.id}" value="${l.printedQty ? l.printedQty : ''}" placeholder="0" style="width:64px;"></td>
-              <td><input type="text" class="price-tag-sku-input" data-id="${l.id}" value="${escapeHtml(l.sku || '')}" placeholder="SKU" style="width:110px;"></td>
               <td><select class="price-tag-printer-select" data-id="${l.id}" style="width:120px;">${printerOptionsHtml(l.printer || '')}</select></td>
-              <td><button type="button" class="btn-ghost price-tag-delete-line-btn" data-id="${l.id}" style="color:#e0685c;">🗑</button></td>
+              <td style="white-space:nowrap; display:flex; gap:4px;">
+                <button type="button" class="btn-ghost price-tag-edit-line-btn" data-id="${l.id}">✏️</button>
+                <button type="button" class="btn-ghost price-tag-delete-line-btn" data-id="${l.id}" style="color:#e0685c;">🗑</button>
+              </td>
             </tr>`).join('')}
         </tbody></table>
       </td>
@@ -10711,6 +10747,7 @@ function renderPriceTagTab() {
       if (e.target.closest('.rm-sto-toggle-icon')) return;
       if (e.target.closest('.price-tag-delete-series-btn')) return;
       if (e.target.closest('.price-tag-autofill-sku-btn')) return;
+      if (e.target.closest('.price-tag-copy-sku-btn')) return;
       togglePriceTagGroup(row.dataset.key);
     });
     const icon = row.querySelector('.rm-sto-toggle-icon');
@@ -10728,15 +10765,6 @@ function renderPriceTagTab() {
       renderPriceTagTab();
     });
   });
-  wrap.querySelectorAll('.price-tag-sku-input').forEach(input => {
-    input.addEventListener('click', (e) => e.stopPropagation());
-    input.addEventListener('change', (e) => {
-      const line = priceTagStickers.find(p => p.id === input.dataset.id);
-      if (!line) return;
-      line.sku = input.value.trim();
-      savePriceTagStickers();
-    });
-  });
   wrap.querySelectorAll('.price-tag-printer-select').forEach(select => {
     select.addEventListener('click', (e) => e.stopPropagation());
     select.addEventListener('change', (e) => {
@@ -10744,6 +10772,18 @@ function renderPriceTagTab() {
       if (!line) return;
       line.printer = select.value;
       savePriceTagStickers();
+    });
+  });
+  wrap.querySelectorAll('.price-tag-copy-cell-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      priceTagCopyTextToClipboard(btn.dataset.value);
+    });
+  });
+  wrap.querySelectorAll('.price-tag-edit-line-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openPriceTagEditLineModal(btn.dataset.id);
     });
   });
   wrap.querySelectorAll('.price-tag-delete-line-btn').forEach(btn => {
@@ -10759,6 +10799,12 @@ function renderPriceTagTab() {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       openSkuMatchModal(btn.dataset.key);
+    });
+  });
+  wrap.querySelectorAll('.price-tag-copy-sku-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      copyPriceTagSkuBatchQty(btn.dataset.key);
     });
   });
   wrap.querySelectorAll('.price-tag-delete-series-btn').forEach(btn => {
@@ -10777,8 +10823,87 @@ function togglePriceTagGroup(key) {
   else priceTagExpanded.add(key);
   renderPriceTagTab();
 }
+// Shared clipboard helper — tries the modern Clipboard API first, falls back to a hidden
+// textarea + the legacy copy command if that's blocked (permissions/context).
+// Copies silently — no success popup (she just wants to paste right after, not click through a
+// confirmation each time) — only surfaces an alert if the copy itself actually failed.
+function priceTagCopyTextToClipboard(text) {
+  const done = () => {};
+  const fail = () => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); }
+    catch (e) { alert('Gagal copy — cuba manual select & copy dari table tu.'); }
+    document.body.removeChild(ta);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(fail);
+  } else {
+    fail();
+  }
+}
+// One click copies SKU/Batch No./Quantity for a whole Series as tab-separated text — pastes
+// straight into Excel (or most other systems' grids) as three real columns.
+function copyPriceTagSkuBatchQty(seriesKey) {
+  const [series, supplier] = seriesKey.split('|||');
+  const lines = priceTagStickers.filter(p => p.series === series && p.supplier === supplier)
+    .sort((a, b) => (a.colourCode || '').localeCompare(b.colourCode || '') || priceTagSizeOrderIndex(a.size) - priceTagSizeOrderIndex(b.size));
+  if (!lines.length) return;
+  const tsv = ['SKU\tBatch No.\tQuantity', ...lines.map(l => `${l.sku || ''}\t${l.batchNumber || ''}\t${l.quantity != null ? l.quantity : ''}`)].join('\n');
+  priceTagCopyTextToClipboard(tsv);
+}
 document.getElementById('priceTagSearchInput').addEventListener('input', renderPriceTagTab);
 document.getElementById('priceTagHideDoneToggle').addEventListener('change', renderPriceTagTab);
+
+// ---- Edit Checklist Line modal — lets her fix a typo or fill in SKU manually, without needing to
+// delete and re-import the whole series. ----
+let priceTagEditLineCurrentId = null;
+function openPriceTagEditLineModal(lineId) {
+  const line = priceTagStickers.find(p => p.id === lineId);
+  if (!line) return;
+  priceTagEditLineCurrentId = lineId;
+  document.getElementById('priceTagEditColourCode').value = line.colourCode || '';
+  document.getElementById('priceTagEditColorName').value = line.colorName || '';
+  document.getElementById('priceTagEditNameOnSticker').value = line.nameOnSticker || '';
+  document.getElementById('priceTagEditSize').value = line.size || '';
+  document.getElementById('priceTagEditSku').value = line.sku || '';
+  document.getElementById('priceTagEditBatchNumber').value = line.batchNumber || '';
+  document.getElementById('priceTagEditQuantity').value = line.quantity != null ? line.quantity : '';
+  document.getElementById('priceTagEditPrice').value = line.price || '';
+  document.getElementById('priceTagEditLineModalError').style.display = 'none';
+  document.getElementById('priceTagEditLineModal').classList.remove('hidden');
+}
+function closePriceTagEditLineModal() {
+  document.getElementById('priceTagEditLineModal').classList.add('hidden');
+  priceTagEditLineCurrentId = null;
+}
+document.getElementById('priceTagEditLineCloseBtn').addEventListener('click', closePriceTagEditLineModal);
+document.getElementById('priceTagEditLineCancelBtn').addEventListener('click', closePriceTagEditLineModal);
+document.getElementById('priceTagEditLineSaveBtn').addEventListener('click', () => {
+  const line = priceTagStickers.find(p => p.id === priceTagEditLineCurrentId);
+  const errEl = document.getElementById('priceTagEditLineModalError');
+  if (!line) { closePriceTagEditLineModal(); return; }
+  const showErr = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
+  const newSize = document.getElementById('priceTagEditSize').value.trim();
+  if (!newSize) { showErr('Size tak boleh kosong.'); return; }
+  const newQuantity = Math.max(0, Math.floor(Number(document.getElementById('priceTagEditQuantity').value) || 0));
+  if (!newQuantity) { showErr('Quantity tak sah.'); return; }
+  line.colourCode = document.getElementById('priceTagEditColourCode').value.trim();
+  line.colorName = document.getElementById('priceTagEditColorName').value.trim();
+  line.nameOnSticker = document.getElementById('priceTagEditNameOnSticker').value.trim();
+  line.size = newSize;
+  line.sku = document.getElementById('priceTagEditSku').value.trim();
+  line.batchNumber = document.getElementById('priceTagEditBatchNumber').value.trim();
+  line.quantity = newQuantity;
+  line.price = document.getElementById('priceTagEditPrice').value.trim();
+  savePriceTagStickers();
+  closePriceTagEditLineModal();
+  renderPriceTagTab();
+});
 
 // Fabric Roll / Accessories switch scoped to the Print Sticker tab only (independent of the same
 // switch on the Receive & Pick tab, so flipping one doesn't affect the other).
