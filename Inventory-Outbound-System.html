@@ -5362,6 +5362,12 @@ function renderSenaraiTable() {
 
   let list = records.map(r => ({ r, a: computeAmaran(r), due: computeDueDate(r) })).filter(({ r, a }) => {
     if (senaraiIsExcludedBoutique(r.toWarehouse)) return false;
+    // Same "gone out already" rule as the Progress Board's Shipped column: an Own Fleet DO drops
+    // off once its trip reaches Out of Delivery (no need to wait for full Completed/Delivered),
+    // while a courier DO (Lalamove/Grab/Other, which never has a Fleet trip) drops off once
+    // Outbound has marked it Delivered themselves. Once that's true, it's done — no reason to
+    // keep cluttering the STO List with it.
+    if (r.doNo && isDoLockedByDispatch(r.doNo)) return false;
     if (filterAmaran && a !== filterAmaran) return false;
     if (filterStatus && r.status !== filterStatus) return false;
     if (filterButik && r.toWarehouse !== filterButik) return false;
@@ -11930,7 +11936,33 @@ function loadFleetTrips() {
       if (deduped.length !== t.doNos.length) { t.doNos = deduped; migrated = true; }
     }
   });
+  // One-time cleanup: the SAME DO No. could end up listed on more than one non-Completed trip
+  // (e.g. left behind by a Postpone/Transfer that didn't fully clear the old trip) — Shaila
+  // reported exactly this: assigning today's driver but seeing a DIFFERENT trip's (tomorrow's)
+  // driver show up instead on Delivery Status. A DO only ever really goes out once, so it should
+  // only ever live on ONE trip — keep it on whichever trip "wins" by fleetTripPriorityRank (already
+  // dispatched beats merely Scheduled; among ties, whichever date is closest to today) and strip it
+  // off every other trip that still had it.
+  const doNoOwner = {};
+  fleetTrips.filter(t => t.status !== 'Completed').forEach(t => {
+    (t.doNos || []).forEach(no => {
+      if (!doNoOwner[no] || fleetTripPriorityRank(t) < fleetTripPriorityRank(doNoOwner[no])) doNoOwner[no] = t;
+    });
+  });
+  fleetTrips.forEach(t => {
+    if (t.status === 'Completed' || !Array.isArray(t.doNos) || !t.doNos.length) return;
+    const kept = t.doNos.filter(no => doNoOwner[no] === t);
+    if (kept.length !== t.doNos.length) { t.doNos = kept; migrated = true; }
+  });
   if (migrated) saveFleetTrips();
+}
+// Lower rank = "more authoritative" when the same DO somehow ends up on more than one trip: an
+// already-dispatched trip (Out of Delivery/Completed) is more "real" than a merely Scheduled one,
+// and among same-status trips, the one closest to today (today/past over some other future date).
+function fleetTripPriorityRank(t) {
+  const statusRank = (t.status === 'Out of Delivery' || t.status === 'Completed') ? 0 : 1;
+  const dateRank = Math.abs(daysDiffFromToday(t.date || todayStr()));
+  return statusRank * 100000 + dateRank;
 }
 function saveFleetTrips() { localStorage.setItem(FLEET_TRIPS_KEY, JSON.stringify(fleetTrips)); }
 
@@ -12358,7 +12390,12 @@ function fleetTripDispatchedForDoNo(doNo) {
 // assigned a driver/trip but hasn't gone Out of Delivery yet.
 function fleetTripForDoNo(doNo) {
   if (!doNo) return null;
-  return fleetTrips.find(t => Array.isArray(t.doNos) && t.doNos.includes(doNo)) || null;
+  const matches = fleetTrips.filter(t => Array.isArray(t.doNos) && t.doNos.includes(doNo));
+  if (matches.length <= 1) return matches[0] || null;
+  // Defensive: a DO should only ever live on one trip (see the loadFleetTrips cleanup above), but
+  // if it somehow still shows up on more than one, don't just grab an arbitrary array-order match —
+  // pick the same "most authoritative" trip fleetTripPriorityRank/the load-time cleanup would.
+  return matches.slice().sort((a, b) => fleetTripPriorityRank(a) - fleetTripPriorityRank(b))[0];
 }
 function fleetTripDestinationsArray(t) {
   if (Array.isArray(t.destinations)) return t.destinations;
@@ -12405,18 +12442,29 @@ function fleetTripDoNosArray(t) { return t.doNos || []; }
 function autoAttachDoNosToTrips() {
   let anyChanged = false;
   const today = todayStr();
-  fleetTrips.forEach(t => {
-    if (t.status === 'Completed' || t.status === 'Out of Delivery') return;
-    if (t.date && t.date < today) return;
+  // Process trips in date order so TODAY's trip(s) get first pick of matching DOs — and can
+  // even reclaim a DO that's currently sitting on a future-dated trip (e.g. printed a couple
+  // days ago and auto-attached to a trip that existed then, before today's trip was created).
+  // A DO already dispatched/delivered, or already on another trip dated TODAY, is never touched —
+  // that's a manual call (Postpone/Transfer), not something auto-attach should override.
+  const eligible = fleetTrips.filter(t => t.status !== 'Completed' && t.status !== 'Out of Delivery' && (!t.date || t.date >= today));
+  eligible.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  eligible.forEach(t => {
     const dests = fleetTripDestinationsArray(t);
     if (!dests.length) return;
-    const takenByOthers = fleetDoNosInActiveTrips(t.id);
+    const isToday = t.date === today;
     const current = new Set(t.doNos || []);
     let tripChanged = false;
     doRecords.forEach(d => {
       if (d.deliveryMethod && d.deliveryMethod !== 'Own Fleet') return; // courier DO — never auto-attaches to a Fleet trip
       if (!d.boutique || !dests.some(dest => boutiqueMatch(dest, d.boutique))) return;
-      if (current.has(d.doNo) || takenByOthers.has(d.doNo)) return;
+      if (current.has(d.doNo)) return;
+      const owner = fleetTripForDoNo(d.doNo);
+      if (owner) {
+        if (!isToday || owner.date === today || isDoLockedByDispatch(d.doNo)) return;
+        owner.doNos = (owner.doNos || []).filter(no => no !== d.doNo);
+        anyChanged = true;
+      }
       current.add(d.doNo);
       fleetClearDoPostponed(d.doNo);
       tripChanged = true;
@@ -12471,21 +12519,30 @@ function renderTripDoPicker(excludeTripId) {
   }
   // Courier DOs (Lalamove/Grab/Other) never show up here — Outbound already decided those skip
   // Fleet entirely when the DO was printed (see doDeliveryMethod), so there's nothing for a driver
-  // trip to pick up.
-  const available = doRecords.filter(d => (!d.deliveryMethod || d.deliveryMethod === 'Own Fleet') && (alreadyOnThisTrip.has(d.doNo) || (!taken.has(d.doNo) && [...fleetSelectedDestinationChips].some(dest => boutiqueMatch(dest, d.boutique))))).slice()
+  // trip to pick up. A DO already on ANOTHER trip is now shown too (not hidden) — greyed out, with
+  // a note on whose trip/date it's currently on — ticking it here MOVES it over to this trip on
+  // save (see saveFleetTripFromModal), so an STO that got attached to the wrong day/driver can be
+  // corrected just by opening the right trip and ticking it, without needing Postpone/Transfer
+  // (which only moves a DO between drivers on the SAME date, not to a different day).
+  const available = doRecords.filter(d => (!d.deliveryMethod || d.deliveryMethod === 'Own Fleet') && (alreadyOnThisTrip.has(d.doNo) || taken.has(d.doNo) || [...fleetSelectedDestinationChips].some(dest => boutiqueMatch(dest, d.boutique)))).slice()
     .sort((a, b) => (b.createdDate || '').localeCompare(a.createdDate || ''));
   if (!available.length) {
     wrap.innerHTML = `<div class="empty-state" style="padding:16px;">No DO printed yet for the selected destination(s) — print one from the Progress Board, or come back later once it's ready.</div>`;
     updateDispatchBtnState();
     return;
   }
-  wrap.innerHTML = available.map(d => `
-    <label style="display:flex; align-items:center; gap:8px; padding:6px 4px; cursor:pointer; font-size:13px;">
+  wrap.innerHTML = available.map(d => {
+    const isTakenElsewhere = !alreadyOnThisTrip.has(d.doNo) && taken.has(d.doNo);
+    const otherTrip = isTakenElsewhere ? fleetTripForDoNo(d.doNo) : null;
+    const takenNote = otherTrip ? ` — currently on ${escapeHtml(otherTrip.driverName || 'another')}'s trip, ${formatDateLabel(otherTrip.date)}. Tick to move it here.` : '';
+    return `
+    <label style="display:flex; align-items:center; gap:8px; padding:6px 4px; cursor:pointer; font-size:13px;${isTakenElsewhere ? ' opacity:0.65;' : ''}">
       <input type="checkbox" class="trip-do-checkbox" value="${escapeHtml(d.doNo)}" ${alreadyOnThisTrip.has(d.doNo) ? 'checked' : ''}>
       <span class="mono-name">${escapeHtml(d.doNo)}</span>
-      <span style="color:var(--text-muted); flex:1;">${escapeHtml(d.boutique || '-')} · ${(d.orderNumbers || []).length} STO(s) · ${formatDateLabel(d.createdDate)}</span>
+      <span style="color:var(--text-muted); flex:1;">${escapeHtml(d.boutique || '-')} · ${(d.orderNumbers || []).length} STO(s) · ${formatDateLabel(d.createdDate)}${takenNote}</span>
     </label>
-  `).join('');
+  `;
+  }).join('');
   wrap.querySelectorAll('.trip-do-checkbox').forEach(cb => cb.addEventListener('change', updateDispatchBtnState));
   updateDispatchBtnState();
 }
@@ -12672,6 +12729,16 @@ function saveFleetTripFromModal() {
   const doNos = [...new Set([...document.querySelectorAll('.trip-do-checkbox:checked')].map(i => i.value))];
   // A DO being (re-)attached to a trip here is no longer "postponed" — clear the badge.
   doNos.forEach(fleetClearDoPostponed);
+  // A checked DO that was still sitting on a DIFFERENT trip (shown greyed-out in the picker above)
+  // gets MOVED here — stripped off that other trip so it only ever lives on one trip at a time,
+  // same rule the load-time cleanup and fleetTripForDoNo enforce.
+  doNos.forEach(doNo => {
+    fleetTrips.forEach(t => {
+      if (t.id !== fleetTripEditId && Array.isArray(t.doNos) && t.doNos.includes(doNo)) {
+        t.doNos = t.doNos.filter(no => no !== doNo);
+      }
+    });
+  });
   let trip;
   if (fleetTripEditId) {
     trip = fleetTrips.find(t => t.id === fleetTripEditId);
