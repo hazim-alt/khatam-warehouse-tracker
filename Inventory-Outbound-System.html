@@ -1033,7 +1033,7 @@
       <button class="tab-btn" data-tab="rm-sto">Create STO</button>
       <button class="tab-btn" data-tab="rm-stock">Stock Balance</button>
       <button class="tab-btn" data-tab="rm-print">Print Sticker</button>
-      <button class="tab-btn" data-tab="rm-price-tag">Price Tag (Baju)</button>
+      <button class="tab-btn" data-tab="rm-price-tag">Price Tag Checklist</button>
     </div>
     <button type="button" class="nav-group-toggle" id="navGroupInboundToggle" data-group="navGroupInbound">
       <span>Inbound</span><span class="nav-group-chevron">▾</span>
@@ -1077,6 +1077,7 @@
       <button class="tab-btn" data-tab="team-admin">Admin &amp; Access</button>
     </div>
     <button class="tab-btn" data-tab="staff-schedule">Staff Schedule</button>
+    <button class="tab-btn" data-tab="item-master">Item Master List</button>
     <button class="tab-btn" data-tab="laporan">Reports</button>
   </nav>
   <div id="sidebarSyncBar" style="display:none; flex-direction:column; align-items:flex-start; gap:6px; margin-top:auto; padding:14px 24px; border-top:1px solid rgba(255,255,255,0.1);">
@@ -1298,6 +1299,60 @@
           </div>
         </div>
       </div>
+
+      <div class="dash-slide" data-slide="raw-material">
+        <p class="section-title" id="rmDashTitle">Raw Material Summary</p>
+        <div class="dash-duty-bar" id="dashDutyBarRawMaterial"></div>
+        <div class="kpi-grid" id="rmDashKpiGrid" style="grid-template-columns: repeat(6, 1fr);"></div>
+
+        <div class="charts-row" style="grid-template-columns: repeat(3, 1fr);">
+          <div class="chart-card">
+            <h3>STO Status</h3>
+            <div style="display:flex; flex-direction:row; align-items:flex-start; gap:14px;">
+              <div style="display:flex; flex-direction:column; align-items:center; flex:0 0 auto;">
+                <div class="chart-wrap" style="position:relative; width:140px; height:140px;">
+                  <canvas id="rmDashStatusChart"></canvas>
+                  <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
+                    <div id="rmDashStatusPct" style="font-size:22px; font-weight:700; font-family:Georgia, serif; white-space:nowrap;">—</div>
+                  </div>
+                </div>
+                <div id="rmDashStatusLegend" style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;"></div>
+              </div>
+              <div id="rmDashPendingStoWrap" style="flex:1; min-width:0; font-size:11px; color:var(--text-muted);"></div>
+            </div>
+          </div>
+          <div class="chart-card">
+            <h3>RM STO Count by Destination</h3>
+            <div class="chart-wrap"><canvas id="rmDashDestChart"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3>Price Tag Print Progress</h3>
+            <div style="display:flex; flex-direction:row; align-items:flex-start; gap:14px;">
+              <div style="display:flex; flex-direction:column; align-items:center; flex:0 0 auto;">
+                <div class="chart-wrap" style="position:relative; width:140px; height:140px;">
+                  <canvas id="rmDashPriceTagChart"></canvas>
+                  <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
+                    <div id="rmDashPriceTagPct" style="font-size:22px; font-weight:700; font-family:Georgia, serif; white-space:nowrap;">—</div>
+                  </div>
+                </div>
+                <div id="rmDashPriceTagLegend" style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;"></div>
+              </div>
+              <div id="rmDashPriceTagPendingWrap" style="flex:1; min-width:0; font-size:11px; color:var(--text-muted);"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="charts-row dash-tables-row" style="margin-bottom:0;">
+          <div>
+            <p class="section-title">Fabric Roll Stock</p>
+            <div class="card"><div id="rmDashRecentFabricStoWrap" class="scroll-table"></div></div>
+          </div>
+          <div>
+            <p class="section-title">Accessories Stock</p>
+            <div class="card"><div id="rmDashRecentAccStoWrap" class="scroll-table"></div></div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -1309,7 +1364,7 @@
       <div id="dashSummaryExecWrap" class="report-exec-summary"></div>
 
       <p class="section-title" style="margin-top:0;">Module Health</p>
-      <div class="charts-row" style="grid-template-columns: repeat(4, 1fr);">
+      <div class="charts-row" style="grid-template-columns: repeat(5, 1fr);">
         <div class="chart-card">
           <h3>📦 Outbound STO</h3>
           <div style="display:flex; flex-direction:column; align-items:center;">
@@ -1356,6 +1411,18 @@
               </div>
             </div>
             <div id="dashSummaryFleetLegend" style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;"></div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>🧶 Raw Material</h3>
+          <div style="display:flex; flex-direction:column; align-items:center;">
+            <div class="chart-wrap" style="position:relative; width:120px; height:120px;">
+              <canvas id="dashSummaryRawMaterialPie"></canvas>
+              <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
+                <div id="dashSummaryRawMaterialPct" style="font-size:20px; font-weight:700; font-family:Georgia, serif; white-space:nowrap;">—</div>
+              </div>
+            </div>
+            <div id="dashSummaryRawMaterialLegend" style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;"></div>
           </div>
         </div>
       </div>
@@ -1783,12 +1850,16 @@
   </section>
 
   <section class="tab-panel" id="tab-rm-price-tag">
-    <p class="section-title">Price Tag (Baju)</p>
+    <p class="section-title">Price Tag Checklist</p>
     <div class="card">
       <p class="rm-form-section-label" style="margin-top:0;">Import Senarai Sticker</p>
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
         <span class="data-note" style="margin:0;">Bukan untuk print terus dalam sistem ni — senarai ni jadi checklist untuk track sticker mana yang dah siap print (kat vendor/printer luar). Upload senarai dari supplier (Series, Supplier, Colour Code, Color Name, Name on Sticker, Batch Number, Size, Quantity, Price) — setiap baris (Colour + Size) jadi satu checklist item.</span>
         <button type="button" class="btn-ghost" id="downloadPriceTagTemplateBtn">⬇ Download Template</button>
+      </div>
+      <div class="field" style="max-width:220px; margin-bottom:10px;">
+        <label>Campaign Year untuk upload ni (optional)</label>
+        <select id="priceTagUploadYearInput"></select>
       </div>
       <div class="dropzone" id="priceTagDropzone">
         <div class="dropzone-icon">⬆</div>
@@ -1804,32 +1875,23 @@
     </div>
 
     <div class="card" style="margin-top:16px;">
-      <p class="rm-form-section-label" style="margin-top:0;">SKU Reference (untuk Auto-fill)</p>
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-        <span class="data-note" style="margin:0;">Upload export inventory penuh dari sistem SKU awak (perlu ada column "Title", "Option1 Value" &amp; "SKU" — macam export Shopify). Sistem guna ni untuk cadangkan SKU secara automatik kat checklist bawah. Data ni disimpan dalam browser/computer ni je (tak sync ke cloud sebab saiz dia besar) — kalau buka checklist ni kat computer lain, upload semula file ni kat situ.</span>
-        <span id="skuReferenceStatusNote" class="data-note" style="margin:0; white-space:nowrap;"></span>
-      </div>
-      <div class="dropzone" id="skuReferenceDropzone">
-        <div class="dropzone-icon">⬆</div>
-        <div class="upload-row">
-          <label class="upload-btn-label">
-            Choose File
-            <input type="file" id="skuReferenceFileInput" accept=".csv,.xlsx,.xls">
-          </label>
-          <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx file here</span>
-        </div>
-      </div>
-      <div class="upload-status" id="skuReferenceUploadStatus"></div>
-    </div>
-
-    <div class="card" style="margin-top:16px;">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
         <p class="section-title" style="margin:0; font-size:13px;">Checklist Print Sticker</p>
         <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); cursor:pointer;"><input type="checkbox" id="priceTagHideDoneToggle"> Hide series yang dah siap sepenuhnya</label>
       </div>
       <input type="text" id="priceTagSearchInput" placeholder="Search Series / Supplier / Name on Sticker / Colour...">
-      <div class="data-note" style="margin-top:6px;">Nak tambah/padam nama printer dalam dropdown "Printer"? Pergi Team Setup → Printers.</div>
+      <div class="data-note" style="margin-top:6px;">Nak tambah/padam nama printer dalam dropdown "Printer"? Pergi Team Setup → Printers. Tick checkbox kat Series/SKU yang dah siap print untuk pilih merentasi banyak Series sekaligus, lepas tu "Create DO".</div>
+      <div id="priceTagDoSelectionBar" style="display:none; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-top:8px; padding:8px 12px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:8px;"></div>
       <div id="priceTagTableWrap" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+        <p class="section-title" style="margin:0; font-size:13px;">List DO</p>
+        <button type="button" class="btn-primary" id="priceTagCreateDoBtn">+ Create DO</button>
+      </div>
+      <div class="data-note" style="margin-bottom:8px;">Pilih SKU yang dah siap print (boleh gabung banyak Series sekali) untuk satu penghantaran ke production. Tak semestinya hantar semua sekali — partial dibenarkan, baki yang belum dihantar boleh masuk DO lain kemudian.</div>
+      <div id="priceTagDoHistoryWrap"></div>
     </div>
   </section>
 
@@ -2203,7 +2265,7 @@
           <button class="btn-primary" id="addPriceTagPrinterBtn">+ Add Printer</button>
         </div>
       </div>
-      <div class="data-note" style="margin-bottom:14px;">Registered printers show up as a dropdown in the Price Tag (Baju) checklist, under Raw Material.</div>
+      <div class="data-note" style="margin-bottom:14px;">Registered printers show up as a dropdown in the Price Tag Checklist, under Raw Material.</div>
       <div id="priceTagPrintersListWrap"></div>
     </div>
   </section>
@@ -2371,6 +2433,91 @@
         <button type="button" class="btn-ghost" id="driverTripRangeClearBtn">Clear</button>
       </div>
       <div id="driverTripGridWrap" style="overflow-x:auto;"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-item-master">
+    <p class="section-title">Item Master List</p>
+    <div class="card">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <span class="data-note" style="margin:0;">Upload export Item Master (perlu ada column "SKU"; column "SKU Description", "Item Group", "Item Brand", "Item Size", "Item Color", "Active?" &amp; "Item UOM" — kalau ada — akan diguna sekali). List ni untuk rujukan SKU seluruh sistem, kalau perlu — disimpan dalam browser/computer ni je (tak sync ke cloud sebab saiz dia besar, macam SKU Reference kat Price Tag) — kalau buka kat computer lain, upload semula file ni kat situ.</span>
+        <span id="itemMasterStatusNote" class="data-note" style="margin:0; white-space:nowrap;"></span>
+      </div>
+      <div style="display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; margin-bottom:12px;">
+        <div class="field" style="margin:0;">
+          <label>Campaign Year untuk upload ni (optional)</label>
+          <input type="text" id="itemMasterUploadYearInput" placeholder="e.g. 2026" list="itemMasterYearDatalist" style="width:140px;">
+        </div>
+        <div class="field" style="margin:0;">
+          <label>Upload mode</label>
+          <select id="itemMasterUploadModeSelect" style="width:auto;">
+            <option value="add">➕ Add / update these items (keep the rest)</option>
+            <option value="replace">🔁 Replace whole list</option>
+          </select>
+        </div>
+      </div>
+      <div class="data-note" style="margin:0 0 10px;">Nak upload ikut tahun campaign secara berasingan? Asingkan SKU dulu ke fail lain-lain (satu fail satu tahun), isi "Campaign Year" kat atas ni untuk setiap upload, then guna mode "Add / update" (bukan "Replace") supaya upload baru TAMBAH kat list sedia ada, bukan gantikan terus.</div>
+      <div class="dropzone" id="itemMasterDropzone">
+        <div class="dropzone-icon">⬆</div>
+        <div class="upload-row">
+          <label class="upload-btn-label">
+            Choose File
+            <input type="file" id="itemMasterFileInput" accept=".csv,.xlsx,.xls">
+          </label>
+          <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx / .xls file here</span>
+        </div>
+      </div>
+      <div class="upload-status" id="itemMasterUploadStatus"></div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
+        <p class="section-title" style="margin:0;">Item List</p>
+        <button type="button" class="btn-primary" id="itemMasterAddBtn">+ Add Item</button>
+      </div>
+      <div id="itemMasterKpiGrid" class="kpi-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom:14px;"></div>
+
+      <div id="itemMasterFormWrap" class="card" style="display:none; margin-bottom:14px; background:rgba(255,255,255,0.03);">
+        <p class="section-title" id="itemMasterFormTitle" style="margin-top:0;">Add New Item</p>
+        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:10px;">
+          <div class="field"><label>SKU</label><input type="text" id="itemMasterFormSku"></div>
+          <div class="field"><label>Description</label><input type="text" id="itemMasterFormDesc"></div>
+          <div class="field"><label>Item Group</label><input type="text" id="itemMasterFormGroup"></div>
+          <div class="field"><label>Item Brand</label><input type="text" id="itemMasterFormBrand"></div>
+          <div class="field"><label>Size</label><input type="text" id="itemMasterFormSize"></div>
+          <div class="field"><label>Color</label><input type="text" id="itemMasterFormColor"></div>
+          <div class="field"><label>UOM</label><input type="text" id="itemMasterFormUom"></div>
+          <div class="field"><label>Campaign Year</label><input type="text" id="itemMasterFormCampaignYear" placeholder="e.g. 2026" list="itemMasterYearDatalist"></div>
+          <div class="field" style="display:flex; align-items:flex-end;"><label style="display:flex; align-items:center; gap:6px; font-weight:400; cursor:pointer;"><input type="checkbox" id="itemMasterFormActive" checked> Active</label></div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:14px;">
+          <button type="button" class="btn-primary" id="itemMasterFormSaveBtn">Save</button>
+          <button type="button" class="btn-ghost" id="itemMasterFormCancelBtn">Cancel</button>
+        </div>
+      </div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <input type="text" id="itemMasterSearchInput" placeholder="Search SKU / Description / Group / Brand / Color..." style="flex:1; min-width:220px;">
+        <select id="itemMasterYearFilter" style="width:auto;"><option value="">All Campaign Years</option></select>
+        <select id="itemMasterStatusFilter" style="width:auto;">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+        <button type="button" class="btn-ghost" id="itemMasterBulkYearBtn" title="Set Campaign Year untuk semua item yang tengah kena search/filter sekarang (bukan cuma page ni)">🏷 Set Campaign Year (bulk)</button>
+      </div>
+      <div id="itemMasterTableWrap" class="scroll-table"></div>
+      <div id="itemMasterPaginationWrap" style="display:flex; align-items:center; justify-content:center; gap:10px; margin-top:12px;"></div>
+      <datalist id="itemMasterYearDatalist"></datalist>
+    </div>
+
+    <div class="card" style="margin-top:16px; border-color:#e0685c;">
+      <p class="rm-form-section-label" style="margin-top:0; color:#e0685c;">⚠ Danger Zone</p>
+      <span class="data-note" style="margin:0;">Padam SEMUA Item Master List — untuk buang data test/lama sebelum mula fresh. Tindakan ini boleh di-undo sekali sahaja, terus lepas tekan (guna "↩ Undo Reset") — selepas reset lagi sekali, undo lama takkan boleh dipakai.</span>
+      <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+        <button class="btn-ghost" id="undoResetItemMasterBtn" style="display:none;">↩ Undo Reset</button>
+        <button class="btn-ghost" id="resetItemMasterBtn" style="color:#e0685c;">🗑 Reset Item Master List</button>
+      </div>
     </div>
   </section>
 
@@ -2840,6 +2987,7 @@
       <div class="field"><label>Size</label><input type="text" id="priceTagEditSize"></div>
       <div class="field"><label>SKU</label><input type="text" id="priceTagEditSku"></div>
       <div class="field"><label>Batch No.</label><input type="text" id="priceTagEditBatchNumber"></div>
+      <div class="field"><label>Dye Lot No.</label><input type="text" id="priceTagEditDyeLotNo"></div>
       <div class="field"><label>Quantity</label><input type="number" min="0" id="priceTagEditQuantity"></div>
       <div class="field"><label>Price</label><input type="text" id="priceTagEditPrice"></div>
     </div>
@@ -2847,6 +2995,35 @@
     <div class="modal-actions" style="margin-top:16px;">
       <button class="btn-ghost" id="priceTagEditLineCancelBtn">Cancel</button>
       <button class="btn-primary" id="priceTagEditLineSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="priceTagDoModal">
+  <div class="modal-box" style="max-width:860px;">
+    <div class="modal-header">
+      <h2>Create Production DO</h2>
+      <button class="modal-close" id="priceTagDoCloseBtn">&times;</button>
+    </div>
+    <div class="rm-form-grid rm-form-grid-4">
+      <div class="field"><label>DO No. (auto, boleh edit)</label><input type="text" id="priceTagDoNoInput"></div>
+      <div class="field"><label>Date</label><input type="date" id="priceTagDoDateInput"></div>
+      <div class="field full-2"><label>Destination (Production Line / Department)</label><input type="text" id="priceTagDoDestinationInput" placeholder="e.g. Production Line A"></div>
+      <div class="field full"><label>Notes (optional)</label><input type="text" id="priceTagDoNotesInput"></div>
+    </div>
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin:12px 0 6px;">
+      <input type="text" id="priceTagDoSearchInput" placeholder="Search Series / Colour / SKU..." style="flex:1; min-width:200px; max-width:280px;">
+      <div style="display:flex; gap:8px;">
+        <button type="button" class="btn-ghost" id="priceTagDoSelectAllBtn">Select All (max)</button>
+        <button type="button" class="btn-ghost" id="priceTagDoClearAllBtn">Clear All</button>
+      </div>
+    </div>
+    <div id="priceTagDoLinesWrap" style="max-height:340px; overflow:auto; border:1px solid var(--border); border-radius:8px;"></div>
+    <div id="priceTagDoTotalNote" style="font-size:12px; color:var(--text-muted); margin-top:8px;">Total to send: 0 pcs across 0 line.</div>
+    <div class="data-note" id="priceTagDoModalError" style="color:#e05c5c; display:none; margin-top:10px;"></div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn-ghost" id="priceTagDoCancelBtn">Cancel</button>
+      <button class="btn-primary" id="priceTagDoSaveBtn">Create &amp; Print DO</button>
     </div>
   </div>
 </div>
@@ -3843,7 +4020,9 @@ function loadData() {
   loadAccessoriesReceipts();
   loadPriceTagStickers();
   loadPriceTagPrinters();
+  loadPriceTagDos();
   loadSkuReference();
+  loadItemMasterList();
   // Cleans up any STO No. duplicates already sitting in storage (e.g. from two devices each adding
   // the same STO No. before they'd ever synced with each other — see backfillNaturalSyncIds above)
   // and makes sure every record has a stable id going forward, right from the moment data loads —
@@ -4311,6 +4490,8 @@ function updateResetUndoButtons() {
   if (undoInboundStoBtn) undoInboundStoBtn.style.display = localStorage.getItem(INBOUND_STO_RESET_SNAPSHOT_KEY) ? '' : 'none';
   const undoRmBtn = document.getElementById('undoResetRmBtn');
   if (undoRmBtn) undoRmBtn.style.display = localStorage.getItem(RM_RESET_SNAPSHOT_KEY) ? '' : 'none';
+  const undoItemMasterBtn = document.getElementById('undoResetItemMasterBtn');
+  if (undoItemMasterBtn) undoItemMasterBtn.style.display = localStorage.getItem(ITEM_MASTER_HAS_BACKUP_KEY) ? '' : 'none';
 }
 document.getElementById('resetProgressBtn').addEventListener('click', () => {
   if (!confirm('Reset the Progress Board? Every STO moves back to Active, and any Carton No. / DO No. / picker(s) / packing station / rollcage already assigned to them is cleared (Carton No. and DO No. counters reset to 0 too). Boutique SLA settings, boutique codes/addresses, label From-details and registered Packing Stations are kept. Click "Undo Reset" right after if this was a mistake — it stops working once you reset again.')) return;
@@ -4506,14 +4687,23 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-    if (btn.dataset.tab === 'dashboard') renderDashboard();
+    // Re-render whichever dash-slide is currently showing — not always Outbound. Data can change
+    // in another tab (e.g. a new Raw Material STO) while the Dashboard sits on a different slide,
+    // so switching back to Dashboard needs to refresh THAT slide, not always the Outbound one.
+    if (btn.dataset.tab === 'dashboard') {
+      const currentDashSlide = DASH_SLIDES[dashSlideIndex];
+      if (currentDashSlide === 'outbound') renderDashboard();
+      else if (currentDashSlide === 'inbound') renderInboundDashboard();
+      else if (currentDashSlide === 'fleet') renderFleetDashboard();
+      else if (currentDashSlide === 'raw-material') renderRawMaterialDashboard();
+    }
     if (btn.dataset.tab === 'dashboard-summary') renderDashboardSummary();
     if (btn.dataset.tab === 'rm-import') renderRmImportTab();
     if (btn.dataset.tab === 'rm-receive-pick') { renderRmReceiveTab(); renderRmPickTab(); setRmReceivePickMode(rmReceivePickMode); setRmItemType(rmReceiveItemType); }
     if (btn.dataset.tab === 'rm-sto') renderRmStoTab();
     if (btn.dataset.tab === 'rm-stock') renderRmStockTab();
     if (btn.dataset.tab === 'rm-print') setRmPrintItemType(rmPrintItemType);
-    if (btn.dataset.tab === 'rm-price-tag') { renderPriceTagTab(); renderSkuReferenceStatusNote(); }
+    if (btn.dataset.tab === 'rm-price-tag') { renderPriceTagTab(); renderItemMasterAutofillStatusNote(); }
     if (btn.dataset.tab === 'team-printers') renderPriceTagPrintersList();
     if (btn.dataset.tab === 'papan') renderKanban();
     if (btn.dataset.tab === 'delivered') renderDeliveredTab();
@@ -4525,6 +4715,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'inbound-sla') renderInboundSlaTab();
     if (btn.dataset.tab === 'fleet-trips' || btn.dataset.tab === 'fleet-board' || btn.dataset.tab === 'fleet-driver-trip') renderFleetTab();
     if (btn.dataset.tab === 'staff-schedule') { renderStaffRosterList(); renderStaffScheduleGrid(); }
+    if (btn.dataset.tab === 'item-master') renderItemMasterTab();
     updateSidebarSyncBarVisibility();
   });
 });
@@ -4566,7 +4757,7 @@ document.querySelectorAll('.nav-group-toggle').forEach(toggle => {
 // One slide per module — "outbound", "inbound", and "fleet" (Operation Fleet's schedule summary).
 // Auto-rotates every 15s for an unattended TV screen, with manual arrows/dots that restart the
 // timer so a person browsing doesn't get yanked away mid-look.
-const DASH_SLIDES = ['outbound', 'inbound', 'fleet'];
+const DASH_SLIDES = ['outbound', 'inbound', 'fleet', 'raw-material'];
 const DASH_SLIDE_INTERVAL_MS = 15000;
 let dashSlideIndex = 0;
 let dashSlideTimer = null;
@@ -4593,6 +4784,7 @@ function goToDashSlide(idx) {
   if (current === 'outbound') renderDashboard();
   if (current === 'inbound') renderInboundDashboard();
   if (current === 'fleet') renderFleetDashboard();
+  if (current === 'raw-material') renderRawMaterialDashboard();
 }
 
 function restartDashSlideTimer() {
@@ -4780,7 +4972,7 @@ setInterval(autoSyncFromStorage, AUTO_SYNC_INTERVAL_MS);
 const DASH_AUTOSCROLL_SLIDE_BY_ID = {
   nextToPickWrap: 'outbound', urgentWrap: 'outbound',
   inboundUrgentWrap: 'inbound', garmentNeedsAttentionWrap: 'inbound',
-  fleetDashTodayWrap: 'fleet'
+  fleetDashTodayWrap: 'fleet', rmDashRecentFabricStoWrap: 'raw-material', rmDashRecentAccStoWrap: 'raw-material'
 };
 const dashAutoScrollState = {};
 function tickDashAutoScroll() {
@@ -7140,7 +7332,7 @@ const PERMISSION_TABS = [
   { id: 'rm-sto', label: 'Create STO (Raw Material)' },
   { id: 'rm-stock', label: 'Stock Balance (Raw Material)' },
   { id: 'rm-print', label: 'Print Sticker (Raw Material)' },
-  { id: 'rm-price-tag', label: 'Price Tag (Baju) (Raw Material)' },
+  { id: 'rm-price-tag', label: 'Price Tag Checklist (Raw Material)' },
   { id: 'senarai', label: 'STO List (Outbound)' },
   { id: 'papan', label: 'Progress Board (Outbound)' },
   { id: 'delivered-outbound', label: 'Delivery Status (Outbound)' },
@@ -7161,6 +7353,8 @@ const PERMISSION_TABS = [
   { id: 'team-receiving', label: 'Receive Stations (Team Setup)' },
   { id: 'team-drivers', label: 'Drivers (Team Setup)' },
   { id: 'team-printers', label: 'Printers (Team Setup)' },
+  { id: 'staff-schedule', label: 'Staff Schedule' },
+  { id: 'item-master', label: 'Item Master List' },
   { id: 'laporan', label: 'Reports' },
 ];
 function userCanAccessTab(user, tabId) {
@@ -7168,10 +7362,6 @@ function userCanAccessTab(user, tabId) {
   if (user.isAdmin) return true;
   // Admin Password / Users management / Cloud Sync — always Admin/Team Lead-only, never grantable.
   if (tabId === 'team-admin') return false;
-  // Staff Roster/Schedule used to live inside Admin-only Team Setup before it got its own tab —
-  // keeping it Admin/Team Lead-only preserves that same access level rather than accidentally
-  // opening it up to anyone via PERMISSION_TABS.
-  if (tabId === 'staff-schedule') return false;
   if (user.permissions && user.permissions[tabId]) return true;
   // Legacy fallback: users created before Delivery Status was split into separate Outbound/Fleet
   // toggles had a single 'delivered' permission — honor it so nobody who already had access loses
@@ -7212,7 +7402,7 @@ function applyUserPermissions(user) {
   // team, not just this user's own work — Admin/Team Lead only, even for a non-admin who's been
   // granted the surrounding tab (Progress Board / Trip Schedule) itself.
   const isAdminUser = !!(user && user.isAdmin);
-  ['resetProgressBtn', 'undoResetProgressBtn', 'resetFleetTripsBtn', 'undoResetTripBtn', 'resetInboundStoBtn', 'undoResetInboundStoBtn', 'resetRmBtn', 'undoResetRmBtn'].forEach(id => {
+  ['resetProgressBtn', 'undoResetProgressBtn', 'resetFleetTripsBtn', 'undoResetTripBtn', 'resetInboundStoBtn', 'undoResetInboundStoBtn', 'resetRmBtn', 'undoResetRmBtn', 'resetItemMasterBtn', 'undoResetItemMasterBtn'].forEach(id => {
     const btn = document.getElementById(id);
     if (btn) btn.style.display = isAdminUser ? '' : 'none';
   });
@@ -7874,7 +8064,24 @@ function loadPriceTagStickers() {
   });
   if (migrated) savePriceTagStickers();
 }
-function savePriceTagStickers() { localStorage.setItem(PRICE_TAG_KEY, JSON.stringify(priceTagStickers)); }
+// Pushes any pending local PriceTag_Stickers edit to Firebase right away instead of waiting for the
+// next 2-second cloudSyncReconcile tick. Without this, an edit here (e.g. Campaign Year) sits local-
+// only for up to ~2s — if a Realtime Database "value" event lands in that window (someone else, or
+// another tab, touching the same table) while this select/input has already lost focus (it always
+// has, since re-rendering the checklist replaces the DOM node the instant the edit is made),
+// applyServerSnapshot() sees local ≠ remote, isUserActivelyTyping() is now false, and happily
+// overwrites the fresh local edit with the stale remote copy — exactly what she was hitting with
+// Campaign Year appearing to silently revert. Guarded on the initial sync having already finished so
+// it can't race the startup merge in initialCloudSync().
+function pushPriceTagStickersNow() {
+  if (!fbDb || !SYNC_COLLECTIONS._fbListenersAttached) return;
+  const def = SYNC_COLLECTIONS.find(d => d.table === 'PriceTag_Stickers');
+  if (def) pushCollectionDiff(def);
+}
+function savePriceTagStickers() {
+  localStorage.setItem(PRICE_TAG_KEY, JSON.stringify(priceTagStickers));
+  pushPriceTagStickersNow();
+}
 function loadPriceTagPrinters() {
   try { priceTagPrinters = JSON.parse(localStorage.getItem(PRICE_TAG_PRINTERS_KEY)) || []; } catch (e) { priceTagPrinters = []; }
   // Migrate any entries saved as bare strings under the old (broken-sync) format into { name } objects.
@@ -7886,13 +8093,58 @@ function loadPriceTagPrinters() {
   if (migrated) savePriceTagPrinters();
 }
 function savePriceTagPrinters() { localStorage.setItem(PRICE_TAG_PRINTERS_KEY, JSON.stringify(priceTagPrinters)); }
+// Production DO — bundles ready-to-send checklist lines from ANY number of Series into one
+// shipment to production. Separate from the Boutique/Fleet DO system and from Raw Material's
+// per-STO auto DO, since this one is built by hand-picking lines/quantities across an arbitrary mix
+// of series. A line's "available to send" is capped at printedQty (only actually-printed stock can
+// leave for production) minus whatever's already been allocated to an earlier DO (tracked as
+// `sentQty` on the priceTagStickers line itself), so the same stock can never be double-booked.
+const PRICE_TAG_DOS_KEY = 'sto_price_tag_dos_v1';
+let priceTagDos = []; // [{ id, doNo, date, destination, notes, lines:[{stickerId,series,supplier,colourCode,colorName,nameOnSticker,sku,batchNumber,size,qty,price}], createdAt }]
+function loadPriceTagDos() {
+  try { priceTagDos = JSON.parse(localStorage.getItem(PRICE_TAG_DOS_KEY)) || []; } catch (e) { priceTagDos = []; }
+}
+function pushPriceTagDosNow() {
+  if (!fbDb || !SYNC_COLLECTIONS._fbListenersAttached) return;
+  const def = SYNC_COLLECTIONS.find(d => d.table === 'PriceTag_DOs');
+  if (def) pushCollectionDiff(def);
+}
+function savePriceTagDos() {
+  localStorage.setItem(PRICE_TAG_DOS_KEY, JSON.stringify(priceTagDos));
+  pushPriceTagDosNow();
+}
+function genPriceTagDoId() { return 'ptdo_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+function priceTagDoDestinationCode(destination) {
+  return String(destination || 'UNKNOWN').trim().toUpperCase().replace(/\//g, '-').replace(/\s+/g, '_') || 'UNKNOWN';
+}
+function formatPriceTagDoNo(destination, date, seq) {
+  const datePart = String(date || todayStr()).replace(/-/g, '');
+  return `KFA-PT/${priceTagDoDestinationCode(destination)}/${datePart}/${String(seq).padStart(3, '0')}`;
+}
+function nextAvailablePriceTagDoSeq() {
+  // Sequence is global across ALL destinations — deleting any DO frees its number for reuse by the
+  // next DO created, regardless of destination (same convention as Raw Material's DO numbering).
+  const used = new Set();
+  priceTagDos.forEach(d => { const m = /\/(\d+)$/.exec(d.doNo || ''); if (m) used.add(Number(m[1])); });
+  let n = 1;
+  while (used.has(n)) n++;
+  return n;
+}
+// How much of this checklist line is printed and not yet allocated to an earlier DO. Deliberately
+// NOT capped at the planned `quantity` — she sometimes prints extra (buffer/wastage), and the DO
+// should reflect what's actually sitting there printed, not just the originally-ordered amount.
+function priceTagLineAvailableToSend(line) {
+  const printed = Number(line.printedQty) || 0;
+  const sent = Number(line.sentQty) || 0;
+  return Math.max(0, printed - sent);
+}
 // Managed from Team Setup → Printers (not inline on the checklist) — same simple add/remove list
 // pattern as Rollcages, just without a "Save" button since there's no per-item state to batch up.
 function renderPriceTagPrintersList() {
   const wrap = document.getElementById('priceTagPrintersListWrap');
   if (!wrap) return;
   if (!priceTagPrinters.length) {
-    wrap.innerHTML = `<div class="empty-state">No printers registered yet. Add one above — it'll show up as a dropdown in the Price Tag (Baju) checklist.</div>`;
+    wrap.innerHTML = `<div class="empty-state">No printers registered yet. Add one above — it'll show up as a dropdown in the Price Tag Checklist.</div>`;
     return;
   }
   let html = `<table><thead><tr><th>Printer / Vendor Name</th><th></th></tr></thead><tbody>`;
@@ -7959,9 +8211,11 @@ function skuRefSplitTitle(title) {
   return m ? { product: m[1].trim(), color: m[2].trim() } : { product: String(title || '').trim(), color: '' };
 }
 function skuNormalizeForMatch(s) { return String(s || '').trim().toUpperCase().replace(/\s+/g, ' '); }
-// Kids sizes in her export read "10-11 Years" while the checklist just has "10-11" (or vice versa)
-// — strip a trailing "Years"/"Year" so both sides compare the same way.
-function skuNormalizeSizeForMatch(s) { return skuNormalizeForMatch(s).replace(/\s*YEARS?$/i, '').trim(); }
+// Kids sizes show up spelled differently depending on the source: Item Master List reads "10-11
+// Years", some supplier sheets use a bare "10-11Y" instead, and the checklist might just have
+// "10-11" — strip a trailing "Years"/"Year", or a bare "Y" right after a digit (so a real size word
+// that just happens to end in Y, like "Baby", is never touched), so all three compare the same way.
+function skuNormalizeSizeForMatch(s) { return skuNormalizeForMatch(s).replace(/\s*(YEARS?|(?<=\d)Y)$/i, '').trim(); }
 function skuReferenceProductNames() {
   const set = new Set();
   skuReference.forEach(r => { const { product } = skuRefSplitTitle(r.title); if (product) set.add(product); });
@@ -8017,28 +8271,520 @@ function processUploadedSkuReferenceFile(file) {
   if (ext === 'csv') reader.readAsText(file);
   else reader.readAsArrayBuffer(file);
 }
-document.getElementById('skuReferenceFileInput').addEventListener('change', (e) => {
+// NOTE: the "SKU Reference" upload UI (dropzone/file input) was retired — Auto-fill SKU now reads
+// straight from Item Master List (see itemMasterProductName/applySkuAutofillForSeries below).
+// processUploadedSkuReferenceFile/skuReference* data functions above are kept (harmless, unused) in
+// case any previously-uploaded data is still worth having around, but nothing wires to them anymore.
+
+/* ================= Item Master List (standalone tab — not tied to any one module) =================
+ * A general SKU/item reference list (SKU, Description, Group, Brand, Size, Color, Active?, UOM),
+ * usable across the whole system if/when other tabs want to look an item up by SKU (see
+ * itemMasterLookupBySku below). Same reasoning as SKU Reference above: this can run to tens of
+ * thousands of rows, so it's deliberately kept OUT of SYNC_COLLECTIONS/Firebase sync (way too heavy
+ * for per-record diffing) — it's a local reference list; re-upload the file on another device.
+ */
+// A list this size (tens of thousands of rows, several MB as JSON) blows straight through
+// localStorage's ~5-10MB per-origin quota — confirmed the hard way (QuotaExceededError). IndexedDB
+// is built for datasets like this and gets a much larger browser-granted allowance, so this ONE
+// dataset lives there instead; everything else in the app stays on localStorage as before.
+const ITEM_MASTER_IMPORTED_AT_KEY = 'sto_item_master_imported_at_v1';
+const ITEM_MASTER_LEGACY_KEY = 'sto_item_master_v1'; // old localStorage key, migrated away from below
+const ITEM_MASTER_DB_NAME = 'khatam_item_master_db';
+const ITEM_MASTER_DB_VERSION = 2;
+const ITEM_MASTER_STORE = 'items';
+const ITEM_MASTER_BACKUP_STORE = 'backup'; // one-level "Undo Reset" snapshot — see Danger Zone below
+const ITEM_MASTER_HAS_BACKUP_KEY = 'sto_item_master_has_backup_v1'; // cheap localStorage flag; the
+// actual backup payload lives in IndexedDB (same size problem as the main list otherwise)
+let itemMasterList = []; // [{ id, sku, description, itemGroup, itemBrand, itemSize, itemColor, active, uom }]
+let itemMasterImportedAt = '';
+let itemMasterDb = null;
+function openItemMasterDb() {
+  return new Promise((resolve, reject) => {
+    if (itemMasterDb) { resolve(itemMasterDb); return; }
+    if (!window.indexedDB) { reject(new Error('Browser ni tak support IndexedDB.')); return; }
+    const req = indexedDB.open(ITEM_MASTER_DB_NAME, ITEM_MASTER_DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(ITEM_MASTER_STORE)) db.createObjectStore(ITEM_MASTER_STORE, { keyPath: 'id' });
+      if (!db.objectStoreNames.contains(ITEM_MASTER_BACKUP_STORE)) db.createObjectStore(ITEM_MASTER_BACKUP_STORE, { keyPath: 'key' });
+    };
+    req.onsuccess = (e) => { itemMasterDb = e.target.result; resolve(itemMasterDb); };
+    req.onerror = (e) => reject((e.target && e.target.error) || new Error('Gagal buka storan Item Master.'));
+  });
+}
+function itemMasterSaveBackup(list) {
+  return openItemMasterDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(ITEM_MASTER_BACKUP_STORE, 'readwrite');
+    tx.objectStore(ITEM_MASTER_BACKUP_STORE).put({ key: 'reset_backup', items: list, savedAt: new Date().toISOString() });
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+function itemMasterLoadBackup() {
+  return openItemMasterDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(ITEM_MASTER_BACKUP_STORE, 'readonly');
+    const req = tx.objectStore(ITEM_MASTER_BACKUP_STORE).get('reset_backup');
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  }));
+}
+function itemMasterClearBackup() {
+  return openItemMasterDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(ITEM_MASTER_BACKUP_STORE, 'readwrite');
+    tx.objectStore(ITEM_MASTER_BACKUP_STORE).delete('reset_backup');
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+function itemMasterReplaceAll(list) {
+  return openItemMasterDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(ITEM_MASTER_STORE, 'readwrite');
+    const store = tx.objectStore(ITEM_MASTER_STORE);
+    store.clear();
+    list.forEach(it => store.put(it));
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+function itemMasterPutOne(item) {
+  return openItemMasterDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(ITEM_MASTER_STORE, 'readwrite');
+    tx.objectStore(ITEM_MASTER_STORE).put(item);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+// Same idea as itemMasterPutOne but for many items in ONE transaction — used by the "Set Campaign
+// Year (bulk)" action, which can touch thousands of rows at once.
+function itemMasterBulkPut(items) {
+  return openItemMasterDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(ITEM_MASTER_STORE, 'readwrite');
+    const store = tx.objectStore(ITEM_MASTER_STORE);
+    items.forEach(it => store.put(it));
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+function itemMasterDeleteOne(id) {
+  return openItemMasterDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(ITEM_MASTER_STORE, 'readwrite');
+    tx.objectStore(ITEM_MASTER_STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+function itemMasterGetAll() {
+  return openItemMasterDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(ITEM_MASTER_STORE, 'readonly');
+    const req = tx.objectStore(ITEM_MASTER_STORE).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  }));
+}
+// Async — IndexedDB reads aren't synchronous like localStorage was. Called (unawaited, fire-and-
+// forget) from loadData() at startup; if the Item Master tab happens to already be open when it
+// resolves, it re-renders itself so it doesn't sit empty/stale.
+async function loadItemMasterList() {
+  itemMasterImportedAt = localStorage.getItem(ITEM_MASTER_IMPORTED_AT_KEY) || '';
+  try {
+    itemMasterList = await itemMasterGetAll();
+    // One-time migration: an earlier version of this feature stored everything in localStorage
+    // under ITEM_MASTER_LEGACY_KEY. If a (small) list is still sitting there, move it into
+    // IndexedDB and clean up so it isn't silently ignored.
+    const legacyRaw = localStorage.getItem(ITEM_MASTER_LEGACY_KEY);
+    if (legacyRaw) {
+      try {
+        const legacyList = JSON.parse(legacyRaw) || [];
+        if (legacyList.length && !itemMasterList.length) {
+          await itemMasterReplaceAll(legacyList);
+          itemMasterList = legacyList;
+        }
+      } catch (e) { /* ignore malformed legacy data */ }
+      localStorage.removeItem(ITEM_MASTER_LEGACY_KEY);
+    }
+  } catch (err) {
+    itemMasterList = [];
+  }
+  const tabEl = document.getElementById('tab-item-master');
+  if (tabEl && tabEl.classList.contains('active')) renderItemMasterTab();
+}
+// Available for any other tab to call later, e.g. to auto-fill an item's details from its SKU.
+function itemMasterLookupBySku(sku) {
+  const key = String(sku || '').trim().toUpperCase();
+  if (!key) return null;
+  return itemMasterList.find(it => (it.sku || '').trim().toUpperCase() === key) || null;
+}
+function genItemMasterId() { return 'im_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+function renderItemMasterStatusNote() {
+  const el = document.getElementById('itemMasterStatusNote');
+  if (!el) return;
+  if (!itemMasterList.length) { el.textContent = 'Belum ada Item Master diupload.'; return; }
+  const dateLabel = itemMasterImportedAt ? formatDateLabel(itemMasterImportedAt.slice(0, 10)) : '';
+  el.textContent = `${formatQty(itemMasterList.length)} item loaded${dateLabel ? ` (${dateLabel})` : ''}.`;
+}
+
+function processUploadedItemMasterFile(file) {
+  const statusEl = document.getElementById('itemMasterUploadStatus');
+  statusEl.textContent = 'Processing file... (list besar, mungkin ambil beberapa saat)';
+  statusEl.className = 'upload-status';
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = async (evt) => {
+    try {
+      let objRows = [];
+      if (ext === 'csv') {
+        const text = String(evt.target.result).replace(/^\uFEFF/, '');
+        objRows = parseCsv(text);
+      } else {
+        const wb = XLSX.read(evt.target.result, { type: 'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        objRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+      }
+      if (!objRows.length) throw new Error('File kosong / takde data.');
+      const headerKeys = Object.keys(objRows[0]);
+      const findKey = (name) => headerKeys.find(k => k.trim().toLowerCase() === name);
+      const skuKey = findKey('sku');
+      const descKey = findKey('sku description');
+      const groupKey = findKey('item group');
+      const brandKey = findKey('item brand');
+      const sizeKey = findKey('item size');
+      const colorKey = findKey('item color');
+      const activeKey = findKey('active?');
+      const uomKey = findKey('item uom');
+      const yearKey = findKey('campaign year') || findKey('year');
+      if (!skuKey) throw new Error('File ni perlu ada column "SKU".');
+      const uploadMode = document.getElementById('itemMasterUploadModeSelect').value; // 'add' | 'replace'
+      const yearOverride = (document.getElementById('itemMasterUploadYearInput').value || '').trim();
+      // Priority for each row's Campaign Year: the "Campaign Year for this upload" box (if she typed
+      // one) > a Campaign Year/Year column in the file itself > whatever this SKU was already tagged
+      // as in the CURRENT list (so re-uploading a refreshed export, with neither, doesn't wipe tags).
+      const existingBySku = new Map(itemMasterList.map(it => [(it.sku || '').trim().toUpperCase(), it]));
+      // Her export commonly has exact-duplicate rows (same SKU repeated) — dedupe, keep first seen.
+      const seen = new Set();
+      const mapped = [];
+      objRows.forEach(r => {
+        const sku = String(r[skuKey] || '').trim();
+        if (!sku || seen.has(sku.toUpperCase())) return;
+        seen.add(sku.toUpperCase());
+        const existing = existingBySku.get(sku.toUpperCase());
+        mapped.push({
+          // In "Add / update" mode, reuse the existing item's id when this SKU is already in the
+          // list, so the upsert overwrites it in place instead of creating a duplicate row.
+          id: (uploadMode === 'add' && existing) ? existing.id : genItemMasterId(),
+          sku,
+          description: descKey ? String(r[descKey] || '').trim() : '',
+          itemGroup: groupKey ? String(r[groupKey] || '').trim() : '',
+          itemBrand: brandKey ? String(r[brandKey] || '').trim() : '',
+          itemSize: sizeKey ? String(r[sizeKey] || '').trim() : '',
+          itemColor: colorKey ? String(r[colorKey] || '').trim() : '',
+          active: activeKey ? String(r[activeKey] || '').trim().toLowerCase() !== 'no' : true,
+          uom: uomKey ? String(r[uomKey] || '').trim() : '',
+          campaignYear: yearOverride || (yearKey ? String(r[yearKey] || '').trim() : '') || (existing ? existing.campaignYear || '' : ''),
+        });
+      });
+      if (!mapped.length) throw new Error('Takde row yang valid (SKU kosong semua?).');
+      statusEl.textContent = `Saving ${formatQty(mapped.length)} item ke storan...`;
+      if (uploadMode === 'replace') {
+        await itemMasterReplaceAll(mapped);
+        itemMasterList = mapped;
+      } else {
+        await itemMasterBulkPut(mapped);
+        const byId = new Map(itemMasterList.map(it => [it.id, it]));
+        mapped.forEach(it => byId.set(it.id, it));
+        itemMasterList = [...byId.values()];
+      }
+      itemMasterImportedAt = new Date().toISOString();
+      localStorage.setItem(ITEM_MASTER_IMPORTED_AT_KEY, itemMasterImportedAt);
+      itemMasterPage = 0;
+      const droppedCount = objRows.length - mapped.length;
+      const modeLabel = uploadMode === 'replace' ? 'loaded (list lama digantikan)' : 'ditambah/dikemaskini (item lain dalam list dikekalkan)';
+      statusEl.textContent = `Success: ${formatQty(mapped.length)} item ${modeLabel}${yearOverride ? ` — ditag Campaign Year "${yearOverride}"` : ''}${droppedCount > 0 ? ` (${formatQty(droppedCount)} duplicate/blank SKU row dibuang)` : ''}.`;
+      statusEl.className = 'upload-status ok';
+      renderItemMasterTab();
+    } catch (err) {
+      statusEl.textContent = 'Failed to process file: ' + err.message;
+      statusEl.className = 'upload-status err';
+    }
+  };
+  reader.onerror = () => { statusEl.textContent = 'Failed to read file.'; statusEl.className = 'upload-status err'; };
+  if (ext === 'csv') reader.readAsText(file);
+  else reader.readAsArrayBuffer(file);
+}
+document.getElementById('itemMasterFileInput').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
-  processUploadedSkuReferenceFile(file);
+  processUploadedItemMasterFile(file);
   e.target.value = '';
 });
-const skuReferenceDropzone = document.getElementById('skuReferenceDropzone');
+const itemMasterDropzone = document.getElementById('itemMasterDropzone');
 ['dragenter', 'dragover'].forEach(evtName => {
-  skuReferenceDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); skuReferenceDropzone.classList.add('dragover'); });
+  itemMasterDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); itemMasterDropzone.classList.add('dragover'); });
 });
 ['dragleave', 'drop'].forEach(evtName => {
-  skuReferenceDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); skuReferenceDropzone.classList.remove('dragover'); });
+  itemMasterDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); itemMasterDropzone.classList.remove('dragover'); });
 });
-skuReferenceDropzone.addEventListener('drop', (e) => {
+itemMasterDropzone.addEventListener('drop', (e) => {
   const file = e.dataTransfer.files && e.dataTransfer.files[0];
-  if (file) processUploadedSkuReferenceFile(file);
+  if (file) processUploadedItemMasterFile(file);
 });
 
-// ---- Auto-fill SKU: map a checklist Series to ONE product from the SKU Reference, then apply
-// that mapping across every Colour+Size line in that series (matched on colour + size only, so
-// there's no risk of the wrong product's SKUs bleeding in). Lines that already have a manually
-// typed SKU are left untouched. ----
+/* ---- Item List table: search + Active-only filter + pagination (list can run to tens of
+   thousands of rows — rendering all of it at once would freeze the browser) + add/edit/delete ---- */
+let itemMasterPage = 0;
+const ITEM_MASTER_PAGE_SIZE = 50;
+let itemMasterEditId = null;
+
+// Search + Active-only only (no year filter) — this is also the exact set "Set Campaign Year
+// (bulk)" acts on, so typing a search narrows down which items get tagged.
+function itemMasterSearchFilteredList() {
+  const search = (document.getElementById('itemMasterSearchInput').value || '').trim().toLowerCase();
+  const statusFilter = document.getElementById('itemMasterStatusFilter').value;
+  let list = itemMasterList;
+  if (statusFilter === 'active') list = list.filter(it => it.active);
+  else if (statusFilter === 'inactive') list = list.filter(it => !it.active);
+  if (search) list = list.filter(it => [it.sku, it.description, it.itemGroup, it.itemBrand, it.itemSize, it.itemColor].filter(Boolean).join(' ').toLowerCase().includes(search));
+  return list;
+}
+function itemMasterFilteredList() {
+  let list = itemMasterSearchFilteredList();
+  const yearFilter = document.getElementById('itemMasterYearFilter').value;
+  if (yearFilter === '__blank__') list = list.filter(it => !it.campaignYear);
+  else if (yearFilter) list = list.filter(it => it.campaignYear === yearFilter);
+  return list;
+}
+function itemMasterCampaignYears() {
+  return [...new Set(itemMasterList.map(it => it.campaignYear).filter(Boolean))].sort().reverse();
+}
+function renderItemMasterYearFilterOptions() {
+  const sel = document.getElementById('itemMasterYearFilter');
+  const cur = sel.value;
+  const years = itemMasterCampaignYears();
+  const hasBlank = itemMasterList.some(it => !it.campaignYear);
+  sel.innerHTML = `<option value="">All Campaign Years</option>` +
+    years.map(y => `<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join('') +
+    (hasBlank ? `<option value="__blank__">(No Campaign Year)</option>` : '');
+  if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+  // Suggests EXISTING years (typing "20" pops up a matching list) on the upload box and the
+  // Add/Edit form's Campaign Year field, while still letting her type a brand new one — cuts down
+  // on typos like "2027 " or "27" quietly fragmenting the data into near-duplicate year buckets.
+  const datalist = document.getElementById('itemMasterYearDatalist');
+  if (datalist) datalist.innerHTML = years.map(y => `<option value="${escapeHtml(y)}"></option>`).join('');
+}
+
+function renderItemMasterKpis() {
+  const total = itemMasterList.length;
+  const active = itemMasterList.filter(it => it.active).length;
+  const cards = [
+    { num: formatQty(total), label: 'Total Items' },
+    { num: formatQty(active), label: 'Active', cls: 'green' },
+    { num: formatQty(total - active), label: 'Inactive', cls: 'red' },
+  ];
+  document.getElementById('itemMasterKpiGrid').innerHTML = cards.map(c =>
+    `<div class="kpi-card ${c.cls || ''}"><div class="kpi-num">${c.num}</div><div class="kpi-label">${c.label}</div></div>`
+  ).join('');
+}
+
+function renderItemMasterTable() {
+  const wrap = document.getElementById('itemMasterTableWrap');
+  const pagWrap = document.getElementById('itemMasterPaginationWrap');
+  const list = itemMasterFilteredList();
+  if (!list.length) {
+    wrap.innerHTML = `<div class="empty-state">${itemMasterList.length ? 'Takde item sepadan carian.' : 'Belum ada Item Master diupload.'}</div>`;
+    pagWrap.innerHTML = '';
+    return;
+  }
+  const totalPages = Math.max(1, Math.ceil(list.length / ITEM_MASTER_PAGE_SIZE));
+  if (itemMasterPage >= totalPages) itemMasterPage = totalPages - 1;
+  if (itemMasterPage < 0) itemMasterPage = 0;
+  const pageItems = list.slice(itemMasterPage * ITEM_MASTER_PAGE_SIZE, (itemMasterPage + 1) * ITEM_MASTER_PAGE_SIZE);
+
+  let html = `<table><thead><tr><th>SKU</th><th>Description</th><th>Group</th><th>Brand</th><th>Size</th><th>Color</th><th>UOM</th><th>Campaign Year</th><th>Status</th><th></th></tr></thead><tbody>`;
+  pageItems.forEach(it => {
+    html += `<tr>
+      <td class="mono-name">${escapeHtml(it.sku)}</td>
+      <td>${escapeHtml(it.description || '-')}</td>
+      <td>${escapeHtml(it.itemGroup || '-')}</td>
+      <td>${escapeHtml(it.itemBrand || '-')}</td>
+      <td>${escapeHtml(it.itemSize || '-')}</td>
+      <td>${escapeHtml(it.itemColor || '-')}</td>
+      <td>${escapeHtml(it.uom || '-')}</td>
+      <td>${escapeHtml(it.campaignYear || '-')}</td>
+      <td><span class="badge ${it.active ? 'badge-green' : 'badge-gray'}">${it.active ? 'Active' : 'Inactive'}</span></td>
+      <td style="white-space:nowrap;">
+        <button type="button" class="btn-ghost item-master-edit-btn" data-id="${escapeHtml(it.id)}">✎</button>
+        <button type="button" class="btn-ghost item-master-delete-btn" data-id="${escapeHtml(it.id)}" style="color:#e0685c;">🗑</button>
+      </td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+
+  pagWrap.innerHTML = `
+    <button type="button" class="btn-ghost" id="itemMasterPrevPageBtn" ${itemMasterPage === 0 ? 'disabled' : ''}>&#8249; Prev</button>
+    <span class="data-note" style="margin:0;">Page ${itemMasterPage + 1} / ${totalPages} — ${formatQty(list.length)} item</span>
+    <button type="button" class="btn-ghost" id="itemMasterNextPageBtn" ${itemMasterPage >= totalPages - 1 ? 'disabled' : ''}>Next &#8250;</button>
+  `;
+  document.getElementById('itemMasterPrevPageBtn').addEventListener('click', () => { itemMasterPage--; renderItemMasterTable(); });
+  document.getElementById('itemMasterNextPageBtn').addEventListener('click', () => { itemMasterPage++; renderItemMasterTable(); });
+
+  wrap.querySelectorAll('.item-master-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => openItemMasterForm(btn.dataset.id));
+  });
+  wrap.querySelectorAll('.item-master-delete-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const it = itemMasterList.find(x => x.id === btn.dataset.id);
+      if (!it) return;
+      if (!confirm(`Padam item "${it.sku}"?`)) return;
+      try {
+        await itemMasterDeleteOne(it.id);
+      } catch (err) {
+        alert('Gagal padam item ni: ' + err.message);
+        return;
+      }
+      itemMasterList = itemMasterList.filter(x => x.id !== it.id);
+      renderItemMasterTab();
+    });
+  });
+}
+
+function openItemMasterForm(id) {
+  itemMasterEditId = id || null;
+  const it = id ? itemMasterList.find(x => x.id === id) : null;
+  document.getElementById('itemMasterFormTitle').textContent = it ? `Edit Item — ${it.sku}` : 'Add New Item';
+  document.getElementById('itemMasterFormSku').value = it ? it.sku : '';
+  document.getElementById('itemMasterFormDesc').value = it ? it.description : '';
+  document.getElementById('itemMasterFormGroup').value = it ? it.itemGroup : '';
+  document.getElementById('itemMasterFormBrand').value = it ? it.itemBrand : '';
+  document.getElementById('itemMasterFormSize').value = it ? it.itemSize : '';
+  document.getElementById('itemMasterFormColor').value = it ? it.itemColor : '';
+  document.getElementById('itemMasterFormUom').value = it ? it.uom : '';
+  document.getElementById('itemMasterFormCampaignYear').value = it ? (it.campaignYear || '') : '';
+  document.getElementById('itemMasterFormActive').checked = it ? !!it.active : true;
+  document.getElementById('itemMasterFormWrap').style.display = '';
+  document.getElementById('itemMasterFormSku').focus();
+}
+function closeItemMasterForm() {
+  itemMasterEditId = null;
+  document.getElementById('itemMasterFormWrap').style.display = 'none';
+}
+async function saveItemMasterForm() {
+  const sku = document.getElementById('itemMasterFormSku').value.trim();
+  if (!sku) { alert('SKU wajib diisi.'); return; }
+  const dupe = itemMasterList.some(it => it.id !== itemMasterEditId && it.sku.trim().toUpperCase() === sku.toUpperCase());
+  if (dupe) { alert(`SKU "${sku}" dah wujud.`); return; }
+  const data = {
+    sku,
+    description: document.getElementById('itemMasterFormDesc').value.trim(),
+    itemGroup: document.getElementById('itemMasterFormGroup').value.trim(),
+    itemBrand: document.getElementById('itemMasterFormBrand').value.trim(),
+    itemSize: document.getElementById('itemMasterFormSize').value.trim(),
+    itemColor: document.getElementById('itemMasterFormColor').value.trim(),
+    uom: document.getElementById('itemMasterFormUom').value.trim(),
+    campaignYear: document.getElementById('itemMasterFormCampaignYear').value.trim(),
+    active: document.getElementById('itemMasterFormActive').checked,
+  };
+  let item;
+  if (itemMasterEditId) {
+    item = itemMasterList.find(x => x.id === itemMasterEditId);
+    if (item) Object.assign(item, data);
+  } else {
+    item = { id: genItemMasterId(), ...data };
+    itemMasterList.push(item);
+  }
+  try {
+    await itemMasterPutOne(item);
+  } catch (err) {
+    alert('Gagal simpan item ni: ' + err.message);
+    return;
+  }
+  closeItemMasterForm();
+  renderItemMasterTab();
+}
+
+function renderItemMasterTab() {
+  renderItemMasterStatusNote();
+  renderItemMasterKpis();
+  renderItemMasterYearFilterOptions();
+  renderItemMasterTable();
+}
+// Applies to the current SEARCH-filtered set (search + Active-only — deliberately ignores the Year
+// dropdown itself, so she can re-tag/correct items regardless of what they're currently tagged as),
+// not just the current page — otherwise bulk-tagging thousands of rows 50 at a time would be
+// unusable. Confirms the exact count before touching anything.
+async function itemMasterBulkAssignCampaignYear() {
+  const targets = itemMasterSearchFilteredList();
+  if (!targets.length) { alert('Takde item sepadan carian sekarang — taip carian dulu (contoh nama product/group) untuk pilih item yang nak di-tag.'); return; }
+  const year = prompt(`Set Campaign Year untuk ${formatQty(targets.length)} item (ikut carian/filter sekarang) kepada:`, itemMasterCampaignYears()[0] || String(new Date().getFullYear()));
+  if (year === null) return;
+  const trimmedYear = year.trim();
+  if (!confirm(`Sahkan: set Campaign Year = "${trimmedYear || '(kosong)'}" untuk ${formatQty(targets.length)} item?`)) return;
+  targets.forEach(it => { it.campaignYear = trimmedYear; });
+  try {
+    await itemMasterBulkPut(targets);
+  } catch (err) {
+    alert('Gagal simpan Campaign Year untuk item-item ni: ' + err.message);
+    return;
+  }
+  alert(`Done — ${formatQty(targets.length)} item ditag Campaign Year "${trimmedYear || '(kosong)'}".`);
+  renderItemMasterTab();
+}
+document.getElementById('itemMasterSearchInput').addEventListener('input', () => { itemMasterPage = 0; renderItemMasterTable(); });
+document.getElementById('itemMasterStatusFilter').addEventListener('change', () => { itemMasterPage = 0; renderItemMasterTable(); });
+document.getElementById('itemMasterYearFilter').addEventListener('change', () => { itemMasterPage = 0; renderItemMasterTable(); });
+document.getElementById('itemMasterBulkYearBtn').addEventListener('click', itemMasterBulkAssignCampaignYear);
+document.getElementById('itemMasterAddBtn').addEventListener('click', () => openItemMasterForm(null));
+document.getElementById('itemMasterFormCancelBtn').addEventListener('click', closeItemMasterForm);
+document.getElementById('itemMasterFormSaveBtn').addEventListener('click', saveItemMasterForm);
+
+// "Reset Item Master List" (Danger Zone) — wipes the whole list, one level of undo, same
+// snapshot pattern as Reset Progress Board / Reset Trip Schedule / Reset Raw Material elsewhere
+// (see updateResetUndoButtons). The backup itself lives in IndexedDB, NOT localStorage — this list
+// can run to tens of thousands of rows, way too big for localStorage's quota (see openItemMasterDb
+// comment above) — only a small "a backup exists" flag lives in localStorage, for the cheap
+// show/hide check updateResetUndoButtons() already does for every other reset button.
+document.getElementById('resetItemMasterBtn').addEventListener('click', async () => {
+  if (!confirm(`Padam SEMUA Item Master List (${formatQty(itemMasterList.length)} item)? Tindakan ni boleh di-undo sekali sahaja sejurus lepas ni ("Undo Reset") — reset lagi sekali akan hilangkan peluang undo yang lama.`)) return;
+  try {
+    await itemMasterSaveBackup(itemMasterList);
+    localStorage.setItem(ITEM_MASTER_HAS_BACKUP_KEY, '1');
+    await itemMasterReplaceAll([]);
+  } catch (err) {
+    alert('Gagal reset Item Master List: ' + err.message);
+    return;
+  }
+  itemMasterList = [];
+  itemMasterImportedAt = '';
+  localStorage.removeItem(ITEM_MASTER_IMPORTED_AT_KEY);
+  itemMasterPage = 0;
+  renderItemMasterTab();
+  updateResetUndoButtons();
+});
+document.getElementById('undoResetItemMasterBtn').addEventListener('click', async () => {
+  if (!localStorage.getItem(ITEM_MASTER_HAS_BACKUP_KEY)) return;
+  if (!confirm('Undo reset Item Master List yang terakhir? Semua item akan dipulihkan macam sebelum reset tadi.')) return;
+  try {
+    const backup = await itemMasterLoadBackup();
+    const restored = (backup && backup.items) || [];
+    await itemMasterReplaceAll(restored);
+    itemMasterList = restored;
+    await itemMasterClearBackup();
+  } catch (err) {
+    alert('Gagal undo reset: ' + err.message);
+    return;
+  }
+  localStorage.removeItem(ITEM_MASTER_HAS_BACKUP_KEY);
+  itemMasterPage = 0;
+  renderItemMasterTab();
+  updateResetUndoButtons();
+});
+
+// ---- Auto-fill SKU: map a checklist Series to ONE "product" from Item Master List, then apply
+// that mapping across every Colour+Size line in that series (matched on Item Color + Item Size —
+// Item Master's own structured columns, not text parsed out of a Title — so there's no risk of the
+// wrong product's SKUs bleeding in). Lines that already have a manually typed SKU are left
+// untouched. (Previously matched against a separately-uploaded "SKU Reference" list; now reads
+// straight from Item Master List so there's only one SKU list to maintain.) ----
 let skuMatchCurrentSeriesKey = null;
 function skuMatchScore(query, candidate) {
   const qTokens = skuNormalizeForMatch(query).split(/[^A-Z0-9]+/).filter(Boolean);
@@ -8047,9 +8793,35 @@ function skuMatchScore(query, candidate) {
   qTokens.forEach(t => { if (cTokens.has(t)) hits++; });
   return hits;
 }
+// Item Master's "Description" column typically reads "Product Name - Color - Size" (or just
+// "Product Name - Color" for a single-variant item, often with a literal "Default Title" instead of
+// a real size). Strips the KNOWN Item Size then Item Color off the end using the actual structured
+// columns — more reliable than guessing from dash position, since we have color/size as real fields.
+function itemMasterProductName(it) {
+  let base = String(it.description || '').trim();
+  if (!base) return it.itemGroup || it.sku || '';
+  const escapeRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (it.itemSize) base = base.replace(new RegExp('\\s*-\\s*' + escapeRe(it.itemSize) + '\\s*$', 'i'), '');
+  base = base.replace(/\s*-\s*Default Title\s*$/i, '');
+  if (it.itemColor) base = base.replace(new RegExp('\\s*-\\s*' + escapeRe(it.itemColor) + '\\s*$', 'i'), '');
+  base = base.trim().replace(/-+$/, '').trim();
+  return base || it.itemGroup || it.sku || '';
+}
+function itemMasterProductNames() {
+  const set = new Set();
+  itemMasterList.forEach(it => { const n = itemMasterProductName(it); if (n) set.add(n); });
+  return [...set].sort((a, b) => a.localeCompare(b));
+}
+function renderItemMasterAutofillStatusNote() {
+  const el = document.getElementById('itemMasterAutofillStatusNote');
+  if (!el) return;
+  if (!itemMasterList.length) { el.textContent = 'Item Master List kosong lagi — upload dulu kat tab "Item Master List" sebelum guna Auto-fill SKU.'; return; }
+  const dateLabel = itemMasterImportedAt ? formatDateLabel(itemMasterImportedAt.slice(0, 10)) : '';
+  el.textContent = `Item Master List: ${formatQty(itemMasterList.length)} item ready${dateLabel ? ` (last updated ${dateLabel})` : ''}.`;
+}
 function renderSkuMatchProductList(query) {
   const wrap = document.getElementById('skuMatchProductListWrap');
-  const names = skuReferenceProductNames();
+  const names = itemMasterProductNames();
   const q = (query || '').trim().toLowerCase();
   let list;
   if (!q) {
@@ -8070,10 +8842,10 @@ function renderSkuMatchProductList(query) {
   });
 }
 function openSkuMatchModal(seriesKey) {
-  if (!skuReference.length) { alert('Upload SKU Reference dulu (kat atas checklist) sebelum boleh Auto-fill SKU.'); return; }
+  if (!itemMasterList.length) { alert('Upload Item Master List dulu (tab "Item Master List") sebelum boleh Auto-fill SKU.'); return; }
   skuMatchCurrentSeriesKey = seriesKey;
   const [series] = seriesKey.split('|||');
-  document.getElementById('skuMatchProductSeriesLabel').textContent = `Series: "${series}" — pilih produk yang sepadan dari SKU Reference:`;
+  document.getElementById('skuMatchProductSeriesLabel').textContent = `Series: "${series}" — pilih produk yang sepadan dari Item Master List:`;
   const searchInput = document.getElementById('skuMatchProductSearchInput');
   searchInput.value = series;
   renderSkuMatchProductList(series);
@@ -8086,23 +8858,31 @@ function applySkuAutofillForSeries(seriesKey, productName) {
   closeSkuMatchModal();
   const [series, supplier] = seriesKey.split('|||');
   const lines = priceTagStickers.filter(p => p.series === series && p.supplier === supplier);
-  const refRows = skuReference.filter(r => skuRefSplitTitle(r.title).product.toLowerCase() === productName.toLowerCase());
-  let filled = 0, alreadyHad = 0;
+  const refRows = itemMasterList.filter(it => itemMasterProductName(it).toLowerCase() === productName.toLowerCase());
+  let filled = 0, corrected = 0, alreadyHad = 0;
   const notFound = [];
   lines.forEach(l => {
-    if (l.sku) { alreadyHad++; return; } // never clobber a manually-typed SKU
     const wantColor = skuNormalizeForMatch(l.colorName);
     const wantSize = skuNormalizeSizeForMatch(l.size);
-    const match = refRows.find(r => {
-      const { color } = skuRefSplitTitle(r.title);
-      return skuNormalizeForMatch(color) === wantColor && skuNormalizeSizeForMatch(r.size) === wantSize;
-    });
-    if (match) { l.sku = match.sku; filled++; }
-    else notFound.push(`${l.colorName || '-'} / ${l.size || '-'}`);
+    // Same Colour+Size can map to different SKUs across campaign years (batch/version numbers baked
+    // into the SKU itself) — when this line has a Campaign Year set, prefer the Item Master List row
+    // tagged with that SAME year over whichever candidate happens to come first in the list.
+    const candidates = refRows.filter(it => skuNormalizeForMatch(it.itemColor) === wantColor && skuNormalizeSizeForMatch(it.itemSize) === wantSize);
+    let match = null;
+    if (l.campaignYear) match = candidates.find(it => (it.campaignYear || '') === l.campaignYear);
+    if (!match) match = candidates[0];
+    if (!match) { if (!l.sku) notFound.push(`${l.colorName || '-'} / ${l.size || '-'}`); return; }
+    if (!l.sku) { l.sku = match.sku; filled++; }
+    // Only overwrite an existing SKU when we found a candidate for the line's OWN Campaign Year and
+    // it genuinely disagrees with what's currently filled — never touches lines without a Campaign
+    // Year set, and never touches a line whose SKU already matches its year's candidate.
+    else if (l.campaignYear && match.campaignYear === l.campaignYear && l.sku !== match.sku) { l.sku = match.sku; corrected++; }
+    else { alreadyHad++; }
   });
   savePriceTagStickers();
   renderPriceTagTab();
   let msg = `"${productName}" → ${filled} SKU auto-filled.`;
+  if (corrected) msg += ` ${corrected} SKU dikemaskini ikut Campaign Year.`;
   if (alreadyHad) msg += ` ${alreadyHad} baris dah ada SKU sedia ada (tak diubah).`;
   if (notFound.length) msg += `\n\n${notFound.length} baris tak jumpa SKU sepadan (Colour/Size):\n${notFound.join('\n')}`;
   alert(msg);
@@ -10778,8 +11558,11 @@ document.getElementById('accPrintSelectRangeBtn').addEventListener('click', () =
 // an extra blank spacer column, and Colour Code / Color Name / Price filled in (via merged cells)
 // only on the FIRST row of each colour group, blank on every row after.
 function pricetagFindColIndex(headerRow, aliases) {
+  // Excel wraps long header text onto multiple lines within one cell (e.g. "FINAL COLOR\nNAME") —
+  // collapse those literal newlines (and any doubled-up spacing) to a single space before comparing,
+  // so a wrapped header still matches its one-line alias.
   for (let i = 0; i < headerRow.length; i++) {
-    if (aliases.includes(String(headerRow[i] || '').trim().toUpperCase())) return i;
+    if (aliases.includes(String(headerRow[i] || '').replace(/\s+/g, ' ').trim().toUpperCase())) return i;
   }
   return -1;
 }
@@ -10849,7 +11632,78 @@ function parsePriceTagImportSheet(sheetRows) {
   });
   return out;
 }
-function upsertPriceTagImportRows(importRows) {
+// Second sheet layout she gets from some suppliers (e.g. a "Dye Lot" sheet) — one row per COLOUR
+// instead of one row per Colour+Size: every SIZE gets its own column (the column header IS the size,
+// e.g. "2-3Y", "4-5Y", ...) holding that size's quantity, usually followed by a running "Total Pcs"
+// column. Tried only as a fallback when the normal Size/Quantity column layout above finds nothing,
+// so it can never misfire against her regular sheets.
+function parsePriceTagWideSheet(sheetRows) {
+  if (!sheetRows || !sheetRows.length) return [];
+  let headerRowIdx = -1, cols = null;
+  for (let i = 0; i < sheetRows.length; i++) {
+    const row = sheetRows[i] || [];
+    const colourCode = pricetagFindColIndex(row, ['COLOUR CODE', 'COLOR CODE']);
+    const colorNameFinal = pricetagFindColIndex(row, ['FINAL COLOUR NAME', 'FINAL COLOR NAME']);
+    const colorNameRaw = pricetagFindColIndex(row, ['COLOUR NAME', 'COLOR NAME']);
+    if (colourCode !== -1 && (colorNameFinal !== -1 || colorNameRaw !== -1)) {
+      headerRowIdx = i;
+      cols = {
+        colourCode, colorNameFinal, colorNameRaw,
+        dyeLotNo: pricetagFindColIndex(row, ['DYE LOT NO.', 'DYE LOT NO', 'DYE LOT']),
+        batchNumber: pricetagFindColIndex(row, ['STICKER BATCH NO', 'STICKER BATCH NO.', 'BATCH NUMBER', 'BATCH NO', 'BATCH NO.']),
+        total: pricetagFindColIndex(row, ['TOTAL PCS', 'TOTAL QTY', 'TOTAL QUANTITY', 'TOTAL']),
+      };
+      break;
+    }
+  }
+  if (!cols) return [];
+
+  // Every OTHER column on the header row (not one of the fixed fields above, not blank, and before
+  // the Total column if there is one) is a Size column — its own header text IS the size label.
+  const fixedIdx = new Set(Object.values(cols).filter(v => v !== -1));
+  const headerRow = sheetRows[headerRowIdx] || [];
+  const sizeCols = [];
+  for (let i = 0; i < headerRow.length; i++) {
+    if (fixedIdx.has(i)) continue;
+    if (cols.total !== -1 && i >= cols.total) continue;
+    const label = String(headerRow[i] || '').replace(/\s+/g, ' ').trim();
+    if (label) sizeCols.push({ idx: i, label });
+  }
+  if (!sizeCols.length) return [];
+
+  // No Series/Supplier columns at all in this layout — it's a single free-text title line sitting
+  // above the header instead (e.g. "PENDENG GIRLS"). Supplier just isn't part of this sheet.
+  let series = '';
+  for (let i = 0; i < headerRowIdx; i++) {
+    const text = (sheetRows[i] || []).map(v => String(v ?? '').trim()).filter(Boolean).join(' ');
+    if (text) { series = text; break; }
+  }
+
+  const out = [];
+  sheetRows.slice(headerRowIdx + 1).forEach(r => {
+    if (!r || !r.some(v => String(v ?? '').trim() !== '')) return;
+    const get = (idx) => idx == null || idx === -1 ? '' : String(r[idx] ?? '').trim();
+    const colourCode = get(cols.colourCode);
+    const colorNameFinal = get(cols.colorNameFinal);
+    const colorNameRaw = get(cols.colorNameRaw);
+    const colorName = colorNameFinal || colorNameRaw;
+    if (!colourCode && !colorName) return; // blank/spacer row
+    const dyeLotNo = get(cols.dyeLotNo);
+    const batchNumber = get(cols.batchNumber);
+    sizeCols.forEach(sc => {
+      const quantity = Math.max(0, Math.floor(Number(r[sc.idx]) || 0));
+      if (!quantity) return; // no stock for this size — same as a blank cell, skip it
+      out.push({
+        series, supplier: '', colourCode, colorName,
+        supplierColorName: colorNameRaw && colorNameRaw !== colorName ? colorNameRaw : '',
+        nameOnSticker: [series, colorName].filter(Boolean).join(' '),
+        batchNumber, dyeLotNo, size: sc.label, quantity, price: '',
+      });
+    });
+  });
+  return out;
+}
+function upsertPriceTagImportRows(importRows, campaignYear) {
   let added = 0, skippedDup = 0;
   importRows.forEach(row => {
     // Same Series + Colour Code + Batch Number + Size already exists — treat as a duplicate row
@@ -10859,12 +11713,43 @@ function upsertPriceTagImportRows(importRows) {
     priceTagStickers.push({
       id: genPriceTagId(), series: row.series, supplier: row.supplier, colourCode: row.colourCode,
       colorName: row.colorName, nameOnSticker: row.nameOnSticker, batchNumber: row.batchNumber,
-      size: row.size, quantity: row.quantity, price: row.price, printedQty: 0, sku: '', printer: '', doneAt: '', createdAt: Date.now()
+      dyeLotNo: row.dyeLotNo || '', supplierColorName: row.supplierColorName || '',
+      size: row.size, quantity: row.quantity, price: row.price, printedQty: 0, sku: '', printer: '', doneAt: '', createdAt: Date.now(),
+      campaignYear: campaignYear || ''
     });
     added++;
   });
   savePriceTagStickers();
   return { added, skippedDup };
+}
+// Sets Campaign Year on every checklist line belonging to one Series+Supplier group at once —
+// used by the editable "Campaign Year" field on the Checklist Print Sticker summary row.
+function setPriceTagSeriesCampaignYear(seriesKey, year) {
+  const [series, supplier] = seriesKey.split('|||');
+  const val = (year || '').trim();
+  let changed = 0;
+  priceTagStickers.forEach(p => {
+    if (p.series === series && p.supplier === supplier && (p.campaignYear || '') !== val) { p.campaignYear = val; changed++; }
+  });
+  if (changed) savePriceTagStickers();
+  return changed;
+}
+// Builds <option> list for a Campaign Year dropdown — only years already registered somewhere
+// (Item Master List + existing price tag lines), so it doesn't clutter with years she hasn't
+// actually started using yet.
+function priceTagCampaignYearOptions(selected) {
+  const years = new Set(itemMasterCampaignYears());
+  priceTagStickers.forEach(p => { if (p.campaignYear) years.add(p.campaignYear); });
+  const sorted = [...years].sort().reverse();
+  let html = `<option value="">-</option>`;
+  sorted.forEach(y => { html += `<option value="${escapeHtml(y)}" ${selected === y ? 'selected' : ''}>${escapeHtml(y)}</option>`; });
+  return html;
+}
+function renderPriceTagUploadYearOptions() {
+  const sel = document.getElementById('priceTagUploadYearInput');
+  if (!sel) return;
+  const cur = sel.value || '';
+  sel.innerHTML = priceTagCampaignYearOptions(cur);
 }
 function processUploadedPriceTagFile(file) {
   const statusEl = document.getElementById('priceTagUploadStatus');
@@ -10883,8 +11768,12 @@ function processUploadedPriceTagFile(file) {
         const sheet = wb.Sheets[wb.SheetNames[0]];
         sheetRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
       }
-      const mapped = parsePriceTagImportSheet(sheetRows);
-      const { added, skippedDup } = upsertPriceTagImportRows(mapped);
+      // Try the normal "one row per Colour+Size" layout first; if that finds nothing usable, fall
+      // back to the "one row per Colour, one column per Size" layout some suppliers send instead.
+      let mapped = parsePriceTagImportSheet(sheetRows);
+      if (!mapped.length) mapped = parsePriceTagWideSheet(sheetRows);
+      const campaignYear = (document.getElementById('priceTagUploadYearInput').value || '').trim();
+      const { added, skippedDup } = upsertPriceTagImportRows(mapped, campaignYear);
       let msg = `Success: ${added} checklist item(s) added.`;
       if (skippedDup) msg += ` ${skippedDup} row(s) skipped (dah wujud).`;
       statusEl.textContent = msg;
@@ -10927,6 +11816,33 @@ document.getElementById('downloadPriceTagTemplateBtn').addEventListener('click',
   XLSX.utils.book_append_sheet(wb, ws, 'Price Tag Stickers');
   XLSX.writeFile(wb, 'price_tag_sticker_template.xlsx');
 });
+// Per-Series export matching her external "Receiving Upload Template" format exactly (header row,
+// column order, and the fixed "Generate"/"KHATAM"/"UNIT" values all confirmed against her sample) —
+// used to register the printed stickers' SKUs into that other system. Only lines that actually have
+// a printed qty AND a filled-in SKU are included (both are required fields there — "* Doc Type" /
+// "* Vendor" / "* SKU" / "* Item UOM" / "* Order Qty" all carry the asterisk in her template, meaning
+// mandatory), so a half-finished line never produces a broken import row.
+function downloadPriceTagSeriesReceivingExcel(seriesKey) {
+  const [series, supplier] = seriesKey.split('|||');
+  const eligible = priceTagStickers.filter(p => p.series === series && p.supplier === supplier && (Number(p.printedQty) || 0) > 0);
+  const withSku = eligible.filter(l => l.sku);
+  const missingSku = eligible.length - withSku.length;
+  if (!withSku.length) {
+    alert(`Takde SKU dalam Series "${series}" yang ada printed qty & SKU sekali.${missingSku ? ` (${missingSku} baris ada printed qty tapi SKU kosong — guna "Auto-fill SKU" atau isi manual dulu.)` : ''}`);
+    return;
+  }
+  const wsData = [
+    ['* Doc Type', 'Receiving Ref No', '* Vendor', 'Remark', '* SKU', '* Item UOM', 'Batch No', '* Order Qty'],
+    ...withSku.map(l => ['Generate', l.sku, 'KHATAM', '', l.sku, 'UNIT', l.batchNumber || '', Number(l.printedQty) || 0]),
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [{ wch: 12 }, { wch: 20 }, { wch: 10 }, { wch: 14 }, { wch: 20 }, { wch: 12 }, { wch: 14 }, { wch: 12 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Receiving Upload');
+  const safeSeries = (series || 'Series').replace(/[\\/:*?"<>|]/g, '_').trim() || 'Series';
+  XLSX.writeFile(wb, `Receiving_Upload_${safeSeries}.xlsx`);
+  if (missingSku) setTimeout(() => alert(`Nota: ${missingSku} baris dalam Series ni ada printed qty tapi SKU kosong — tak dimasukkan dalam Excel yang baru download tu.`), 300);
+}
 // Grouped by Series + Supplier (however she receives each sheet from the factory) — summary row
 // shows overall progress, expand to tick off individual Colour+Size lines. Mirrors
 // renderAccHistoryTable()'s expand/collapse pattern.
@@ -10938,6 +11854,9 @@ function priceTagSizeOrderIndex(size) {
   return idx === -1 ? 999 : idx;
 }
 function renderPriceTagTab() {
+  renderPriceTagUploadYearOptions();
+  renderPriceTagDoHistory();
+  renderPriceTagDoSelectionBar();
   const wrap = document.getElementById('priceTagTableWrap');
   if (!wrap) return;
   const q = (document.getElementById('priceTagSearchInput').value || '').trim().toLowerCase();
@@ -10949,11 +11868,13 @@ function renderPriceTagTab() {
   const groups = new Map();
   rows.forEach(p => {
     const key = `${p.series}|||${p.supplier}`;
-    if (!groups.has(key)) groups.set(key, { series: p.series, supplier: p.supplier, lines: [], totalQty: 0, doneQty: 0 });
+    if (!groups.has(key)) groups.set(key, { series: p.series, supplier: p.supplier, lines: [], totalQty: 0, doneQty: 0, sentQty: 0, campaignYear: '' });
     const g = groups.get(key);
     g.lines.push(p);
     g.totalQty += Number(p.quantity) || 0;
     g.doneQty += Math.min(Number(p.printedQty) || 0, Number(p.quantity) || 0);
+    g.sentQty += Number(p.sentQty) || 0;
+    if (!g.campaignYear && p.campaignYear) g.campaignYear = p.campaignYear;
   });
   let groupList = [...groups.values()].sort((a, b) => a.series.localeCompare(b.series));
   if (hideDone) groupList = groupList.filter(g => g.lines.some(l => !isLineDone(l)));
@@ -10963,35 +11884,47 @@ function renderPriceTagTab() {
 
   const printerOptionsHtml = (selected) => `<option value=""></option>` + priceTagPrinters.map(p => p.name).map(name => `<option value="${escapeHtml(name)}" ${selected === name ? 'selected' : ''}>${escapeHtml(name)}</option>`).join('');
 
-  let html = `<table><thead><tr><th></th><th>Series</th><th>Supplier</th><th>Progress</th><th></th></tr></thead><tbody>`;
+  let html = `<table><thead><tr><th></th><th></th><th>Series</th><th>Supplier</th><th>Campaign Year</th><th>Progress</th><th></th></tr></thead><tbody>`;
   groupList.forEach(g => {
     const key = `${g.series}|||${g.supplier}`;
     const expanded = q ? true : priceTagExpanded.has(key);
     const doneLines = g.lines.filter(l => isLineDone(l)).length;
+    const availableLines = g.lines.filter(l => priceTagLineAvailableToSend(l) > 0);
+    const selectedAvailableCount = availableLines.filter(l => priceTagDoChecklistSelection.has(l.id)).length;
+    const allSelected = availableLines.length > 0 && selectedAvailableCount === availableLines.length;
+    const someSelected = selectedAvailableCount > 0 && !allSelected;
     html += `<tr class="acc-history-summary-row" style="cursor:pointer;" data-key="${escapeHtml(key)}">
+      <td style="width:24px;" onclick="event.stopPropagation();"><input type="checkbox" class="price-tag-series-select-checkbox" data-key="${escapeHtml(key)}" ${allSelected ? 'checked' : ''} ${!availableLines.length ? 'disabled' : ''} data-indeterminate="${someSelected ? '1' : '0'}" title="Pilih semua SKU siap-print dalam Series ni"></td>
       <td class="rm-sto-toggle-icon" style="width:24px; cursor:pointer;">${expanded ? '▾' : '▸'}</td>
       <td><strong>${escapeHtml(g.series)}</strong></td>
       <td>${escapeHtml(g.supplier || '-')}</td>
-      <td>${doneLines} / ${g.lines.length} line siap &middot; ${formatQty(g.doneQty)} / ${formatQty(g.totalQty)} pcs</td>
+      <td><select class="price-tag-series-year-input" data-key="${escapeHtml(key)}" style="width:90px;" onclick="event.stopPropagation();">${priceTagCampaignYearOptions(g.campaignYear || '')}</select></td>
+      <td>${doneLines} / ${g.lines.length} SKU &middot; ${formatQty(g.doneQty)} / ${formatQty(g.totalQty)} pcs${g.sentQty ? `<br><span style="color:var(--text-muted); font-size:11px;">Sent to production: ${formatQty(g.sentQty)} pcs</span>` : ''}</td>
       <td style="white-space:nowrap; display:flex; gap:6px;">
         <button type="button" class="btn-ghost price-tag-autofill-sku-btn" data-key="${escapeHtml(key)}">🔍 Auto-fill SKU</button>
-        <button type="button" class="btn-ghost price-tag-copy-sku-btn" data-key="${escapeHtml(key)}">📋 Copy SKU/Batch/Qty</button>
+        <button type="button" class="btn-ghost price-tag-create-do-btn" data-key="${escapeHtml(key)}">📦 Create DO</button>
+        <button type="button" class="btn-ghost price-tag-download-excel-btn" data-key="${escapeHtml(key)}">⬇ Excel</button>
         <button type="button" class="btn-ghost price-tag-delete-series-btn" data-key="${escapeHtml(key)}" style="color:#e0685c;">🗑 Delete Series</button>
       </td>
     </tr>
     <tr class="acc-history-detail-row" style="display:${expanded ? 'table-row' : 'none'};">
       <td></td>
-      <td colspan="4" style="padding:6px 10px;">
+      <td></td>
+      <td colspan="5" style="padding:6px 10px;">
         <table style="font-size:12px;"><thead><tr>
-          <th>Colour Code</th><th>Color Name</th><th>Name On Sticker</th><th>Size</th><th>SKU</th><th>Batch No.</th><th>Quantity</th><th>Price</th>
+          <th></th><th>Colour Code</th><th>Color Name</th><th>Name On Sticker</th><th>Size</th><th>SKU</th><th>Batch No.</th><th>Dye Lot No.</th><th>Quantity</th><th>Price</th>
         </tr></thead><tbody>
-          ${g.lines.map(l => `<tr${isLineDone(l) ? ' style="opacity:0.5;"' : ''}>
-              <td>${escapeHtml(l.colourCode || '-')}</td>
+          ${g.lines.map(l => {
+            const avail = priceTagLineAvailableToSend(l);
+            return `<tr${isLineDone(l) ? ' style="opacity:0.5;"' : ''}>
+              <td><input type="checkbox" class="price-tag-line-select-checkbox" data-id="${l.id}" ${priceTagDoChecklistSelection.has(l.id) ? 'checked' : ''} ${!avail ? 'disabled' : ''} title="${avail ? 'Pilih untuk DO' : 'Belum ada qty siap-print untuk dihantar'}"></td>
+              <td>${escapeHtml(l.colourCode || '-')}${l.supplierColorName && l.supplierColorName !== l.colorName ? ` <span style="color:var(--text-muted);" title="Nama asal dari supplier">(${escapeHtml(l.supplierColorName)})</span>` : ''}</td>
               <td>${escapeHtml(l.colorName || '-')}</td>
               <td>${escapeHtml(l.nameOnSticker || '-')}</td>
               <td>${escapeHtml(l.size || '-')}</td>
               <td style="white-space:nowrap;">${escapeHtml(l.sku || '-')} <button type="button" class="btn-ghost price-tag-copy-cell-btn" data-value="${escapeHtml(l.sku || '')}" data-label="SKU" title="Copy SKU">📋</button></td>
               <td style="white-space:nowrap;">${escapeHtml(l.batchNumber || '-')} <button type="button" class="btn-ghost price-tag-copy-cell-btn" data-value="${escapeHtml(l.batchNumber || '')}" data-label="Batch No." title="Copy Batch No.">📋</button></td>
+              <td style="white-space:nowrap;">${escapeHtml(l.dyeLotNo || '-')} <button type="button" class="btn-ghost price-tag-copy-cell-btn" data-value="${escapeHtml(l.dyeLotNo || '')}" data-label="Dye Lot No." title="Copy Dye Lot No.">📋</button></td>
               <td style="white-space:nowrap;">${formatQty(l.quantity)} <button type="button" class="btn-ghost price-tag-copy-cell-btn" data-value="${l.quantity != null ? l.quantity : ''}" data-label="Quantity" title="Copy Quantity">📋</button></td>
               <td>${escapeHtml(l.price || '-')}</td>
               <td><input type="number" min="0" class="price-tag-qty-input" data-id="${l.id}" value="${l.printedQty ? l.printedQty : ''}" placeholder="0" style="width:64px;"></td>
@@ -11000,24 +11933,43 @@ function renderPriceTagTab() {
                 <button type="button" class="btn-ghost price-tag-edit-line-btn" data-id="${l.id}">✏️</button>
                 <button type="button" class="btn-ghost price-tag-delete-line-btn" data-id="${l.id}" style="color:#e0685c;">🗑</button>
               </td>
-            </tr>`).join('')}
+            </tr>`;
+          }).join('')}
         </tbody></table>
       </td>
     </tr>`;
   });
   html += `</tbody></table>`;
   wrap.innerHTML = html;
+  wrap.querySelectorAll('.price-tag-series-select-checkbox').forEach(cb => { cb.indeterminate = cb.dataset.indeterminate === '1'; });
 
   wrap.querySelectorAll('.acc-history-summary-row').forEach(row => {
     row.addEventListener('click', (e) => {
       if (e.target.closest('.rm-sto-toggle-icon')) return;
       if (e.target.closest('.price-tag-delete-series-btn')) return;
       if (e.target.closest('.price-tag-autofill-sku-btn')) return;
-      if (e.target.closest('.price-tag-copy-sku-btn')) return;
+      if (e.target.closest('.price-tag-create-do-btn')) return;
+      if (e.target.closest('.price-tag-download-excel-btn')) return;
       togglePriceTagGroup(row.dataset.key);
     });
     const icon = row.querySelector('.rm-sto-toggle-icon');
     if (icon) icon.addEventListener('click', (e) => { e.stopPropagation(); togglePriceTagGroup(row.dataset.key); });
+  });
+  wrap.querySelectorAll('.price-tag-series-select-checkbox').forEach(cb => {
+    cb.addEventListener('click', (e) => e.stopPropagation());
+    cb.addEventListener('change', () => {
+      const [series, supplier] = cb.dataset.key.split('|||');
+      priceTagStickers.filter(l => l.series === series && l.supplier === supplier && priceTagLineAvailableToSend(l) > 0)
+        .forEach(l => { if (cb.checked) priceTagDoChecklistSelection.add(l.id); else priceTagDoChecklistSelection.delete(l.id); });
+      renderPriceTagTab();
+    });
+  });
+  wrap.querySelectorAll('.price-tag-line-select-checkbox').forEach(cb => {
+    cb.addEventListener('click', (e) => e.stopPropagation());
+    cb.addEventListener('change', () => {
+      if (cb.checked) priceTagDoChecklistSelection.add(cb.dataset.id); else priceTagDoChecklistSelection.delete(cb.dataset.id);
+      renderPriceTagTab();
+    });
   });
   wrap.querySelectorAll('.price-tag-qty-input').forEach(input => {
     input.addEventListener('click', (e) => e.stopPropagation());
@@ -11028,6 +11980,13 @@ function renderPriceTagTab() {
       line.printedQty = val;
       line.doneAt = (val >= (Number(line.quantity) || 0) && val > 0) ? todayStr() : '';
       savePriceTagStickers();
+      renderPriceTagTab();
+    });
+  });
+  wrap.querySelectorAll('.price-tag-series-year-input').forEach(select => {
+    select.addEventListener('click', (e) => e.stopPropagation());
+    select.addEventListener('change', (e) => {
+      setPriceTagSeriesCampaignYear(select.dataset.key, select.value);
       renderPriceTagTab();
     });
   });
@@ -11067,10 +12026,16 @@ function renderPriceTagTab() {
       openSkuMatchModal(btn.dataset.key);
     });
   });
-  wrap.querySelectorAll('.price-tag-copy-sku-btn').forEach(btn => {
+  wrap.querySelectorAll('.price-tag-create-do-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      copyPriceTagSkuBatchQty(btn.dataset.key);
+      openPriceTagDoModalForSeries(btn.dataset.key);
+    });
+  });
+  wrap.querySelectorAll('.price-tag-download-excel-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      downloadPriceTagSeriesReceivingExcel(btn.dataset.key);
     });
   });
   wrap.querySelectorAll('.price-tag-delete-series-btn').forEach(btn => {
@@ -11112,16 +12077,6 @@ function priceTagCopyTextToClipboard(text) {
     fail();
   }
 }
-// One click copies SKU/Batch No./Quantity for a whole Series as tab-separated text — pastes
-// straight into Excel (or most other systems' grids) as three real columns.
-function copyPriceTagSkuBatchQty(seriesKey) {
-  const [series, supplier] = seriesKey.split('|||');
-  const lines = priceTagStickers.filter(p => p.series === series && p.supplier === supplier)
-    .sort((a, b) => (a.colourCode || '').localeCompare(b.colourCode || '') || priceTagSizeOrderIndex(a.size) - priceTagSizeOrderIndex(b.size));
-  if (!lines.length) return;
-  const tsv = ['SKU\tBatch No.\tQuantity', ...lines.map(l => `${l.sku || ''}\t${l.batchNumber || ''}\t${l.quantity != null ? l.quantity : ''}`)].join('\n');
-  priceTagCopyTextToClipboard(tsv);
-}
 document.getElementById('priceTagSearchInput').addEventListener('input', renderPriceTagTab);
 document.getElementById('priceTagHideDoneToggle').addEventListener('change', renderPriceTagTab);
 
@@ -11138,6 +12093,7 @@ function openPriceTagEditLineModal(lineId) {
   document.getElementById('priceTagEditSize').value = line.size || '';
   document.getElementById('priceTagEditSku').value = line.sku || '';
   document.getElementById('priceTagEditBatchNumber').value = line.batchNumber || '';
+  document.getElementById('priceTagEditDyeLotNo').value = line.dyeLotNo || '';
   document.getElementById('priceTagEditQuantity').value = line.quantity != null ? line.quantity : '';
   document.getElementById('priceTagEditPrice').value = line.price || '';
   document.getElementById('priceTagEditLineModalError').style.display = 'none';
@@ -11164,12 +12120,327 @@ document.getElementById('priceTagEditLineSaveBtn').addEventListener('click', () 
   line.size = newSize;
   line.sku = document.getElementById('priceTagEditSku').value.trim();
   line.batchNumber = document.getElementById('priceTagEditBatchNumber').value.trim();
+  line.dyeLotNo = document.getElementById('priceTagEditDyeLotNo').value.trim();
   line.quantity = newQuantity;
   line.price = document.getElementById('priceTagEditPrice').value.trim();
   savePriceTagStickers();
   closePriceTagEditLineModal();
   renderPriceTagTab();
 });
+
+// ---- Production DO (Price Tag Checklist → factory) ----
+// One DO can bundle lines from several different Series — she hand-picks whichever ready-to-send
+// lines are going out together in this shipment, unlike Raw Material's DO which is auto-built from
+// one whole STO. `priceTagDoSelections` only lives while the modal is open (stickerId -> qty chosen).
+let priceTagDoSelections = {};
+// Persistent tick-box selection made straight on the Checklist Print Sticker table itself (survives
+// expand/collapse and unrelated edits, unlike priceTagDoSelections above which only lives while the
+// Create DO modal is open) — lets her tick individual SKUs or whole Series across the WHOLE
+// checklist, then hand that straight to the modal in one go via the "Create DO" bar that appears.
+let priceTagDoChecklistSelection = new Set();
+function openPriceTagDoModal() {
+  priceTagDoSelections = {};
+  document.getElementById('priceTagDoNoInput').value = '';
+  document.getElementById('priceTagDoDateInput').value = todayStr();
+  document.getElementById('priceTagDoDestinationInput').value = '';
+  document.getElementById('priceTagDoNotesInput').value = '';
+  document.getElementById('priceTagDoSearchInput').value = '';
+  document.getElementById('priceTagDoModalError').style.display = 'none';
+  renderPriceTagDoLines();
+  document.getElementById('priceTagDoModal').classList.remove('hidden');
+}
+function closePriceTagDoModal() { document.getElementById('priceTagDoModal').classList.add('hidden'); }
+// Quick-start shortcut from a Series row's "📦 Create DO" button — same modal as the general one
+// above, just pre-filtered to that Series and pre-selected at each line's full available qty (still
+// fully editable/partial before Save, exactly like the general flow).
+function openPriceTagDoModalForSeries(seriesKey) {
+  const [series, supplier] = seriesKey.split('|||');
+  const availableLines = priceTagStickers.filter(l => l.series === series && l.supplier === supplier && priceTagLineAvailableToSend(l) > 0);
+  if (!availableLines.length) { alert(`Takde SKU dalam Series "${series}" yang dah siap print & belum dihantar lagi.`); return; }
+  priceTagDoSelections = {};
+  availableLines.forEach(l => { priceTagDoSelections[l.id] = priceTagLineAvailableToSend(l); });
+  document.getElementById('priceTagDoNoInput').value = '';
+  document.getElementById('priceTagDoDateInput').value = todayStr();
+  document.getElementById('priceTagDoDestinationInput').value = '';
+  document.getElementById('priceTagDoNotesInput').value = '';
+  document.getElementById('priceTagDoSearchInput').value = series;
+  document.getElementById('priceTagDoModalError').style.display = 'none';
+  renderPriceTagDoLines();
+  document.getElementById('priceTagDoModal').classList.remove('hidden');
+}
+// Straight from the tick-boxes on the Checklist Print Sticker table (priceTagDoChecklistSelection)
+// — she can mix SKUs from any number of Series before opening this, unlike the per-Series shortcut.
+function openPriceTagDoModalFromChecklistSelection() {
+  const selectedLines = [...priceTagDoChecklistSelection].map(id => priceTagStickers.find(p => p.id === id)).filter(l => l && priceTagLineAvailableToSend(l) > 0);
+  if (!selectedLines.length) { alert('Takde SKU yang dipilih lagi.'); return; }
+  priceTagDoSelections = {};
+  selectedLines.forEach(l => { priceTagDoSelections[l.id] = priceTagLineAvailableToSend(l); });
+  document.getElementById('priceTagDoNoInput').value = '';
+  document.getElementById('priceTagDoDateInput').value = todayStr();
+  document.getElementById('priceTagDoDestinationInput').value = '';
+  document.getElementById('priceTagDoNotesInput').value = '';
+  document.getElementById('priceTagDoSearchInput').value = '';
+  document.getElementById('priceTagDoModalError').style.display = 'none';
+  renderPriceTagDoLines();
+  document.getElementById('priceTagDoModal').classList.remove('hidden');
+}
+// Shows/hides the small bar above the checklist table summarising the current tick-box selection,
+// with its own "Create DO" / "Clear" actions — self-cleans any selected id that's no longer
+// available to send (already sent via another DO meanwhile, or its line got deleted).
+function renderPriceTagDoSelectionBar() {
+  const bar = document.getElementById('priceTagDoSelectionBar');
+  if (!bar) return;
+  [...priceTagDoChecklistSelection].forEach(id => {
+    const line = priceTagStickers.find(p => p.id === id);
+    if (!line || priceTagLineAvailableToSend(line) <= 0) priceTagDoChecklistSelection.delete(id);
+  });
+  if (!priceTagDoChecklistSelection.size) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+  const selectedLines = [...priceTagDoChecklistSelection].map(id => priceTagStickers.find(p => p.id === id)).filter(Boolean);
+  const totalQty = selectedLines.reduce((sum, l) => sum + priceTagLineAvailableToSend(l), 0);
+  const seriesCount = new Set(selectedLines.map(l => `${l.series}|||${l.supplier}`)).size;
+  bar.style.display = 'flex';
+  bar.innerHTML = `
+    <div style="font-size:12px;"><strong>${selectedLines.length}</strong> SKU dipilih (${seriesCount} Series) &middot; <strong>${formatQty(totalQty)}</strong> pcs</div>
+    <div style="display:flex; gap:8px;">
+      <button type="button" class="btn-ghost" id="priceTagDoSelectionClearBtn">Clear pilihan</button>
+      <button type="button" class="btn-primary" id="priceTagDoSelectionCreateBtn">📦 Create DO daripada pilihan</button>
+    </div>`;
+  document.getElementById('priceTagDoSelectionClearBtn').addEventListener('click', () => {
+    priceTagDoChecklistSelection.clear();
+    renderPriceTagTab();
+  });
+  document.getElementById('priceTagDoSelectionCreateBtn').addEventListener('click', openPriceTagDoModalFromChecklistSelection);
+}
+document.getElementById('priceTagCreateDoBtn').addEventListener('click', openPriceTagDoModal);
+document.getElementById('priceTagDoCloseBtn').addEventListener('click', closePriceTagDoModal);
+document.getElementById('priceTagDoCancelBtn').addEventListener('click', closePriceTagDoModal);
+
+function renderPriceTagDoLines() {
+  const wrap = document.getElementById('priceTagDoLinesWrap');
+  const q = (document.getElementById('priceTagDoSearchInput').value || '').trim().toLowerCase();
+  let candidates = priceTagStickers.filter(l => priceTagLineAvailableToSend(l) > 0);
+  if (q) candidates = candidates.filter(l => [l.series, l.supplier, l.colorName, l.colourCode, l.sku, l.size].filter(Boolean).join(' ').toLowerCase().includes(q));
+  if (!candidates.length) { wrap.innerHTML = '<div class="empty-state" style="padding:16px;">Takde line yang dah siap print & belum dihantar lagi.</div>'; renderPriceTagDoTotalNote(); return; }
+  const groups = new Map();
+  candidates.forEach(l => {
+    const key = `${l.series}|||${l.supplier}`;
+    if (!groups.has(key)) groups.set(key, { series: l.series, supplier: l.supplier, lines: [] });
+    groups.get(key).lines.push(l);
+  });
+  const groupList = [...groups.values()].sort((a, b) => a.series.localeCompare(b.series));
+  groupList.forEach(g => g.lines.sort((a, b) => (a.colourCode || '').localeCompare(b.colourCode || '') || priceTagSizeOrderIndex(a.size) - priceTagSizeOrderIndex(b.size)));
+  let html = `<table><thead><tr><th>Colour</th><th>Size</th><th>SKU</th><th>Batch No.</th><th>Qty nak hantar</th></tr></thead><tbody>`;
+  groupList.forEach(g => {
+    html += `<tr style="background:rgba(255,255,255,0.03);"><td colspan="5" style="font-weight:600;">${escapeHtml(g.series)}${g.supplier ? ' — ' + escapeHtml(g.supplier) : ''}</td></tr>`;
+    g.lines.forEach(l => {
+      const avail = priceTagLineAvailableToSend(l);
+      const chosen = priceTagDoSelections[l.id] != null ? priceTagDoSelections[l.id] : '';
+      html += `<tr>
+        <td>${escapeHtml(l.colorName || l.colourCode || '-')}</td>
+        <td>${escapeHtml(l.size || '-')}</td>
+        <td>${escapeHtml(l.sku || '-')}</td>
+        <td>${escapeHtml(l.batchNumber || '-')}</td>
+        <td><input type="number" min="0" max="${avail}" class="price-tag-do-qty-input" data-id="${l.id}" data-max="${avail}" value="${chosen}" placeholder="0" style="width:80px;"></td>
+      </tr>`;
+    });
+  });
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('.price-tag-do-qty-input').forEach(input => {
+    input.addEventListener('input', () => {
+      const max = Number(input.dataset.max) || 0;
+      let val = Math.max(0, Math.floor(Number(input.value) || 0));
+      if (val > max) val = max;
+      if (val) priceTagDoSelections[input.dataset.id] = val;
+      else delete priceTagDoSelections[input.dataset.id];
+      renderPriceTagDoTotalNote();
+    });
+  });
+  renderPriceTagDoTotalNote();
+}
+function renderPriceTagDoTotalNote() {
+  const el = document.getElementById('priceTagDoTotalNote');
+  if (!el) return;
+  const entries = Object.values(priceTagDoSelections).filter(v => v > 0);
+  const totalQty = entries.reduce((sum, v) => sum + v, 0);
+  el.textContent = `Total to send: ${formatQty(totalQty)} pcs across ${entries.length} line.`;
+}
+document.getElementById('priceTagDoSearchInput').addEventListener('input', renderPriceTagDoLines);
+document.getElementById('priceTagDoSelectAllBtn').addEventListener('click', () => {
+  document.querySelectorAll('#priceTagDoLinesWrap .price-tag-do-qty-input').forEach(input => {
+    const max = Number(input.dataset.max) || 0;
+    input.value = max || '';
+    if (max) priceTagDoSelections[input.dataset.id] = max;
+  });
+  renderPriceTagDoTotalNote();
+});
+document.getElementById('priceTagDoClearAllBtn').addEventListener('click', () => {
+  priceTagDoSelections = {};
+  renderPriceTagDoLines();
+});
+document.getElementById('priceTagDoDestinationInput').addEventListener('blur', () => {
+  const doNoInput = document.getElementById('priceTagDoNoInput');
+  if (doNoInput.value.trim()) return; // don't clobber a manually-typed/edited DO No.
+  const destination = document.getElementById('priceTagDoDestinationInput').value.trim();
+  if (!destination) return;
+  const date = document.getElementById('priceTagDoDateInput').value || todayStr();
+  doNoInput.value = formatPriceTagDoNo(destination, date, nextAvailablePriceTagDoSeq());
+});
+document.getElementById('priceTagDoSaveBtn').addEventListener('click', () => {
+  const errEl = document.getElementById('priceTagDoModalError');
+  const showErr = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
+  const destination = document.getElementById('priceTagDoDestinationInput').value.trim();
+  const date = document.getElementById('priceTagDoDateInput').value || todayStr();
+  let doNo = document.getElementById('priceTagDoNoInput').value.trim();
+  if (!destination) { showErr('Destination tak boleh kosong.'); return; }
+  const selectedLines = Object.entries(priceTagDoSelections).filter(([, qty]) => qty > 0);
+  if (!selectedLines.length) { showErr('Pilih sekurang-kurangnya satu line untuk dihantar.'); return; }
+  if (!doNo) doNo = formatPriceTagDoNo(destination, date, nextAvailablePriceTagDoSeq());
+  if (priceTagDos.some(d => d.doNo === doNo)) { showErr('DO No. ni dah wujud — tukar Destination/Date atau edit DO No. tu.'); return; }
+  const notes = document.getElementById('priceTagDoNotesInput').value.trim();
+  const lines = [];
+  selectedLines.forEach(([stickerId, qty]) => {
+    const line = priceTagStickers.find(p => p.id === stickerId);
+    if (!line) return;
+    const finalQty = Math.min(qty, priceTagLineAvailableToSend(line));
+    if (finalQty <= 0) return;
+    line.sentQty = (Number(line.sentQty) || 0) + finalQty;
+    lines.push({
+      stickerId: line.id, series: line.series, supplier: line.supplier, colourCode: line.colourCode,
+      colorName: line.colorName, nameOnSticker: line.nameOnSticker, sku: line.sku, batchNumber: line.batchNumber,
+      size: line.size, qty: finalQty, price: line.price,
+    });
+  });
+  if (!lines.length) { showErr('Pilih sekurang-kurangnya satu line untuk dihantar.'); return; }
+  const doRec = { id: genPriceTagDoId(), doNo, date, destination, notes, lines, createdAt: Date.now() };
+  priceTagDos.push(doRec);
+  lines.forEach(l => priceTagDoChecklistSelection.delete(l.stickerId));
+  savePriceTagStickers();
+  savePriceTagDos();
+  closePriceTagDoModal();
+  renderPriceTagTab();
+  printPriceTagDo(doRec);
+});
+
+function renderPriceTagDoHistory() {
+  const wrap = document.getElementById('priceTagDoHistoryWrap');
+  if (!wrap) return;
+  if (!priceTagDos.length) { wrap.innerHTML = '<div class="data-note">Tiada DO lagi.</div>'; return; }
+  const sorted = [...priceTagDos].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  let html = `<table><thead><tr><th>DO No.</th><th>Date</th><th>Destination</th><th>Lines</th><th>Total Qty</th><th></th></tr></thead><tbody>`;
+  sorted.forEach(d => {
+    const totalQty = d.lines.reduce((sum, l) => sum + (Number(l.qty) || 0), 0);
+    html += `<tr>
+      <td>${escapeHtml(d.doNo)}</td>
+      <td>${formatDateLabel(d.date)}</td>
+      <td>${escapeHtml(d.destination || '-')}</td>
+      <td>${d.lines.length}</td>
+      <td>${formatQty(totalQty)}</td>
+      <td style="white-space:nowrap; display:flex; gap:6px;">
+        <button type="button" class="btn-ghost price-tag-do-print-btn" data-id="${d.id}">🖨 Print</button>
+        <button type="button" class="btn-ghost price-tag-do-delete-btn" data-id="${d.id}" style="color:#e0685c;">🗑 Delete</button>
+      </td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('.price-tag-do-print-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const d = priceTagDos.find(x => x.id === btn.dataset.id);
+      if (d) printPriceTagDo(d);
+    });
+  });
+  wrap.querySelectorAll('.price-tag-do-delete-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const d = priceTagDos.find(x => x.id === btn.dataset.id);
+      if (!d) return;
+      if (!confirm(`Padam DO "${d.doNo}"? Quantity yang dah "sent" akan dikembalikan semula ke checklist (boleh masuk DO lain).`)) return;
+      d.lines.forEach(l => {
+        const line = priceTagStickers.find(p => p.id === l.stickerId);
+        if (line) line.sentQty = Math.max(0, (Number(line.sentQty) || 0) - (Number(l.qty) || 0));
+      });
+      priceTagDos = priceTagDos.filter(x => x.id !== d.id);
+      savePriceTagStickers();
+      savePriceTagDos();
+      renderPriceTagTab();
+    });
+  });
+}
+// Reuses the same #doDocument letterhead/footer images and DO_PRINT_CSS as the Boutique/Fleet and
+// Raw Material DOs, printed the same iframe way — see printRmDo() above for why (keeps branding
+// consistent without duplicating the (very large) base64 image data here).
+function printPriceTagDo(doRec) {
+  const letterheadEl = document.querySelector('#doDocument .do-doc-letterhead');
+  const footerEl = document.querySelector('#doDocument .do-doc-footer-img');
+  const letterheadHtml = (letterheadEl && letterheadEl.src) ? `<img class="do-doc-letterhead" src="${letterheadEl.src}">` : '';
+  const footerHtml = (footerEl && footerEl.src) ? `<img class="do-doc-footer-img" src="${footerEl.src}">` : '';
+  const sorted = [...doRec.lines].sort((a, b) => (a.series || '').localeCompare(b.series || '') || (a.colourCode || '').localeCompare(b.colourCode || '') || priceTagSizeOrderIndex(a.size) - priceTagSizeOrderIndex(b.size));
+  const rowsHtml = sorted.map((l, idx) => `<tr>
+      <td>${idx + 1}</td>
+      <td>${escapeHtml(l.series || '-')}</td>
+      <td>${escapeHtml(l.colorName || l.colourCode || '-')}</td>
+      <td>${escapeHtml(l.size || '-')}</td>
+      <td>${escapeHtml(l.sku || '-')}</td>
+      <td>${escapeHtml(l.batchNumber || '-')}</td>
+      <td>${formatQty(l.qty)}</td>
+    </tr>`).join('');
+  const totalQty = doRec.lines.reduce((sum, l) => sum + (Number(l.qty) || 0), 0);
+  const docHtml = `<div class="do-doc">
+    ${letterheadHtml}
+    <div class="do-doc-header">
+      <div>
+        <div class="do-doc-brand">KHATAM</div>
+        <div class="do-doc-sub">Delivery Order — Price Tag / Sticker</div>
+      </div>
+      <div class="do-doc-meta"><div class="lbl">DO No.</div><div class="val">${escapeHtml(doRec.doNo)}</div></div>
+    </div>
+    <div class="do-doc-grid">
+      <div class="do-doc-section"><div class="do-doc-label">Date</div><div class="do-doc-value">${formatDateLabel(doRec.date)}</div></div>
+      <div class="do-doc-section"><div class="do-doc-label">Destination</div><div class="do-doc-value">${escapeHtml(doRec.destination || '-')}</div></div>
+      <div class="do-doc-section"><div class="do-doc-label">Notes</div><div class="do-doc-value">${escapeHtml(doRec.notes || '-')}</div></div>
+    </div>
+    <div class="do-doc-table-wrap" style="flex:none; display:block; min-height:0;">
+      <table class="do-doc-table" style="flex:none;">
+        <thead><tr><th>No.</th><th>Series</th><th>Colour</th><th>Size</th><th>SKU</th><th>Batch No.</th><th>Qty</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+      <div class="do-doc-table-total">Total: ${formatQty(totalQty)} pcs</div>
+    </div>
+    <div class="do-doc-sign-row" style="margin-top:auto;">
+      <div class="do-doc-sign"><div class="st"><b>Prepared By</b></div><div class="fld">Name<span class="line"></span></div><div class="fld">Signature<span class="line"></span></div></div>
+      <div class="do-doc-sign"><div class="st"><b>Delivery By</b></div><div class="fld">Name<span class="line"></span></div><div class="fld">Signature<span class="line"></span></div></div>
+      <div class="do-doc-sign"><div class="st"><b>Received By</b></div><div class="fld">Name<span class="line"></span></div><div class="fld">Signature<span class="line"></span></div></div>
+    </div>
+    ${footerHtml}
+  </div>`;
+  const fullHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Delivery Order - ${escapeHtml(doRec.doNo)}</title><style>${DO_PRINT_CSS}</style></head><body>${docHtml}</body></html>`;
+  let printFrame = document.getElementById('priceTagDoPrintFrame');
+  if (printFrame) printFrame.remove();
+  printFrame = document.createElement('iframe');
+  printFrame.id = 'priceTagDoPrintFrame';
+  printFrame.style.position = 'fixed';
+  printFrame.style.right = '0';
+  printFrame.style.bottom = '0';
+  printFrame.style.width = '0';
+  printFrame.style.height = '0';
+  printFrame.style.border = '0';
+  document.body.appendChild(printFrame);
+  const cleanup = () => { if (printFrame && printFrame.parentNode) printFrame.remove(); };
+  printFrame.onload = () => {
+    setTimeout(() => {
+      try {
+        printFrame.contentWindow.onafterprint = cleanup;
+        printFrame.contentWindow.focus();
+        printFrame.contentWindow.print();
+      } catch (err) {
+        alert('Failed to open the print dialog: ' + err.message);
+        cleanup();
+      }
+      setTimeout(cleanup, 15000);
+    }, 60);
+  };
+  printFrame.srcdoc = fullHtml;
+}
 
 // Fabric Roll / Accessories switch scoped to the Print Sticker tab only (independent of the same
 // switch on the Receive & Pick tab, so flipping one doesn't affect the other).
@@ -11726,6 +12997,7 @@ const SYNC_COLLECTIONS = [
   { table: 'Accessories_Receipts', getArray: () => accessoriesReceipts, setArray: (a) => { accessoriesReceipts = a; saveAccessoriesReceipts(); } },
   { table: 'PriceTag_Stickers', getArray: () => priceTagStickers, setArray: (a) => { priceTagStickers = a; savePriceTagStickers(); } },
   { table: 'PriceTag_Printers', getArray: () => priceTagPrinters, setArray: (a) => { priceTagPrinters = a; savePriceTagPrinters(); } },
+  { table: 'PriceTag_DOs', getArray: () => priceTagDos, setArray: (a) => { priceTagDos = a; savePriceTagDos(); } },
   {
     table: 'Users',
     getArray: () => loadAppUsers(),
@@ -13839,6 +15111,222 @@ function renderFleetDashboard() {
   renderFleetDashToday();
 }
 
+/* ---------- Raw Material dashboard slide ---------- */
+// Fabric roll stock + STO/DO/Pick activity only — Price Tag (Baju) sticker printing is a separate
+// task inside the same Raw Material nav group and is deliberately NOT counted anywhere here.
+function renderRawMaterialDashKpis() {
+  const today = todayStr();
+  const rolls = typeof rawMaterialRolls !== 'undefined' ? rawMaterialRolls : [];
+  const picks = typeof rawMaterialPicks !== 'undefined' ? rawMaterialPicks : [];
+  const dos = typeof rawMaterialDos !== 'undefined' ? rawMaterialDos : [];
+  const rollsInStock = rolls.filter(r => (Number(r.meterRemaining) || 0) > 0).length;
+  const meterRemaining = rolls.reduce((sum, r) => sum + (Number(r.meterRemaining) || 0), 0);
+  const groups = rmStoGroupsByStoNo();
+  const activeStoCount = groups.filter(g => !g.items.every(s => s.status === 'Completed')).length;
+  const completedStoCount = groups.length - activeStoCount;
+  const doToday = dos.filter(d => d.createdDate === today).length;
+  const picksToday = picks.filter(p => p.date === today).length;
+  const cards = [
+    { num: rollsInStock, label: 'Rolls In Stock', cls: 'blue' },
+    { num: `${formatQty(meterRemaining)} m`, label: 'Meter Remaining (Total)', cls: '' },
+    { num: activeStoCount, label: 'Active STO', cls: 'amber' },
+    { num: completedStoCount, label: 'Completed STO', cls: 'green' },
+    { num: doToday, label: 'DO Issued Today', cls: 'purple' },
+    { num: picksToday, label: 'Picks Today', cls: '' },
+  ];
+  document.getElementById('rmDashKpiGrid').innerHTML = cards.map(c =>
+    `<div class="kpi-card ${c.cls}"><div class="kpi-num">${c.num}</div><div class="kpi-label">${c.label}</div></div>`
+  ).join('');
+}
+
+let rmDashDestChart = null;
+function renderRawMaterialDashCharts() {
+  const groups = rmStoGroupsByStoNo();
+  const activeStoCount = groups.filter(g => !g.items.every(s => s.status === 'Completed')).length;
+  const completedStoCount = groups.length - activeStoCount;
+  const stoTotal = activeStoCount + completedStoCount;
+  const completedPct = stoTotal ? Math.round((completedStoCount / stoTotal) * 100) : 0;
+  dashSummaryDonut('rmDashStatusChart', 'rmDashStatusPct', 'rmDashStatusLegend', [
+    { label: 'Active', count: activeStoCount, color: KPI_COLOR_HEX.amber },
+    { label: 'Completed', count: completedStoCount, color: KPI_COLOR_HEX.green },
+  ], completedPct, targetBarHex(completedPct), 'Completed', 'No Raw Material STO yet.');
+
+  // Group by a normalized key (trim/collapse spaces/uppercase — same rule as boutiqueMatch elsewhere)
+  // so "samim" and "SAMIM" don't get split into separate bars for the same destination.
+  const destCounts = {};
+  groups.forEach(g => {
+    const d = g.destination ? cartonCounterKey(g.destination) : 'NO DESTINATION';
+    destCounts[d] = (destCounts[d] || 0) + 1;
+  });
+  const destCtx = document.getElementById('rmDashDestChart').getContext('2d');
+  if (rmDashDestChart) rmDashDestChart.destroy();
+  rmDashDestChart = new Chart(destCtx, {
+    type: 'bar',
+    data: { labels: Object.keys(destCounts), datasets: [{ data: Object.values(destCounts), backgroundColor: '#c79b4a', borderRadius: 3 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0, font: { size: 11 } } }, x: { ticks: { font: { size: 10 } } } }
+    }
+  });
+
+  // Price Tag Checklist print progress — pcs actually printed vs the pcs still pending, across every
+  // Series/line in the checklist (Campaign Year, Series, Supplier don't matter here — this is a
+  // single overall progress read, same spirit as the STO Status donut alongside it).
+  const ptLines = typeof priceTagStickers !== 'undefined' ? priceTagStickers : [];
+  let ptPlanned = 0, ptPrinted = 0;
+  ptLines.forEach(l => {
+    ptPlanned += Number(l.quantity) || 0;
+    ptPrinted += Math.min(Number(l.printedQty) || 0, Number(l.quantity) || 0);
+  });
+  const ptPct = ptPlanned ? Math.round((ptPrinted / ptPlanned) * 100) : 0;
+  dashSummaryDonut('rmDashPriceTagChart', 'rmDashPriceTagPct', 'rmDashPriceTagLegend', [
+    { label: 'Printed', count: ptPrinted, color: KPI_COLOR_HEX.green },
+    { label: 'Pending', count: Math.max(0, ptPlanned - ptPrinted), color: KPI_COLOR_HEX.amber },
+  ], ptPct, targetBarHex(ptPct), 'Printed', 'No Price Tag checklist yet.');
+}
+
+// Two CURRENT STOCK tables (not a transaction history) — In (total ever received) / Out (used or
+// sent) / Balance (what's left now) / Status, for Fabric Roll (meter) and Accessories (qty). Out is
+// simply In minus Balance, so the three numbers always reconcile.
+// Out of Stock: nothing available. Low Stock: available but at/under 20% of what was ever
+// received (In) — a rough "running low, reorder soon" signal. In Stock: everything else.
+function rmDashStockStatusBadge(available, totalIn) {
+  if (available <= 0) return `<span class="badge badge-red">Out of Stock</span>`;
+  const pct = totalIn > 0 ? (available / totalIn) * 100 : 100;
+  if (pct <= 20) return `<span class="badge badge-amber">Low Stock</span>`;
+  return `<span class="badge badge-green">In Stock</span>`;
+}
+function renderRawMaterialDashTable() {
+  const fabricWrap = document.getElementById('rmDashRecentFabricStoWrap');
+  const rolls = typeof rawMaterialRolls !== 'undefined' ? rawMaterialRolls : [];
+  const fabricGroups = {};
+  rolls.forEach(r => {
+    const key = r.fabricCode || r.fabricName || '';
+    if (!fabricGroups[key]) fabricGroups[key] = { fabricName: r.fabricName, fabricCode: r.fabricCode, totalIn: 0, balance: 0, totalRolls: 0, rollsWithStock: 0, rollsUsedUp: 0 };
+    const g = fabricGroups[key];
+    g.totalIn += Number(r.meter) || 0;
+    g.balance += Number(r.meterRemaining) || 0;
+    g.totalRolls++;
+    if ((Number(r.meterRemaining) || 0) > 0) g.rollsWithStock++; else g.rollsUsedUp++;
+  });
+  const rollNote = (n) => `<span style="color:var(--text-muted);"> (${n} roll${n === 1 ? '' : 's'})</span>`;
+  const fabricList = Object.values(fabricGroups).map(g => ({ ...g, totalOut: g.totalIn - g.balance })).sort((a, b) => b.balance - a.balance);
+  if (!fabricList.length) {
+    fabricWrap.innerHTML = `<div class="empty-state">No fabric received yet.</div>`;
+  } else {
+    let html = `<table><thead><tr><th>Fabric</th><th>In</th><th>Out</th><th>Available</th><th>Status</th></tr></thead><tbody>`;
+    fabricList.forEach(fg => {
+      html += `<tr>
+        <td><strong>${escapeHtml(fg.fabricName || '-')}</strong>${fg.fabricCode ? ` <span style="color:var(--text-muted);">(${escapeHtml(fg.fabricCode)})</span>` : ''}</td>
+        <td>${formatQty(fg.totalIn)}${rollNote(fg.totalRolls)}</td>
+        <td>${formatQty(fg.totalOut)}${rollNote(fg.rollsUsedUp)}</td>
+        <td>${formatQty(fg.balance)}${rollNote(fg.rollsWithStock)}</td>
+        <td>${rmDashStockStatusBadge(fg.balance, fg.totalIn)}</td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+    fabricWrap.innerHTML = html;
+  }
+
+  const accWrap = document.getElementById('rmDashRecentAccStoWrap');
+  const receipts = typeof accessoriesReceipts !== 'undefined' ? accessoriesReceipts : [];
+  const accNames = [...new Set(receipts.map(r => r.name).filter(Boolean))];
+  const accList = accNames.map(name => {
+    const totalIn = receipts.filter(r => r.name === name).reduce((sum, r) => sum + (Number(r.qty) || 0), 0);
+    const balance = typeof rmStoAccessoriesAvailableQty === 'function' ? rmStoAccessoriesAvailableQty(name) : 0;
+    const cartonsAvailable = typeof rmStoAvailableAccessoriesCartons === 'function' ? rmStoAvailableAccessoriesCartons(name).length : 0;
+    return { name, totalIn, balance, totalOut: totalIn - balance, cartonsAvailable };
+  }).sort((a, b) => b.balance - a.balance);
+  if (!accList.length) {
+    accWrap.innerHTML = `<div class="empty-state">No accessories received yet.</div>`;
+  } else {
+    let html = `<table><thead><tr><th>Accessory</th><th>In</th><th>Out</th><th>Available</th><th>Status</th></tr></thead><tbody>`;
+    accList.forEach(g => {
+      html += `<tr>
+        <td><strong>${escapeHtml(g.name)}</strong></td>
+        <td>${formatQty(g.totalIn)}</td>
+        <td>${formatQty(g.totalOut)}</td>
+        <td>${formatQty(g.balance)}${g.cartonsAvailable > 0 ? ` <span style="color:var(--text-muted);">(${g.cartonsAvailable} carton${g.cartonsAvailable > 1 ? 's' : ''})</span>` : ''}</td>
+        <td>${rmDashStockStatusBadge(g.balance, g.totalIn)}</td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+    accWrap.innerHTML = html;
+  }
+}
+
+// Shows the 5 oldest-first pending (not-yet-Completed) STOs right below the STO Status donut —
+// a quick "what needs attention" glance without having to leave the dashboard for the RM STO tab.
+function renderRawMaterialPendingStoList() {
+  const wrap = document.getElementById('rmDashPendingStoWrap');
+  if (!wrap) return;
+  const pending = rmStoGroupsByStoNo()
+    .filter(g => !g.items.every(s => s.status === 'Completed'))
+    .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  // "Pending STO (n)" header always shows, even at 0 — so the card doesn't look broken/empty when
+  // there's nothing pending, it just reads "Pending STO (0)" with a short confirmation line below.
+  const header = `<div style="font-weight:700; color:var(--text); margin-bottom:4px;">Pending STO (${pending.length})</div>`;
+  if (!pending.length) { wrap.innerHTML = header + `<div>No pending STO 🎉</div>`; return; }
+  const top5 = pending.slice(0, 5);
+  // Narrow column (sits beside the donut now, not below it) — stack STO No. above destination/date
+  // instead of one wide row, so it doesn't get squeezed/wrap awkwardly.
+  wrap.innerHTML = header +
+    top5.map(g => `
+      <div style="padding:3px 0; border-top:1px solid rgba(255,255,255,0.08);">
+        <div class="mono-name" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(g.stoNo)}</div>
+        <div style="display:flex; justify-content:space-between; gap:6px;">
+          <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(g.destination || '-')}</span>
+          <span style="flex:0 0 auto;">${formatDateLabel(g.date)}</span>
+        </div>
+      </div>
+    `).join('') +
+    (pending.length > 5 ? `<div style="text-align:center; margin-top:4px;">+${pending.length - 5} more</div>` : '');
+}
+
+// Same idea as the STO Status donut's "Pending STO" list alongside it — Series ranked by how many
+// pcs are still unprinted (planned quantity minus what's been printed so far), so it's obvious at a
+// glance which Series need attention first.
+function renderPriceTagPendingList() {
+  const wrap = document.getElementById('rmDashPriceTagPendingWrap');
+  if (!wrap) return;
+  const ptLines = typeof priceTagStickers !== 'undefined' ? priceTagStickers : [];
+  const groups = new Map();
+  ptLines.forEach(l => {
+    const key = `${l.series}|||${l.supplier}`;
+    if (!groups.has(key)) groups.set(key, { series: l.series, totalLines: 0, doneLines: 0, totalQty: 0, printedQty: 0 });
+    const g = groups.get(key);
+    const qty = Number(l.quantity) || 0;
+    const printed = Math.min(Number(l.printedQty) || 0, qty);
+    g.totalLines++;
+    if (printed >= qty && qty > 0) g.doneLines++;
+    g.totalQty += qty;
+    g.printedQty += printed;
+  });
+  const pending = [...groups.values()].filter(g => g.printedQty < g.totalQty).sort((a, b) => (b.totalQty - b.printedQty) - (a.totalQty - a.printedQty));
+  const header = `<div style="font-weight:700; color:var(--text); margin-bottom:4px;">Pending Series (${pending.length})</div>`;
+  if (!pending.length) { wrap.innerHTML = header + `<div>No pending print 🎉</div>`; return; }
+  const top5 = pending.slice(0, 5);
+  wrap.innerHTML = header +
+    top5.map(g => `
+      <div style="padding:3px 0; border-top:1px solid rgba(255,255,255,0.08);">
+        <div class="mono-name" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(g.series)}</div>
+        <div style="display:flex; justify-content:space-between; gap:6px;">
+          <span>${g.doneLines} / ${g.totalLines} SKU</span>
+          <span style="flex:0 0 auto;">${formatQty(g.printedQty)} / ${formatQty(g.totalQty)} pcs</span>
+        </div>
+      </div>
+    `).join('') +
+    (pending.length > 5 ? `<div style="text-align:center; margin-top:4px;">+${pending.length - 5} more</div>` : '');
+}
+function renderRawMaterialDashboard() {
+  renderDashDutyBarForModule('dashDutyBarRawMaterial', 'Raw Material', '🧶', 'Raw Material');
+  renderRawMaterialDashKpis();
+  renderRawMaterialDashCharts();
+  renderRawMaterialPendingStoList();
+  renderPriceTagPendingList();
+  renderRawMaterialDashTable();
+}
+
 /* ---------- Driver Trip (delivery count tracker) ---------- */
 // Simple frequency matrix: boutiques across the top, drivers down the side, each cell is how many
 // times that driver has ever delivered to that boutique (all trip history, no date filter) — an
@@ -14049,6 +15537,7 @@ function renderDashboardSummary() {
   renderDashSummaryInboundPie();
   renderDashSummaryGarmentPie();
   renderDashSummaryFleetPie();
+  renderDashSummaryRawMaterialPie();
   renderDashSummaryPickerTargetPie();
   renderDashSummaryPackerTargetPie();
   renderDashSummaryInboundTargetPie();
@@ -14068,6 +15557,11 @@ function renderDashSummaryExec() {
 
   const fleetToday = fleetTrips.filter(t => t.date === todayStr()).length;
 
+  // Raw Material — fabric roll stock + STO activity only (Price Tag / Baju sticker tracking is a
+  // separate task, deliberately excluded from this breakdown).
+  const activeRmSto = (typeof rawMaterialStos !== 'undefined' ? rawMaterialStos : []).filter(s => s.status !== 'Completed');
+  const rollsInStock = (typeof rawMaterialRolls !== 'undefined' ? rawMaterialRolls : []).filter(r => (r.meterRemaining || 0) > 0).length;
+
   const stats = [
     { num: activeSto.length, label: 'Active Outbound STO' },
     { num: lateSto, label: 'Late Outbound STO', warn: lateSto > 0 },
@@ -14076,6 +15570,8 @@ function renderDashSummaryExec() {
     { num: criticalInboundSto, label: 'Critical Inbound STO', warn: criticalInboundSto > 0 },
     { num: criticalGarment, label: 'Critical Garment', warn: criticalGarment > 0 },
     { num: fleetToday, label: 'Fleet Trips Today' },
+    { num: activeRmSto.length, label: 'Active RM STO' },
+    { num: rollsInStock, label: 'Rolls In Stock' },
   ];
   wrap.innerHTML = stats.map((s, i) =>
     `${i > 0 ? '<div class="report-exec-divider"></div>' : ''}<div class="report-exec-stat${s.warn ? ' warn' : ''}"><div class="report-exec-num">${formatQty(s.num)}</div><div class="report-exec-label">${escapeHtml(s.label)}</div></div>`
@@ -14167,6 +15663,20 @@ function renderDashSummaryFleetPie() {
     { label: 'Reschedule', count: countFor('Reschedule'), color: KPI_COLOR_HEX.amber },
     { label: 'No Trip', count: countFor('No Trip'), color: KPI_COLOR_HEX.track },
   ], deliveredPct, targetBarHex(deliveredPct), 'Delivered', 'No trips scheduled today.');
+}
+// Raw Material STO status breakdown (Active vs Completed) — fabric roll STOs only. Price Tag
+// (Baju) sticker tracking is a separate task inside the same Raw Material nav group and is
+// deliberately NOT counted here, per Shaila's request.
+function renderDashSummaryRawMaterialPie() {
+  const stos = typeof rawMaterialStos !== 'undefined' ? rawMaterialStos : [];
+  let active = 0, completed = 0;
+  stos.forEach(s => { if (s.status === 'Completed') completed++; else active++; });
+  const total = active + completed;
+  const completedPct = total ? Math.round((completed / total) * 100) : 0;
+  dashSummaryDonut('dashSummaryRawMaterialPie', 'dashSummaryRawMaterialPct', 'dashSummaryRawMaterialLegend', [
+    { label: 'Completed', count: completed, color: KPI_COLOR_HEX.green },
+    { label: 'Active', count: active, color: KPI_COLOR_HEX.blue },
+  ], completedPct, targetBarHex(completedPct), 'Completed', 'No Raw Material STO yet.');
 }
 // Achieved-vs-target doughnut (green/amber/red ring "filled" up to Achieved%, grey for the rest) —
 // same visual language as the existing Dashboard's Picker/Packer/Inbound target donuts, just sized
