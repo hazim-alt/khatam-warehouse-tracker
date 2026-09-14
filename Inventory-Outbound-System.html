@@ -9577,9 +9577,16 @@ function itemMasterProductName(it) {
   base = base.trim().replace(/-+$/, '').trim();
   return base || it.itemGroup || it.sku || '';
 }
+// SKU Auto-fill's "pick a product" list keys off the structured Item Group column (not the
+// description-parsing itemMasterProductName above) — per Shaila, Description text isn't reliably
+// stripped of Colour when the Item Color column doesn't exactly match what's embedded in that free
+// text, which was silently splitting one real product into several near-duplicate "products" (some
+// still showing a trailing "- Colour") and making a lot of genuinely-matching SKUs invisible to the
+// Colour/Size auto-fill below. Item Group is a clean, structured field with no such risk. Falls back
+// to the parsed name only for rows that have no Item Group at all.
 function itemMasterProductNames() {
   const set = new Set();
-  itemMasterList.forEach(it => { const n = itemMasterProductName(it); if (n) set.add(n); });
+  itemMasterList.forEach(it => { const n = (it.itemGroup || '').trim() || itemMasterProductName(it); if (n) set.add(n); });
   return [...set].sort((a, b) => a.localeCompare(b));
 }
 function renderItemMasterAutofillStatusNote() {
@@ -9628,20 +9635,28 @@ function applySkuAutofillForSeries(seriesKey, productName) {
   closeSkuMatchModal();
   const [series, supplier] = seriesKey.split('|||');
   const lines = priceTagStickers.filter(p => p.series === series && p.supplier === supplier);
-  const refRows = itemMasterList.filter(it => itemMasterProductName(it).toLowerCase() === productName.toLowerCase());
+  const refRows = itemMasterList.filter(it => ((it.itemGroup || '').trim() || itemMasterProductName(it)).toLowerCase() === productName.toLowerCase());
   let filled = 0, corrected = 0, alreadyHad = 0;
   const notFound = [];
   lines.forEach(l => {
     const wantColor = skuNormalizeForMatch(l.colorName);
     const wantSize = skuNormalizeSizeForMatch(l.size);
     // Same Colour+Size can map to different SKUs across campaign years (batch/version numbers baked
-    // into the SKU itself) — when this line has a Campaign Year set, prefer the Item Master List row
-    // tagged with that SAME year over whichever candidate happens to come first in the list.
+    // into the SKU itself) — when this line has a Campaign Year set, the match must be for THAT exact
+    // year. Per Shaila: do NOT fall back to a different year's SKU just because Colour+Size matches —
+    // that silently fills in the wrong year's product. No Campaign Year set on the line -> any
+    // Colour+Size match is fine (old behaviour, unchanged).
     const candidates = refRows.filter(it => skuNormalizeForMatch(it.itemColor) === wantColor && skuNormalizeSizeForMatch(it.itemSize) === wantSize);
-    let match = null;
-    if (l.campaignYear) match = candidates.find(it => (it.campaignYear || '') === l.campaignYear);
-    if (!match) match = candidates[0];
-    if (!match) { if (!l.sku) notFound.push(`${l.colorName || '-'} / ${l.size || '-'}`); return; }
+    const match = l.campaignYear
+      ? (candidates.find(it => (it.campaignYear || '') === l.campaignYear) || null)
+      : (candidates[0] || null);
+    if (!match) {
+      if (!l.sku) {
+        const yearNote = (l.campaignYear && candidates.length) ? ` (ada SKU utk colour/size ni, tapi bukan Campaign Year ${l.campaignYear})` : '';
+        notFound.push(`${l.colorName || '-'} / ${l.size || '-'}${yearNote}`);
+      }
+      return;
+    }
     if (!l.sku) { l.sku = match.sku; filled++; }
     // Only overwrite an existing SKU when we found a candidate for the line's OWN Campaign Year and
     // it genuinely disagrees with what's currently filled — never touches lines without a Campaign
@@ -12716,7 +12731,7 @@ function renderPriceTagTab() {
       <td></td>
       <td colspan="5" style="padding:6px 10px;">
         <table style="font-size:12px;"><thead><tr>
-          <th></th><th>Colour Code</th><th>Color Name</th><th>Name On Sticker</th><th>Size</th><th>SKU</th><th>Batch No.</th><th>Dye Lot No.</th><th>Quantity</th><th>Price</th>
+          <th></th><th>Colour Code</th><th>Color Name</th><th>Name On Sticker</th><th>Size</th><th>SKU</th><th>Batch No.</th><th>Dye Lot No.</th><th>Quantity</th><th>Price</th><th>Printed Qty</th><th>Printer</th><th></th>
         </tr></thead><tbody>
           ${g.lines.map(l => {
             const avail = priceTagLineAvailableToSend(l);
