@@ -2518,7 +2518,7 @@
     <p class="section-title">Item Master List</p>
     <div class="card">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-        <span class="data-note" style="margin:0;">Upload export Item Master (perlu ada column "SKU"; column "SKU Description", "Item Group", "Item Brand", "Item Size", "Item Color", "Active?" &amp; "Item UOM" — kalau ada — akan diguna sekali). List ni untuk rujukan SKU seluruh sistem, kalau perlu — disimpan dalam browser/computer ni je (tak sync ke cloud sebab saiz dia besar, macam SKU Reference kat Price Tag) — kalau buka kat computer lain, upload semula file ni kat situ.</span>
+        <span class="data-note" style="margin:0;">Upload export Item Master (perlu ada column "SKU"; column "SKU Description", "Item Group", "Item Brand", "Item Size", "Item Color", "Active?" &amp; "Item UOM" — kalau ada — akan diguna sekali). List ni untuk rujukan SKU seluruh sistem, dan sync automatik ke SEMUA account/computer (macam data lain dalam sistem ni) — tak perlu upload semula kat computer lain.</span>
         <span id="itemMasterStatusNote" class="data-note" style="margin:0; white-space:nowrap;"></span>
       </div>
       <div style="display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; margin-bottom:12px;">
@@ -8214,7 +8214,7 @@ function attachPostponedDoNosListener() {
 // in the file would throw "Cannot access before initialization". Calling this only from inside the
 // functions below (which only ever run after the whole script has finished loading) avoids that.
 function syncSettingsKeys() {
-  return [SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, STICKER_KEY, DAILY_TARGETS_KEY, CAMPAIGN_MODE_KEY, DAILY_TARGETS_CAMPAIGN_SNAPSHOT_KEY, INBOUND_ALERT_SETTINGS_KEY, EMAILJS_SETTINGS_KEY, ADMIN_PASSWORD_KEY, PACKING_STATION_RR_KEY, STAFF_SCHEDULE_KEY, STATION_PRESENCE_KEY, REQ_STOCK_TEMPLATE_KEY, REQUEST_STOCK_COUNTER_KEY];
+  return [SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, STICKER_KEY, DAILY_TARGETS_KEY, CAMPAIGN_MODE_KEY, DAILY_TARGETS_CAMPAIGN_SNAPSHOT_KEY, INBOUND_ALERT_SETTINGS_KEY, EMAILJS_SETTINGS_KEY, ADMIN_PASSWORD_KEY, PACKING_STATION_RR_KEY, STAFF_SCHEDULE_KEY, STATION_PRESENCE_KEY, REQ_STOCK_TEMPLATE_KEY, REQUEST_STOCK_COUNTER_KEY, ITEM_MASTER_IMPORTED_AT_KEY];
 }
 const FB_SETTINGS_TABLE = 'AppSettings';
 function pushSettingsDiff() {
@@ -8269,6 +8269,8 @@ function applySettingsSnapshot() {
     loadStationPresence();
     loadReqStockTemplate();
     renderReqStockTemplateStatus();
+    itemMasterImportedAt = localStorage.getItem(ITEM_MASTER_IMPORTED_AT_KEY) || '';
+    renderItemMasterStatusNote();
     // Daily Targets' inputs are a static section (not tied to any tab-switch re-render), so unlike
     // everything else here, refreshing the underlying variable above isn't enough on its own — the
     // visible fields need their own explicit repaint or they'd keep showing stale numbers until a
@@ -8712,6 +8714,92 @@ async function loadItemMasterList() {
   const tabEl = document.getElementById('tab-item-master');
   if (tabEl && tabEl.classList.contains('active')) renderItemMasterTab();
 }
+
+/* ---- Item Master List cloud sync — per Shaila, this needs to match across every account/computer,
+   not stay local-only per device. Deliberately NOT reusing the generic SYNC_COLLECTIONS polling loop
+   (cloudSyncReconcile runs every 2s and would stableStringify-diff all ~22k rows on EVERY tick,
+   forever, even when nothing changed — a real CPU cost, not just network). Instead this pushes only
+   right after an actual local mutation (upload/edit/delete/bulk-tag/reset), and pulls via a realtime
+   listener that only does work when the data genuinely changes. */
+const ITEM_MASTER_FB_TABLE = 'ItemMasterList';
+let _itemMasterLastServerSnapshot = {}; // fbSafeKey(id) -> record, mirrors fbLastServerSnapshot's role
+let itemMasterFbListenerAttached = false;
+function pushItemMasterDiffToFirebase() {
+  if (!fbDb) return;
+  const nowKeyed = {};
+  itemMasterList.forEach(it => { nowKeyed[fbSafeKey(it.id)] = it; });
+  const updateObj = {};
+  let changed = false;
+  Object.keys(nowKeyed).forEach(k => {
+    const prevStr = (_itemMasterLastServerSnapshot[k] !== undefined) ? stableStringify(_itemMasterLastServerSnapshot[k]) : undefined;
+    if (stableStringify(nowKeyed[k]) !== prevStr) { updateObj[k] = nowKeyed[k]; changed = true; }
+  });
+  Object.keys(_itemMasterLastServerSnapshot).forEach(k => { if (!(k in nowKeyed)) { updateObj[k] = null; changed = true; } });
+  if (!changed) return;
+  _itemMasterLastServerSnapshot = nowKeyed;
+  fbDb.ref(ITEM_MASTER_FB_TABLE).update(updateObj).catch(e => {
+    cloudSyncStatus = 'error';
+    cloudSyncLastError = `ItemMasterList: ${(e && e.message) || e}`;
+    renderCloudSyncStatus();
+  });
+}
+function applyItemMasterServerSnapshot(remoteObj) {
+  _itemMasterLastServerSnapshot = remoteObj || {};
+  const remoteArr = Object.values(_itemMasterLastServerSnapshot);
+  if (stableStringify(remoteArr) === stableStringify(itemMasterList)) return; // no-op — likely our own echo
+  itemMasterList = remoteArr;
+  itemMasterReplaceAll(remoteArr).catch(e => console.error('itemMasterReplaceAll (remote sync) failed', e));
+  itemMasterPage = 0;
+  const tabEl = document.getElementById('tab-item-master');
+  if (tabEl && tabEl.classList.contains('active')) renderItemMasterTab();
+}
+function attachItemMasterFbListener() {
+  if (!fbDb || itemMasterFbListenerAttached) return;
+  itemMasterFbListenerAttached = true;
+  fbDb.ref(ITEM_MASTER_FB_TABLE).on('value', snapshot => {
+    applyItemMasterServerSnapshot(snapshot.val() || {});
+  }, error => {
+    cloudSyncStatus = 'error';
+    cloudSyncLastError = `ItemMasterList: ${(error && error.message) || error}`;
+    renderCloudSyncStatus();
+  });
+}
+// Runs once at startup (alongside initialCloudSync). First time EVER on this computer: union-merge
+// (keep every local item, adopt every remote-only item) so this computer's existing upload isn't
+// silently discarded just because Firebase happened to have something (or nothing) already — same
+// reasoning as initialCloudSync's own first-run handling. Every run after that: remote wins outright.
+async function initialItemMasterCloudSync() {
+  if (!fbDb) return;
+  await loadItemMasterList(); // make sure itemMasterList reflects this computer's IndexedDB before merging
+  try {
+    const snap = await fbDb.ref(ITEM_MASTER_FB_TABLE).once('value');
+    const remoteObj = snap.val() || {};
+    _itemMasterLastServerSnapshot = remoteObj;
+    const everMergedKey = fbEverMergedKey(ITEM_MASTER_FB_TABLE);
+    if (!localStorage.getItem(everMergedKey)) {
+      const localKeys = new Set(itemMasterList.map(it => fbSafeKey(it.id)));
+      const mergedArr = [...itemMasterList];
+      Object.keys(remoteObj).forEach(k => { if (!localKeys.has(k)) mergedArr.push(remoteObj[k]); });
+      if (stableStringify(mergedArr) !== stableStringify(itemMasterList)) {
+        itemMasterList = mergedArr;
+        await itemMasterReplaceAll(mergedArr);
+        itemMasterPage = 0;
+        const tabEl = document.getElementById('tab-item-master');
+        if (tabEl && tabEl.classList.contains('active')) renderItemMasterTab();
+      }
+      pushItemMasterDiffToFirebase();
+      localStorage.setItem(everMergedKey, '1');
+    } else {
+      applyItemMasterServerSnapshot(remoteObj);
+      pushItemMasterDiffToFirebase();
+    }
+  } catch (e) {
+    cloudSyncStatus = 'error';
+    cloudSyncLastError = `ItemMasterList: ${(e && e.message) || e}`;
+    renderCloudSyncStatus();
+  }
+  attachItemMasterFbListener();
+}
 // Available for any other tab to call later, e.g. to auto-fill an item's details from its SKU.
 // Cached SKU->item index, keyed off the current itemMasterList array reference — auto-rebuilds
 // itself whenever itemMasterList is reassigned (upload/delete/restore all create a NEW array), so
@@ -8819,6 +8907,8 @@ function processUploadedItemMasterFile(file) {
       }
       itemMasterImportedAt = new Date().toISOString();
       localStorage.setItem(ITEM_MASTER_IMPORTED_AT_KEY, itemMasterImportedAt);
+      pushItemMasterDiffToFirebase();
+      pushSettingsDiff();
       itemMasterPage = 0;
       const droppedCount = objRows.length - mapped.length;
       const modeLabel = uploadMode === 'replace' ? 'loaded (list lama digantikan)' : 'ditambah/dikemaskini (item lain dalam list dikekalkan)';
@@ -8966,6 +9056,7 @@ function renderItemMasterTable() {
         return;
       }
       itemMasterList = itemMasterList.filter(x => x.id !== it.id);
+      pushItemMasterDiffToFirebase();
       renderItemMasterTab();
     });
   });
@@ -9021,6 +9112,7 @@ async function saveItemMasterForm() {
     alert('Gagal simpan item ni: ' + err.message);
     return;
   }
+  pushItemMasterDiffToFirebase();
   closeItemMasterForm();
   renderItemMasterTab();
 }
@@ -9049,6 +9141,7 @@ async function itemMasterBulkAssignCampaignYear() {
     alert('Gagal simpan Campaign Year untuk item-item ni: ' + err.message);
     return;
   }
+  pushItemMasterDiffToFirebase();
   alert(`Done — ${formatQty(targets.length)} item ditag Campaign Year "${trimmedYear || '(kosong)'}".`);
   renderItemMasterTab();
 }
@@ -9079,6 +9172,7 @@ document.getElementById('resetItemMasterBtn').addEventListener('click', async ()
   itemMasterList = [];
   itemMasterImportedAt = '';
   localStorage.removeItem(ITEM_MASTER_IMPORTED_AT_KEY);
+  pushItemMasterDiffToFirebase();
   itemMasterPage = 0;
   renderItemMasterTab();
   updateResetUndoButtons();
@@ -9097,6 +9191,7 @@ document.getElementById('undoResetItemMasterBtn').addEventListener('click', asyn
     return;
   }
   localStorage.removeItem(ITEM_MASTER_HAS_BACKUP_KEY);
+  pushItemMasterDiffToFirebase();
   itemMasterPage = 0;
   renderItemMasterTab();
   updateResetUndoButtons();
@@ -13880,8 +13975,8 @@ function renderCloudSyncStatus() {
   if (sidebarNote) sidebarNote.textContent = shortText;
   updateSidebarSyncBarVisibility();
 }
-document.getElementById('cloudSyncNowBtn').addEventListener('click', () => { initialCloudSync(); });
-document.getElementById('sidebarSyncNowBtn').addEventListener('click', () => { initialCloudSync(); });
+document.getElementById('cloudSyncNowBtn').addEventListener('click', () => { initialCloudSync(); initialItemMasterCloudSync(); });
+document.getElementById('sidebarSyncNowBtn').addEventListener('click', () => { initialCloudSync(); initialItemMasterCloudSync(); });
 
 const FLEET_DRIVERS_KEY = 'sto_fleet_drivers_v1';
 const FLEET_VEHICLES_KEY_LEGACY = 'sto_fleet_vehicles_v1'; // pre-simplification key (had plate/vehicle type too)
@@ -23060,7 +23155,9 @@ renderLoginBoutiqueMarkers();
 initAuthGate();
 async function syncThenRecheckAuthGate() {
   if (isCloudSyncEnabled()) {
-    try { await initialCloudSync(); } catch (e) { /* keep whatever's already showing */ }
+    // Run together (not one-after-another) so the large Item Master sync doesn't add extra wait
+    // time on top of the normal (much smaller/faster) collections sync before the login gate re-checks.
+    try { await Promise.all([initialCloudSync(), initialItemMasterCloudSync()]); } catch (e) { /* keep whatever's already showing */ }
     initAuthGate();
     renderLoginBoutiqueMarkers();
   }
