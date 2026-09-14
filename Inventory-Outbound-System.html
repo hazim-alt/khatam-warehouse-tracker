@@ -398,6 +398,19 @@
   tr:last-child td { border-bottom: none; }
   tr:hover { background: rgba(255,255,255,0.03); }
   .mono-name { font-weight: 600; font-family: Georgia, serif; }
+  /* Stock Balance pivot table (SKU rows × Boutique columns) — plain td wrapping made Description
+     wrap onto several lines and blow up every row's height, and with 15-20+ boutique columns
+     there was no way to tell which row/SKU a value on the far right belonged to once scrolled.
+     Forcing single-line cells + truncating Description with an ellipsis (full text on hover via
+     title=) fixes the row-height mess; pinning the SKU column (sticky left, like the header row is
+     already sticky top) keeps it in view while scrolling through the boutique columns. */
+  .stock-balance-pivot-table td { white-space: nowrap; text-align: right; }
+  .stock-balance-pivot-table th.sbp-text, .stock-balance-pivot-table td.sbp-text { text-align: left; }
+  .stock-balance-pivot-table td.sbp-desc { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+  .stock-balance-pivot-table th.sbp-sku, .stock-balance-pivot-table td.sbp-sku {
+    position: sticky; left: 0; background: var(--card); z-index: 2; text-align: left;
+  }
+  .stock-balance-pivot-table thead th.sbp-sku { z-index: 3; }
   #lateStoListWrap table { font-size: 11px; }
   #lateStoListWrap th, #lateStoListWrap td { padding: 6px 8px; }
   #lateStoListWrap .mono-name { font-weight: 600; font-size: 11px; }
@@ -981,6 +994,66 @@
     </div>
     <div class="login-error" id="loginErrorNote"></div>
     <button class="btn-primary" id="loginSubmitBtn">Log In</button>
+    <button class="btn-ghost" id="guestReqStockOpenBtn" type="button" style="margin-top:10px; width:100%;">Request Stock (No Login Required)</button>
+  </div>
+</div>
+
+<!-- Guest Request Stock — lets staff submit a stock request (download blank form, fill, attach,
+     submit) WITHOUT logging in. Reuses the same requestStockList/reqStock* helper functions and
+     data (itemMasterList, stockBalanceList, reqStockTemplate) as the authenticated Request Stock
+     tab — those all load unconditionally at startup (see loadData()), independent of login state —
+     but has its own separate DOM ids/draft state so it never touches or exposes anything else in
+     the (still logged-out) app, including the Request History list of other people's requests. -->
+<div class="modal-overlay hidden" id="guestReqStockOverlay" style="position:fixed; background:var(--bg); z-index:5001;">
+  <div class="modal-box" style="max-width:920px;">
+    <div class="modal-header">
+      <p class="section-title" style="margin:0;">Request Stock</p>
+      <div style="display:flex; gap:8px;">
+        <button type="button" class="btn-ghost" id="guestReqStockCheckStatusBtn">Check Status</button>
+        <button type="button" class="btn-ghost" id="guestReqStockCloseBtn">← Back to Login</button>
+      </div>
+    </div>
+    <div class="card">
+      <p class="rm-form-section-label" style="margin-top:0;">Request Form (PDF)</p>
+      <div id="guestReqStockTemplateStatus" class="data-note" style="margin:0;"></div>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <p class="rm-form-section-label" style="margin-top:0;">New Request</p>
+      <div class="rm-form-grid">
+        <div class="field"><label>Requester Name</label><input type="text" id="guestReqStockRequester" placeholder="e.g. Aina"></div>
+        <div class="field"><label>Purpose</label>
+          <input type="text" id="guestReqStockPurpose" placeholder="e.g. Bulk Order, Photoshoot, Sponsorship..." style="width:100%;">
+        </div>
+        <div class="field"><label>Date Needed</label><input type="date" id="guestReqStockDateNeeded"></div>
+      </div>
+      <p class="rm-form-section-label">Items Requested</p>
+      <div id="guestReqStockItemsWrap"></div>
+      <button type="button" class="btn-ghost" id="guestReqStockAddItemBtn" style="margin-top:4px;">+ Add Item</button>
+      <div id="guestReqStockConfirmedItemsWrap" style="margin-top:10px;"></div>
+      <div class="field" style="margin-top:14px;"><label>Notes</label><textarea id="guestReqStockNotes" rows="2" placeholder="Optional notes..." style="width:100%;"></textarea></div>
+      <div class="field" style="margin-top:14px;">
+        <label>Attach Filled Form (PDF)</label>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <input type="file" id="guestReqStockAttachmentInput" accept="application/pdf">
+          <span id="guestReqStockAttachmentName" class="data-note" style="margin:0;"></span>
+        </div>
+        <span class="data-note" style="margin:6px 0 0;">Download the blank form above, fill it in, then attach the completed file here before you can submit.</span>
+      </div>
+      <button type="button" class="btn-primary" id="guestReqStockSubmitBtn" style="margin-top:14px;">+ Submit Request</button>
+      <div id="guestReqStockLastSubmittedNote" style="margin-top:12px;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="guestReqStockStatusOverlay" style="position:fixed; background:var(--bg); z-index:5002;">
+  <div class="modal-box" style="max-width:520px;">
+    <div class="modal-header">
+      <p class="section-title" style="margin:0;">Check Request Status</p>
+      <button type="button" class="icon-btn" id="guestReqStockStatusCloseBtn">✕</button>
+    </div>
+    <div class="field"><label>Request No.</label><input type="text" id="guestReqStockStatusReqNo" placeholder="e.g. KFA-REQ/Sponsorship/20260911/003"></div>
+    <button type="button" class="btn-primary" id="guestReqStockStatusSearchBtn" style="margin-top:12px;">Search</button>
+    <div id="guestReqStockStatusResult" style="margin-top:14px;"></div>
   </div>
 </div>
 
@@ -1078,7 +1151,9 @@
     </div>
     <button class="tab-btn" data-tab="staff-schedule">Staff Schedule</button>
     <button class="tab-btn" data-tab="item-master">Item Master List</button>
+    <button class="tab-btn" data-tab="stock-balance">Stock Balance</button>
     <button class="tab-btn" data-tab="finance">Finance</button>
+    <button class="tab-btn" data-tab="request-stock">Request Stock</button>
     <button class="tab-btn" data-tab="laporan">Reports</button>
   </nav>
   <div id="sidebarSyncBar" style="display:none; flex-direction:column; align-items:flex-start; gap:6px; margin-top:auto; padding:14px 24px; border-top:1px solid rgba(255,255,255,0.1);">
@@ -2524,6 +2599,41 @@
     </div>
   </section>
 
+  <section class="tab-panel" id="tab-stock-balance">
+    <p class="section-title">Stock Balance</p>
+    <div class="card">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <span class="data-note" style="margin:0;">Upload export "Inventory Balance Summary Report" (perlu ada column "SKU"; column "SKU Description", "Item Group", "Item Brand", "Item UOM" &amp; "Total Qty" — kalau ada — akan diguna sekali). Kalau report ada breakdown per Boutique/Customer, setiap SKU akan disimpan berasingan ikut butik. Row "Unused Product" &amp; "China Rewash" auto-exclude setiap upload. Setiap upload GANTI list sedia ada sepenuhnya (snapshot terkini, bukan tambah) — data ni disimpan dalam browser/computer ni je (tak sync ke cloud sebab saiz dia besar, macam Item Master List) — kalau buka kat computer lain, upload semula file ni kat situ.</span>
+        <span id="stockBalanceStatusNote" class="data-note" style="margin:0; white-space:nowrap;"></span>
+      </div>
+      <div class="dropzone" id="stockBalanceDropzone">
+        <div class="dropzone-icon">⬆</div>
+        <div class="upload-row">
+          <label class="upload-btn-label">
+            Choose File
+            <input type="file" id="stockBalanceFileInput" accept=".csv,.xlsx,.xls">
+          </label>
+          <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx / .xls file here</span>
+        </div>
+      </div>
+      <div class="upload-status" id="stockBalanceUploadStatus"></div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <p class="section-title" style="margin-top:0;">Stock List</p>
+      <div id="stockBalanceKpiGrid" class="kpi-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom:14px;"></div>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <input type="text" id="stockBalanceSearchInput" placeholder="Search SKU / Description / Group / Brand / Boutique..." style="flex:1; min-width:220px;">
+        <select id="stockBalanceYearFilter" style="width:auto;"><option value="">All Campaign Years</option></select>
+        <select id="stockBalanceBrandFilter" style="width:auto;"><option value="">All Brands</option></select>
+        <select id="stockBalanceGroupFilter" style="width:auto;"><option value="">All Groups</option></select>
+      </div>
+      <div class="data-note" style="margin:0 0 10px;">Setiap boutique jadi satu column (macam pivot table) — scroll ke kanan kalau column banyak.</div>
+      <div id="stockBalanceTableWrap" class="scroll-table"></div>
+      <div id="stockBalancePaginationWrap" style="display:flex; align-items:center; justify-content:center; gap:10px; margin-top:12px;"></div>
+    </div>
+  </section>
+
   <section class="tab-panel" id="tab-finance">
     <p class="section-title">Finance — Fabric Stock Dashboard</p>
     <div class="card" style="margin-bottom:16px;">
@@ -2548,6 +2658,62 @@
       <div id="financeViewWrap"></div>
     </div>
   </section>
+
+  <section class="tab-panel" id="tab-request-stock">
+    <p class="section-title">Request Stock</p>
+    <div class="card">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;">
+        <div>
+          <p class="rm-form-section-label" style="margin:0 0 6px;">Borang Request (PDF)</p>
+          <div id="reqStockTemplateStatus" class="data-note" style="margin:0;"></div>
+        </div>
+        <div id="reqStockTemplateUploadWrap" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <input type="file" id="reqStockTemplateUploadInput" accept="application/pdf" style="max-width:230px;">
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <p class="rm-form-section-label" style="margin-top:0;">New Request</p>
+      <div class="rm-form-grid">
+        <div class="field"><label>Requester Name</label><input type="text" id="reqStockRequester" placeholder="e.g. Aina"></div>
+        <div class="field"><label>Purpose</label>
+          <input type="text" id="reqStockPurpose" placeholder="e.g. Bulk Order, Photoshoot, Sponsorship..." style="width:100%;">
+        </div>
+        <div class="field"><label>Date Needed</label><input type="date" id="reqStockDateNeeded"></div>
+      </div>
+      <p class="rm-form-section-label">Items Requested</p>
+      <div id="reqStockItemsWrap"></div>
+      <button type="button" class="btn-ghost" id="reqStockAddItemBtn" style="margin-top:4px;">+ Add Item</button>
+      <div id="reqStockConfirmedItemsWrap" style="margin-top:10px;"></div>
+      <div class="field" style="margin-top:14px;"><label>Notes</label><textarea id="reqStockNotes" rows="2" placeholder="Optional notes..." style="width:100%;"></textarea></div>
+      <div class="field" style="margin-top:14px;">
+        <label>Attach Filled Form (PDF)</label>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <input type="file" id="reqStockAttachmentInput" accept="application/pdf">
+          <span id="reqStockAttachmentName" class="data-note" style="margin:0;"></span>
+        </div>
+        <span class="data-note" style="margin:6px 0 0;">Download borang PDF yang dah dikongsi, isi, pastu attach fail yang dah diisi tu kat sini sebelum boleh submit.</span>
+      </div>
+      <button type="button" class="btn-primary" id="reqStockSubmitBtn" style="margin-top:14px;">+ Submit Request</button>
+    </div>
+
+    <div class="card">
+      <p class="rm-form-section-label" style="margin-top:0;">Request History</p>
+      <div id="reqStockHistoryWrap"></div>
+    </div>
+  </section>
+
+  <div class="modal-overlay hidden" id="reqStockProcessModal">
+    <div class="modal-box" style="max-width:860px;">
+      <div class="modal-header">
+        <p class="section-title" style="margin:0;">Process Request — <span id="reqStockProcessRequesterLabel"></span></p>
+        <button type="button" class="icon-btn" id="reqStockProcessCloseBtn">✕</button>
+      </div>
+      <div class="data-note" style="margin:0 0 12px;">Check setiap SKU secara fizikal ikut location kat bawah. Kalau takde stock, tandakan "Exchanged" &amp; catat barang gantian dalam Notes.</div>
+      <div id="reqStockProcessItemsWrap"></div>
+      <button type="button" class="btn-primary" id="reqStockProcessSaveBtn" style="margin-top:14px;">Save</button>
+    </div>
+  </div>
 
   <section class="tab-panel" id="tab-laporan">
     <p class="section-title">Reports</p>
@@ -4084,8 +4250,11 @@ function loadData() {
   loadPriceTagStickers();
   loadPriceTagPrinters();
   loadPriceTagDos();
+  loadRequestStockList();
+  loadReqStockTemplate();
   loadSkuReference();
   loadItemMasterList();
+  loadStockBalanceList();
   // Cleans up any STO No. duplicates already sitting in storage (e.g. from two devices each adding
   // the same STO No. before they'd ever synced with each other — see backfillNaturalSyncIds above)
   // and makes sure every record has a stable id going forward, right from the moment data loads —
@@ -4779,7 +4948,9 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'fleet-trips' || btn.dataset.tab === 'fleet-board' || btn.dataset.tab === 'fleet-driver-trip') renderFleetTab();
     if (btn.dataset.tab === 'staff-schedule') { renderStaffRosterList(); renderStaffScheduleGrid(); }
     if (btn.dataset.tab === 'item-master') renderItemMasterTab();
+    if (btn.dataset.tab === 'stock-balance') renderStockBalanceTab();
     if (btn.dataset.tab === 'finance') renderFinanceTab();
+    if (btn.dataset.tab === 'request-stock') renderRequestStockTab();
     updateSidebarSyncBarVisibility();
   });
 });
@@ -7483,7 +7654,9 @@ const PERMISSION_TABS = [
   { id: 'team-printers', label: 'Printers (Team Setup)' },
   { id: 'staff-schedule', label: 'Staff Schedule' },
   { id: 'item-master', label: 'Item Master List' },
+  { id: 'stock-balance', label: 'Stock Balance' },
   { id: 'finance', label: 'Finance' },
+  { id: 'request-stock', label: 'Request Stock' },
   { id: 'laporan', label: 'Reports' },
 ];
 function userCanAccessTab(user, tabId) {
@@ -8041,7 +8214,7 @@ function attachPostponedDoNosListener() {
 // in the file would throw "Cannot access before initialization". Calling this only from inside the
 // functions below (which only ever run after the whole script has finished loading) avoids that.
 function syncSettingsKeys() {
-  return [SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, STICKER_KEY, DAILY_TARGETS_KEY, CAMPAIGN_MODE_KEY, DAILY_TARGETS_CAMPAIGN_SNAPSHOT_KEY, INBOUND_ALERT_SETTINGS_KEY, EMAILJS_SETTINGS_KEY, ADMIN_PASSWORD_KEY, PACKING_STATION_RR_KEY, STAFF_SCHEDULE_KEY, STATION_PRESENCE_KEY];
+  return [SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, STICKER_KEY, DAILY_TARGETS_KEY, CAMPAIGN_MODE_KEY, DAILY_TARGETS_CAMPAIGN_SNAPSHOT_KEY, INBOUND_ALERT_SETTINGS_KEY, EMAILJS_SETTINGS_KEY, ADMIN_PASSWORD_KEY, PACKING_STATION_RR_KEY, STAFF_SCHEDULE_KEY, STATION_PRESENCE_KEY, REQ_STOCK_TEMPLATE_KEY, REQUEST_STOCK_COUNTER_KEY];
 }
 const FB_SETTINGS_TABLE = 'AppSettings';
 function pushSettingsDiff() {
@@ -8094,6 +8267,8 @@ function applySettingsSnapshot() {
     loadDailyTargetsCampaignSnapshot();
     loadStaffSchedule();
     loadStationPresence();
+    loadReqStockTemplate();
+    renderReqStockTemplateStatus();
     // Daily Targets' inputs are a static section (not tied to any tab-switch re-render), so unlike
     // everything else here, refreshing the underlying variable above isn't enough on its own — the
     // visible fields need their own explicit repaint or they'd keep showing stale numbers until a
@@ -8538,10 +8713,29 @@ async function loadItemMasterList() {
   if (tabEl && tabEl.classList.contains('active')) renderItemMasterTab();
 }
 // Available for any other tab to call later, e.g. to auto-fill an item's details from its SKU.
+// Cached SKU->item index, keyed off the current itemMasterList array reference — auto-rebuilds
+// itself whenever itemMasterList is reassigned (upload/delete/restore all create a NEW array), so
+// there's no separate "invalidate cache" call needed at every mutation site. Without this, every
+// lookup was a full linear scan (itemMasterList.find(...)) — fine for one-off calls, but Stock
+// Balance's pivot table calls this once per unique SKU on every render, which made opening/filtering
+// that tab slow once both lists got into the thousands of rows.
+let _itemMasterSkuIndexCache = null;
+let _itemMasterSkuIndexSource = null;
+function itemMasterSkuIndex() {
+  if (_itemMasterSkuIndexSource !== itemMasterList) {
+    _itemMasterSkuIndexCache = new Map();
+    itemMasterList.forEach(it => {
+      const key = (it.sku || '').trim().toUpperCase();
+      if (key) _itemMasterSkuIndexCache.set(key, it);
+    });
+    _itemMasterSkuIndexSource = itemMasterList;
+  }
+  return _itemMasterSkuIndexCache;
+}
 function itemMasterLookupBySku(sku) {
   const key = String(sku || '').trim().toUpperCase();
   if (!key) return null;
-  return itemMasterList.find(it => (it.sku || '').trim().toUpperCase() === key) || null;
+  return itemMasterSkuIndex().get(key) || null;
 }
 function genItemMasterId() { return 'im_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
@@ -8907,6 +9101,358 @@ document.getElementById('undoResetItemMasterBtn').addEventListener('click', asyn
   renderItemMasterTab();
   updateResetUndoButtons();
 });
+
+/* ==================== Stock Balance (finished goods on-hand snapshot) ====================
+   She uploads her "Inventory Balance Summary Report" export straight in (already filtered on her
+   end to exclude unused products / China rewash items) — this tab does not compute IN/OUT itself,
+   it just stores and browses whatever snapshot she uploads. Each upload REPLACES the whole list
+   (it's a point-in-time snapshot, not an additive catalog like Item Master List). Same IndexedDB
+   storage pattern as Item Master List (can run to 10,000+ rows — way too big for localStorage, and
+   not synced to Firebase for the same reason). */
+const STOCK_BALANCE_IMPORTED_AT_KEY = 'sto_stock_balance_imported_at_v1';
+const STOCK_BALANCE_DB_NAME = 'khatam_stock_balance_db';
+const STOCK_BALANCE_DB_VERSION = 1;
+const STOCK_BALANCE_STORE = 'items';
+let stockBalanceList = []; // [{ id, sku, description, itemGroup, itemBrand, uom, location, qty }] — one row per SKU, or per SKU+Boutique when the upload has a per-location breakdown ("location" is '' for a plain non-boutique summary report)
+let stockBalanceImportedAt = '';
+let stockBalanceDb = null;
+function openStockBalanceDb() {
+  return new Promise((resolve, reject) => {
+    if (stockBalanceDb) { resolve(stockBalanceDb); return; }
+    if (!window.indexedDB) { reject(new Error('Browser ni tak support IndexedDB.')); return; }
+    const req = indexedDB.open(STOCK_BALANCE_DB_NAME, STOCK_BALANCE_DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STOCK_BALANCE_STORE)) db.createObjectStore(STOCK_BALANCE_STORE, { keyPath: 'id' });
+    };
+    req.onsuccess = (e) => { stockBalanceDb = e.target.result; resolve(stockBalanceDb); };
+    req.onerror = (e) => reject((e.target && e.target.error) || new Error('Gagal buka storan Stock Balance.'));
+  });
+}
+function stockBalanceReplaceAll(list) {
+  return openStockBalanceDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(STOCK_BALANCE_STORE, 'readwrite');
+    const store = tx.objectStore(STOCK_BALANCE_STORE);
+    store.clear();
+    list.forEach(it => store.put(it));
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+function stockBalanceGetAll() {
+  return openStockBalanceDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(STOCK_BALANCE_STORE, 'readonly');
+    const req = tx.objectStore(STOCK_BALANCE_STORE).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  }));
+}
+// Async — called (unawaited, fire-and-forget) from loadData() at startup; if the Stock Balance tab
+// happens to already be open when it resolves, it re-renders itself so it doesn't sit empty/stale.
+async function loadStockBalanceList() {
+  stockBalanceImportedAt = localStorage.getItem(STOCK_BALANCE_IMPORTED_AT_KEY) || '';
+  try {
+    stockBalanceList = await stockBalanceGetAll();
+  } catch (err) {
+    stockBalanceList = [];
+  }
+  const tabEl = document.getElementById('tab-stock-balance');
+  if (tabEl && tabEl.classList.contains('active')) renderStockBalanceTab();
+}
+function genStockBalanceId() { return 'sb_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+function renderStockBalanceStatusNote() {
+  const el = document.getElementById('stockBalanceStatusNote');
+  if (!el) return;
+  if (!stockBalanceList.length) { el.textContent = 'Belum ada Stock Balance diupload.'; return; }
+  const dateLabel = stockBalanceImportedAt ? formatDateLabel(stockBalanceImportedAt.slice(0, 10)) : '';
+  const distinctSkuCount = new Set(stockBalanceList.map(it => it.sku.toUpperCase())).size;
+  el.textContent = `${formatQty(distinctSkuCount)} SKU (${formatQty(stockBalanceList.length)} row) loaded${dateLabel ? ` (${dateLabel})` : ''}.`;
+}
+
+// Location buckets that mean "not real sellable stock" in her export (quarantined/rewash items,
+// or a catch-all for SKUs not currently in use) — always excluded on import, per her instruction,
+// so she never has to pre-filter the export herself before uploading.
+const STOCK_BALANCE_EXCLUDED_LOCATIONS = ['UNUSED PRODUCT', 'CHINA REWASH'];
+function processUploadedStockBalanceFile(file) {
+  const statusEl = document.getElementById('stockBalanceUploadStatus');
+  statusEl.textContent = 'Processing file... (list besar, mungkin ambil beberapa saat)';
+  statusEl.className = 'upload-status';
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = async (evt) => {
+    try {
+      // Read as raw rows (arrays), NOT header-mapped objects — her "per boutique" export has one
+      // more column in the data than the header row declares (an extra unlabeled Boutique/Customer
+      // column got inserted between "Customer" and "Zone" without the header text being updated),
+      // so mapping by header name would silently misalign and read the wrong (empty) field as
+      // "Total Qty". Reading positionally sidesteps that: SKU/Description/UOM/Group/Brand are
+      // always the first columns (found by header name, which IS reliable for that stable prefix),
+      // Total Qty is always the LAST column in the data row, and the Boutique/Location name — when
+      // present — is whichever middle column between Brand and Qty actually has a value.
+      let rows = [];
+      if (ext === 'csv') {
+        const text = String(evt.target.result).replace(/^﻿/, '');
+        rows = parseCsvRows(text);
+      } else {
+        const wb = XLSX.read(evt.target.result, { type: 'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+      }
+      if (!rows.length) throw new Error('File kosong / takde data.');
+      const header = rows[0].map(h => String(h || '').trim().toLowerCase());
+      const skuIdx = header.findIndex(h => h === 'sku');
+      if (skuIdx === -1) throw new Error('File ni perlu ada column "SKU".');
+      const descIdx = header.findIndex(h => h === 'sku description');
+      const uomIdx = header.findIndex(h => h === 'item uom');
+      const groupIdx = header.findIndex(h => h === 'item group');
+      const brandIdx = header.findIndex(h => h === 'item brand');
+      const coreIdxMax = Math.max(skuIdx, descIdx, uomIdx, groupIdx, brandIdx);
+      const dataRows = rows.slice(1);
+      let excludedCount = 0;
+      // Aggregate by SKU + Location (not SKU alone) — she wants the per-boutique breakdown kept,
+      // not collapsed into one network-wide total. If there's no per-location data at all in this
+      // file (older "Summary" export, no extra column), location stays '' for every row and this
+      // collapses back to one row per SKU, same as before.
+      const byKey = new Map();
+      dataRows.forEach(r => {
+        if (!r || !r.length) return;
+        const sku = String(r[skuIdx] || '').trim();
+        if (!sku) return;
+        const qty = parseFloat(r[r.length - 1]) || 0;
+        const midFields = r.slice(coreIdxMax + 1, r.length - 1);
+        const location = (midFields.find(v => String(v || '').trim()) || '').toString().trim();
+        const locUpper = location.toUpperCase();
+        if (STOCK_BALANCE_EXCLUDED_LOCATIONS.some(x => locUpper.includes(x))) { excludedCount++; return; }
+        const key = sku.toUpperCase() + '|||' + locUpper;
+        if (byKey.has(key)) {
+          byKey.get(key).qty += qty;
+        } else {
+          byKey.set(key, {
+            id: genStockBalanceId(),
+            sku,
+            description: descIdx > -1 ? String(r[descIdx] || '').trim() : '',
+            itemGroup: groupIdx > -1 ? String(r[groupIdx] || '').trim() : '',
+            itemBrand: brandIdx > -1 ? String(r[brandIdx] || '').trim() : '',
+            uom: uomIdx > -1 ? String(r[uomIdx] || '').trim() : '',
+            location,
+            qty,
+          });
+        }
+      });
+      const mapped = [...byKey.values()];
+      if (!mapped.length) throw new Error('Takde row yang valid (SKU kosong semua, atau semua row kena exclude?).');
+      statusEl.textContent = `Saving ${formatQty(mapped.length)} row ke storan...`;
+      await stockBalanceReplaceAll(mapped);
+      stockBalanceList = mapped;
+      stockBalanceImportedAt = new Date().toISOString();
+      localStorage.setItem(STOCK_BALANCE_IMPORTED_AT_KEY, stockBalanceImportedAt);
+      stockBalancePage = 0;
+      const distinctSkuCount = new Set(mapped.map(it => it.sku.toUpperCase())).size;
+      statusEl.textContent = `Success: ${formatQty(distinctSkuCount)} SKU (${formatQty(mapped.length)} row, merentas semua butik) di-load (list lama digantikan)${excludedCount > 0 ? ` — ${formatQty(excludedCount)} row "Unused Product"/"China Rewash" dibuang` : ''}.`;
+      statusEl.className = 'upload-status ok';
+      renderStockBalanceTab();
+    } catch (err) {
+      statusEl.textContent = 'Failed to process file: ' + err.message;
+      statusEl.className = 'upload-status err';
+    }
+  };
+  reader.onerror = () => { statusEl.textContent = 'Failed to read file.'; statusEl.className = 'upload-status err'; };
+  if (ext === 'csv') reader.readAsText(file);
+  else reader.readAsArrayBuffer(file);
+}
+document.getElementById('stockBalanceFileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  processUploadedStockBalanceFile(file);
+  e.target.value = '';
+});
+const stockBalanceDropzone = document.getElementById('stockBalanceDropzone');
+['dragenter', 'dragover'].forEach(evtName => {
+  stockBalanceDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); stockBalanceDropzone.classList.add('dragover'); });
+});
+['dragleave', 'drop'].forEach(evtName => {
+  stockBalanceDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); stockBalanceDropzone.classList.remove('dragover'); });
+});
+stockBalanceDropzone.addEventListener('drop', (e) => {
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (file) processUploadedStockBalanceFile(file);
+});
+
+/* ---- Stock List table: pivoted like her reference sheet — one row per SKU (with Description,
+   Group, Colour, Size), one column per boutique, qty in each cell — with search + Brand/Group
+   filter + pagination (list can run to 10,000+ distinct SKUs across 100,000+ source rows —
+   rendering all of it at once would freeze the browser). */
+let stockBalancePage = 0;
+const STOCK_BALANCE_PAGE_SIZE = 50;
+function stockBalanceBrands() { return [...new Set(stockBalanceList.map(it => it.itemBrand).filter(Boolean))].sort((a, b) => a.localeCompare(b)); }
+function stockBalanceGroups() { return [...new Set(stockBalanceList.map(it => it.itemGroup).filter(Boolean))].sort((a, b) => a.localeCompare(b)); }
+function stockBalanceLocations() { return [...new Set(stockBalanceList.map(it => it.location).filter(Boolean))].sort((a, b) => a.localeCompare(b)); }
+// Campaign Year isn't a column in the Stock Balance export itself — it's looked up per-SKU from
+// Item Master List (same source as the pivot table's Colour/Size), so this only lists years for
+// SKUs that also happen to be catalogued there. Newest first, like Request Stock's Year dropdown.
+function stockBalanceCampaignYears() {
+  const seen = new Set();
+  const skuSeen = new Set();
+  stockBalanceList.forEach(it => {
+    const key = it.sku.toUpperCase();
+    if (skuSeen.has(key)) return;
+    skuSeen.add(key);
+    const master = itemMasterLookupBySku(it.sku);
+    if (master && master.campaignYear) seen.add(master.campaignYear);
+  });
+  return [...seen].sort((a, b) => b.localeCompare(a));
+}
+// Her export's location names are long ("KHATAM BOUTIQUE, ANGSANA MALL", "KHATAM HEADQUARTER -
+// ONLINE") — too wide to use as column headers in a per-boutique pivot table, so this strips the
+// common "KHATAM BOUTIQUE, " / "KHATAM BOOTH, " / "KHATAM HEADQUARTER - " / "KHATAM " prefixes and
+// common mall/sentral suffixes down to just the short place name, matching the column-header style
+// on her reference sheet (e.g. "WAREHOUSE", "ONLINE", "ANGSANA", "BANGI", "I-CITY").
+function stockBalanceShortLocation(loc) {
+  if (!loc) return '(No Boutique)';
+  let s = loc.trim();
+  s = s.replace(/^KHATAM BOUTIQUE,\s*/i, '');
+  s = s.replace(/^KHATAM BOOTH,\s*/i, '');
+  s = s.replace(/^KHATAM HEADQUARTER\s*-\s*/i, '');
+  s = s.replace(/^KHATAM\s+/i, '');
+  s = s.replace(/\s+CITY MALL$/i, '');
+  s = s.replace(/\s+MALL$/i, '');
+  s = s.replace(/\s+SENTRAL$/i, '');
+  s = s.trim();
+  return s || loc;
+}
+// Groups the flat (SKU, Boutique, Qty) rows into one row per SKU with a qtyByLoc map — Colour/Size
+// come from Item Master List (the same finished-goods reference used elsewhere) when this SKU is
+// catalogued there, since the Stock Balance export itself doesn't have separate Colour/Size columns.
+function stockBalancePivotBuild(list) {
+  const bySku = new Map();
+  list.forEach(it => {
+    const key = it.sku.toUpperCase();
+    if (!bySku.has(key)) {
+      const master = itemMasterLookupBySku(it.sku);
+      bySku.set(key, {
+        sku: it.sku,
+        description: it.description || (master ? master.description : ''),
+        itemGroup: it.itemGroup || (master ? master.itemGroup : ''),
+        itemColor: master ? (master.itemColor || '') : '',
+        itemSize: master ? (master.itemSize || '') : '',
+        campaignYear: master ? (master.campaignYear || '') : '',
+        qtyByLoc: new Map(),
+      });
+    }
+    const row = bySku.get(key);
+    if (!row.itemGroup && it.itemGroup) row.itemGroup = it.itemGroup;
+    const locKey = stockBalanceShortLocation(it.location);
+    row.qtyByLoc.set(locKey, (row.qtyByLoc.get(locKey) || 0) + (Number(it.qty) || 0));
+  });
+  return [...bySku.values()].sort((a, b) => a.sku.localeCompare(b.sku));
+}
+// Warehouse/Online lead the column order (matching her reference sheet), rest alphabetical.
+function stockBalancePivotLocationColumns(pivotRows) {
+  const seen = new Set();
+  pivotRows.forEach(r => r.qtyByLoc.forEach((v, k) => seen.add(k)));
+  const priority = { WAREHOUSE: 0, ONLINE: 1 };
+  return [...seen].sort((a, b) => {
+    const pa = priority[a.toUpperCase()] ?? 99;
+    const pb = priority[b.toUpperCase()] ?? 99;
+    return pa !== pb ? pa - pb : a.localeCompare(b);
+  });
+}
+function stockBalanceFilteredPivotRows() {
+  const search = (document.getElementById('stockBalanceSearchInput').value || '').trim().toLowerCase();
+  const yearFilter = document.getElementById('stockBalanceYearFilter').value;
+  const brandFilter = document.getElementById('stockBalanceBrandFilter').value;
+  const groupFilter = document.getElementById('stockBalanceGroupFilter').value;
+  let list = stockBalanceList;
+  if (brandFilter) list = list.filter(it => it.itemBrand === brandFilter);
+  if (groupFilter) list = list.filter(it => it.itemGroup === groupFilter);
+  if (search) list = list.filter(it => [it.sku, it.description, it.itemGroup, it.itemBrand, it.location].filter(Boolean).join(' ').toLowerCase().includes(search));
+  let pivotRows = stockBalancePivotBuild(list);
+  // Campaign Year lives on Item Master List, not the raw Stock Balance rows, so this filter is
+  // applied AFTER the pivot is built (one campaignYear per SKU) rather than on the flat list.
+  if (yearFilter) pivotRows = pivotRows.filter(r => r.campaignYear === yearFilter);
+  return pivotRows;
+}
+function renderStockBalanceFilterOptions() {
+  const yearSel = document.getElementById('stockBalanceYearFilter');
+  const curYear = yearSel.value;
+  yearSel.innerHTML = `<option value="">All Campaign Years</option>` + stockBalanceCampaignYears().map(y => `<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join('');
+  if ([...yearSel.options].some(o => o.value === curYear)) yearSel.value = curYear;
+  const brandSel = document.getElementById('stockBalanceBrandFilter');
+  const curBrand = brandSel.value;
+  brandSel.innerHTML = `<option value="">All Brands</option>` + stockBalanceBrands().map(b => `<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('');
+  if ([...brandSel.options].some(o => o.value === curBrand)) brandSel.value = curBrand;
+  const groupSel = document.getElementById('stockBalanceGroupFilter');
+  const curGroup = groupSel.value;
+  groupSel.innerHTML = `<option value="">All Groups</option>` + stockBalanceGroups().map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
+  if ([...groupSel.options].some(o => o.value === curGroup)) groupSel.value = curGroup;
+}
+function renderStockBalanceKpis() {
+  const totalSku = new Set(stockBalanceList.map(it => it.sku.toUpperCase())).size;
+  const totalQty = stockBalanceList.reduce((sum, it) => sum + (Number(it.qty) || 0), 0);
+  const totalBoutiques = stockBalanceLocations().length;
+  const cards = [
+    { num: formatQty(totalSku), label: 'Total SKU' },
+    { num: formatQty(totalQty), label: 'Total Qty', cls: 'blue' },
+    { num: formatQty(totalBoutiques), label: 'Boutiques' },
+  ];
+  document.getElementById('stockBalanceKpiGrid').innerHTML = cards.map(c =>
+    `<div class="kpi-card ${c.cls || ''}"><div class="kpi-num">${c.num}</div><div class="kpi-label">${c.label}</div></div>`
+  ).join('');
+}
+function stockBalanceRenderPivotTableHtml(pageItems, cols) {
+  let html = `<table class="stock-balance-pivot-table"><thead><tr>
+    <th class="sbp-sku">SKU</th><th class="sbp-text">Description</th><th class="sbp-text">Group</th><th class="sbp-text">Colour</th><th class="sbp-text">Size</th>
+    ${cols.map(c => `<th>${escapeHtml(c)}</th>`).join('')}
+  </tr></thead><tbody>`;
+  pageItems.forEach(r => {
+    html += `<tr>
+      <td class="mono-name sbp-sku">${escapeHtml(r.sku)}</td>
+      <td class="sbp-text sbp-desc" title="${escapeHtml(r.description || '')}">${escapeHtml(r.description || '-')}</td>
+      <td class="sbp-text">${escapeHtml(r.itemGroup || '-')}</td>
+      <td class="sbp-text">${escapeHtml(r.itemColor || '-')}</td>
+      <td class="sbp-text">${escapeHtml(r.itemSize || '-')}</td>
+      ${cols.map(c => `<td>${formatQty(r.qtyByLoc.get(c) || 0)}</td>`).join('')}
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  return html;
+}
+function renderStockBalanceTable() {
+  const wrap = document.getElementById('stockBalanceTableWrap');
+  const pagWrap = document.getElementById('stockBalancePaginationWrap');
+  const pivotRows = stockBalanceFilteredPivotRows();
+  if (!pivotRows.length) {
+    wrap.innerHTML = `<div class="empty-state">${stockBalanceList.length ? 'Takde SKU sepadan carian.' : 'Belum ada Stock Balance diupload.'}</div>`;
+    pagWrap.innerHTML = '';
+    return;
+  }
+  const totalPages = Math.max(1, Math.ceil(pivotRows.length / STOCK_BALANCE_PAGE_SIZE));
+  if (stockBalancePage >= totalPages) stockBalancePage = totalPages - 1;
+  if (stockBalancePage < 0) stockBalancePage = 0;
+  const pageItems = pivotRows.slice(stockBalancePage * STOCK_BALANCE_PAGE_SIZE, (stockBalancePage + 1) * STOCK_BALANCE_PAGE_SIZE);
+  const cols = stockBalancePivotLocationColumns(pivotRows); // computed over the full filtered set so columns stay stable across pages
+  wrap.innerHTML = stockBalanceRenderPivotTableHtml(pageItems, cols);
+
+  pagWrap.innerHTML = `
+    <button type="button" class="btn-ghost" id="stockBalancePrevPageBtn" ${stockBalancePage === 0 ? 'disabled' : ''}>&#8249; Prev</button>
+    <span class="data-note" style="margin:0;">Page ${stockBalancePage + 1} / ${totalPages} — ${formatQty(pivotRows.length)} SKU</span>
+    <button type="button" class="btn-ghost" id="stockBalanceNextPageBtn" ${stockBalancePage >= totalPages - 1 ? 'disabled' : ''}>Next &#8250;</button>
+  `;
+  document.getElementById('stockBalancePrevPageBtn').addEventListener('click', () => { stockBalancePage--; renderStockBalanceTable(); });
+  document.getElementById('stockBalanceNextPageBtn').addEventListener('click', () => { stockBalancePage++; renderStockBalanceTable(); });
+}
+function renderStockBalanceTab() {
+  renderStockBalanceStatusNote();
+  renderStockBalanceKpis();
+  renderStockBalanceFilterOptions();
+  renderStockBalanceTable();
+}
+document.getElementById('stockBalanceSearchInput').addEventListener('input', () => { stockBalancePage = 0; renderStockBalanceTable(); });
+document.getElementById('stockBalanceYearFilter').addEventListener('change', () => { stockBalancePage = 0; renderStockBalanceTable(); });
+document.getElementById('stockBalanceBrandFilter').addEventListener('change', () => { stockBalancePage = 0; renderStockBalanceTable(); });
+document.getElementById('stockBalanceGroupFilter').addEventListener('change', () => { stockBalancePage = 0; renderStockBalanceTable(); });
+/* ==================== end Stock Balance ==================== */
 
 // ---- Auto-fill SKU: map a checklist Series to ONE "product" from Item Master List, then apply
 // that mapping across every Colour+Size line in that series (matched on Item Color + Item Size —
@@ -9950,7 +10496,7 @@ function renderAccHistoryTable() {
   const groupList = [...groups.values()].sort((a, b) => a.name.localeCompare(b.name));
   groupList.forEach(g => g.cartons.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)));
 
-  let html = `<table><thead><tr><th></th><th>Photo</th><th>Accessories Name</th><th>Total Cartons</th><th>Total Qty</th><th>Latest Date</th></tr></thead><tbody>`;
+  let html = `<table><thead><tr><th></th><th>Photo</th><th>Accessories Name</th><th>Total Cartons</th><th>Total Qty</th><th>Latest Date</th><th></th></tr></thead><tbody>`;
   groupList.forEach(g => {
     const expanded = q ? true : accHistoryExpanded.has(g.name);
     html += `<tr class="acc-history-summary-row" style="cursor:pointer;" data-acc-name="${escapeHtml(g.name)}">
@@ -9960,10 +10506,11 @@ function renderAccHistoryTable() {
       <td>${g.totalCartons}</td>
       <td>${g.totalQty}</td>
       <td>${g.latestDate ? formatDateLabel(g.latestDate) : '-'}</td>
+      <td class="row-actions"><button type="button" class="btn-ghost acc-history-delete-group-btn" data-acc-name="${escapeHtml(g.name)}" data-count="${g.cartons.length}" style="color:#e0685c;" title="Padam semua rekod ${escapeHtml(g.name)}">🗑 Delete All</button></td>
     </tr>
     <tr class="acc-history-detail-row" style="display:${expanded ? 'table-row' : 'none'};">
       <td></td>
-      <td colspan="5" style="padding:6px 10px;">
+      <td colspan="6" style="padding:6px 10px;">
         <table style="font-size:12px;"><thead><tr>
           <th>Photo</th><th>Carton No.</th><th>Qty</th><th>Received By</th><th>Date</th><th>Notes</th><th></th>
         </tr></thead><tbody>
@@ -9999,6 +10546,17 @@ function renderAccHistoryTable() {
       e.stopPropagation();
       if (!confirm('Padam rekod accessories ni?')) return;
       accessoriesReceipts = accessoriesReceipts.filter(r => r.id !== btn.dataset.id);
+      saveAccessoriesReceipts();
+      renderAccHistoryTable();
+    });
+  });
+  wrap.querySelectorAll('.acc-history-delete-group-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const name = btn.dataset.accName;
+      const count = btn.dataset.count;
+      if (!confirm(`Padam SEMUA ${count} rekod untuk "${name}"? Tindakan ni tak boleh undo.`)) return;
+      accessoriesReceipts = accessoriesReceipts.filter(r => (r.name || '-') !== name);
       saveAccessoriesReceipts();
       renderAccHistoryTable();
     });
@@ -13149,6 +13707,7 @@ const SYNC_COLLECTIONS = [
   { table: 'PriceTag_Stickers', getArray: () => priceTagStickers, setArray: (a) => { priceTagStickers = a; savePriceTagStickers(); } },
   { table: 'PriceTag_Printers', getArray: () => priceTagPrinters, setArray: (a) => { priceTagPrinters = a; savePriceTagPrinters(); } },
   { table: 'PriceTag_DOs', getArray: () => priceTagDos, setArray: (a) => { priceTagDos = a; savePriceTagDos(); } },
+  { table: 'RequestStock', getArray: () => requestStockList, setArray: (a) => { requestStockList = a; saveRequestStockList(); } },
   {
     table: 'Users',
     getArray: () => loadAppUsers(),
@@ -15912,6 +16471,853 @@ document.getElementById('financeExportModalConfirmBtn').addEventListener('click'
   closeFinanceExportModal();
 });
 
+/* ================= Request Stock (finished goods) =================
+ * Standalone tab, grantable per-user (see PERMISSION_TABS 'request-stock'). A simple request LOG
+ * for non-standard outbound reasons (Bulk Order / Photoshoot / Sponsorship / Other) — per Shaila,
+ * starting with just the form + history first, no approval workflow yet (Pending/Approved stages
+ * can be layered on top of this later if she asks — the data model already has room for a
+ * `status` field to be added without disrupting anything here).
+ */
+const REQUEST_STOCK_KEY = 'sto_request_stock_v1';
+// The BLANK request-form template — uploaded once (by whoever has it), stored/synced as a regular
+// AppSettings key (see syncSettingsKeys/FB_SETTINGS_TABLE) so every device sees the same one, unlike
+// the per-request attachments above which are unique to each submission. Not all staff have this PDF
+// on hand themselves, so this lets them grab it straight from the tab instead of chasing it down.
+const REQ_STOCK_TEMPLATE_KEY = 'sto_reqstock_template_pdf_v1';
+let reqStockTemplate = null; // { name, dataUrl } | null
+function loadReqStockTemplate() {
+  try { reqStockTemplate = JSON.parse(localStorage.getItem(REQ_STOCK_TEMPLATE_KEY)) || null; } catch (e) { reqStockTemplate = null; }
+}
+function saveReqStockTemplate() { localStorage.setItem(REQ_STOCK_TEMPLATE_KEY, JSON.stringify(reqStockTemplate)); }
+function renderReqStockTemplateStatus() {
+  const el = document.getElementById('reqStockTemplateStatus');
+  const uploadWrap = document.getElementById('reqStockTemplateUploadWrap');
+  if (!el) return;
+  // Only Admin/Team Lead can upload/replace the blank template — regular staff only ever see the
+  // Download link (or, if none has been uploaded yet, a plain note instead of the upload control).
+  const isAdminUser = !!(getCurrentUser() && getCurrentUser().isAdmin);
+  if (uploadWrap) uploadWrap.style.display = isAdminUser ? '' : 'none';
+  if (reqStockTemplate && reqStockTemplate.dataUrl) {
+    el.innerHTML = `<a href="${reqStockTemplate.dataUrl}" download="${escapeHtml(reqStockTemplate.name || 'request-form.pdf')}" style="color:var(--blue,#5b9dd9); font-weight:600;">⬇️ Download ${escapeHtml(reqStockTemplate.name || 'request-form.pdf')}</a>${isAdminUser ? ' <span style="margin-left:8px;">(upload fail baru kat sebelah untuk ganti)</span>' : ''}`;
+  } else {
+    el.textContent = isAdminUser ? 'Belum ada borang diupload lagi — upload fail PDF kat sebelah supaya staff boleh download.' : 'Borang belum diupload lagi. Hubungi Admin/Team Lead.';
+  }
+}
+document.getElementById('reqStockTemplateUploadInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) { alert('Sila upload fail PDF sahaja.'); return; }
+  if (file.size > 5 * 1024 * 1024) { alert('Fail terlalu besar (max 5MB).'); return; }
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    reqStockTemplate = { name: file.name, dataUrl: evt.target.result };
+    saveReqStockTemplate();
+    renderReqStockTemplateStatus();
+    alert('Borang berjaya diupload. Staff lain akan nampak bila sync (dalam beberapa saat).');
+  };
+  reader.onerror = () => alert('Gagal upload fail tu. Cuba lagi.');
+  reader.readAsDataURL(file);
+});
+let requestStockList = []; // [{ id, requesterName, purpose, dateNeeded, items:[{sku,productName,qty}], notes, createdAt }]
+function loadRequestStockList() {
+  try { requestStockList = JSON.parse(localStorage.getItem(REQUEST_STOCK_KEY)) || []; } catch (e) { requestStockList = []; }
+}
+function pushRequestStockNow() { if (!fbDb || !SYNC_COLLECTIONS._fbListenersAttached) return; const def = SYNC_COLLECTIONS.find(d => d.table === 'RequestStock'); if (def) pushCollectionDiff(def); }
+// Returns true/false instead of throwing — requests now carry a base64 PDF attachment (see
+// REQ_STOCK_ATTACHMENT_MAX_BYTES), and localStorage has a hard ~5-10MB quota per origin shared with
+// everything else this app stores there. Enough attachments piling up (e.g. from repeat testing) can
+// blow that quota; before this returned a value, setItem's QuotaExceededError just threw silently
+// out of the submit click handler — the request record had already been pushed into requestStockList
+// in memory, but the form never reset and no error ever reached the user, so submitting looked like
+// it did nothing at all. Callers now check the return value and roll back + alert on failure.
+function saveRequestStockList() {
+  try {
+    localStorage.setItem(REQUEST_STOCK_KEY, JSON.stringify(requestStockList));
+  } catch (e) {
+    console.error('saveRequestStockList failed', e);
+    return false;
+  }
+  pushRequestStockNow();
+  return true;
+}
+function genRequestStockId() { return 'reqstk_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+// Human-facing Request No. — "KFA-REQ/<Purpose>/<YYYYMMDD>/<running no.>". Per Shaila: the running
+// number is a single GLOBAL counter that never resets (same pattern as DO_COUNTER_KEY elsewhere in
+// this app), synced via AppSettings/syncSettingsKeys so every device (including guest submissions
+// from the login screen, on devices that may never log in at all) shares the same counter instead of
+// each device keeping its own. Same accepted race-condition caveat as DO_COUNTER_KEY: two submits
+// from two different devices within the same ~2s sync window could grab the same number.
+const REQUEST_STOCK_COUNTER_KEY = 'sto_request_stock_counter_v1';
+function nextRequestStockNo(purpose) {
+  const n = Math.max(0, Number(localStorage.getItem(REQUEST_STOCK_COUNTER_KEY)) || 0) + 1;
+  localStorage.setItem(REQUEST_STOCK_COUNTER_KEY, String(n));
+  const dateStr = toIsoLocal(new Date()).replace(/-/g, '');
+  return `KFA-REQ/${purpose || '-'}/${dateStr}/${String(n).padStart(3, '0')}`;
+}
+// The attached PDF is the actual root cause of the "Submit does nothing" bug: localStorage has a
+// hard ~5-10MB-per-origin quota SHARED with everything else this whole app stores there, and a
+// multi-hundred-KB-to-few-MB base64 PDF embedded in every requestStockList record (which DOES sync
+// through localStorage, see saveRequestStockList) can tip that over. Firebase Realtime Database
+// itself has much more headroom per value, so attachments are written there DIRECTLY, completely
+// bypassing localStorage/the synced requestStockList record — requestStockList only ever carries the
+// filename (attachmentName), never the blob (attachmentData). Written fire-and-forget at submit
+// time; read back on-demand only when someone actually clicks to download it (see
+// downloadRequestStockAttachment below), so an idle Request History tab never holds any of these
+// blobs in memory either.
+const REQ_STOCK_ATTACHMENTS_TABLE = 'RequestStockAttachments';
+function pushRequestStockAttachment(id, name, dataUrl) {
+  if (!fbDb) return;
+  fbDb.ref(REQ_STOCK_ATTACHMENTS_TABLE + '/' + fbSafeKey(id)).set({ name, dataUrl }).catch(e => {
+    console.error('pushRequestStockAttachment failed', e);
+  });
+}
+function downloadRequestStockAttachment(id, fallbackName) {
+  if (!fbDb) { alert('Cloud sync tak available — tak boleh capai attachment ni.'); return; }
+  fbDb.ref(REQ_STOCK_ATTACHMENTS_TABLE + '/' + fbSafeKey(id)).once('value')
+    .then(snap => {
+      const val = snap.val();
+      if (!val || !val.dataUrl) { alert('Attachment tak jumpa (mungkin belum sync sepenuhnya lagi — cuba sekejap lagi).'); return; }
+      const a = document.createElement('a');
+      a.href = val.dataUrl;
+      a.download = val.name || fallbackName || 'request-form.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    })
+    .catch(e => alert('Gagal download attachment: ' + ((e && e.message) || e)));
+}
+
+// ONE picker row (Campaign Year -> Brand -> Group -> Color -> Size -> Qty, cascading <select>s) for
+// the item currently being picked, plus a separate confirmed-items list built up by clicking
+// "+ Add Item" — each completed pick collapses into a compact one-line entry in that list and the
+// picker row resets, rather than every item staying an 8-column dropdown row (per Shaila, that got
+// unwieldy once someone had more than 2-3 items). Submit also silently folds in a still-in-progress
+// picker row if it's fully filled, so nothing typed is lost just because "+ Add Item" wasn't clicked.
+let reqStockDraftLine = { campaignYear: '', brand: '', group: '', color: '', size: '', qty: '' };
+let reqStockConfirmedItems = []; // [{ campaignYear, brand, group, color, size, qty }]
+// The filled-in PDF form staff attach before they're allowed to submit — stored inline as base64
+// (same pattern as accessories' receipt photos) so it travels with the request record wherever it
+// syncs to. No resize/compress available for PDFs like there is for photos, so there's a hard size
+// cap below to keep individual requests from bloating the synced data.
+let reqStockDraftAttachment = null; // { name, dataUrl } | null
+const REQ_STOCK_ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024; // 5MB
+
+function renderRequestStockTab() {
+  renderReqStockTemplateStatus();
+  renderReqStockItemLines();
+  renderRequestStockHistory();
+}
+function reqStockUniqueValues(field, filters) {
+  const seen = new Set();
+  // Hide combos with zero/no Stock Balance so staff only ever see picks that actually have stock —
+  // per Shaila, this makes the request form self-filtering rather than letting someone pick a combo
+  // that turns out to be empty when they get to the end. Only applies once Stock Balance has been
+  // uploaded at least once; before that there's nothing to filter against, so fall back to showing
+  // everything (Item Master List alone) like before.
+  const filterByStock = stockBalanceList.length > 0;
+  itemMasterList.forEach(it => {
+    if (filters.campaignYear && (it.campaignYear || '') !== filters.campaignYear) return;
+    if (filters.brand && (it.itemBrand || '') !== filters.brand) return;
+    if (filters.group && (it.itemGroup || '') !== filters.group) return;
+    if (filters.color && (it.itemColor || '') !== filters.color) return;
+    if (filterByStock) {
+      const avail = reqStockAvailableQty(it.sku);
+      if (!avail || avail <= 0) return;
+    }
+    const v = it[field];
+    if (v) seen.add(v);
+  });
+  const vals = [...seen];
+  // Campaign Year reads better newest-first; everything else stays alphabetical.
+  return field === 'campaignYear' ? vals.sort((a, b) => b.localeCompare(a)) : vals.sort((a, b) => a.localeCompare(b));
+}
+function reqStockMatchedItem(line) {
+  return itemMasterList.find(it =>
+    (it.campaignYear || '') === line.campaignYear &&
+    (it.itemBrand || '') === line.brand &&
+    (it.itemGroup || '') === line.group &&
+    (it.itemColor || '') === line.color &&
+    (it.itemSize || '') === line.size
+  ) || null;
+}
+// "Available" column on the item line — pulled from Stock Balance (uploaded separately, see that
+// tab), summed across ALL locations for this SKU EXCLUDING "Experience Conezion" per Shaila (that
+// boutique's stock isn't counted as available-to-request). Cached SKU->rows index mirrors
+// itemMasterSkuIndex's pattern: rebuilds itself whenever stockBalanceList is reassigned (a fresh
+// upload creates a new array), so this stays fast even with thousands of Stock Balance rows.
+let _stockBalanceSkuIndexCache = null;
+let _stockBalanceSkuIndexSource = null;
+function stockBalanceRowsBySku(sku) {
+  if (_stockBalanceSkuIndexSource !== stockBalanceList) {
+    _stockBalanceSkuIndexCache = new Map();
+    stockBalanceList.forEach(it => {
+      const key = it.sku.toUpperCase();
+      if (!_stockBalanceSkuIndexCache.has(key)) _stockBalanceSkuIndexCache.set(key, []);
+      _stockBalanceSkuIndexCache.get(key).push(it);
+    });
+    _stockBalanceSkuIndexSource = stockBalanceList;
+  }
+  return _stockBalanceSkuIndexCache.get(String(sku || '').trim().toUpperCase()) || null;
+}
+const REQ_STOCK_AVAILABLE_QTY_EXCLUDED_LOCATIONS = ['EXPERIENCE CONEZION'];
+function reqStockAvailableQty(sku) {
+  const rows = stockBalanceRowsBySku(sku);
+  if (!rows) return null; // SKU tak ada dalam Stock Balance langsung (belum diupload / tak match)
+  let total = 0;
+  rows.forEach(it => {
+    const locUpper = (it.location || '').toUpperCase();
+    if (REQ_STOCK_AVAILABLE_QTY_EXCLUDED_LOCATIONS.some(x => locUpper.includes(x))) return;
+    total += Number(it.qty) || 0;
+  });
+  return total;
+}
+function reqStockConfirmedItemRowHtml(it, i, removeClass) {
+  const matched = reqStockMatchedItem(it);
+  const avail = matched ? reqStockAvailableQty(matched.sku) : null;
+  return `<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px; border:1px solid var(--border); border-radius:6px; margin-bottom:6px;">
+    <span style="font-size:13px;">[${escapeHtml(it.campaignYear)}] ${escapeHtml(it.brand)} · ${escapeHtml(it.group)} · ${escapeHtml(it.color)} · ${escapeHtml(it.size)} × <strong>${formatQty(it.qty)}</strong>${avail !== null ? ` <span style="color:var(--text-muted);">(Available: ${formatQty(avail)})</span>` : ''}</span>
+    <button type="button" class="icon-btn ${removeClass}" data-idx="${i}" title="Remove">✕</button>
+  </div>`;
+}
+function renderReqStockItemLines() {
+  const wrap = document.getElementById('reqStockItemsWrap');
+  const listWrap = document.getElementById('reqStockConfirmedItemsWrap');
+  if (!wrap) return;
+  const selectOptions = (list, current, placeholder) => `<option value="">${escapeHtml(placeholder)}</option>` +
+    list.map(v => `<option value="${escapeHtml(v)}" ${v === current ? 'selected' : ''}>${escapeHtml(v)}</option>`).join('');
+  const line = reqStockDraftLine;
+  const yearOpts = reqStockUniqueValues('campaignYear', {});
+  const brandOpts = line.campaignYear ? reqStockUniqueValues('itemBrand', { campaignYear: line.campaignYear }) : [];
+  const groupOpts = (line.campaignYear && line.brand) ? reqStockUniqueValues('itemGroup', { campaignYear: line.campaignYear, brand: line.brand }) : [];
+  const colorOpts = (line.campaignYear && line.brand && line.group) ? reqStockUniqueValues('itemColor', { campaignYear: line.campaignYear, brand: line.brand, group: line.group }) : [];
+  const sizeOpts = (line.campaignYear && line.brand && line.group && line.color) ? reqStockUniqueValues('itemSize', { campaignYear: line.campaignYear, brand: line.brand, group: line.group, color: line.color }) : [];
+  const matchedForAvail = (line.campaignYear && line.brand && line.group && line.color && line.size) ? reqStockMatchedItem(line) : null;
+  const availQty = matchedForAvail ? reqStockAvailableQty(matchedForAvail.sku) : null;
+  const availDisplay = availQty === null ? '-' : formatQty(availQty);
+  const availColor = (availQty !== null && availQty <= 0) ? 'color:var(--red);' : '';
+  wrap.innerHTML = `<div class="rm-form-grid" style="grid-template-columns: 90px 1fr 1.3fr 1fr 1fr 90px 90px; align-items:end; margin-bottom:8px;">
+    <div class="field"><label>Campaign Year</label><select id="reqStockYearInput" style="width:100%;">${selectOptions(yearOpts, line.campaignYear, '-- Pilih --')}</select></div>
+    <div class="field"><label>Brand</label><select id="reqStockBrandInput" style="width:100%;" ${!line.campaignYear ? 'disabled' : ''}>${selectOptions(brandOpts, line.brand, line.campaignYear ? '-- Pilih --' : 'Pilih Tahun dulu')}</select></div>
+    <div class="field"><label>Group</label><select id="reqStockGroupInput" style="width:100%;" ${!line.brand ? 'disabled' : ''}>${selectOptions(groupOpts, line.group, line.brand ? '-- Pilih --' : 'Pilih Brand dulu')}</select></div>
+    <div class="field"><label>Color</label><select id="reqStockColorInput" style="width:100%;" ${!line.group ? 'disabled' : ''}>${selectOptions(colorOpts, line.color, line.group ? '-- Pilih --' : '-')}</select></div>
+    <div class="field"><label>Size</label><select id="reqStockSizeInput" style="width:100%;" ${!line.color ? 'disabled' : ''}>${selectOptions(sizeOpts, line.size, line.color ? '-- Pilih --' : '-')}</select></div>
+    <div class="field"><label>Qty</label><input type="number" min="1" id="reqStockQtyInput" value="${escapeHtml(line.qty)}" style="width:100%;"></div>
+    <div class="field"><label>Available</label><div class="req-stock-available-qty" title="Total dari Stock Balance, semua lokasi kecuali Experience Conezion" style="padding:9px 2px; font-weight:600; ${availColor}">${availDisplay}</div></div>
+  </div>`;
+  document.getElementById('reqStockYearInput').addEventListener('change', (e) => {
+    reqStockDraftLine.campaignYear = e.target.value;
+    reqStockDraftLine.brand = ''; reqStockDraftLine.group = ''; reqStockDraftLine.color = ''; reqStockDraftLine.size = '';
+    renderReqStockItemLines();
+  });
+  document.getElementById('reqStockBrandInput').addEventListener('change', (e) => {
+    reqStockDraftLine.brand = e.target.value;
+    reqStockDraftLine.group = ''; reqStockDraftLine.color = ''; reqStockDraftLine.size = '';
+    renderReqStockItemLines();
+  });
+  document.getElementById('reqStockGroupInput').addEventListener('change', (e) => {
+    reqStockDraftLine.group = e.target.value;
+    reqStockDraftLine.color = ''; reqStockDraftLine.size = '';
+    renderReqStockItemLines();
+  });
+  document.getElementById('reqStockColorInput').addEventListener('change', (e) => {
+    reqStockDraftLine.color = e.target.value;
+    reqStockDraftLine.size = '';
+    renderReqStockItemLines();
+  });
+  document.getElementById('reqStockSizeInput').addEventListener('change', (e) => {
+    reqStockDraftLine.size = e.target.value;
+    renderReqStockItemLines();
+  });
+  document.getElementById('reqStockQtyInput').addEventListener('input', (e) => { reqStockDraftLine.qty = e.target.value; });
+  if (listWrap) {
+    listWrap.innerHTML = reqStockConfirmedItems.length
+      ? reqStockConfirmedItems.map((it, i) => reqStockConfirmedItemRowHtml(it, i, 'req-stock-remove-item-btn')).join('')
+      : `<div class="data-note" style="margin:0;">Tiada item ditambah lagi.</div>`;
+    listWrap.querySelectorAll('.req-stock-remove-item-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        reqStockConfirmedItems.splice(Number(btn.dataset.idx), 1);
+        renderReqStockItemLines();
+      });
+    });
+  }
+}
+document.getElementById('reqStockAddItemBtn').addEventListener('click', () => {
+  const line = reqStockDraftLine;
+  if (!(line.campaignYear && line.brand && line.group && line.color && line.size && Number(line.qty) > 0)) {
+    alert('Sila lengkapkan Campaign Year, Brand, Group, Color, Size & Qty dulu sebelum Add.');
+    return;
+  }
+  reqStockConfirmedItems.push({ ...line });
+  reqStockDraftLine = { campaignYear: '', brand: '', group: '', color: '', size: '', qty: '' };
+  renderReqStockItemLines();
+});
+document.getElementById('reqStockAttachmentInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) { alert('Sila attach fail PDF sahaja.'); return; }
+  if (file.size > REQ_STOCK_ATTACHMENT_MAX_BYTES) { alert('Fail terlalu besar (max 5MB). Cuba compress PDF tu dulu.'); return; }
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    reqStockDraftAttachment = { name: file.name, dataUrl: evt.target.result };
+    document.getElementById('reqStockAttachmentName').textContent = '📎 ' + file.name;
+  };
+  reader.onerror = () => alert('Gagal load fail tu. Cuba lagi.');
+  reader.readAsDataURL(file);
+});
+document.getElementById('reqStockSubmitBtn').addEventListener('click', () => {
+  const requesterName = document.getElementById('reqStockRequester').value.trim();
+  const purpose = document.getElementById('reqStockPurpose').value;
+  const dateNeeded = document.getElementById('reqStockDateNeeded').value;
+  const notes = document.getElementById('reqStockNotes').value.trim();
+  if (!requesterName) { alert('Fill in Requester Name.'); document.getElementById('reqStockRequester').focus(); return; }
+  // Safety net: fold a still-in-progress (but fully filled) picker row into the list automatically,
+  // so nothing gets lost just because someone clicked Submit without clicking "+ Add Item" first.
+  const dl = reqStockDraftLine;
+  if (dl.campaignYear && dl.brand && dl.group && dl.color && dl.size && Number(dl.qty) > 0) {
+    reqStockConfirmedItems.push({ ...dl });
+    reqStockDraftLine = { campaignYear: '', brand: '', group: '', color: '', size: '', qty: '' };
+  }
+  const items = reqStockConfirmedItems.map(line => {
+    const matched = reqStockMatchedItem(line);
+    const productName = matched ? itemMasterProductName(matched) : `${line.group} - ${line.color} - ${line.size}`;
+    return { sku: matched ? matched.sku : '', productName, campaignYear: line.campaignYear, brand: line.brand, group: line.group, color: line.color, size: line.size, qty: Number(line.qty) || 0 };
+  });
+  if (!items.length) { alert('Tambah sekurang-kurangnya satu item lengkap (Campaign Year, Brand, Group, Color, Size, Qty).'); return; }
+  if (!reqStockDraftAttachment) { alert('Sila attach borang PDF yang dah diisi dulu sebelum submit.'); return; }
+  const reqId = genRequestStockId();
+  requestStockList.push({
+    id: reqId, requestNo: nextRequestStockNo(purpose), requesterName, purpose, dateNeeded, items, notes, createdAt: Date.now(),
+    attachmentName: reqStockDraftAttachment.name,
+  });
+  if (!saveRequestStockList()) {
+    requestStockList.pop();
+    alert('Gagal simpan request tu — storan browser dah penuh. Cuba refresh page dulu (buka semula tab ni), atau hubungi IT kalau still gagal.');
+    return;
+  }
+  pushRequestStockAttachment(reqId, reqStockDraftAttachment.name, reqStockDraftAttachment.dataUrl);
+  document.getElementById('reqStockRequester').value = '';
+  document.getElementById('reqStockDateNeeded').value = '';
+  document.getElementById('reqStockNotes').value = '';
+  reqStockConfirmedItems = [];
+  reqStockDraftLine = { campaignYear: '', brand: '', group: '', color: '', size: '', qty: '' };
+  reqStockDraftAttachment = null;
+  document.getElementById('reqStockAttachmentName').textContent = '';
+  renderReqStockItemLines();
+  renderRequestStockHistory();
+  alert('Request stock berjaya disubmit.');
+});
+// One request = one row (with Request No.) — clicking anywhere on the row pops open the SKU list
+// straight away (the existing Process modal, which already lists every SKU with its location
+// breakdown/status/notes) rather than expanding an inline detail row.
+function renderRequestStockHistory() {
+  const wrap = document.getElementById('reqStockHistoryWrap');
+  if (!wrap) return;
+  if (!requestStockList.length) { wrap.innerHTML = `<div class="empty-state">Tiada request lagi.</div>`; return; }
+  const sorted = [...requestStockList].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  let html = `<table><thead><tr><th>Request No.</th><th>Date Submitted</th><th>Requester</th><th>Purpose</th><th>Date Needed</th><th>Items</th><th>Status</th><th>Notes</th><th>Form</th><th></th></tr></thead><tbody>`;
+  sorted.forEach(r => {
+    const items = r.items || [];
+    const doneCount = items.filter(it => (it.status || 'Pending') !== 'Pending').length;
+    const overall = reqStockOverallStatus(r);
+    const formCell = r.attachmentName ? `<button type="button" class="btn-ghost req-stock-download-attachment-btn" data-id="${escapeHtml(r.id)}" data-name="${escapeHtml(r.attachmentName)}" style="color:var(--blue,#5b9dd9); padding:2px 6px;">📎 ${escapeHtml(r.attachmentName)}</button>` : '-';
+    html += `<tr class="req-stock-history-summary-row" style="cursor:pointer;" data-id="${escapeHtml(r.id)}" title="Klik untuk tengok senarai SKU">
+      <td class="mono-name">${escapeHtml(r.requestNo || '-')}</td>
+      <td>${formatDateLabel(toIsoLocal(new Date(r.createdAt)))}</td>
+      <td><strong>${escapeHtml(r.requesterName)}</strong></td>
+      <td><span class="badge badge-gray">${escapeHtml(r.purpose)}</span></td>
+      <td>${r.dateNeeded ? formatDateLabel(r.dateNeeded) : '-'}</td>
+      <td>${items.length} SKU${doneCount ? ` <span class="data-note" style="margin:0;">(${doneCount}/${items.length} processed)</span>` : ''}</td>
+      <td><span class="badge ${overall.badgeClass}">${overall.label}</span></td>
+      <td style="color:var(--text-muted); font-size:12px;">${escapeHtml(r.notes || '-')}</td>
+      <td style="font-size:12px;">${formCell}</td>
+      <td class="row-actions">
+        <button type="button" class="btn-ghost req-stock-process-btn" data-id="${r.id}" style="padding:4px 8px;">Approve</button>
+        <button class="icon-btn req-stock-delete-btn" data-id="${r.id}" title="Delete">✕</button>
+      </td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('.req-stock-history-summary-row').forEach(row => {
+    row.addEventListener('click', () => openReqStockProcessModal(row.dataset.id));
+  });
+  wrap.querySelectorAll('.req-stock-delete-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!confirm('Padam request ni?')) return;
+      requestStockList = requestStockList.filter(r => r.id !== btn.dataset.id);
+      saveRequestStockList();
+      renderRequestStockHistory();
+    });
+  });
+  wrap.querySelectorAll('.req-stock-download-attachment-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.stopPropagation(); downloadRequestStockAttachment(btn.dataset.id, btn.dataset.name); });
+  });
+  wrap.querySelectorAll('.req-stock-process-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.stopPropagation(); openReqStockProcessModal(btn.dataset.id); });
+  });
+}
+
+/* ---- Process Request modal — per-SKU physical fulfillment check. Per Shaila: she needs to go
+   through a request item-by-item, physically verify the SKU is actually there (using the same
+   Stock Balance data as the "Available" column, but broken down BY location this time — full
+   breakdown including Experience Conezion, since this is for finding the item, not deciding whether
+   it's requestable), and if it's not there, record an exchange instead of just leaving it stuck.
+   Status + note are stored directly on that item inside the request record (requestStockList), so
+   they show up as a badge back in Request History and sync like everything else in this list. ---- */
+let reqStockProcessTargetId = null;
+// Per-item draft for the "pick a replacement SKU" picker that opens under an item when Exchange is
+// clicked — same cascading Year->Brand->Group->Color->Size->Qty flow as the New Request form, reused
+// via the same reqStockUniqueValues/reqStockMatchedItem/reqStockAvailableQty helpers (they only read
+// itemMasterList/stockBalanceList, no dependency on the New Request form's own state). Keyed by item
+// index within the CURRENTLY open request; reset every time the modal opens for a (possibly
+// different) request so stale picks never leak between requests.
+let reqStockProcessExchangeDraft = {};
+function reqStockLocationBreakdownHtml(sku) {
+  const rows = stockBalanceRowsBySku(sku);
+  if (!rows || !rows.length) return `<span class="data-note" style="margin:0;">Tiada data Stock Balance untuk SKU ni.</span>`;
+  const byLoc = new Map();
+  rows.forEach(r => {
+    const loc = stockBalanceShortLocation(r.location);
+    byLoc.set(loc, (byLoc.get(loc) || 0) + (Number(r.qty) || 0));
+  });
+  const locs = [...byLoc.entries()].filter(([, qty]) => qty > 0).sort((a, b) => b[1] - a[1]);
+  if (!locs.length) return `<span class="data-note" style="margin:0; color:var(--red);">Takde stock di mana-mana location.</span>`;
+  return locs.map(([loc, qty]) => `<span class="badge badge-gray" style="margin-right:4px;">${escapeHtml(loc)}: ${formatQty(qty)}</span>`).join(' ');
+}
+function openReqStockProcessModal(id) {
+  reqStockProcessTargetId = id;
+  reqStockProcessExchangeDraft = {};
+  const req = requestStockList.find(r => r.id === id);
+  (req && req.items || []).forEach((it, i) => {
+    if (it.exchangeSku) {
+      reqStockProcessExchangeDraft[i] = {
+        campaignYear: it.exchangeCampaignYear || '', brand: it.exchangeBrand || '', group: it.exchangeGroup || '',
+        color: it.exchangeColor || '', size: it.exchangeSize || '', qty: it.exchangeQty != null ? String(it.exchangeQty) : '',
+        confirmed: true, // already saved previously — show as a locked-in pick, not an open picker
+      };
+    }
+  });
+  renderReqStockProcessModal();
+  document.getElementById('reqStockProcessModal').classList.remove('hidden');
+}
+function closeReqStockProcessModal() {
+  document.getElementById('reqStockProcessModal').classList.add('hidden');
+  reqStockProcessTargetId = null;
+}
+document.getElementById('reqStockProcessCloseBtn').addEventListener('click', closeReqStockProcessModal);
+// Overall request-level lifecycle, per Shaila: Pending (not yet opened/approved) -> Approved (admin
+// has started processing, via the Process modal's Save) -> Complete (every SKU has a final status).
+// Distinct from the per-ITEM status buttons (Fulfilled/Exchanged/OutOfStock) below, which only cover
+// individual SKU rows — this is the label shown in Request History and to guests via Check Status.
+function reqStockOverallStatus(req) {
+  const items = req.items || [];
+  const doneCount = items.filter(it => (it.status || 'Pending') !== 'Pending').length;
+  if (items.length > 0 && doneCount === items.length) return { label: 'Complete', badgeClass: 'badge-green' };
+  if (req.approved) return { label: 'Approved', badgeClass: 'badge-amber' };
+  return { label: 'Pending', badgeClass: 'badge-gray' };
+}
+const REQ_STOCK_STATUS_COLOR_VAR = { Fulfilled: '--green', Exchanged: '--amber', OutOfStock: '--red' };
+function reqStockStatusBtnStyle(btnStatus, activeStatus) {
+  if (btnStatus !== activeStatus) return '';
+  const c = REQ_STOCK_STATUS_COLOR_VAR[btnStatus];
+  return `background:var(${c}-bg); color:var(${c}); border-color:var(${c});`;
+}
+function reqStockProcessExchangePickerHtml(i) {
+  const line = reqStockProcessExchangeDraft[i] || (reqStockProcessExchangeDraft[i] = { campaignYear: '', brand: '', group: '', color: '', size: '', qty: '', confirmed: false });
+  const matched = (line.campaignYear && line.brand && line.group && line.color && line.size) ? reqStockMatchedItem(line) : null;
+  const availQty = matched ? reqStockAvailableQty(matched.sku) : null;
+  // Once confirmed, collapse into a locked-in summary row instead of leaving the picker "hanging"
+  // open — per Shaila, a bare picker with no clear end-point felt unfinished. "Tukar Pilihan" reopens it.
+  if (line.confirmed && matched) {
+    return `<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px; border:1px solid var(--green); background:var(--green-bg); border-radius:6px;">
+      <span style="font-size:13px;">✓ Gantian: <strong class="mono-name">${escapeHtml(matched.sku)}</strong> ${escapeHtml(itemMasterProductName(matched))} · ${escapeHtml(line.color)} · ${escapeHtml(line.size)} × <strong>${formatQty(Number(line.qty) || 0)}</strong> <span style="color:var(--text-muted);">(Available: ${availQty === null ? '-' : formatQty(availQty)})</span></span>
+      <button type="button" class="btn-ghost req-stock-process-exchange-edit-btn" data-idx="${i}" style="padding:4px 10px; white-space:nowrap;">Tukar Pilihan</button>
+    </div>`;
+  }
+  const selectOptions = (list, current, placeholder) => `<option value="">${escapeHtml(placeholder)}</option>` +
+    list.map(v => `<option value="${escapeHtml(v)}" ${v === current ? 'selected' : ''}>${escapeHtml(v)}</option>`).join('');
+  const yearOpts = reqStockUniqueValues('campaignYear', {});
+  const brandOpts = line.campaignYear ? reqStockUniqueValues('itemBrand', { campaignYear: line.campaignYear }) : [];
+  const groupOpts = (line.campaignYear && line.brand) ? reqStockUniqueValues('itemGroup', { campaignYear: line.campaignYear, brand: line.brand }) : [];
+  const colorOpts = (line.campaignYear && line.brand && line.group) ? reqStockUniqueValues('itemColor', { campaignYear: line.campaignYear, brand: line.brand, group: line.group }) : [];
+  const sizeOpts = (line.campaignYear && line.brand && line.group && line.color) ? reqStockUniqueValues('itemSize', { campaignYear: line.campaignYear, brand: line.brand, group: line.group, color: line.color }) : [];
+  const availDisplay = availQty === null ? '-' : formatQty(availQty);
+  const canConfirm = !!(matched && Number(line.qty) > 0);
+  return `<div class="rm-form-grid" style="grid-template-columns: 90px 1fr 1.3fr 1fr 1fr 90px 90px; align-items:end;">
+    <div class="field"><label>Campaign Year</label><select class="req-stock-process-exchange-year" data-idx="${i}" style="width:100%;">${selectOptions(yearOpts, line.campaignYear, '-- Pilih --')}</select></div>
+    <div class="field"><label>Brand</label><select class="req-stock-process-exchange-brand" data-idx="${i}" style="width:100%;" ${!line.campaignYear ? 'disabled' : ''}>${selectOptions(brandOpts, line.brand, line.campaignYear ? '-- Pilih --' : 'Pilih Tahun dulu')}</select></div>
+    <div class="field"><label>Group</label><select class="req-stock-process-exchange-group" data-idx="${i}" style="width:100%;" ${!line.brand ? 'disabled' : ''}>${selectOptions(groupOpts, line.group, line.brand ? '-- Pilih --' : 'Pilih Brand dulu')}</select></div>
+    <div class="field"><label>Color</label><select class="req-stock-process-exchange-color" data-idx="${i}" style="width:100%;" ${!line.group ? 'disabled' : ''}>${selectOptions(colorOpts, line.color, line.group ? '-- Pilih --' : '-')}</select></div>
+    <div class="field"><label>Size</label><select class="req-stock-process-exchange-size" data-idx="${i}" style="width:100%;" ${!line.color ? 'disabled' : ''}>${selectOptions(sizeOpts, line.size, line.color ? '-- Pilih --' : '-')}</select></div>
+    <div class="field"><label>Qty</label><input type="number" min="1" class="req-stock-process-exchange-qty" data-idx="${i}" value="${escapeHtml(line.qty)}" style="width:100%;"></div>
+    <div class="field"><label>Available</label><div style="padding:9px 2px; font-weight:600;">${availDisplay}</div></div>
+  </div>
+  <button type="button" class="btn-primary req-stock-process-exchange-confirm-btn" data-idx="${i}" style="margin-top:8px;" ${canConfirm ? '' : 'disabled'}>Confirm</button>`;
+}
+function attachReqStockProcessExchangePickerListeners(i) {
+  const wrap = document.querySelector(`.req-stock-process-exchange-picker-wrap[data-idx="${i}"]`);
+  if (!wrap) return;
+  const rerenderThis = () => { wrap.innerHTML = reqStockProcessExchangePickerHtml(i); attachReqStockProcessExchangePickerListeners(i); };
+  const yearSel = wrap.querySelector('.req-stock-process-exchange-year');
+  if (yearSel) yearSel.addEventListener('change', (e) => {
+    Object.assign(reqStockProcessExchangeDraft[i], { campaignYear: e.target.value, brand: '', group: '', color: '', size: '' });
+    rerenderThis();
+  });
+  const brandSel = wrap.querySelector('.req-stock-process-exchange-brand');
+  if (brandSel) brandSel.addEventListener('change', (e) => {
+    Object.assign(reqStockProcessExchangeDraft[i], { brand: e.target.value, group: '', color: '', size: '' });
+    rerenderThis();
+  });
+  const groupSel = wrap.querySelector('.req-stock-process-exchange-group');
+  if (groupSel) groupSel.addEventListener('change', (e) => {
+    Object.assign(reqStockProcessExchangeDraft[i], { group: e.target.value, color: '', size: '' });
+    rerenderThis();
+  });
+  const colorSel = wrap.querySelector('.req-stock-process-exchange-color');
+  if (colorSel) colorSel.addEventListener('change', (e) => {
+    Object.assign(reqStockProcessExchangeDraft[i], { color: e.target.value, size: '' });
+    rerenderThis();
+  });
+  const sizeSel = wrap.querySelector('.req-stock-process-exchange-size');
+  if (sizeSel) sizeSel.addEventListener('change', (e) => {
+    reqStockProcessExchangeDraft[i].size = e.target.value;
+    rerenderThis();
+  });
+  const qtyInp = wrap.querySelector('.req-stock-process-exchange-qty');
+  if (qtyInp) qtyInp.addEventListener('input', (e) => {
+    reqStockProcessExchangeDraft[i].qty = e.target.value;
+    // Only the Confirm button's enabled/disabled state depends on qty — flip that in place rather
+    // than a full rerenderThis(), or the input loses focus/cursor on every keystroke.
+    const confirmBtn = wrap.querySelector('.req-stock-process-exchange-confirm-btn');
+    if (confirmBtn) confirmBtn.disabled = !(Number(e.target.value) > 0);
+  });
+  const confirmBtn = wrap.querySelector('.req-stock-process-exchange-confirm-btn');
+  if (confirmBtn) confirmBtn.addEventListener('click', () => {
+    reqStockProcessExchangeDraft[i].confirmed = true;
+    rerenderThis();
+  });
+  const editBtn = wrap.querySelector('.req-stock-process-exchange-edit-btn');
+  if (editBtn) editBtn.addEventListener('click', () => {
+    reqStockProcessExchangeDraft[i].confirmed = false;
+    rerenderThis();
+  });
+}
+function renderReqStockProcessModal() {
+  const req = requestStockList.find(r => r.id === reqStockProcessTargetId);
+  const wrap = document.getElementById('reqStockProcessItemsWrap');
+  if (!req || !wrap) return;
+  document.getElementById('reqStockProcessRequesterLabel').textContent = req.requesterName || '';
+  wrap.innerHTML = (req.items || []).map((it, i) => {
+    const status = it.status || 'Pending';
+    return `<div class="req-stock-process-item" data-idx="${i}" data-status="${escapeHtml(status)}" style="border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:10px;">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:nowrap;">
+        <div style="flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(it.sku || '-')} ${escapeHtml(it.productName || '')}"><strong class="mono-name">${escapeHtml(it.sku || '-')}</strong> ${escapeHtml(it.productName || '')}${it.color ? ` · ${escapeHtml(it.color)}` : ''}${it.size ? ` · ${escapeHtml(it.size)}` : ''} × <strong>${formatQty(it.qty)}</strong></div>
+        <div style="display:flex; gap:6px; flex:0 0 auto;">
+          <button type="button" class="btn-ghost req-stock-process-status-btn" data-status="Fulfilled" style="white-space:nowrap; padding:6px 8px; ${reqStockStatusBtnStyle('Fulfilled', status)}">✅ Fulfilled</button>
+          <button type="button" class="btn-ghost req-stock-process-status-btn" data-status="Exchanged" style="white-space:nowrap; padding:6px 8px; ${reqStockStatusBtnStyle('Exchanged', status)}">🔁 Exchange</button>
+          <button type="button" class="btn-ghost req-stock-process-status-btn" data-status="OutOfStock" style="white-space:nowrap; padding:6px 8px; ${reqStockStatusBtnStyle('OutOfStock', status)}">❌ Out of Stock</button>
+        </div>
+      </div>
+      <div style="margin-top:8px;">${it.sku ? reqStockLocationBreakdownHtml(it.sku) : `<span class="data-note" style="margin:0;">SKU tak matched dengan Item Master List.</span>`}</div>
+      <div class="req-stock-process-exchange-picker-wrap" data-idx="${i}" style="display:${(status === 'Exchanged' || it.exchangeSku) ? '' : 'none'}; margin-top:8px;">
+        <div class="data-note" style="margin:0 0 6px;">Pilih barang gantian:</div>
+        ${reqStockProcessExchangePickerHtml(i)}
+      </div>
+      <input type="text" class="req-stock-process-note-input" data-idx="${i}" placeholder="Notes (cth: sebab tukar)" value="${escapeHtml(it.processNote || '')}" style="width:100%; margin-top:8px;">
+    </div>`;
+  }).join('');
+  // Toggle status directly on the container (no full re-render) so any note text typed in OTHER
+  // item rows doesn't get wiped — clicking the already-active button toggles it back to Pending.
+  // Exchange reveals the replacement-SKU picker; Fulfilled deliberately leaves that picker's current
+  // visibility untouched, so "Exchange -> pick replacement -> Fulfilled" keeps the pick visible.
+  wrap.querySelectorAll('.req-stock-process-status-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const container = btn.closest('.req-stock-process-item');
+      const newStatus = (container.dataset.status === btn.dataset.status) ? 'Pending' : btn.dataset.status;
+      container.dataset.status = newStatus;
+      container.querySelectorAll('.req-stock-process-status-btn').forEach(b => {
+        const isActive = b.dataset.status === newStatus;
+        const color = REQ_STOCK_STATUS_COLOR_VAR[b.dataset.status];
+        b.style.background = isActive ? `var(${color}-bg)` : '';
+        b.style.color = isActive ? `var(${color})` : '';
+        b.style.borderColor = isActive ? `var(${color})` : '';
+      });
+      const pickerWrap = container.querySelector('.req-stock-process-exchange-picker-wrap');
+      if (pickerWrap) {
+        if (newStatus === 'Exchanged') pickerWrap.style.display = '';
+        else if (newStatus === 'Pending' || newStatus === 'OutOfStock') pickerWrap.style.display = 'none';
+        // newStatus === 'Fulfilled': leave as-is.
+      }
+    });
+  });
+  (req.items || []).forEach((it, i) => attachReqStockProcessExchangePickerListeners(i));
+}
+document.getElementById('reqStockProcessSaveBtn').addEventListener('click', () => {
+  const req = requestStockList.find(r => r.id === reqStockProcessTargetId);
+  if (!req) return;
+  // First Save on a request marks it "Approved" (overall lifecycle: Pending -> Approved -> Complete,
+  // per Shaila) — stays true even if it's later reopened/re-saved.
+  req.approved = true;
+  const itemsWrap = document.getElementById('reqStockProcessItemsWrap');
+  // Guard: an item marked "Exchanged" must have its replacement pick CONFIRMED (green box) before
+  // Save is allowed — otherwise a half-filled picker would silently vanish or save incomplete data.
+  const statusByIdx = {};
+  itemsWrap.querySelectorAll('.req-stock-process-item').forEach(container => {
+    statusByIdx[Number(container.dataset.idx)] = container.dataset.status;
+  });
+  for (const key of Object.keys(statusByIdx)) {
+    const i = Number(key);
+    if (statusByIdx[i] === 'Exchanged' && !(reqStockProcessExchangeDraft[i] && reqStockProcessExchangeDraft[i].confirmed)) {
+      const label = (req.items[i] && (req.items[i].sku || req.items[i].productName)) || `SKU #${i + 1}`;
+      alert(`Sila tekan "Confirm Barang Gantian" dulu untuk ${label} sebelum Save.`);
+      return;
+    }
+  }
+  itemsWrap.querySelectorAll('.req-stock-process-item').forEach(container => {
+    const i = Number(container.dataset.idx);
+    if (req.items[i]) req.items[i].status = container.dataset.status;
+  });
+  itemsWrap.querySelectorAll('.req-stock-process-note-input').forEach(inp => {
+    const i = Number(inp.dataset.idx);
+    if (req.items[i]) req.items[i].processNote = inp.value.trim();
+  });
+  // Persist whatever replacement SKU was CONFIRMED in each item's Exchange picker, regardless of that
+  // item's final status — a "Fulfilled" line reached via Exchange still needs to remember what it was
+  // actually fulfilled WITH, not just that it's done.
+  Object.keys(reqStockProcessExchangeDraft).forEach(key => {
+    const i = Number(key);
+    if (!req.items[i]) return;
+    const line = reqStockProcessExchangeDraft[key];
+    if (!line.confirmed) return;
+    const matched = (line.campaignYear && line.brand && line.group && line.color && line.size) ? reqStockMatchedItem(line) : null;
+    if (matched) {
+      req.items[i].exchangeSku = matched.sku;
+      req.items[i].exchangeProductName = itemMasterProductName(matched);
+      req.items[i].exchangeCampaignYear = line.campaignYear;
+      req.items[i].exchangeBrand = line.brand;
+      req.items[i].exchangeGroup = line.group;
+      req.items[i].exchangeColor = line.color;
+      req.items[i].exchangeSize = line.size;
+      req.items[i].exchangeQty = Number(line.qty) || 0;
+    }
+  });
+  if (!saveRequestStockList()) {
+    alert('Gagal simpan — storan browser penuh. Cuba refresh page dulu.');
+    return;
+  }
+  closeReqStockProcessModal();
+  renderRequestStockHistory();
+  alert('Status disimpan.');
+});
+
+/* ================= Guest Request Stock (login screen, no auth) =================
+ * Same idea as the authenticated "New Request" form above (cascading Year/Brand/Group/Color/Size,
+ * Available qty from Stock Balance, attach-filled-PDF-required-to-submit) but reachable straight
+ * from the login screen so staff who don't have an account (or don't want to log in) can still
+ * submit a request. Deliberately does NOT show the Request History list — per Shaila, this public
+ * entry point should only let someone submit + download the blank form, not browse everyone else's
+ * past requests. Submits into the exact same requestStockList/saveRequestStockList() as the
+ * authenticated form, so it shows up in Request History like any other request (tagged
+ * submittedVia:'guest' in case that's ever useful to filter/spot later).
+ */
+let guestReqStockDraftLine = { campaignYear: '', brand: '', group: '', color: '', size: '', qty: '' };
+let guestReqStockConfirmedItems = []; // [{ campaignYear, brand, group, color, size, qty }]
+let guestReqStockDraftAttachment = null; // { name, dataUrl } | null
+function renderGuestReqStockTemplateStatus() {
+  const el = document.getElementById('guestReqStockTemplateStatus');
+  if (!el) return;
+  if (reqStockTemplate && reqStockTemplate.dataUrl) {
+    el.innerHTML = `<a href="${reqStockTemplate.dataUrl}" download="${escapeHtml(reqStockTemplate.name || 'request-form.pdf')}" style="color:var(--blue,#5b9dd9); font-weight:600;">⬇️ Download ${escapeHtml(reqStockTemplate.name || 'request-form.pdf')}</a>`;
+  } else {
+    el.textContent = 'Form not uploaded yet. Please contact Admin/Team Lead.';
+  }
+}
+function renderGuestReqStockItemLines() {
+  const wrap = document.getElementById('guestReqStockItemsWrap');
+  const listWrap = document.getElementById('guestReqStockConfirmedItemsWrap');
+  if (!wrap) return;
+  const selectOptions = (list, current, placeholder) => `<option value="">${escapeHtml(placeholder)}</option>` +
+    list.map(v => `<option value="${escapeHtml(v)}" ${v === current ? 'selected' : ''}>${escapeHtml(v)}</option>`).join('');
+  const line = guestReqStockDraftLine;
+  const yearOpts = reqStockUniqueValues('campaignYear', {});
+  const brandOpts = line.campaignYear ? reqStockUniqueValues('itemBrand', { campaignYear: line.campaignYear }) : [];
+  const groupOpts = (line.campaignYear && line.brand) ? reqStockUniqueValues('itemGroup', { campaignYear: line.campaignYear, brand: line.brand }) : [];
+  const colorOpts = (line.campaignYear && line.brand && line.group) ? reqStockUniqueValues('itemColor', { campaignYear: line.campaignYear, brand: line.brand, group: line.group }) : [];
+  const sizeOpts = (line.campaignYear && line.brand && line.group && line.color) ? reqStockUniqueValues('itemSize', { campaignYear: line.campaignYear, brand: line.brand, group: line.group, color: line.color }) : [];
+  const matchedForAvail = (line.campaignYear && line.brand && line.group && line.color && line.size) ? reqStockMatchedItem(line) : null;
+  const availQty = matchedForAvail ? reqStockAvailableQty(matchedForAvail.sku) : null;
+  const availDisplay = availQty === null ? '-' : formatQty(availQty);
+  const availColor = (availQty !== null && availQty <= 0) ? 'color:var(--red);' : '';
+  wrap.innerHTML = `<div class="rm-form-grid" style="grid-template-columns: 90px 1fr 1.3fr 1fr 1fr 90px 90px; align-items:end; margin-bottom:8px;">
+    <div class="field"><label>Campaign Year</label><select id="guestReqStockYearInput" style="width:100%;">${selectOptions(yearOpts, line.campaignYear, '-- Select --')}</select></div>
+    <div class="field"><label>Brand</label><select id="guestReqStockBrandInput" style="width:100%;" ${!line.campaignYear ? 'disabled' : ''}>${selectOptions(brandOpts, line.brand, line.campaignYear ? '-- Select --' : 'Select Year first')}</select></div>
+    <div class="field"><label>Group</label><select id="guestReqStockGroupInput" style="width:100%;" ${!line.brand ? 'disabled' : ''}>${selectOptions(groupOpts, line.group, line.brand ? '-- Select --' : 'Select Brand first')}</select></div>
+    <div class="field"><label>Color</label><select id="guestReqStockColorInput" style="width:100%;" ${!line.group ? 'disabled' : ''}>${selectOptions(colorOpts, line.color, line.group ? '-- Select --' : '-')}</select></div>
+    <div class="field"><label>Size</label><select id="guestReqStockSizeInput" style="width:100%;" ${!line.color ? 'disabled' : ''}>${selectOptions(sizeOpts, line.size, line.color ? '-- Select --' : '-')}</select></div>
+    <div class="field"><label>Qty</label><input type="number" min="1" id="guestReqStockQtyInput" value="${escapeHtml(line.qty)}" style="width:100%;"></div>
+    <div class="field"><label>Available</label><div class="req-stock-available-qty" title="Total from Stock Balance, all locations except Experience Conezion" style="padding:9px 2px; font-weight:600; ${availColor}">${availDisplay}</div></div>
+  </div>`;
+  document.getElementById('guestReqStockYearInput').addEventListener('change', (e) => {
+    guestReqStockDraftLine.campaignYear = e.target.value;
+    guestReqStockDraftLine.brand = ''; guestReqStockDraftLine.group = ''; guestReqStockDraftLine.color = ''; guestReqStockDraftLine.size = '';
+    renderGuestReqStockItemLines();
+  });
+  document.getElementById('guestReqStockBrandInput').addEventListener('change', (e) => {
+    guestReqStockDraftLine.brand = e.target.value;
+    guestReqStockDraftLine.group = ''; guestReqStockDraftLine.color = ''; guestReqStockDraftLine.size = '';
+    renderGuestReqStockItemLines();
+  });
+  document.getElementById('guestReqStockGroupInput').addEventListener('change', (e) => {
+    guestReqStockDraftLine.group = e.target.value;
+    guestReqStockDraftLine.color = ''; guestReqStockDraftLine.size = '';
+    renderGuestReqStockItemLines();
+  });
+  document.getElementById('guestReqStockColorInput').addEventListener('change', (e) => {
+    guestReqStockDraftLine.color = e.target.value;
+    guestReqStockDraftLine.size = '';
+    renderGuestReqStockItemLines();
+  });
+  document.getElementById('guestReqStockSizeInput').addEventListener('change', (e) => {
+    guestReqStockDraftLine.size = e.target.value;
+    renderGuestReqStockItemLines();
+  });
+  document.getElementById('guestReqStockQtyInput').addEventListener('input', (e) => { guestReqStockDraftLine.qty = e.target.value; });
+  if (listWrap) {
+    listWrap.innerHTML = guestReqStockConfirmedItems.length
+      ? guestReqStockConfirmedItems.map((it, i) => reqStockConfirmedItemRowHtml(it, i, 'guest-req-stock-remove-item-btn')).join('')
+      : `<div class="data-note" style="margin:0;">No items added yet.</div>`;
+    listWrap.querySelectorAll('.guest-req-stock-remove-item-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        guestReqStockConfirmedItems.splice(Number(btn.dataset.idx), 1);
+        renderGuestReqStockItemLines();
+      });
+    });
+  }
+}
+document.getElementById('guestReqStockOpenBtn').addEventListener('click', () => {
+  document.getElementById('loginOverlay').classList.add('hidden');
+  document.getElementById('guestReqStockOverlay').classList.remove('hidden');
+  renderGuestReqStockTemplateStatus();
+  renderGuestReqStockItemLines();
+});
+document.getElementById('guestReqStockCloseBtn').addEventListener('click', () => {
+  document.getElementById('guestReqStockOverlay').classList.add('hidden');
+  document.getElementById('loginOverlay').classList.remove('hidden');
+});
+// "Check Status" — lets a staff member who submitted a request WITHOUT logging in look up its
+// progress without exposing anyone else's requests. Deliberately requires BOTH Requester Name AND
+// the exact Request No. to match (per Shaila) rather than name alone, since names can collide.
+// Only an overall "X/Y SKU processed" summary is shown — no per-SKU breakdown — to keep this a quick
+// check rather than a read-only clone of the internal Process view.
+document.getElementById('guestReqStockCheckStatusBtn').addEventListener('click', () => {
+  document.getElementById('guestReqStockStatusReqNo').value = '';
+  document.getElementById('guestReqStockStatusResult').innerHTML = '';
+  document.getElementById('guestReqStockStatusOverlay').classList.remove('hidden');
+});
+document.getElementById('guestReqStockStatusCloseBtn').addEventListener('click', () => {
+  document.getElementById('guestReqStockStatusOverlay').classList.add('hidden');
+});
+document.getElementById('guestReqStockStatusSearchBtn').addEventListener('click', () => {
+  const reqNo = document.getElementById('guestReqStockStatusReqNo').value.trim();
+  const resultWrap = document.getElementById('guestReqStockStatusResult');
+  if (!reqNo) {
+    resultWrap.innerHTML = `<div class="data-note" style="margin:0; color:var(--red);">Please fill in the Request No.</div>`;
+    return;
+  }
+  const match = requestStockList.find(r => (r.requestNo || '').trim().toLowerCase() === reqNo.toLowerCase());
+  if (!match) {
+    resultWrap.innerHTML = `<div class="data-note" style="margin:0; color:var(--red);">No matching request found. Please check the name and Request No. and try again.</div>`;
+    return;
+  }
+  const items = match.items || [];
+  const doneCount = items.filter(it => (it.status || 'Pending') !== 'Pending').length;
+  const overall = reqStockOverallStatus(match);
+  resultWrap.innerHTML = `<div class="card" style="margin:0;">
+    <p style="margin:0 0 8px;"><strong class="mono-name">${escapeHtml(match.requestNo || '-')}</strong></p>
+    <p style="margin:0 0 4px; font-size:13px;">Requester: <strong>${escapeHtml(match.requesterName)}</strong> &middot; Purpose: <span class="badge badge-gray">${escapeHtml(match.purpose || '-')}</span></p>
+    <p style="margin:0 0 4px; font-size:13px;">Date Submitted: ${formatDateLabel(toIsoLocal(new Date(match.createdAt)))}${match.dateNeeded ? ` &middot; Date Needed: ${formatDateLabel(match.dateNeeded)}` : ''}</p>
+    <p style="margin:8px 0 0; font-size:14px;">Status: <span class="badge ${overall.badgeClass}" style="font-size:13px;">${overall.label}</span> <span class="data-note" style="margin:0;">(${doneCount}/${items.length} SKU processed)</span></p>
+  </div>`;
+});
+document.getElementById('guestReqStockAddItemBtn').addEventListener('click', () => {
+  const line = guestReqStockDraftLine;
+  if (!(line.campaignYear && line.brand && line.group && line.color && line.size && Number(line.qty) > 0)) {
+    alert('Please complete Campaign Year, Brand, Group, Color, Size & Qty before adding.');
+    return;
+  }
+  guestReqStockConfirmedItems.push({ ...line });
+  guestReqStockDraftLine = { campaignYear: '', brand: '', group: '', color: '', size: '', qty: '' };
+  renderGuestReqStockItemLines();
+});
+document.getElementById('guestReqStockAttachmentInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) { alert('Please attach a PDF file only.'); return; }
+  if (file.size > REQ_STOCK_ATTACHMENT_MAX_BYTES) { alert('File is too large (max 5MB). Please compress the PDF first.'); return; }
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    guestReqStockDraftAttachment = { name: file.name, dataUrl: evt.target.result };
+    document.getElementById('guestReqStockAttachmentName').textContent = '📎 ' + file.name;
+  };
+  reader.onerror = () => alert('Failed to load that file. Please try again.');
+  reader.readAsDataURL(file);
+});
+document.getElementById('guestReqStockSubmitBtn').addEventListener('click', () => {
+  const requesterName = document.getElementById('guestReqStockRequester').value.trim();
+  const purpose = document.getElementById('guestReqStockPurpose').value;
+  const dateNeeded = document.getElementById('guestReqStockDateNeeded').value;
+  const notes = document.getElementById('guestReqStockNotes').value.trim();
+  if (!requesterName) { alert('Fill in Requester Name.'); document.getElementById('guestReqStockRequester').focus(); return; }
+  // Safety net: fold a still-in-progress (but fully filled) picker row into the list automatically.
+  const dl = guestReqStockDraftLine;
+  if (dl.campaignYear && dl.brand && dl.group && dl.color && dl.size && Number(dl.qty) > 0) {
+    guestReqStockConfirmedItems.push({ ...dl });
+    guestReqStockDraftLine = { campaignYear: '', brand: '', group: '', color: '', size: '', qty: '' };
+  }
+  const items = guestReqStockConfirmedItems.map(line => {
+    const matched = reqStockMatchedItem(line);
+    const productName = matched ? itemMasterProductName(matched) : `${line.group} - ${line.color} - ${line.size}`;
+    return { sku: matched ? matched.sku : '', productName, campaignYear: line.campaignYear, brand: line.brand, group: line.group, color: line.color, size: line.size, qty: Number(line.qty) || 0 };
+  });
+  if (!items.length) { alert('Add at least one complete item (Campaign Year, Brand, Group, Color, Size, Qty).'); return; }
+  if (!guestReqStockDraftAttachment) { alert('Please attach the completed PDF form before submitting.'); return; }
+  const guestReqId = genRequestStockId();
+  const requestNo = nextRequestStockNo(purpose);
+  requestStockList.push({
+    id: guestReqId, requestNo, requesterName, purpose, dateNeeded, items, notes, createdAt: Date.now(),
+    attachmentName: guestReqStockDraftAttachment.name,
+    submittedVia: 'guest',
+  });
+  if (!saveRequestStockList()) {
+    requestStockList.pop();
+    alert('Failed to save your request — browser storage is full. Please try refreshing the page first, or contact IT if it still fails.');
+    return;
+  }
+  pushRequestStockAttachment(guestReqId, guestReqStockDraftAttachment.name, guestReqStockDraftAttachment.dataUrl);
+  document.getElementById('guestReqStockRequester').value = '';
+  document.getElementById('guestReqStockPurpose').value = '';
+  document.getElementById('guestReqStockDateNeeded').value = '';
+  document.getElementById('guestReqStockNotes').value = '';
+  guestReqStockConfirmedItems = [];
+  guestReqStockDraftLine = { campaignYear: '', brand: '', group: '', color: '', size: '', qty: '' };
+  guestReqStockDraftAttachment = null;
+  document.getElementById('guestReqStockAttachmentName').textContent = '';
+  renderGuestReqStockItemLines();
+  // Show the Request No. prominently on-screen (not just in the alert, which is easy to dismiss
+  // without reading) — this is the ONLY place a guest (no login) ever sees it, and they need it
+  // together with their name to use "Check Status" later.
+  document.getElementById('guestReqStockLastSubmittedNote').innerHTML =
+    `<div class="card" style="border-color:var(--green); background:var(--green-bg);">
+      <p style="margin:0; font-size:13px;">✅ Request submitted! Save this Request No. — you'll need it (with your name) to check your status later:</p>
+      <p class="mono-name" style="margin:6px 0 0; font-size:16px; font-weight:700; user-select:all;">${escapeHtml(requestNo)}</p>
+    </div>`;
+  alert(`Request submitted successfully. Thank you!\n\nYour Request No.: ${requestNo}\n(Please note this down — you'll need it with your name to check your request status later.)`);
+});
+
 // Shows the 5 oldest-first pending (not-yet-Completed) STOs right below the STO Status donut —
 // a quick "what needs attention" glance without having to leave the dashboard for the RM STO tab.
 function renderRawMaterialPendingStoList() {
@@ -15983,6 +17389,7 @@ function renderRawMaterialDashboard() {
   renderPriceTagPendingList();
   renderRawMaterialDashTable();
 }
+
 
 /* ---------- Driver Trip (delivery count tracker) ---------- */
 // Simple frequency matrix: boutiques across the top, drivers down the side, each cell is how many
