@@ -1551,9 +1551,9 @@
   <section class="tab-panel" id="tab-rm-import">
     <p class="section-title">Import Data (Raw Material)</p>
     <div class="card">
-      <p class="rm-form-section-label" style="margin-top:0;">Roll IN + Roll Out + DO (Full Workbook — upload sekali je)</p>
+      <p class="rm-form-section-label" style="margin-top:0;">Roll IN + Roll Out + DO (Full Workbook — upload once)</p>
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-        <span class="data-note" style="margin:0;">Ada data lama dalam Google Sheet/Excel? Upload je terus keseluruhan file (semua tab sekali) di sini — sistem akan cari tab "Roll IN", "Roll Out" dan "DO" sendiri dan import ketiga-tiganya sekali gus, ikut turutan yang betul. Tak payah upload berasingan-asingan lagi.</span>
+        <span class="data-note" style="margin:0;">Have old data in a Google Sheet/Excel? Just upload the whole file (all tabs at once) here — the system will find the "Roll IN", "Roll Out" and "DO" tabs itself and import all three at once, in the correct order. No need to upload them separately anymore.</span>
         <button type="button" class="btn-ghost" id="downloadRmReceiveTemplateBtn">⬇ Download Template</button>
       </div>
       <div class="dropzone" id="rmReceiveDropzone">
@@ -1565,14 +1565,14 @@
           </label>
           <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx file here</span>
         </div>
-        <div class="upload-hint" style="margin-top:10px;">Boleh upload 1 file .xlsx yang ada banyak tab (macam Google Sheet awak — download as .xlsx dari File → Download). Sistem baca tab yang namanya ada "Roll IN", "Roll Out" dan "DO" (atau "Delivery Order") secara automatik. Tab lain (STO Items, Balance, Users) diabaikan — tak perlu buang. Column dalam tab Roll IN: Fabric Name, Fabric Code, GSM, Color Code, Color Name, Roll No., Meter, Date, Staff, Timestamp, Batch, Invoice No., Notes. Tab Roll Out: Fabric Name, Fabric Code, Color Code, Color Name, Roll No., Meter, Date, Staff, Timestamp, Notes, Destination, STO No., Status. Tab DO: STO No., DO No., Date, Notes.</div>
+        <div class="upload-hint" style="margin-top:10px;">You can upload 1 .xlsx file with many tabs (like your Google Sheet — download as .xlsx from File → Download). The system automatically reads tabs whose names contain "Roll IN", "Roll Out" and "DO" (or "Delivery Order"). Other tabs (STO Items, Balance, Users) are ignored — no need to remove them. Columns in the Roll IN tab: Fabric Name, Fabric Code, GSM, Color Code, Color Name, Roll No., Meter, Date, Staff, Timestamp, Batch, Invoice No., Notes. Roll Out tab: Fabric Name, Fabric Code, Color Code, Color Name, Roll No., Meter, Date, Staff, Timestamp, Notes, Destination, STO No., Status. DO tab: STO No., DO No., Date, Notes.</div>
       </div>
       <div class="upload-status" id="rmReceiveUploadStatus"></div>
     </div>
     <div class="card" style="margin-top:16px;">
       <p class="rm-form-section-label" style="margin-top:0;">Pick (Roll OUT) History Only</p>
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-        <span class="data-note" style="margin:0;">Import rekod Pick lama (history) — akan tolak stock roll berkenaan. Import Roll IN dulu supaya Roll No. dah wujud.</span>
+        <span class="data-note" style="margin:0;">Import old Pick records (history) — this will deduct stock from the corresponding rolls. Import Roll IN first so the Roll No. already exists.</span>
         <button type="button" class="btn-ghost" id="downloadRmPickTemplateBtn">⬇ Download Template</button>
       </div>
       <div class="dropzone" id="rmPickDropzone">
@@ -1591,7 +1591,7 @@
     <div class="card" style="margin-top:16px;">
       <p class="rm-form-section-label" style="margin-top:0;">Create STO / Roll Out History Only</p>
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-        <span class="data-note" style="margin:0;">Untuk upload tab "Roll Out" bersendirian (satu file, satu tab) — kalau file penuh (banyak tab) dah diupload atas, tak perlu guna ni lagi.</span>
+        <span class="data-note" style="margin:0;">For uploading the "Roll Out" tab on its own (one file, one tab) — if the full file (many tabs) has already been uploaded above, you don't need to use this anymore.</span>
         <button type="button" class="btn-ghost" id="downloadRmStoTemplateBtn">⬇ Download Template</button>
       </div>
       <div class="dropzone" id="rmStoDropzone">
@@ -1610,7 +1610,7 @@
     <div class="card" style="margin-top:16px;">
       <p class="rm-form-section-label" style="margin-top:0;">Delivery Order (DO) History Only</p>
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-        <span class="data-note" style="margin:0;">Untuk simpan rekod DO lama supaya boleh cari/reprint balik nanti. Import STO/Roll Out history dulu (atas) — sistem ambil senarai roll & destinasi terus dari STO No. yang dah wujud, awak cuma perlu bagi DO No. dia.</span>
+        <span class="data-note" style="margin:0;">For keeping old DO records so they can be found/reprinted later. Import STO/Roll Out history first (above) — the system pulls the roll list & destination straight from the existing STO No., you just need to give its DO No.</span>
         <button type="button" class="btn-ghost" id="downloadRmDoImportTemplateBtn">⬇ Download Template</button>
       </div>
       <div class="dropzone" id="rmDoImportDropzone">
@@ -1622,13 +1622,13 @@
           </label>
           <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx file here</span>
         </div>
-        <div class="upload-hint" style="margin-top:10px;">Columns: STO No. (must already exist from the import above), DO No., Date (optional — defaults to the STO's date), Notes (optional). One row per DO — STO No. yang dah ada DO sebelum ni akan dilangkau (tak duplicate).</div>
+        <div class="upload-hint" style="margin-top:10px;">Columns: STO No. (must already exist from the import above), DO No., Date (optional — defaults to the STO's date), Notes (optional). One row per DO — an STO No. that already has a DO will be skipped (no duplicates).</div>
       </div>
       <div class="upload-status" id="rmDoImportUploadStatus"></div>
     </div>
     <div class="card" style="margin-top:16px; border-color:#e0685c;">
       <p class="rm-form-section-label" style="margin-top:0; color:#e0685c;">⚠ Danger Zone</p>
-      <span class="data-note" style="margin:0;">Padam SEMUA data Raw Material (semua roll, STO, DO dan sejarah Pick) — untuk buang data test/lama sebelum mula fresh. Tindakan ini boleh di-undo sekali sahaja, terus lepas tekan (guna "↩ Undo Reset") — selepas reset lagi sekali, undo lama takkan boleh dipakai.</span>
+      <span class="data-note" style="margin:0;">Delete ALL Raw Material data (all rolls, STOs, DOs and Pick history) — to clear old/test data before starting fresh. This action can be undone once, right after you click it (use "↩ Undo Reset") — resetting again will lose the ability to undo the previous one.</span>
       <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
         <button class="btn-ghost" id="undoResetRmBtn" style="display:none;">↩ Undo Reset</button>
         <button class="btn-ghost" id="resetRmBtn" style="color:#e0685c;">🗑 Reset All Raw Material Data</button>
@@ -1702,7 +1702,7 @@
           </div>
           <div class="rm-form-grid rm-form-grid-4">
             <div class="field full"><label>Accessories Name</label><input type="text" id="accName" placeholder="e.g. Button 15mm"></div>
-            <div class="field"><label>Bilangan Carton</label><input type="number" min="0" step="1" id="accCartonCount" placeholder="0 = takde carton"></div>
+            <div class="field"><label>Number of Cartons</label><input type="number" min="0" step="1" id="accCartonCount" placeholder="0 = no carton"></div>
             <div class="field" id="accQtyPerCartonField"><label>Qty per Carton</label><input type="number" min="1" step="1" id="accQtyPerCarton" placeholder="e.g. 100"></div>
             <div class="field" id="accQtyTotalField" style="display:none;"><label>Quantity</label><input type="number" min="1" step="1" id="accQtyTotal" placeholder="e.g. 50"></div>
             <div class="field"><label>Received By</label><input type="text" id="accReceivedBy" readonly placeholder="(not logged in)"></div>
@@ -1712,7 +1712,7 @@
           <hr class="rm-form-divider">
           <p class="rm-form-section-label">Carton List</p>
           <div class="field">
-            <div class="data-note" id="accCartonListHint" style="margin:2px 0 8px;">Isi Bilangan Carton untuk generate Carton No., atau kosongkan/0 kalau item ni takde carton fizikal.</div>
+            <div class="data-note" id="accCartonListHint" style="margin:2px 0 8px;">Fill in Number of Cartons to generate Carton No., or leave blank/0 if this item has no physical carton.</div>
             <div id="accCartonListWrap"></div>
           </div>
           <hr class="rm-form-divider">
@@ -1720,7 +1720,7 @@
           <div class="field">
             <input type="file" id="accPhotoInput" accept="image/*" capture="environment" style="display:none;">
             <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-              <button type="button" class="btn-ghost" id="accPhotoPickBtn">📷 Amik / Upload Gambar</button>
+              <button type="button" class="btn-ghost" id="accPhotoPickBtn">📷 Take / Upload Photo</button>
               <button type="button" class="btn-ghost" id="accPhotoRemoveBtn" style="display:none; color:#e0685c;">✕ Remove Photo</button>
             </div>
             <div id="accPhotoPreviewWrap" style="margin-top:10px;"></div>
@@ -1752,11 +1752,11 @@
       </div>
       <div id="rmPickStoHint" class="data-note" style="color:#e0685c;"></div>
       <div class="rm-form-grid" style="grid-template-columns: 1fr auto; margin-top:10px;">
-        <div class="field"><label>Roll No. / Carton No.</label><input type="text" id="rmPickRollInput" placeholder="Scan roll atau carton (sends immediately)"></div>
+        <div class="field"><label>Roll No. / Carton No.</label><input type="text" id="rmPickRollInput" placeholder="Scan roll or carton (sends immediately)"></div>
         <div class="field" style="align-self:flex-end;"><button type="button" class="btn-ghost" id="rmPickScanBtn">Scan</button></div>
       </div>
       <div id="rmPickScanResult" class="data-note"></div>
-      <div class="data-note" style="margin-top:10px;">Scan terus auto-hantar & save (deduct stock) — takde langkah Complete berasingan lagi. Accessories tanpa carton guna butang "✅ Hantar" kat "Perlu Dipick" bawah.</div>
+      <div class="data-note" style="margin-top:10px;">Scanning auto-sends & saves immediately (deducts stock) — there's no separate Complete step anymore. For accessories without a carton, use the "✅ Send" button under "To Pick" below.</div>
       <div class="rm-form-grid rm-form-grid-4" style="margin-top:10px;">
         <div class="field"><label>Meter Out</label><input type="text" id="rmPickMeterOut" readonly></div>
         <div class="field"><label>Date</label><input type="date" id="rmPickDate"></div>
@@ -1765,8 +1765,8 @@
       </div>
     </div>
     <div class="card" style="margin-top:16px;">
-      <p class="section-title" style="margin-top:0; font-size:13px;">Perlu Dipick (ikut Fabric + Warna)</p>
-      <div class="data-note" style="margin:0 0 10px;">Pergi ambil roll/carton yang padan (mana-mana pun boleh) — tak perlu roll no./carton no. tertentu, scan je yang diambil.</div>
+      <p class="section-title" style="margin-top:0; font-size:13px;">To Pick (by Fabric + Colour)</p>
+      <div class="data-note" style="margin:0 0 10px;">Go get any matching roll/carton (any one is fine) — no need for a specific roll no./carton no., just scan whichever you take.</div>
       <div id="rmPickToPickWrap"></div>
     </div>
     <div class="card" style="margin-top:16px;">
@@ -1803,7 +1803,7 @@
       </div>
       <div id="rmStoAccessoriesItemInputs" class="rm-form-grid rm-form-grid-4" style="margin-top:8px; display:none;">
         <div class="field full-2"><label>Accessories</label><select id="rmStoItemAccessoriesSelect"><option value="">Select accessories…</option></select></div>
-        <div class="field" id="rmStoItemAccCartonCountField" style="display:none;"><label>Bilangan Carton</label><input type="number" min="1" step="1" id="rmStoItemAccCartonCountInput" placeholder="e.g. 3"></div>
+        <div class="field" id="rmStoItemAccCartonCountField" style="display:none;"><label>Number of Cartons</label><input type="number" min="1" step="1" id="rmStoItemAccCartonCountInput" placeholder="e.g. 3"></div>
         <div class="field" id="rmStoItemAccQtyField" style="display:none;"><label>Quantity</label><input type="number" min="1" step="1" id="rmStoItemAccQtyInput" placeholder="e.g. 50"></div>
         <div class="field" id="rmStoItemAccAddBtnField" style="align-self:flex-end; display:none;"><button type="button" class="btn-ghost" id="rmStoAddAccItemBtn" style="width:100%;">+ Add Item</button></div>
         <div class="data-note full-2" id="rmStoItemAccHint" style="margin-top:-6px; display:none;"></div>
@@ -1813,7 +1813,7 @@
     <div class="card" style="margin-top:16px;">
       <p class="rm-form-section-label" style="margin-top:0;">Bulk Add Items (Excel/CSV)</p>
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-        <span class="data-note" style="margin:0;">Isi STO No./Destination/Date kat atas macam biasa, then upload file ni untuk terus tambah banyak item ke "Items To Pick" sekali gus (tak payah pilih satu-satu). Sistem auto-pilih roll ikut Fabric Name + Color Code (roll No. terkecil dulu).</span>
+        <span class="data-note" style="margin:0;">Fill in STO No./Destination/Date above as usual, then upload this file to add many items to "Items To Pick" at once (no need to pick one by one). The system auto-picks rolls by Fabric Name + Color Code (lowest Roll No. first).</span>
         <button type="button" class="btn-ghost" id="downloadRmStoQtyTemplateBtn">⬇ Download Template</button>
       </div>
       <div class="dropzone" id="rmStoQtyDropzone">
@@ -1870,12 +1870,12 @@
         <span class="rm-mode-switch-label rm-print-item-type-label-accessories">🧷 Accessories</span>
       </div>
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
-        <p class="section-title" style="margin:0; font-size:13px;">Pilih Roll Untuk Print</p>
+        <p class="section-title" style="margin:0; font-size:13px;">Select Roll To Print</p>
         <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted);"><input type="checkbox" id="rmPrintHideEmptyToggle" checked> Hide empty rolls (0 meter left)</label>
       </div>
       <input type="text" id="rmPrintSearchInput" placeholder="Search Fabric Name / Code / Color / Roll No...">
       <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:10px;">
-        <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); cursor:pointer;"><input type="checkbox" id="rmPrintSelectAll"> Select All (yang ditapis)</label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); cursor:pointer;"><input type="checkbox" id="rmPrintSelectAll"> Select All (filtered)</label>
         <div style="display:flex; align-items:center; gap:6px;">
           <input type="text" id="rmPrintRangeFrom" placeholder="From (e.g. R-0594)" style="width:140px;">
           <span style="color:var(--text-muted);">–</span>
@@ -1907,11 +1907,11 @@
         <span class="rm-mode-switch-label rm-print-item-type-label-accessories active">🧷 Accessories</span>
       </div>
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
-        <p class="section-title" style="margin:0; font-size:13px;">Pilih Carton Untuk Print</p>
+        <p class="section-title" style="margin:0; font-size:13px;">Select Carton To Print</p>
       </div>
       <input type="text" id="accPrintSearchInput" placeholder="Search Accessories Name / Carton No...">
       <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:10px;">
-        <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); cursor:pointer;"><input type="checkbox" id="accPrintSelectAll"> Select All (yang ditapis)</label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); cursor:pointer;"><input type="checkbox" id="accPrintSelectAll"> Select All (filtered)</label>
         <div style="display:flex; align-items:center; gap:6px;">
           <input type="text" id="accPrintRangeFrom" placeholder="From (e.g. ACC-0001)" style="width:140px;">
           <span style="color:var(--text-muted);">–</span>
@@ -1928,13 +1928,13 @@
   <section class="tab-panel" id="tab-rm-price-tag">
     <p class="section-title">Price Tag Checklist</p>
     <div class="card">
-      <p class="rm-form-section-label" style="margin-top:0;">Import Senarai Sticker</p>
+      <p class="rm-form-section-label" style="margin-top:0;">Import Sticker List</p>
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-        <span class="data-note" style="margin:0;">Bukan untuk print terus dalam sistem ni — senarai ni jadi checklist untuk track sticker mana yang dah siap print (kat vendor/printer luar). Upload senarai dari supplier (Series, Supplier, Colour Code, Color Name, Name on Sticker, Batch Number, Size, Quantity, Price) — setiap baris (Colour + Size) jadi satu checklist item.</span>
+        <span class="data-note" style="margin:0;">Not for printing directly in this system — this list becomes a checklist to track which stickers have been printed (at an outside vendor/printer). Upload the list from the supplier (Series, Supplier, Colour Code, Color Name, Name on Sticker, Batch Number, Size, Quantity, Price) — each row (Colour + Size) becomes one checklist item.</span>
         <button type="button" class="btn-ghost" id="downloadPriceTagTemplateBtn">⬇ Download Template</button>
       </div>
       <div class="field" style="max-width:220px; margin-bottom:10px;">
-        <label>Campaign Year untuk upload ni (optional)</label>
+        <label>Campaign Year for this upload (optional)</label>
         <select id="priceTagUploadYearInput"></select>
       </div>
       <div class="dropzone" id="priceTagDropzone">
@@ -1953,10 +1953,10 @@
     <div class="card" style="margin-top:16px;">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
         <p class="section-title" style="margin:0; font-size:13px;">Checklist Print Sticker</p>
-        <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); cursor:pointer;"><input type="checkbox" id="priceTagHideDoneToggle"> Hide series yang dah siap sepenuhnya</label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); cursor:pointer;"><input type="checkbox" id="priceTagHideDoneToggle"> Hide fully completed series</label>
       </div>
       <input type="text" id="priceTagSearchInput" placeholder="Search Series / Supplier / Name on Sticker / Colour...">
-      <div class="data-note" style="margin-top:6px;">Nak tambah/padam nama printer dalam dropdown "Printer"? Pergi Team Setup → Printers. Tick checkbox kat Series/SKU yang dah siap print untuk pilih merentasi banyak Series sekaligus, lepas tu "Create DO".</div>
+      <div class="data-note" style="margin-top:6px;">Want to add/remove a printer name in the "Printer" dropdown? Go to Team Setup → Printers. Tick the checkbox on print-ready Series/SKUs to select across multiple Series at once, then "Create DO".</div>
       <div id="priceTagDoSelectionBar" style="display:none; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-top:8px; padding:8px 12px; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:8px;"></div>
       <div id="priceTagTableWrap" style="margin-top:10px;"></div>
     </div>
@@ -1966,7 +1966,7 @@
         <p class="section-title" style="margin:0; font-size:13px;">List DO</p>
         <button type="button" class="btn-primary" id="priceTagCreateDoBtn">+ Create DO</button>
       </div>
-      <div class="data-note" style="margin-bottom:8px;">Pilih SKU yang dah siap print (boleh gabung banyak Series sekali) untuk satu penghantaran ke production. Tak semestinya hantar semua sekali — partial dibenarkan, baki yang belum dihantar boleh masuk DO lain kemudian.</div>
+      <div class="data-note" style="margin-bottom:8px;">Select print-ready SKUs (can combine multiple Series at once) for one shipment to production. Doesn't have to be sent all at once — partial is allowed, the remainder not yet sent can go into another DO later.</div>
       <div id="priceTagDoHistoryWrap"></div>
     </div>
   </section>
@@ -2167,7 +2167,7 @@
     <div class="card" style="margin-bottom:24px;">
       <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
         <button type="button" class="btn-ghost" id="campaignModeToggleBtn" style="padding:4px 10px;" title="Click to switch Campaign Mode ON or OFF"><span class="badge badge-gray" id="campaignModeBadge">Campaign Mode: OFF</span></button>
-        <span class="data-note" style="margin:0;">OFF (default) = hari-hari biasa, tak campaign — ikut kuantiti Order sahaja, semua target di bawah disembunyikan. ON = target campaign di bawah aktif; nombor yang disimpan akan kembali automatik bila ON semula, tak perlu taip semula.</span>
+        <span class="data-note" style="margin:0;">OFF (default) = normal days, not campaign — follows Order quantity only, every target below is hidden. ON = the campaign targets below are active; saved numbers come back automatically when turned ON again, no need to retype.</span>
       </div>
       <div class="data-note" style="margin:0 0 10px; font-weight:700; color:var(--text); text-transform:uppercase; letter-spacing:0.04em; font-size:11px;">Weekday (Mon–Fri)</div>
       <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom:18px;">
@@ -2438,10 +2438,10 @@
       </div>
       <div class="data-note" style="margin-bottom:14px;">Register staff here once — this roster is also the name source for adding Pickers (Team Setup) and Drivers (Team Setup) elsewhere in the app, so a staff member only ever needs to be typed in once.</div>
       <div class="field" style="max-width:280px; margin-bottom:12px;">
-        <input type="text" id="staffRosterSearchInput" placeholder="🔎 Cari nama...">
+        <input type="text" id="staffRosterSearchInput" placeholder="🔎 Search name...">
       </div>
       <div id="staffRosterListWrap"></div>
-      <div class="empty-state" id="staffRosterFilterEmpty" style="display:none;">Takde staff dengan nama tu.</div>
+      <div class="empty-state" id="staffRosterFilterEmpty" style="display:none;">No staff with that name.</div>
     </div>
 
     <p class="section-title">Weekly Schedule</p>
@@ -2454,10 +2454,10 @@
       </div>
       <div class="data-note" style="margin-bottom:14px;">Click a cell to cycle Normal → Day Shift → Night Shift → Off → On Leave. Normal (the default, blank cell) means a regular working day with no special campaign shift — Off means an actual day off/not working. Shift rotates independently every week — each week is set separately, so a campaign rotation just means paging forward and clicking through. Who's PIC/Backup PIC is set on the Staff Roster above (Role column), not here.</div>
       <div class="field" style="max-width:280px; margin-bottom:12px;">
-        <input type="text" id="staffScheduleSearchInput" placeholder="🔎 Cari nama...">
+        <input type="text" id="staffScheduleSearchInput" placeholder="🔎 Search name...">
       </div>
       <div id="staffScheduleGridWrap" style="overflow-x:auto;"></div>
-      <div class="empty-state" id="staffScheduleFilterEmpty" style="display:none;">Takde staff dengan nama tu.</div>
+      <div class="empty-state" id="staffScheduleFilterEmpty" style="display:none;">No staff with that name.</div>
     </div>
   </section>
 
@@ -2518,12 +2518,12 @@
     <p class="section-title">Item Master List</p>
     <div class="card">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-        <span class="data-note" style="margin:0;">Upload export Item Master (perlu ada column "SKU"; column "SKU Description", "Item Group", "Item Brand", "Item Size", "Item Color", "Active?" &amp; "Item UOM" — kalau ada — akan diguna sekali). List ni untuk rujukan SKU seluruh sistem, dan sync automatik ke SEMUA account/computer (macam data lain dalam sistem ni) — tak perlu upload semula kat computer lain.</span>
+        <span class="data-note" style="margin:0;">Upload the Item Master export (must have a "SKU" column; the "SKU Description", "Item Group", "Item Brand", "Item Size", "Item Color", "Active?" &amp; "Item UOM" columns — if present — will also be used). This list is the SKU reference for the whole system, and auto-syncs to ALL accounts/computers (like other data in this system) — no need to re-upload on another computer.</span>
         <span id="itemMasterStatusNote" class="data-note" style="margin:0; white-space:nowrap;"></span>
       </div>
       <div style="display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; margin-bottom:12px;">
         <div class="field" style="margin:0;">
-          <label>Campaign Year untuk upload ni (optional)</label>
+          <label>Campaign Year for this upload (optional)</label>
           <input type="text" id="itemMasterUploadYearInput" placeholder="e.g. 2026" list="itemMasterYearDatalist" style="width:140px;">
         </div>
         <div class="field" style="margin:0;">
@@ -2534,7 +2534,7 @@
           </select>
         </div>
       </div>
-      <div class="data-note" style="margin:0 0 10px;">Nak upload ikut tahun campaign secara berasingan? Asingkan SKU dulu ke fail lain-lain (satu fail satu tahun), isi "Campaign Year" kat atas ni untuk setiap upload, then guna mode "Add / update" (bukan "Replace") supaya upload baru TAMBAH kat list sedia ada, bukan gantikan terus.</div>
+      <div class="data-note" style="margin:0 0 10px;">Want to upload by campaign year separately? Split the SKUs into separate files first (one file per year), fill in "Campaign Year" above for each upload, then use "Add / update" mode (not "Replace") so the new upload ADDS to the existing list instead of replacing it outright.</div>
       <div class="dropzone" id="itemMasterDropzone">
         <div class="dropzone-icon">⬆</div>
         <div class="upload-row">
@@ -2582,7 +2582,7 @@
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
         </select>
-        <button type="button" class="btn-ghost" id="itemMasterBulkYearBtn" title="Set Campaign Year untuk semua item yang tengah kena search/filter sekarang (bukan cuma page ni)">🏷 Set Campaign Year (bulk)</button>
+        <button type="button" class="btn-ghost" id="itemMasterBulkYearBtn" title="Set Campaign Year for every item currently matched by the search/filter (not just this page)">🏷 Set Campaign Year (bulk)</button>
       </div>
       <div id="itemMasterTableWrap" class="scroll-table"></div>
       <div id="itemMasterPaginationWrap" style="display:flex; align-items:center; justify-content:center; gap:10px; margin-top:12px;"></div>
@@ -2591,7 +2591,7 @@
 
     <div class="card" style="margin-top:16px; border-color:#e0685c;">
       <p class="rm-form-section-label" style="margin-top:0; color:#e0685c;">⚠ Danger Zone</p>
-      <span class="data-note" style="margin:0;">Padam SEMUA Item Master List — untuk buang data test/lama sebelum mula fresh. Tindakan ini boleh di-undo sekali sahaja, terus lepas tekan (guna "↩ Undo Reset") — selepas reset lagi sekali, undo lama takkan boleh dipakai.</span>
+      <span class="data-note" style="margin:0;">Delete ALL Item Master List data — to clear old/test data before starting fresh. This action can be undone once, right after you click it (use "↩ Undo Reset") — resetting again will lose the ability to undo the previous one.</span>
       <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
         <button class="btn-ghost" id="undoResetItemMasterBtn" style="display:none;">↩ Undo Reset</button>
         <button class="btn-ghost" id="resetItemMasterBtn" style="color:#e0685c;">🗑 Reset Item Master List</button>
@@ -2603,7 +2603,7 @@
     <p class="section-title">Stock Balance</p>
     <div class="card">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-        <span class="data-note" style="margin:0;">Upload export "Inventory Balance Summary Report" (perlu ada column "SKU"; column "SKU Description", "Item Group", "Item Brand", "Item UOM" &amp; "Total Qty" — kalau ada — akan diguna sekali). Kalau report ada breakdown per Boutique/Customer, setiap SKU akan disimpan berasingan ikut butik. Row "Unused Product" &amp; "China Rewash" auto-exclude setiap upload. Setiap upload GANTI list sedia ada sepenuhnya (snapshot terkini, bukan tambah) — data ni disimpan dalam browser/computer ni je (tak sync ke cloud sebab saiz dia besar, macam Item Master List) — kalau buka kat computer lain, upload semula file ni kat situ.</span>
+        <span class="data-note" style="margin:0;">Upload the "Inventory Balance Summary Report" export (must have a "SKU" column; the "SKU Description", "Item Group", "Item Brand", "Item UOM" &amp; "Total Qty" columns — if present — will also be used). If the report has a Boutique/Customer breakdown, each SKU will be stored separately per boutique. "Unused Product" &amp; "China Rewash" rows are auto-excluded on every upload. Each upload FULLY REPLACES the existing list (a fresh snapshot, not additive) — this data is stored on this browser/computer only (not cloud-synced, due to its size, like Item Master List) — if you open this on another computer, re-upload the file there too.</span>
         <span id="stockBalanceStatusNote" class="data-note" style="margin:0; white-space:nowrap;"></span>
       </div>
       <div class="dropzone" id="stockBalanceDropzone">
@@ -2628,7 +2628,7 @@
         <select id="stockBalanceBrandFilter" style="width:auto;"><option value="">All Brands</option></select>
         <select id="stockBalanceGroupFilter" style="width:auto;"><option value="">All Groups</option></select>
       </div>
-      <div class="data-note" style="margin:0 0 10px;">Setiap boutique jadi satu column (macam pivot table) — scroll ke kanan kalau column banyak.</div>
+      <div class="data-note" style="margin:0 0 10px;">Each boutique becomes one column (like a pivot table) — scroll right if there are many columns.</div>
       <div id="stockBalanceTableWrap" class="scroll-table"></div>
       <div id="stockBalancePaginationWrap" style="display:flex; align-items:center; justify-content:center; gap:10px; margin-top:12px;"></div>
     </div>
@@ -2664,7 +2664,7 @@
     <div class="card">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;">
         <div>
-          <p class="rm-form-section-label" style="margin:0 0 6px;">Borang Request (PDF)</p>
+          <p class="rm-form-section-label" style="margin:0 0 6px;">Request Form (PDF)</p>
           <div id="reqStockTemplateStatus" class="data-note" style="margin:0;"></div>
         </div>
         <div id="reqStockTemplateUploadWrap" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
@@ -2692,7 +2692,7 @@
           <input type="file" id="reqStockAttachmentInput" accept="application/pdf">
           <span id="reqStockAttachmentName" class="data-note" style="margin:0;"></span>
         </div>
-        <span class="data-note" style="margin:6px 0 0;">Download borang PDF yang dah dikongsi, isi, pastu attach fail yang dah diisi tu kat sini sebelum boleh submit.</span>
+        <span class="data-note" style="margin:6px 0 0;">Download the shared PDF form, fill it in, then attach the completed file here before you can submit.</span>
       </div>
       <button type="button" class="btn-primary" id="reqStockSubmitBtn" style="margin-top:14px;">+ Submit Request</button>
     </div>
@@ -2709,7 +2709,7 @@
         <p class="section-title" style="margin:0;">Process Request — <span id="reqStockProcessRequesterLabel"></span></p>
         <button type="button" class="icon-btn" id="reqStockProcessCloseBtn">✕</button>
       </div>
-      <div class="data-note" style="margin:0 0 12px;">Check setiap SKU secara fizikal ikut location kat bawah. Kalau takde stock, tandakan "Exchanged" &amp; catat barang gantian dalam Notes.</div>
+      <div class="data-note" style="margin:0 0 12px;">Physically check each SKU by location below. If out of stock, mark it "Exchanged" &amp; note the replacement item in Notes.</div>
       <div id="reqStockProcessItemsWrap"></div>
       <button type="button" class="btn-primary" id="reqStockProcessSaveBtn" style="margin-top:14px;">Save</button>
     </div>
@@ -2723,11 +2723,11 @@
         <button type="button" class="btn-ghost" id="reportRangeTodayBtn">Today</button>
         <button type="button" class="btn-ghost" id="reportRangeWeekBtn">This Week</button>
         <button type="button" class="btn-ghost" id="reportRangeMonthBtn">This Month</button>
-        <span class="data-note" style="margin-top:0;">atau</span>
+        <span class="data-note" style="margin-top:0;">or</span>
         <input type="date" id="reportRangeFromInput">
         <span class="data-note" style="margin-top:0;">to</span>
         <input type="date" id="reportRangeToInput">
-        <button type="button" class="btn-ghost" id="reportRangeClearBtn">Semua</button>
+        <button type="button" class="btn-ghost" id="reportRangeClearBtn">All</button>
         <select id="reportModuleSelect" style="margin-left:auto;">
           <option value="all">All Reports</option>
           <option value="outbound">📦 Outbound</option>
@@ -2896,7 +2896,7 @@
     <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
       <p class="section-title" style="margin-bottom:0;">STO From Boutique List</p>
       <div style="display:flex; gap:8px;">
-        <button class="btn-ghost" id="removeBlankBoutiqueInboundBtn">🗑 Buang Tiada Nama Butik</button>
+        <button class="btn-ghost" id="removeBlankBoutiqueInboundBtn">🗑 Remove No Boutique Name</button>
         <button class="btn-ghost" id="undoResetInboundStoBtn" style="display:none;">↩ Undo Reset</button>
         <button class="btn-ghost" id="resetInboundStoBtn">Reset STO Progress</button>
       </div>
@@ -3159,11 +3159,11 @@
 <div class="modal-overlay hidden" id="skuMatchProductModal">
   <div class="modal-box" style="max-width:520px;">
     <div class="modal-header">
-      <h2>Padankan Series Dengan Produk</h2>
+      <h2>Match Series With Product</h2>
       <button class="modal-close" id="skuMatchProductCloseBtn">&times;</button>
     </div>
     <p class="data-note" id="skuMatchProductSeriesLabel" style="margin-top:0;"></p>
-    <input type="text" id="skuMatchProductSearchInput" placeholder="Search nama produk dalam SKU Reference...">
+    <input type="text" id="skuMatchProductSearchInput" placeholder="Search product name in SKU Reference...">
     <div id="skuMatchProductListWrap" style="max-height:320px; overflow-y:auto; margin-top:10px; border:1px solid var(--border); border-radius:6px;"></div>
   </div>
 </div>
@@ -3200,7 +3200,7 @@
       <button class="modal-close" id="priceTagDoCloseBtn">&times;</button>
     </div>
     <div class="rm-form-grid rm-form-grid-4">
-      <div class="field"><label>DO No. (auto, boleh edit)</label><input type="text" id="priceTagDoNoInput"></div>
+      <div class="field"><label>DO No. (auto, editable)</label><input type="text" id="priceTagDoNoInput"></div>
       <div class="field"><label>Date</label><input type="date" id="priceTagDoDateInput"></div>
       <div class="field full-2"><label>Destination (Production Line / Department)</label><input type="text" id="priceTagDoDestinationInput" placeholder="e.g. Production Line A"></div>
       <div class="field full"><label>Notes (optional)</label><input type="text" id="priceTagDoNotesInput"></div>
@@ -3481,7 +3481,7 @@
       <button class="modal-close" id="rollcageCloseBtn">&times;</button>
     </div>
     <div class="field" style="margin-bottom:14px;">
-      <label>Rollcage No. (optional — boleh tambah lebih dari satu kalau STO ni guna 2-3 rollcage)</label>
+      <label>Rollcage No. (optional — you can add more than one if this STO uses 2-3 rollcages)</label>
       <div style="display:flex; gap:8px;">
         <select id="rollcageInput" style="flex:1; min-width:0;"></select>
         <button type="button" class="btn-primary" id="rollcageAddBtn" style="flex-shrink:0;">+ Add</button>
@@ -3504,7 +3504,7 @@
     </div>
     <div class="data-note" id="putawayRollcageItemNote" style="margin-bottom:10px;"></div>
     <div class="field" style="margin-bottom:14px;">
-      <label>Rollcage/Trolley for Putaway (boleh tambah lebih dari satu)</label>
+      <label>Rollcage/Trolley for Putaway (you can add more than one)</label>
       <div style="display:flex; gap:8px;">
         <select id="putawayRollcageInput" style="flex:1; min-width:0;"></select>
         <button type="button" class="btn-primary" id="putawayRollcageAddBtn" style="flex-shrink:0;">+ Add</button>
@@ -4848,8 +4848,8 @@ document.getElementById('undoResetInboundStoBtn').addEventListener('click', () =
 // uploads (before that fix) need a manual sweep here.
 document.getElementById('removeBlankBoutiqueInboundBtn').addEventListener('click', () => {
   const blankCount = inboundRecords.filter(r => !String(r.fromBoutique || '').trim()).length;
-  if (!blankCount) { alert('Takde STO dengan From Boutique kosong dalam senarai ni.'); return; }
-  if (!confirm(`Buang ${blankCount} STO yang tiada nama butik? Tindakan ni tak boleh undo.`)) return;
+  if (!blankCount) { alert('No STO with a blank From Boutique in this list.'); return; }
+  if (!confirm(`Remove ${blankCount} STO(s) with no boutique name? This action cannot be undone.`)) return;
   inboundRecords = inboundRecords.filter(r => String(r.fromBoutique || '').trim());
   saveInboundRecords();
   renderInboundAll();
@@ -5838,7 +5838,7 @@ function renderSenaraiTable() {
   wrap.querySelectorAll('.senarai-delete-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const orderNumber = e.currentTarget.dataset.order;
-      if (!confirm(`Delete STO "${orderNumber}"? This removes it completely from Senarai — this cannot be undone.`)) return;
+      if (!confirm(`Delete STO "${orderNumber}"? This removes it completely from the STO List — this cannot be undone.`)) return;
       const idx = records.findIndex(r => r.orderNumber === orderNumber);
       if (idx === -1) return;
       rollBackCartonCounterIfSafe(records[idx]);
@@ -6274,7 +6274,7 @@ function renderSlaTab() {
       <td><select class="butik-zone-input" data-butik="${escapeHtml(b)}">${zoneOptionsHtml(zoneVal)}</select></td>
       <td>
         <input type="text" class="butik-city-input" data-butik="${escapeHtml(b)}" placeholder="e.g. Ipoh" value="${escapeHtml(cityVal)}">
-        ${cityVal ? `<div class="data-note" style="margin-top:2px;">${cityKnown ? '📍 Pin set' : '⚠️ Bandar tak dikenali — guna Zone je'}</div>` : ''}
+        ${cityVal ? `<div class="data-note" style="margin-top:2px;">${cityKnown ? '📍 Pin set' : '⚠️ City not recognized — falls back to Zone only'}</div>` : ''}
       </td>
       <td><input type="text" class="butik-address-input" data-butik="${escapeHtml(b)}" placeholder="Boutique address" value="${escapeHtml(addressVal)}"></td>
       <td><input type="email" class="butik-email-input" data-butik="${escapeHtml(b)}" placeholder="boutique@khatam.com" value="${escapeHtml(emailVal)}"></td>
@@ -7444,11 +7444,11 @@ function renderStationsTab() {
       // of Active, Role = Packer staff (same pool the Auto Day/Night fill draws from).
       const eligibleNames = staffRoster.filter(st => st.active !== false && staffRoleFunction(st.role) === 'Packer').map(st => st.name).sort();
       const current = s.manpower || [];
-      const summaryText = current.length ? current.map(escapeHtml).join(', ') : '— pilih staff —';
+      const summaryText = current.length ? current.map(escapeHtml).join(', ') : '— select staff —';
       const checklistHtml = eligibleNames.length
         ? eligibleNames.map(n => `<label class="manpower-check-row"><input type="checkbox" class="station-manpower-check" data-idx="${i}" value="${escapeHtml(n)}" ${current.includes(n) ? 'checked' : ''}> ${escapeHtml(n)}</label>`).join('')
-        : `<div class="data-note" style="margin:0;">Takde staff Role Packer (Active) dalam Staff Schedule.</div>`;
-      manpowerCell = (shiftLabel ? `<div class="data-note" style="margin:0 0 3px 0;">Manual — pilih siapa ada kat station ni</div>` : '') +
+        : `<div class="data-note" style="margin:0;">No Role Packer (Active) staff in Staff Schedule.</div>`;
+      manpowerCell = (shiftLabel ? `<div class="data-note" style="margin:0 0 3px 0;">Manual — select who is at this station</div>` : '') +
         `<details class="manpower-dropdown"><summary>${summaryText}</summary><div class="manpower-dropdown-panel">${checklistHtml}</div></details>`;
     }
     html += `<tr>
@@ -7515,7 +7515,7 @@ function renderStationsTab() {
       else if (pos !== -1) { list.splice(pos, 1); }
       markPackingStationsDirty();
       const summary = e.target.closest('.manpower-dropdown').querySelector('summary');
-      summary.textContent = list.length ? list.join(', ') : '— pilih staff —';
+      summary.textContent = list.length ? list.join(', ') : '— select staff —';
     });
   });
 
@@ -8478,7 +8478,7 @@ function addPriceTagPrinterFromInput() {
   const input = document.getElementById('inputNewPriceTagPrinter');
   const name = input.value.trim();
   if (!name) { input.focus(); return; }
-  if (priceTagPrinters.some(p => p.name.toLowerCase() === name.toLowerCase())) { alert('Printer ni dah ada dalam senarai.'); return; }
+  if (priceTagPrinters.some(p => p.name.toLowerCase() === name.toLowerCase())) { alert('This printer is already in the list.'); return; }
   priceTagPrinters.push({ name });
   savePriceTagPrinters();
   input.value = '';
@@ -8530,9 +8530,9 @@ function skuReferenceProductNames() {
 function renderSkuReferenceStatusNote() {
   const el = document.getElementById('skuReferenceStatusNote');
   if (!el) return;
-  if (!skuReference.length) { el.textContent = 'Belum ada SKU Reference diupload.'; return; }
+  if (!skuReference.length) { el.textContent = 'No SKU Reference uploaded yet.'; return; }
   const dateLabel = skuReferenceImportedAt ? formatDateLabel(skuReferenceImportedAt.slice(0, 10)) : '';
-  el.textContent = `${skuReference.length} baris loaded${dateLabel ? ` (${dateLabel})` : ''}.`;
+  el.textContent = `${skuReference.length} row(s) loaded${dateLabel ? ` (${dateLabel})` : ''}.`;
 }
 function processUploadedSkuReferenceFile(file) {
   const statusEl = document.getElementById('skuReferenceUploadStatus');
@@ -8551,12 +8551,12 @@ function processUploadedSkuReferenceFile(file) {
         const sheet = wb.Sheets[wb.SheetNames[0]];
         objRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
       }
-      if (!objRows.length) throw new Error('File kosong / takde data.');
+      if (!objRows.length) throw new Error('File is empty / has no data.');
       const headerKeys = Object.keys(objRows[0]);
       const titleKey = headerKeys.find(k => k.trim().toLowerCase() === 'title');
       const sizeKey = headerKeys.find(k => k.trim().toLowerCase() === 'option1 value');
       const skuKey = headerKeys.find(k => k.trim().toLowerCase() === 'sku');
-      if (!titleKey || !skuKey) throw new Error('File ni perlu ada column "Title" dan "SKU".');
+      if (!titleKey || !skuKey) throw new Error('This file needs "Title" and "SKU" columns.');
       const mapped = objRows.map(r => ({
         title: String(r[titleKey] || '').trim(),
         size: sizeKey ? String(r[sizeKey] || '').trim() : '',
@@ -8607,7 +8607,7 @@ let itemMasterDb = null;
 function openItemMasterDb() {
   return new Promise((resolve, reject) => {
     if (itemMasterDb) { resolve(itemMasterDb); return; }
-    if (!window.indexedDB) { reject(new Error('Browser ni tak support IndexedDB.')); return; }
+    if (!window.indexedDB) { reject(new Error('This browser does not support IndexedDB.')); return; }
     const req = indexedDB.open(ITEM_MASTER_DB_NAME, ITEM_MASTER_DB_VERSION);
     req.onupgradeneeded = (e) => {
       const db = e.target.result;
@@ -8615,7 +8615,7 @@ function openItemMasterDb() {
       if (!db.objectStoreNames.contains(ITEM_MASTER_BACKUP_STORE)) db.createObjectStore(ITEM_MASTER_BACKUP_STORE, { keyPath: 'key' });
     };
     req.onsuccess = (e) => { itemMasterDb = e.target.result; resolve(itemMasterDb); };
-    req.onerror = (e) => reject((e.target && e.target.error) || new Error('Gagal buka storan Item Master.'));
+    req.onerror = (e) => reject((e.target && e.target.error) || new Error('Failed to open Item Master storage.'));
   });
 }
 function itemMasterSaveBackup(list) {
@@ -8830,14 +8830,14 @@ function genItemMasterId() { return 'im_' + Date.now().toString(36) + Math.rando
 function renderItemMasterStatusNote() {
   const el = document.getElementById('itemMasterStatusNote');
   if (!el) return;
-  if (!itemMasterList.length) { el.textContent = 'Belum ada Item Master diupload.'; return; }
+  if (!itemMasterList.length) { el.textContent = 'No Item Master uploaded yet.'; return; }
   const dateLabel = itemMasterImportedAt ? formatDateLabel(itemMasterImportedAt.slice(0, 10)) : '';
   el.textContent = `${formatQty(itemMasterList.length)} item loaded${dateLabel ? ` (${dateLabel})` : ''}.`;
 }
 
 function processUploadedItemMasterFile(file) {
   const statusEl = document.getElementById('itemMasterUploadStatus');
-  statusEl.textContent = 'Processing file... (list besar, mungkin ambil beberapa saat)';
+  statusEl.textContent = 'Processing file... (large list, may take a few seconds)';
   statusEl.className = 'upload-status';
   const ext = file.name.split('.').pop().toLowerCase();
   const reader = new FileReader();
@@ -8852,7 +8852,7 @@ function processUploadedItemMasterFile(file) {
         const sheet = wb.Sheets[wb.SheetNames[0]];
         objRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
       }
-      if (!objRows.length) throw new Error('File kosong / takde data.');
+      if (!objRows.length) throw new Error('File is empty / has no data.');
       const headerKeys = Object.keys(objRows[0]);
       const findKey = (name) => headerKeys.find(k => k.trim().toLowerCase() === name);
       const skuKey = findKey('sku');
@@ -8864,7 +8864,7 @@ function processUploadedItemMasterFile(file) {
       const activeKey = findKey('active?');
       const uomKey = findKey('item uom');
       const yearKey = findKey('campaign year') || findKey('year');
-      if (!skuKey) throw new Error('File ni perlu ada column "SKU".');
+      if (!skuKey) throw new Error('This file needs a "SKU" column.');
       const uploadMode = document.getElementById('itemMasterUploadModeSelect').value; // 'add' | 'replace'
       const yearOverride = (document.getElementById('itemMasterUploadYearInput').value || '').trim();
       // Priority for each row's Campaign Year: the "Campaign Year for this upload" box (if she typed
@@ -8894,8 +8894,8 @@ function processUploadedItemMasterFile(file) {
           campaignYear: yearOverride || (yearKey ? String(r[yearKey] || '').trim() : '') || (existing ? existing.campaignYear || '' : ''),
         });
       });
-      if (!mapped.length) throw new Error('Takde row yang valid (SKU kosong semua?).');
-      statusEl.textContent = `Saving ${formatQty(mapped.length)} item ke storan...`;
+      if (!mapped.length) throw new Error('No valid rows (all SKUs blank?).');
+      statusEl.textContent = `Saving ${formatQty(mapped.length)} item(s) to storage...`;
       if (uploadMode === 'replace') {
         await itemMasterReplaceAll(mapped);
         itemMasterList = mapped;
@@ -8911,8 +8911,8 @@ function processUploadedItemMasterFile(file) {
       pushSettingsDiff();
       itemMasterPage = 0;
       const droppedCount = objRows.length - mapped.length;
-      const modeLabel = uploadMode === 'replace' ? 'loaded (list lama digantikan)' : 'ditambah/dikemaskini (item lain dalam list dikekalkan)';
-      statusEl.textContent = `Success: ${formatQty(mapped.length)} item ${modeLabel}${yearOverride ? ` — ditag Campaign Year "${yearOverride}"` : ''}${droppedCount > 0 ? ` (${formatQty(droppedCount)} duplicate/blank SKU row dibuang)` : ''}.`;
+      const modeLabel = uploadMode === 'replace' ? 'loaded (old list replaced)' : 'added/updated (other items in the list kept)';
+      statusEl.textContent = `Success: ${formatQty(mapped.length)} item(s) ${modeLabel}${yearOverride ? ` — tagged Campaign Year "${yearOverride}"` : ''}${droppedCount > 0 ? ` (${formatQty(droppedCount)} duplicate/blank SKU row(s) dropped)` : ''}.`;
       statusEl.className = 'upload-status ok';
       renderItemMasterTab();
     } catch (err) {
@@ -9003,7 +9003,7 @@ function renderItemMasterTable() {
   const pagWrap = document.getElementById('itemMasterPaginationWrap');
   const list = itemMasterFilteredList();
   if (!list.length) {
-    wrap.innerHTML = `<div class="empty-state">${itemMasterList.length ? 'Takde item sepadan carian.' : 'Belum ada Item Master diupload.'}</div>`;
+    wrap.innerHTML = `<div class="empty-state">${itemMasterList.length ? 'No items match the search.' : 'No Item Master uploaded yet.'}</div>`;
     pagWrap.innerHTML = '';
     return;
   }
@@ -9048,11 +9048,11 @@ function renderItemMasterTable() {
     btn.addEventListener('click', async () => {
       const it = itemMasterList.find(x => x.id === btn.dataset.id);
       if (!it) return;
-      if (!confirm(`Padam item "${it.sku}"?`)) return;
+      if (!confirm(`Delete item "${it.sku}"?`)) return;
       try {
         await itemMasterDeleteOne(it.id);
       } catch (err) {
-        alert('Gagal padam item ni: ' + err.message);
+        alert('Failed to delete this item: ' + err.message);
         return;
       }
       itemMasterList = itemMasterList.filter(x => x.id !== it.id);
@@ -9084,9 +9084,9 @@ function closeItemMasterForm() {
 }
 async function saveItemMasterForm() {
   const sku = document.getElementById('itemMasterFormSku').value.trim();
-  if (!sku) { alert('SKU wajib diisi.'); return; }
+  if (!sku) { alert('SKU is required.'); return; }
   const dupe = itemMasterList.some(it => it.id !== itemMasterEditId && it.sku.trim().toUpperCase() === sku.toUpperCase());
-  if (dupe) { alert(`SKU "${sku}" dah wujud.`); return; }
+  if (dupe) { alert(`SKU "${sku}" already exists.`); return; }
   const data = {
     sku,
     description: document.getElementById('itemMasterFormDesc').value.trim(),
@@ -9109,7 +9109,7 @@ async function saveItemMasterForm() {
   try {
     await itemMasterPutOne(item);
   } catch (err) {
-    alert('Gagal simpan item ni: ' + err.message);
+    alert('Failed to save this item: ' + err.message);
     return;
   }
   pushItemMasterDiffToFirebase();
@@ -9129,20 +9129,20 @@ function renderItemMasterTab() {
 // unusable. Confirms the exact count before touching anything.
 async function itemMasterBulkAssignCampaignYear() {
   const targets = itemMasterSearchFilteredList();
-  if (!targets.length) { alert('Takde item sepadan carian sekarang — taip carian dulu (contoh nama product/group) untuk pilih item yang nak di-tag.'); return; }
-  const year = prompt(`Set Campaign Year untuk ${formatQty(targets.length)} item (ikut carian/filter sekarang) kepada:`, itemMasterCampaignYears()[0] || String(new Date().getFullYear()));
+  if (!targets.length) { alert('No items match the current search — type a search first (e.g. product/group name) to select items to tag.'); return; }
+  const year = prompt(`Set Campaign Year for ${formatQty(targets.length)} item(s) (based on current search/filter) to:`, itemMasterCampaignYears()[0] || String(new Date().getFullYear()));
   if (year === null) return;
   const trimmedYear = year.trim();
-  if (!confirm(`Sahkan: set Campaign Year = "${trimmedYear || '(kosong)'}" untuk ${formatQty(targets.length)} item?`)) return;
+  if (!confirm(`Confirm: set Campaign Year = "${trimmedYear || '(blank)'}" for ${formatQty(targets.length)} item(s)?`)) return;
   targets.forEach(it => { it.campaignYear = trimmedYear; });
   try {
     await itemMasterBulkPut(targets);
   } catch (err) {
-    alert('Gagal simpan Campaign Year untuk item-item ni: ' + err.message);
+    alert('Failed to save Campaign Year for these items: ' + err.message);
     return;
   }
   pushItemMasterDiffToFirebase();
-  alert(`Done — ${formatQty(targets.length)} item ditag Campaign Year "${trimmedYear || '(kosong)'}".`);
+  alert(`Done — ${formatQty(targets.length)} item(s) tagged Campaign Year "${trimmedYear || '(blank)'}".`);
   renderItemMasterTab();
 }
 document.getElementById('itemMasterSearchInput').addEventListener('input', () => { itemMasterPage = 0; renderItemMasterTable(); });
@@ -9160,13 +9160,13 @@ document.getElementById('itemMasterFormSaveBtn').addEventListener('click', saveI
 // comment above) — only a small "a backup exists" flag lives in localStorage, for the cheap
 // show/hide check updateResetUndoButtons() already does for every other reset button.
 document.getElementById('resetItemMasterBtn').addEventListener('click', async () => {
-  if (!confirm(`Padam SEMUA Item Master List (${formatQty(itemMasterList.length)} item)? Tindakan ni boleh di-undo sekali sahaja sejurus lepas ni ("Undo Reset") — reset lagi sekali akan hilangkan peluang undo yang lama.`)) return;
+  if (!confirm(`Delete ALL Item Master List data (${formatQty(itemMasterList.length)} item(s))? This action can be undone once, right after you click it ("Undo Reset") — resetting again will lose the ability to undo the previous one.`)) return;
   try {
     await itemMasterSaveBackup(itemMasterList);
     localStorage.setItem(ITEM_MASTER_HAS_BACKUP_KEY, '1');
     await itemMasterReplaceAll([]);
   } catch (err) {
-    alert('Gagal reset Item Master List: ' + err.message);
+    alert('Failed to reset Item Master List: ' + err.message);
     return;
   }
   itemMasterList = [];
@@ -9179,7 +9179,7 @@ document.getElementById('resetItemMasterBtn').addEventListener('click', async ()
 });
 document.getElementById('undoResetItemMasterBtn').addEventListener('click', async () => {
   if (!localStorage.getItem(ITEM_MASTER_HAS_BACKUP_KEY)) return;
-  if (!confirm('Undo reset Item Master List yang terakhir? Semua item akan dipulihkan macam sebelum reset tadi.')) return;
+  if (!confirm('Undo the last Item Master List reset? All items will be restored to how they were before that reset.')) return;
   try {
     const backup = await itemMasterLoadBackup();
     const restored = (backup && backup.items) || [];
@@ -9187,7 +9187,7 @@ document.getElementById('undoResetItemMasterBtn').addEventListener('click', asyn
     itemMasterList = restored;
     await itemMasterClearBackup();
   } catch (err) {
-    alert('Gagal undo reset: ' + err.message);
+    alert('Failed to undo reset: ' + err.message);
     return;
   }
   localStorage.removeItem(ITEM_MASTER_HAS_BACKUP_KEY);
@@ -9214,14 +9214,14 @@ let stockBalanceDb = null;
 function openStockBalanceDb() {
   return new Promise((resolve, reject) => {
     if (stockBalanceDb) { resolve(stockBalanceDb); return; }
-    if (!window.indexedDB) { reject(new Error('Browser ni tak support IndexedDB.')); return; }
+    if (!window.indexedDB) { reject(new Error('This browser does not support IndexedDB.')); return; }
     const req = indexedDB.open(STOCK_BALANCE_DB_NAME, STOCK_BALANCE_DB_VERSION);
     req.onupgradeneeded = (e) => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains(STOCK_BALANCE_STORE)) db.createObjectStore(STOCK_BALANCE_STORE, { keyPath: 'id' });
     };
     req.onsuccess = (e) => { stockBalanceDb = e.target.result; resolve(stockBalanceDb); };
-    req.onerror = (e) => reject((e.target && e.target.error) || new Error('Gagal buka storan Stock Balance.'));
+    req.onerror = (e) => reject((e.target && e.target.error) || new Error('Failed to open Stock Balance storage.'));
   });
 }
 function stockBalanceReplaceAll(list) {
@@ -9259,7 +9259,7 @@ function genStockBalanceId() { return 'sb_' + Date.now().toString(36) + Math.ran
 function renderStockBalanceStatusNote() {
   const el = document.getElementById('stockBalanceStatusNote');
   if (!el) return;
-  if (!stockBalanceList.length) { el.textContent = 'Belum ada Stock Balance diupload.'; return; }
+  if (!stockBalanceList.length) { el.textContent = 'No Stock Balance uploaded yet.'; return; }
   const dateLabel = stockBalanceImportedAt ? formatDateLabel(stockBalanceImportedAt.slice(0, 10)) : '';
   const distinctSkuCount = new Set(stockBalanceList.map(it => it.sku.toUpperCase())).size;
   el.textContent = `${formatQty(distinctSkuCount)} SKU (${formatQty(stockBalanceList.length)} row) loaded${dateLabel ? ` (${dateLabel})` : ''}.`;
@@ -9271,7 +9271,7 @@ function renderStockBalanceStatusNote() {
 const STOCK_BALANCE_EXCLUDED_LOCATIONS = ['UNUSED PRODUCT', 'CHINA REWASH'];
 function processUploadedStockBalanceFile(file) {
   const statusEl = document.getElementById('stockBalanceUploadStatus');
-  statusEl.textContent = 'Processing file... (list besar, mungkin ambil beberapa saat)';
+  statusEl.textContent = 'Processing file... (large list, may take a few seconds)';
   statusEl.className = 'upload-status';
   const ext = file.name.split('.').pop().toLowerCase();
   const reader = new FileReader();
@@ -9294,10 +9294,10 @@ function processUploadedStockBalanceFile(file) {
         const sheet = wb.Sheets[wb.SheetNames[0]];
         rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
       }
-      if (!rows.length) throw new Error('File kosong / takde data.');
+      if (!rows.length) throw new Error('File is empty / has no data.');
       const header = rows[0].map(h => String(h || '').trim().toLowerCase());
       const skuIdx = header.findIndex(h => h === 'sku');
-      if (skuIdx === -1) throw new Error('File ni perlu ada column "SKU".');
+      if (skuIdx === -1) throw new Error('This file needs a "SKU" column.');
       const descIdx = header.findIndex(h => h === 'sku description');
       const uomIdx = header.findIndex(h => h === 'item uom');
       const groupIdx = header.findIndex(h => h === 'item group');
@@ -9336,15 +9336,15 @@ function processUploadedStockBalanceFile(file) {
         }
       });
       const mapped = [...byKey.values()];
-      if (!mapped.length) throw new Error('Takde row yang valid (SKU kosong semua, atau semua row kena exclude?).');
-      statusEl.textContent = `Saving ${formatQty(mapped.length)} row ke storan...`;
+      if (!mapped.length) throw new Error('No valid rows (all SKUs blank, or all rows excluded?).');
+      statusEl.textContent = `Saving ${formatQty(mapped.length)} row(s) to storage...`;
       await stockBalanceReplaceAll(mapped);
       stockBalanceList = mapped;
       stockBalanceImportedAt = new Date().toISOString();
       localStorage.setItem(STOCK_BALANCE_IMPORTED_AT_KEY, stockBalanceImportedAt);
       stockBalancePage = 0;
       const distinctSkuCount = new Set(mapped.map(it => it.sku.toUpperCase())).size;
-      statusEl.textContent = `Success: ${formatQty(distinctSkuCount)} SKU (${formatQty(mapped.length)} row, merentas semua butik) di-load (list lama digantikan)${excludedCount > 0 ? ` — ${formatQty(excludedCount)} row "Unused Product"/"China Rewash" dibuang` : ''}.`;
+      statusEl.textContent = `Success: ${formatQty(distinctSkuCount)} SKU (${formatQty(mapped.length)} row(s), across all boutiques) loaded (old list replaced)${excludedCount > 0 ? ` — ${formatQty(excludedCount)} "Unused Product"/"China Rewash" row(s) dropped` : ''}.`;
       statusEl.className = 'upload-status ok';
       renderStockBalanceTab();
     } catch (err) {
@@ -9518,7 +9518,7 @@ function renderStockBalanceTable() {
   const pagWrap = document.getElementById('stockBalancePaginationWrap');
   const pivotRows = stockBalanceFilteredPivotRows();
   if (!pivotRows.length) {
-    wrap.innerHTML = `<div class="empty-state">${stockBalanceList.length ? 'Takde SKU sepadan carian.' : 'Belum ada Stock Balance diupload.'}</div>`;
+    wrap.innerHTML = `<div class="empty-state">${stockBalanceList.length ? 'No SKU matches the search.' : 'No Stock Balance uploaded yet.'}</div>`;
     pagWrap.innerHTML = '';
     return;
   }
@@ -9592,7 +9592,7 @@ function itemMasterProductNames() {
 function renderItemMasterAutofillStatusNote() {
   const el = document.getElementById('itemMasterAutofillStatusNote');
   if (!el) return;
-  if (!itemMasterList.length) { el.textContent = 'Item Master List kosong lagi — upload dulu kat tab "Item Master List" sebelum guna Auto-fill SKU.'; return; }
+  if (!itemMasterList.length) { el.textContent = 'Item Master List is still empty — upload it in the "Item Master List" tab before using Auto-fill SKU.'; return; }
   const dateLabel = itemMasterImportedAt ? formatDateLabel(itemMasterImportedAt.slice(0, 10)) : '';
   el.textContent = `Item Master List: ${formatQty(itemMasterList.length)} item ready${dateLabel ? ` (last updated ${dateLabel})` : ''}.`;
 }
@@ -9612,17 +9612,17 @@ function renderSkuMatchProductList(query) {
         .sort((a, b) => b.score - a.score).map(x => x.n).slice(0, 30);
     }
   }
-  if (!list.length) { wrap.innerHTML = '<div class="empty-state" style="padding:16px;">Takde produk sepadan — cuba search term lain.</div>'; return; }
+  if (!list.length) { wrap.innerHTML = '<div class="empty-state" style="padding:16px;">No matching product — try a different search term.</div>'; return; }
   wrap.innerHTML = list.map(n => `<div class="sku-match-product-row" data-name="${escapeHtml(n)}" style="padding:8px 10px; cursor:pointer; border-bottom:1px solid var(--border);">${escapeHtml(n)}</div>`).join('');
   wrap.querySelectorAll('.sku-match-product-row').forEach(row => {
     row.addEventListener('click', () => applySkuAutofillForSeries(skuMatchCurrentSeriesKey, row.dataset.name));
   });
 }
 function openSkuMatchModal(seriesKey) {
-  if (!itemMasterList.length) { alert('Upload Item Master List dulu (tab "Item Master List") sebelum boleh Auto-fill SKU.'); return; }
+  if (!itemMasterList.length) { alert('Upload Item Master List first (tab "Item Master List") before you can use Auto-fill SKU.'); return; }
   skuMatchCurrentSeriesKey = seriesKey;
   const [series] = seriesKey.split('|||');
-  document.getElementById('skuMatchProductSeriesLabel').textContent = `Series: "${series}" — pilih produk yang sepadan dari Item Master List:`;
+  document.getElementById('skuMatchProductSeriesLabel').textContent = `Series: "${series}" — pick the matching product from Item Master List:`;
   const searchInput = document.getElementById('skuMatchProductSearchInput');
   searchInput.value = series;
   renderSkuMatchProductList(series);
@@ -9652,7 +9652,7 @@ function applySkuAutofillForSeries(seriesKey, productName) {
       : (candidates[0] || null);
     if (!match) {
       if (!l.sku) {
-        const yearNote = (l.campaignYear && candidates.length) ? ` (ada SKU utk colour/size ni, tapi bukan Campaign Year ${l.campaignYear})` : '';
+        const yearNote = (l.campaignYear && candidates.length) ? ` (there's a SKU for this colour/size, but not Campaign Year ${l.campaignYear})` : '';
         notFound.push(`${l.colorName || '-'} / ${l.size || '-'}${yearNote}`);
       }
       return;
@@ -9667,9 +9667,9 @@ function applySkuAutofillForSeries(seriesKey, productName) {
   savePriceTagStickers();
   renderPriceTagTab();
   let msg = `"${productName}" → ${filled} SKU auto-filled.`;
-  if (corrected) msg += ` ${corrected} SKU dikemaskini ikut Campaign Year.`;
-  if (alreadyHad) msg += ` ${alreadyHad} baris dah ada SKU sedia ada (tak diubah).`;
-  if (notFound.length) msg += `\n\n${notFound.length} baris tak jumpa SKU sepadan (Colour/Size):\n${notFound.join('\n')}`;
+  if (corrected) msg += ` ${corrected} SKU updated to match Campaign Year.`;
+  if (alreadyHad) msg += ` ${alreadyHad} row(s) already had a SKU (unchanged).`;
+  if (notFound.length) msg += `\n\n${notFound.length} row(s) with no matching SKU (Colour/Size):\n${notFound.join('\n')}`;
   alert(msg);
 }
 function formatAccCartonNo(n) { return 'ACC-' + String(n).padStart(4, '0'); }
@@ -9725,7 +9725,7 @@ function accPhotoForName(name) {
 // Team Lead-only (see applyUserPermissions), one level of undo, cleared once a further reset happens.
 const RM_RESET_SNAPSHOT_KEY = 'sto_rm_reset_snapshot_v1';
 document.getElementById('resetRmBtn').addEventListener('click', () => {
-  if (!confirm('Padam SEMUA data Raw Material — semua roll, STO, DO dan sejarah Pick? Roll No./STO No. counter pun reset ke 0. Tindakan ni boleh di-undo sekali sahaja sejurus lepas ni ("Undo Reset") — reset lagi sekali akan hilangkan peluang undo yang lama.')) return;
+  if (!confirm('Delete ALL Raw Material data — all rolls, STOs, DOs and Pick history? Roll No./STO No. counters will also reset to 0. This action can be undone once right after this ("Undo Reset") — resetting again will lose the earlier undo chance.')) return;
   localStorage.setItem(RM_RESET_SNAPSHOT_KEY, JSON.stringify({
     rolls: JSON.parse(JSON.stringify(rawMaterialRolls)),
     picks: JSON.parse(JSON.stringify(rawMaterialPicks)),
@@ -9755,7 +9755,7 @@ document.getElementById('resetRmBtn').addEventListener('click', () => {
 document.getElementById('undoResetRmBtn').addEventListener('click', () => {
   const raw = localStorage.getItem(RM_RESET_SNAPSHOT_KEY);
   if (!raw) return;
-  if (!confirm('Undo reset Raw Material data yang terakhir? Semua roll, STO, DO, Pick dan counter akan dipulihkan macam sebelum reset tadi.')) return;
+  if (!confirm('Undo the last Raw Material data reset? All rolls, STOs, DOs, Picks and counters will be restored to how they were before that reset.')) return;
   const snap = JSON.parse(raw);
   rawMaterialRolls = snap.rolls || [];
   rawMaterialPicks = snap.picks || [];
@@ -10541,10 +10541,10 @@ function resizeImageFile(file, maxDim, quality) {
         canvas.getContext('2d').drawImage(img, 0, 0, width, height);
         resolve(canvas.toDataURL('image/jpeg', quality));
       };
-      img.onerror = () => reject(new Error('Gagal load gambar.'));
+      img.onerror = () => reject(new Error('Failed to load image.'));
       img.src = e.target.result;
     };
-    reader.onerror = () => reject(new Error('Gagal baca fail gambar.'));
+    reader.onerror = () => reject(new Error('Failed to read image file.'));
     reader.readAsDataURL(file);
   });
 }
@@ -10570,7 +10570,7 @@ document.getElementById('accPhotoInput').addEventListener('change', async (e) =>
     renderAccPhotoPreview();
     renderAccReceiveSummary();
   } catch (err) {
-    alert('Gagal load gambar tu. Cuba lagi.');
+    alert('Failed to load that image. Try again.');
   }
 });
 document.getElementById('accPhotoRemoveBtn').addEventListener('click', () => { accPhotoDataUrl = ''; renderAccPhotoPreview(); renderAccReceiveSummary(); });
@@ -10587,7 +10587,7 @@ function renderAccHistoryTable() {
   if (!wrap) return;
   const q = (document.getElementById('accHistorySearchInput').value || '').trim().toLowerCase();
   const rows = accessoriesReceipts.filter(r => !q || (r.name || '').toLowerCase().includes(q));
-  if (!rows.length) { wrap.innerHTML = '<div class="data-note">Tiada rekod accessories lagi.</div>'; return; }
+  if (!rows.length) { wrap.innerHTML = '<div class="data-note">No accessories records yet.</div>'; return; }
 
   const groups = new Map();
   rows.forEach(r => {
@@ -10616,7 +10616,7 @@ function renderAccHistoryTable() {
       <td>${g.totalCartons}</td>
       <td>${g.totalQty}</td>
       <td>${g.latestDate ? formatDateLabel(g.latestDate) : '-'}</td>
-      <td class="row-actions"><button type="button" class="btn-ghost acc-history-delete-group-btn" data-acc-name="${escapeHtml(g.name)}" data-count="${g.cartons.length}" style="color:#e0685c;" title="Padam semua rekod ${escapeHtml(g.name)}">🗑 Delete All</button></td>
+      <td class="row-actions"><button type="button" class="btn-ghost acc-history-delete-group-btn" data-acc-name="${escapeHtml(g.name)}" data-count="${g.cartons.length}" style="color:#e0685c;" title="Delete all ${escapeHtml(g.name)} records">🗑 Delete All</button></td>
     </tr>
     <tr class="acc-history-detail-row" style="display:${expanded ? 'table-row' : 'none'};">
       <td></td>
@@ -10627,7 +10627,7 @@ function renderAccHistoryTable() {
           ${g.cartons.map(r => {
             const photo = r.photo || accBatchPhotoFor(r.batchId);
             return `<tr>
-              <td><img src="${photo || ACC_DEFAULT_PHOTO}" class="acc-receipt-edit-photo-btn" data-id="${r.id}" data-batch-id="${r.batchId || ''}" title="Klik untuk tukar gambar" style="width:32px; height:32px; object-fit:cover; border-radius:4px; display:block; cursor:pointer;"></td>
+              <td><img src="${photo || ACC_DEFAULT_PHOTO}" class="acc-receipt-edit-photo-btn" data-id="${r.id}" data-batch-id="${r.batchId || ''}" title="Click to change photo" style="width:32px; height:32px; object-fit:cover; border-radius:4px; display:block; cursor:pointer;"></td>
               <td>${escapeHtml(r.cartonNo || '-')}</td>
               <td>${escapeHtml(r.qty != null ? String(r.qty) : '-')}</td>
               <td>${escapeHtml(r.receivedBy || '-')}</td>
@@ -10654,7 +10654,7 @@ function renderAccHistoryTable() {
   wrap.querySelectorAll('.acc-receipt-delete-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (!confirm('Padam rekod accessories ni?')) return;
+      if (!confirm('Delete this accessories record?')) return;
       accessoriesReceipts = accessoriesReceipts.filter(r => r.id !== btn.dataset.id);
       saveAccessoriesReceipts();
       renderAccHistoryTable();
@@ -10665,7 +10665,7 @@ function renderAccHistoryTable() {
       e.stopPropagation();
       const name = btn.dataset.accName;
       const count = btn.dataset.count;
-      if (!confirm(`Padam SEMUA ${count} rekod untuk "${name}"? Tindakan ni tak boleh undo.`)) return;
+      if (!confirm(`Delete ALL ${count} records for "${name}"? This action cannot be undone.`)) return;
       accessoriesReceipts = accessoriesReceipts.filter(r => (r.name || '-') !== name);
       saveAccessoriesReceipts();
       renderAccHistoryTable();
@@ -10700,7 +10700,7 @@ document.getElementById('accEditPhotoFileInput').addEventListener('change', asyn
     saveAccessoriesReceipts();
     renderAccHistoryTable();
   } catch (err) {
-    alert('Gagal load gambar tu. Cuba lagi.');
+    alert('Failed to load that image. Try again.');
   } finally {
     accEditPhotoTargetId = null;
     accEditPhotoTargetBatchId = '';
@@ -10748,7 +10748,7 @@ function renderAccReceiveSummary() {
   const date = document.getElementById('accDate').value;
   const receivedBy = document.getElementById('accReceivedBy').value.trim();
   const notes = document.getElementById('accNotes').value.trim();
-  const cartonRange = hasCarton ? formatAccCartonNoRange(nextAvailableAccCartonNumbers(cartonCount)) : 'Tiada carton';
+  const cartonRange = hasCarton ? formatAccCartonNoRange(nextAvailableAccCartonNumbers(cartonCount)) : 'No carton';
   if (!name && !totalQty) {
     wrap.innerHTML = `<div class="empty-state">Fill in the form to see a live summary here.</div>`;
     return;
@@ -10759,11 +10759,11 @@ function renderAccReceiveSummary() {
     <div class="rm-summary-row"><span class="rm-summary-label">Date</span><span class="rm-summary-value">${date ? formatDateLabel(date) : '-'}</span></div>
     <hr class="rm-form-divider" style="margin:10px 0;">
     ${hasCarton ? `
-    <div class="rm-summary-row"><span class="rm-summary-label">Bilangan Carton</span><span class="rm-summary-value">${cartonCount || 0}</span></div>
+    <div class="rm-summary-row"><span class="rm-summary-label">Number of Cartons</span><span class="rm-summary-value">${cartonCount || 0}</span></div>
     <div class="rm-summary-row"><span class="rm-summary-label">Carton No.</span><span class="rm-summary-value">${cartonRange}</span></div>
     <div class="rm-summary-row"><span class="rm-summary-label">Qty per Carton</span><span class="rm-summary-value">${qtyPerCarton || 0}</span></div>
     ` : `
-    <div class="rm-summary-row"><span class="rm-summary-label">Carton</span><span class="rm-summary-value">Tiada carton</span></div>
+    <div class="rm-summary-row"><span class="rm-summary-label">Carton</span><span class="rm-summary-value">No carton</span></div>
     <div class="rm-summary-row"><span class="rm-summary-label">Quantity</span><span class="rm-summary-value">${qtyTotalNoCarton || 0}</span></div>
     `}
     ${notes ? `<div class="rm-summary-row"><span class="rm-summary-label">Notes</span><span class="rm-summary-value">${escapeHtml(notes)}</span></div>` : ''}
@@ -10779,9 +10779,9 @@ document.getElementById('accSaveBtn').addEventListener('click', () => {
   const hasCarton = cartonCount > 0;
   const qtyPerCarton = Math.max(0, Number(document.getElementById('accQtyPerCarton').value) || 0);
   const qtyTotalNoCarton = Math.max(0, Number(document.getElementById('accQtyTotal').value) || 0);
-  if (!name) { alert('Sila isi Accessories Name.'); return; }
-  if (hasCarton && !qtyPerCarton) { alert('Sila isi Qty per Carton.'); return; }
-  if (!hasCarton && !qtyTotalNoCarton) { alert('Sila isi Quantity.'); return; }
+  if (!name) { alert('Please fill in Accessories Name.'); return; }
+  if (hasCarton && !qtyPerCarton) { alert('Please fill in Qty per Carton.'); return; }
+  if (!hasCarton && !qtyTotalNoCarton) { alert('Please fill in Quantity.'); return; }
   const currentUser = getCurrentUser();
   const receivedBy = currentUser ? currentUser.username : '';
   const date = document.getElementById('accDate').value || todayStr();
@@ -10825,7 +10825,7 @@ document.getElementById('accSaveBtn').addEventListener('click', () => {
     });
     totalQty = qtyTotalNoCarton;
     saveAccessoriesReceipts();
-    alert(`Saved ${totalQty} unit (tiada carton).`);
+    alert(`Saved ${totalQty} unit (no carton).`);
   }
   document.getElementById('accName').value = '';
   document.getElementById('accCartonCount').value = '';
@@ -10935,9 +10935,9 @@ function renderRmPickToPickList() {
   const stoSelect = document.getElementById('rmPickStoSelect');
   const wrap = document.getElementById('rmPickToPickWrap');
   if (!wrap) return;
-  if (!stoSelect.value) { wrap.innerHTML = `<div class="empty-state">Pilih STO No. dulu untuk lihat apa yang perlu dipick.</div>`; return; }
+  if (!stoSelect.value) { wrap.innerHTML = `<div class="empty-state">Select an STO No. first to see what needs picking.</div>`; return; }
   const items = rawMaterialStos.filter(s => s.stoNo === stoSelect.value);
-  if (!items.length) { wrap.innerHTML = `<div class="empty-state">Takde item dalam STO ni.</div>`; return; }
+  if (!items.length) { wrap.innerHTML = `<div class="empty-state">No items in this STO.</div>`; return; }
   const groups = new Map();
   items.filter(s => s.itemType !== 'accessories').forEach(s => {
     const key = [s.fabricName || '', s.colorCode || '', s.colorName || ''].join('|||');
@@ -10962,7 +10962,7 @@ function renderRmPickToPickList() {
           <div class="rm-card-meter-label">roll needed</div>
         </div>
       </div>
-      <div class="rm-card-row"><span class="badge ${isDone ? 'badge-green' : 'badge-blue'}">${isDone ? 'Semua dah dipick' : `${remaining} lagi nak dipick`}</span></div>
+      <div class="rm-card-row"><span class="badge ${isDone ? 'badge-green' : 'badge-blue'}">${isDone ? 'All picked' : `${remaining} more to pick`}</span></div>
     </div>`;
   });
   // Accessories carton-based items — grouped by NAME only (same as fabric roll's fabric+colour
@@ -10994,7 +10994,7 @@ function renderRmPickToPickList() {
           <div class="rm-card-meter-label">carton needed</div>
         </div>
       </div>
-      <div class="rm-card-row"><span class="badge ${isDone ? 'badge-green' : 'badge-blue'}">${isDone ? 'Semua dah dipick' : `${remaining} lagi nak dipick`}</span></div>
+      <div class="rm-card-row"><span class="badge ${isDone ? 'badge-green' : 'badge-blue'}">${isDone ? 'All picked' : `${remaining} more to pick`}</span></div>
     </div>`;
   });
   // Loose (no-carton) accessories — no barcode to scan, so fulfil with a Pick button that pops up
@@ -11005,7 +11005,7 @@ function renderRmPickToPickList() {
     const qtySent = Number(s.qtySent) || 0;
     const remaining = Math.max(0, (Number(s.qty) || 0) - qtySent);
     const isDone = s.status === 'Completed';
-    const badgeLabel = isDone ? 'Dah dihantar' : (qtySent > 0 ? `${qtySent}/${s.qty} dihantar` : 'Belum dihantar');
+    const badgeLabel = isDone ? 'Sent' : (qtySent > 0 ? `${qtySent}/${s.qty} sent` : 'Not sent yet');
     const photo = accPhotoForName(s.accessoriesName) || ACC_DEFAULT_PHOTO;
     html += `<div class="rm-card" style="${isDone ? 'opacity:0.55;' : ''}">
       <div class="rm-card-head">
@@ -11013,7 +11013,7 @@ function renderRmPickToPickList() {
           <img src="${photo}" style="width:40px; height:40px; object-fit:cover; border-radius:6px; flex:0 0 auto;">
           <div>
             <div class="rm-card-rollno">🧷 ${escapeHtml(s.accessoriesName || '-')}</div>
-            <div class="rm-card-sub">Accessories (tanpa carton)</div>
+            <div class="rm-card-sub">Accessories (no carton)</div>
           </div>
         </div>
         <div style="text-align:right;">
@@ -11039,7 +11039,7 @@ function promptRmPickAccessoriesItem(itemId) {
   const item = rawMaterialStos.find(s => s.id === itemId && s.itemType === 'accessories');
   if (!item) return;
   const remaining = Math.max(0, (Number(item.qty) || 0) - (Number(item.qtySent) || 0));
-  const input = prompt(`Berapa unit "${item.accessoriesName}" nak pick sekarang? (baki: ${remaining})`, String(remaining));
+  const input = prompt(`How many units of "${item.accessoriesName}" to pick now? (remaining: ${remaining})`, String(remaining));
   if (input === null) return; // cancelled
   sendRmPickAccessoriesItem(itemId, input);
 }
@@ -11048,8 +11048,8 @@ function sendRmPickAccessoriesItem(itemId, qtyToSendRaw) {
   if (!item) return;
   const remaining = Math.max(0, (Number(item.qty) || 0) - (Number(item.qtySent) || 0));
   const qtyToSend = Math.floor(Number(qtyToSendRaw) || 0);
-  if (!qtyToSend) { alert('Isi Qty dulu.'); return; }
-  if (qtyToSend > remaining) { alert(`Qty tak boleh lebih dari ${remaining} (baki yang belum dihantar).`); return; }
+  if (!qtyToSend) { alert('Please fill in Qty first.'); return; }
+  if (qtyToSend > remaining) { alert(`Qty can't be more than ${remaining} (the remaining amount not yet sent).`); return; }
   item.qtySent = (Number(item.qtySent) || 0) + qtyToSend;
   item.date = document.getElementById('rmPickDate').value || todayStr();
   const notes = (document.getElementById('rmPickNotes').value || '').trim();
@@ -11076,11 +11076,11 @@ function resetRmPickScan() {
 function renderRmPickStoItems() {
   const stoSelect = document.getElementById('rmPickStoSelect');
   const wrap = document.getElementById('rmPickStoItemsWrap');
-  if (!stoSelect.value) { wrap.innerHTML = `<div class="empty-state">Pilih STO No. dulu untuk lihat item.</div>`; return; }
+  if (!stoSelect.value) { wrap.innerHTML = `<div class="empty-state">Select an STO No. first to see items.</div>`; return; }
   const items = rawMaterialStos.filter(s => s.stoNo === stoSelect.value);
-  if (!items.length) { wrap.innerHTML = `<div class="empty-state">Takde item dalam STO ni.</div>`; return; }
+  if (!items.length) { wrap.innerHTML = `<div class="empty-state">No items in this STO.</div>`; return; }
   const doneCount = items.filter(s => s.status === 'Completed').length;
-  let html = `<div class="data-note" style="margin-bottom:8px;">${doneCount} / ${items.length} item dah dihantar (Completed).</div>`;
+  let html = `<div class="data-note" style="margin-bottom:8px;">${doneCount} / ${items.length} item(s) sent (Completed).</div>`;
   // Only list rolls that have actually been scanned (Completed, or scanned and pending Complete) —
   // no roll-no. "suggestions" shown for items still Open/unscanned, since staff pick rolls at random.
   // Accessories items are listed once Completed (marked sent via the "Hantar" button above), same as
@@ -11088,7 +11088,7 @@ function renderRmPickStoItems() {
   const scanned = items.filter(s => s.itemType === 'accessories' ? s.status === 'Completed' : (s.status === 'Completed' || s.id === rmPickMatchedItemId))
     .sort((a, b) => (a.status === 'Completed') - (b.status === 'Completed'));
   if (!scanned.length) {
-    html += `<div class="empty-state">Belum ada item discan/dihantar lagi.</div>`;
+    html += `<div class="empty-state">No items scanned/sent yet.</div>`;
     wrap.innerHTML = html;
     return;
   }
@@ -11100,7 +11100,7 @@ function renderRmPickStoItems() {
         <div class="rm-card-head">
           <div>
             <div class="rm-card-rollno">✅ 🧷 ${escapeHtml(s.accessoriesName || '-')}</div>
-            <div class="rm-card-sub">${s.cartonId ? `Carton ${escapeHtml(s.cartonNo)}` : 'Accessories (tanpa carton)'}</div>
+            <div class="rm-card-sub">${s.cartonId ? `Carton ${escapeHtml(s.cartonNo)}` : 'Accessories (no carton)'}</div>
           </div>
           <div style="text-align:right;">
             <div class="rm-card-meter">${s.qty}</div>
@@ -11129,7 +11129,7 @@ function renderRmPickStoItems() {
           <div class="rm-card-meter-label">meter</div>
         </div>
       </div>
-      <div class="rm-card-row"><span class="badge ${badgeClass}">${isDone ? 'Completed' : 'Scanned — tunggu Complete'}</span>${isJustScanned ? '<span class="data-note" style="margin:0;">← baru scan</span>' : ''}</div>
+      <div class="rm-card-row"><span class="badge ${badgeClass}">${isDone ? 'Completed' : 'Scanned — waiting to Complete'}</span>${isJustScanned ? '<span class="data-note" style="margin:0;">← just scanned</span>' : ''}</div>
     </div>`;
   });
   html += `</div>`;
@@ -11150,7 +11150,7 @@ function scanRmPickAccessoriesCarton(stoNo, cartonNo, resultEl) {
 
   const completedElsewhere = rawMaterialStos.some(s => s.itemType === 'accessories' && s.cartonId === carton.id && s.status === 'Completed');
   if (completedElsewhere) {
-    resultEl.textContent = `Carton ${carton.cartonNo} dah pun dihantar sebelum ni (Completed).`;
+    resultEl.textContent = `Carton ${carton.cartonNo} has already been sent (Completed).`;
     resultEl.style.color = '#e0685c';
     rmPickMatchedItemId = null;
     renderRmPickStoItems();
@@ -11162,7 +11162,7 @@ function scanRmPickAccessoriesCarton(stoNo, cartonNo, resultEl) {
   // otherwise match it to any Open carton-item in THIS STO needing the same name.
   const reservedElsewhere = rawMaterialStos.some(s => s.itemType === 'accessories' && s.cartonId === carton.id && s.status === 'Open' && s.stoNo !== stoNo);
   if (reservedElsewhere) {
-    resultEl.textContent = `Carton ${carton.cartonNo} dah jadi cadangan untuk STO lain.`;
+    resultEl.textContent = `Carton ${carton.cartonNo} is already reserved for another STO.`;
     resultEl.style.color = '#e0685c';
     rmPickMatchedItemId = null;
     renderRmPickStoItems();
@@ -11174,7 +11174,7 @@ function scanRmPickAccessoriesCarton(stoNo, cartonNo, resultEl) {
       && !!s.cartonId && (s.accessoriesName || '').trim().toLowerCase() === (carton.name || '').trim().toLowerCase());
   }
   if (!item) {
-    resultEl.textContent = `Carton ${carton.cartonNo} (${carton.name || '-'}) bukan item yang diperlukan dalam STO ${stoNo}.`;
+    resultEl.textContent = `Carton ${carton.cartonNo} (${carton.name || '-'}) is not an item needed in STO ${stoNo}.`;
     resultEl.style.color = '#e0685c';
     rmPickMatchedItemId = null;
     renderRmPickStoItems();
@@ -11196,7 +11196,7 @@ function scanRmPickAccessoriesCarton(stoNo, cartonNo, resultEl) {
   saveRawMaterialStos();
 
   rmPickMatchedItemId = item.id;
-  resultEl.textContent = `✓ Carton ${item.cartonNo} — ${item.accessoriesName || ''} (qty ${item.qty}) dihantar & disimpan.`;
+  resultEl.textContent = `✓ Carton ${item.cartonNo} — ${item.accessoriesName || ''} (qty ${item.qty}) sent & saved.`;
   resultEl.style.color = '#7cc47c';
   document.getElementById('rmPickMeterOut').value = `${item.qty} unit`;
   document.getElementById('rmPickDestination').value = item.destination || '';
@@ -11215,8 +11215,8 @@ function scanRmPickRoll() {
   const rollInput = document.getElementById('rmPickRollInput');
   const resultEl = document.getElementById('rmPickScanResult');
   const rollNo = rollInput.value.trim();
-  if (!stoSelect.value) { resultEl.textContent = 'Pilih STO No. dulu.'; resultEl.style.color = '#e0685c'; return; }
-  if (!rollNo) { resultEl.textContent = 'Scan atau taip Roll No. / Carton No. dulu.'; resultEl.style.color = '#e0685c'; return; }
+  if (!stoSelect.value) { resultEl.textContent = 'Select an STO No. first.'; resultEl.style.color = '#e0685c'; return; }
+  if (!rollNo) { resultEl.textContent = 'Scan or type a Roll No. / Carton No. first.'; resultEl.style.color = '#e0685c'; return; }
   // Clear + refocus the field right away in every case — she's scanning one after another with a
   // physical scanner, so the box needs to be empty and ready for the next scan immediately.
   rollInput.value = '';
@@ -11228,14 +11228,14 @@ function scanRmPickRoll() {
   // that Create STO auto-reserved, as long as it's the same fabric + colour that STO needs.
   const roll = rawMaterialRolls.find(r => (r.rollNo || '').toLowerCase() === rollNo.toLowerCase());
   if (!roll) {
-    resultEl.textContent = `Roll/Carton No. "${rollNo}" tak jumpa dalam stock.`;
+    resultEl.textContent = `Roll/Carton No. "${rollNo}" not found in stock.`;
     resultEl.style.color = '#e0685c';
     rmPickMatchedItemId = null;
     renderRmPickStoItems();
     return;
   }
   if ((Number(roll.meterRemaining) || 0) <= 0) {
-    resultEl.textContent = `Roll ${roll.rollNo} dah takde baki (0m) — tak boleh hantar.`;
+    resultEl.textContent = `Roll ${roll.rollNo} has no meters remaining (0m) — can't be sent.`;
     resultEl.style.color = '#e0685c';
     rmPickMatchedItemId = null;
     renderRmPickStoItems();
@@ -11243,7 +11243,7 @@ function scanRmPickRoll() {
   }
   const reservedElsewhere = rawMaterialStos.some(s => s.rollId === roll.id && s.status === 'Open' && s.stoNo !== stoSelect.value);
   if (reservedElsewhere) {
-    resultEl.textContent = `Roll ${roll.rollNo} dah reserved untuk STO lain.`;
+    resultEl.textContent = `Roll ${roll.rollNo} is already reserved for another STO.`;
     resultEl.style.color = '#e0685c';
     rmPickMatchedItemId = null;
     renderRmPickStoItems();
@@ -11251,7 +11251,7 @@ function scanRmPickRoll() {
   }
   const completedElsewhere = rawMaterialStos.some(s => s.rollId === roll.id && s.status === 'Completed');
   if (completedElsewhere) {
-    resultEl.textContent = `Roll ${roll.rollNo} dah pun dihantar sebelum ni (Completed).`;
+    resultEl.textContent = `Roll ${roll.rollNo} has already been sent (Completed).`;
     resultEl.style.color = '#e0685c';
     rmPickMatchedItemId = null;
     renderRmPickStoItems();
@@ -11267,7 +11267,7 @@ function scanRmPickRoll() {
       && rmPickColorMatches(s, roll));
   }
   if (!item) {
-    resultEl.textContent = `Roll ${roll.rollNo} (${roll.fabricName || '-'} / ${roll.colorName || roll.colorCode || '-'}) bukan fabric/warna yang diperlukan dalam STO ${stoSelect.value}, atau item dah penuh.`;
+    resultEl.textContent = `Roll ${roll.rollNo} (${roll.fabricName || '-'} / ${roll.colorName || roll.colorCode || '-'}) is not a fabric/colour needed in STO ${stoSelect.value}, or the item is already full.`;
     resultEl.style.color = '#e0685c';
     rmPickMatchedItemId = null;
     renderRmPickStoItems();
@@ -11298,7 +11298,7 @@ function scanRmPickRoll() {
   saveRawMaterialStos();
 
   rmPickMatchedItemId = item.id;
-  resultEl.textContent = `✓ ${item.rollNo} — ${item.fabricName || ''} (${item.colorName || item.colorCode || ''}) dihantar & disimpan.`;
+  resultEl.textContent = `✓ ${item.rollNo} — ${item.fabricName || ''} (${item.colorName || item.colorCode || ''}) sent & saved.`;
   resultEl.style.color = '#7cc47c';
   document.getElementById('rmPickMeterOut').value = `${formatQty(item.meter)} m`;
   document.getElementById('rmPickDestination').value = item.destination || '';
@@ -11458,7 +11458,7 @@ function updateRmStoAccFieldsVisibility() {
   qtyField.style.display = hasLoose ? '' : 'none';
   addBtnField.style.display = (hasCartons || hasLoose) ? '' : 'none';
   hint.style.display = (hasCartons && hasLoose) ? '' : 'none';
-  if (hasCartons && hasLoose) hint.textContent = 'Item ni ada carton & tanpa carton — isi Bilangan Carton ATAU Quantity je, bukan dua-dua.';
+  if (hasCartons && hasLoose) hint.textContent = 'This item has both carton and non-carton stock — fill in Number of Cartons OR Quantity only, not both.';
 }
 document.getElementById('rmStoItemAccessoriesSelect').addEventListener('change', updateRmStoAccFieldsVisibility);
 function renderRmStoForm() {
@@ -11492,7 +11492,7 @@ function renderRmStoItemsList() {
   let html = '';
   rmStoDraftItems.forEach((item, i) => {
     if (item.itemType === 'accessories') {
-      const cartonLabel = item.cartonId ? ` (Carton ${escapeHtml(item.cartonNo || '-')})` : ' (tanpa carton)';
+      const cartonLabel = item.cartonId ? ` (Carton ${escapeHtml(item.cartonNo || '-')})` : ' (no carton)';
       html += `<div class="rm-card-row" style="padding:6px 0; border-bottom:1px solid var(--border);">
         <span>🧷 ${escapeHtml(item.accessoriesName || '-')}${cartonLabel} — Qty: ${item.qty}</span>
         <span style="display:flex; align-items:center; gap:8px;">
@@ -11547,8 +11547,8 @@ function addRmStoAccessoriesItem() {
   const cartonCount = Math.max(0, Math.floor(Number(cartonCountInput.value) || 0));
   const qty = Math.max(0, Math.floor(Number(qtyInput.value) || 0));
   if (!accSelect.value) { alert('Pick accessories first.'); return; }
-  if (!cartonCount && !qty) { alert('Isi Bilangan Carton atau Quantity dulu.'); return; }
-  if (cartonCount && qty) { alert('Isi Bilangan Carton ATAU Quantity je, bukan dua-dua.'); return; }
+  if (!cartonCount && !qty) { alert('Please fill in Number of Cartons or Quantity first.'); return; }
+  if (cartonCount && qty) { alert('Fill in Number of Cartons OR Quantity only, not both.'); return; }
 
   if (cartonCount) {
     // Carton-based — auto-pick from whatever cartons are currently available for this name
@@ -11569,7 +11569,7 @@ function addRmStoAccessoriesItem() {
     const name = accSelect.value;
     const available = rmStoAvailableAccessoriesLooseQty(name);
     if (qty > available) {
-      alert(`Only ${available} unit (tanpa carton) available for "${name}".`);
+      alert(`Only ${available} unit (no carton) available for "${name}".`);
       return;
     }
     rmStoDraftItems.push({ itemType: 'accessories', accessoriesName: name, qty });
@@ -11764,7 +11764,7 @@ function renderRmStoListTable() {
     // (staff can scan any carton of the same name), so only show it once it's the real, confirmed one.
     const accLines = accItems.map(s => `${s.accessoriesName || '-'}${(s.status === 'Completed' && s.cartonNo) ? ` [${s.cartonNo}]` : ''} (${s.qty})${s.status === 'Completed' ? ' ✔' : ''}`).join(', ');
     const detailParts = [];
-    if (fabricItems.length) detailParts.push(rollNos ? rollNos : 'Belum ada roll dihantar lagi.');
+    if (fabricItems.length) detailParts.push(rollNos ? rollNos : 'No rolls sent yet.');
     if (accItems.length) detailParts.push(accLines);
     html += `<div class="rm-card">
       <div class="rm-card-head">
@@ -11772,9 +11772,9 @@ function renderRmStoListTable() {
           <div class="rm-card-rollno">${escapeHtml(g.stoNo)}</div>
           <div class="rm-card-fabric">${escapeHtml(fabricLabel)}${fabricLabel && accItems.length ? ' + ' : ''}${accItems.length ? `🧷 ${accItems.length} accessories item(s)` : ''}</div>
           <div class="rm-card-sub rm-sto-toggle" style="cursor:pointer; user-select:none;">
-            <span class="rm-sto-toggle-icon">▸</span> ${fabricItems.length ? `${fabricItems.length} roll(s) — ${sentCount} dah dihantar` : ''}${fabricItems.length && accItems.length ? ' · ' : ''}${accItems.length ? `${accItems.length} accessories — ${accSentCount} dah dihantar` : ''}
+            <span class="rm-sto-toggle-icon">▸</span> ${fabricItems.length ? `${fabricItems.length} roll(s) — ${sentCount} sent` : ''}${fabricItems.length && accItems.length ? ' · ' : ''}${accItems.length ? `${accItems.length} accessories — ${accSentCount} sent` : ''}
           </div>
-          <div class="rm-sto-rolls" style="display:none; font-size:11px; color:var(--text-muted); margin-top:2px;">${escapeHtml(detailParts.join(' · ')) || 'Tiada item lagi.'}</div>
+          <div class="rm-sto-rolls" style="display:none; font-size:11px; color:var(--text-muted); margin-top:2px;">${escapeHtml(detailParts.join(' · ')) || 'No items yet.'}</div>
         </div>
         <div style="text-align:right;">
           <div class="rm-card-meter">${formatQty(totalMeter)}</div>
@@ -11785,8 +11785,8 @@ function renderRmStoListTable() {
       <div class="rm-card-row">
         <span class="badge ${badgeClass}">${allCompleted ? 'Completed' : 'Open'}</span>
         <div style="display:flex; gap:6px;">
-          ${allCompleted && rmDoAlreadyExistsFor(g.stoNo) ? `<button type="button" class="btn-ghost rm-sto-print-do-btn" data-sto="${escapeHtml(g.stoNo)}" title="Print balik DO untuk STO ni">🖨 Print DO</button>` : ''}
-          <button type="button" class="btn-ghost rm-sto-delete-btn" data-sto="${escapeHtml(g.stoNo)}" style="color:#e0685c;" title="Padam STO ni">🗑 Delete STO</button>
+          ${allCompleted && rmDoAlreadyExistsFor(g.stoNo) ? `<button type="button" class="btn-ghost rm-sto-print-do-btn" data-sto="${escapeHtml(g.stoNo)}" title="Reprint DO for this STO">🖨 Print DO</button>` : ''}
+          <button type="button" class="btn-ghost rm-sto-delete-btn" data-sto="${escapeHtml(g.stoNo)}" style="color:#e0685c;" title="Delete this STO">🗑 Delete STO</button>
         </div>
       </div>
     </div>`;
@@ -11819,8 +11819,8 @@ function renderRmStoListTable() {
       const items = rawMaterialStos.filter(s => s.stoNo === stoNo);
       const completedCount = items.filter(s => s.status === 'Completed').length;
       const msg = completedCount
-        ? `STO ${stoNo} ada ${completedCount} item yang DAH dihantar (stock dah ditolak/reserved). Padam STO ni akan pulangkan balik meter fabric roll yang ditolak tu, dan bebaskan balik quantity accessories yang direserve. Teruskan padam?`
-        : `Padam STO ${stoNo}? Item yang direserve untuk STO ni akan dibebaskan balik (available untuk STO lain).`;
+        ? `STO ${stoNo} has ${completedCount} item(s) that are ALREADY sent (stock already deducted/reserved). Deleting this STO will restore the meterage that was deducted for those fabric rolls, and free up the reserved accessories quantity. Continue deleting?`
+        : `Delete STO ${stoNo}? Items reserved for this STO will be freed up again (available for other STOs).`;
       if (!confirm(msg)) return;
       items.filter(s => s.status === 'Completed').forEach(s => {
         const roll = rawMaterialRolls.find(r => r.id === s.rollId);
@@ -11962,7 +11962,7 @@ function renderRmStockDetailTable() {
     const sample = rawMaterialRolls.find(r => (r.fabricCode || r.fabricName || '') === rmStockSelectedFabricKey);
     const label = sample ? `${sample.fabricName || '-'}${sample.fabricCode ? ` (${sample.fabricCode})` : ''}` : rmStockSelectedFabricKey;
     noteEl.style.display = 'block';
-    noteEl.innerHTML = `Showing: <strong>${escapeHtml(label)}</strong> — <a href="#" id="rmStockClearFabricFilterLink">tunjuk semua fabric</a>`;
+    noteEl.innerHTML = `Showing: <strong>${escapeHtml(label)}</strong> — <a href="#" id="rmStockClearFabricFilterLink">show all fabrics</a>`;
     const clearLink = document.getElementById('rmStockClearFabricFilterLink');
     if (clearLink) clearLink.addEventListener('click', (e) => { e.preventDefault(); rmStockSelectedFabricKey = null; renderRmStockDetailTable(); });
   } else {
@@ -11981,7 +11981,7 @@ function renderRmStockDetailTable() {
     btn.addEventListener('click', () => {
       const roll = rawMaterialRolls.find(r => r.id === btn.dataset.id);
       if (!roll) return;
-      if (!confirm(`Padam roll ${roll.rollNo} (${roll.fabricName || '-'})? Tindakan ni tak boleh undo.`)) return;
+      if (!confirm(`Delete roll ${roll.rollNo} (${roll.fabricName || '-'})? This action cannot be undone.`)) return;
       rawMaterialRolls = rawMaterialRolls.filter(r => r.id !== roll.id);
       saveRawMaterialRolls();
       renderRmStockTab();
@@ -12066,7 +12066,7 @@ function renderRmPrintTab() {
     btn.addEventListener('click', () => {
       const roll = rawMaterialRolls.find(r => r.id === btn.dataset.id);
       if (!roll) return;
-      if (!confirm(`Padam roll ${roll.rollNo} (${roll.fabricName || '-'})? Tindakan ni tak boleh undo.`)) return;
+      if (!confirm(`Delete roll ${roll.rollNo} (${roll.fabricName || '-'})? This action cannot be undone.`)) return;
       rawMaterialRolls = rawMaterialRolls.filter(r => r.id !== roll.id);
       rmPrintSelectedIds.delete(roll.id);
       saveRawMaterialRolls();
@@ -12105,14 +12105,14 @@ document.getElementById('rmEditRollSaveBtn').addEventListener('click', () => {
   if (!roll) { closeRmEditRollModal(); return; }
   const showErr = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
   const newRollNo = document.getElementById('rmEditRollNo').value.trim();
-  if (!newRollNo) { showErr('Roll No. tak boleh kosong.'); return; }
+  if (!newRollNo) { showErr('Roll No. cannot be empty.'); return; }
   const dupe = rawMaterialRolls.some(r => r.id !== roll.id && r.rollNo === newRollNo);
-  if (dupe) { showErr(`Roll No. ${newRollNo} dah wujud kat roll lain.`); return; }
+  if (dupe) { showErr(`Roll No. ${newRollNo} already exists on another roll.`); return; }
   const newMeter = Number(document.getElementById('rmEditMeter').value);
   const newMeterRemaining = Number(document.getElementById('rmEditMeterRemaining').value);
-  if (!Number.isFinite(newMeter) || newMeter < 0) { showErr('Total Meter tak sah.'); return; }
-  if (!Number.isFinite(newMeterRemaining) || newMeterRemaining < 0) { showErr('Meter Remaining tak sah.'); return; }
-  if (newMeterRemaining > newMeter) { showErr('Meter Remaining tak boleh lebih besar dari Total Meter.'); return; }
+  if (!Number.isFinite(newMeter) || newMeter < 0) { showErr('Total Meter is invalid.'); return; }
+  if (!Number.isFinite(newMeterRemaining) || newMeterRemaining < 0) { showErr('Meter Remaining is invalid.'); return; }
+  if (newMeterRemaining > newMeter) { showErr('Meter Remaining cannot be greater than Total Meter.'); return; }
   roll.rollNo = newRollNo;
   roll.gsm = document.getElementById('rmEditGsm').value.trim();
   roll.fabricName = document.getElementById('rmEditFabricName').value.trim();
@@ -12156,18 +12156,18 @@ document.getElementById('rmPrintSelectedBtn').addEventListener('click', () => {
 document.getElementById('rmPrintSelectRangeBtn').addEventListener('click', () => {
   const fromRaw = document.getElementById('rmPrintRangeFrom').value.trim();
   const toRaw = document.getElementById('rmPrintRangeTo').value.trim();
-  if (!fromRaw || !toRaw) { alert('Isi kedua-dua "From" dan "To" Roll No. dulu.'); return; }
+  if (!fromRaw || !toRaw) { alert('Please fill in both "From" and "To" Roll No. first.'); return; }
   const extractNum = (s) => { const m = /(\d+)\s*$/.exec(s); return m ? Number(m[1]) : null; };
   const fromNum = extractNum(fromRaw);
   const toNum = extractNum(toRaw);
-  if (fromNum === null || toNum === null) { alert('Roll No. tak sah — pastikan ada nombor kat hujung (contoh R-0594).'); return; }
+  if (fromNum === null || toNum === null) { alert('Roll No. is invalid — make sure there is a number at the end (e.g. R-0594).'); return; }
   const lo = Math.min(fromNum, toNum), hi = Math.max(fromNum, toNum);
   let matched = 0;
   rawMaterialRolls.forEach(r => {
     const n = extractNum(r.rollNo || '');
     if (n !== null && n >= lo && n <= hi) { rmPrintSelectedIds.add(r.id); matched++; }
   });
-  if (!matched) { alert('Takde roll dijumpai dalam range tu.'); return; }
+  if (!matched) { alert('No rolls found in that range.'); return; }
   renderRmPrintTab();
 });
 
@@ -12183,7 +12183,7 @@ document.getElementById('rmPrintExportBtn').addEventListener('click', () => {
   if (hideEmpty) list = list.filter(r => (Number(r.meterRemaining) || 0) > 0);
   if (search) list = list.filter(r => [r.fabricName, r.fabricCode, r.colorCode, r.colorName, r.rollNo].filter(Boolean).join(' ').toLowerCase().includes(search));
   list.sort((a, b) => (b.rollNo || '').localeCompare(a.rollNo || ''));
-  if (!list.length) { alert('Takde roll untuk export (ikut search/filter sekarang).'); return; }
+  if (!list.length) { alert('No rolls to export (based on current search/filter).'); return; }
   const rows = list.map(r => ({
     '⚠️ Roll ID': r.id,
     'Roll No.': r.rollNo || '',
@@ -12213,7 +12213,7 @@ document.getElementById('rmPrintImportFileInput').addEventListener('change', (e)
       const wb = XLSX.read(evt.target.result, { type: 'array', cellDates: true });
       const sheet = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-      if (!rows.length) { alert('File kosong / takde data.'); return; }
+      if (!rows.length) { alert('File is empty / has no data.'); return; }
       const parseDateCell = (val) => (val instanceof Date && !isNaN(val)) ? toIsoLocal(val) : String(val || '').trim();
       let updated = 0;
       const errors = [];
@@ -12224,17 +12224,17 @@ document.getElementById('rmPrintImportFileInput').addEventListener('change', (e)
         let roll = null;
         if (rid) roll = rawMaterialRolls.find(r => r.id === rid);
         if (!roll && rollNoVal) roll = rawMaterialRolls.find(r => r.rollNo === rollNoVal);
-        if (!roll) { errors.push(`Baris ${lineNo}: Roll "${rollNoVal || rid || '-'}" tak jumpa dalam sistem, dilangkau.`); return; }
+        if (!roll) { errors.push(`Row ${lineNo}: Roll "${rollNoVal || rid || '-'}" not found in system, skipped.`); return; }
         const newRollNo = rollNoVal || roll.rollNo;
         if (newRollNo !== roll.rollNo) {
           const dupe = rawMaterialRolls.some(r => r.id !== roll.id && r.rollNo === newRollNo);
-          if (dupe) { errors.push(`Baris ${lineNo}: Roll No. "${newRollNo}" dah wujud kat roll lain, baris ni dilangkau.`); return; }
+          if (dupe) { errors.push(`Row ${lineNo}: Roll No. "${newRollNo}" already exists on another roll, row skipped.`); return; }
         }
         const newMeter = Number(row['Meter (Total)']);
         const newMeterRemaining = Number(row['Meter Remaining']);
-        if (!Number.isFinite(newMeter) || newMeter < 0) { errors.push(`Baris ${lineNo} (${roll.rollNo}): Meter (Total) tak sah, dilangkau.`); return; }
-        if (!Number.isFinite(newMeterRemaining) || newMeterRemaining < 0) { errors.push(`Baris ${lineNo} (${roll.rollNo}): Meter Remaining tak sah, dilangkau.`); return; }
-        if (newMeterRemaining > newMeter) { errors.push(`Baris ${lineNo} (${roll.rollNo}): Meter Remaining lebih besar dari Meter (Total), dilangkau.`); return; }
+        if (!Number.isFinite(newMeter) || newMeter < 0) { errors.push(`Row ${lineNo} (${roll.rollNo}): Meter (Total) is invalid, skipped.`); return; }
+        if (!Number.isFinite(newMeterRemaining) || newMeterRemaining < 0) { errors.push(`Row ${lineNo} (${roll.rollNo}): Meter Remaining is invalid, skipped.`); return; }
+        if (newMeterRemaining > newMeter) { errors.push(`Row ${lineNo} (${roll.rollNo}): Meter Remaining greater than Meter (Total), skipped.`); return; }
         roll.rollNo = newRollNo;
         roll.fabricName = String(row['Fabric Name'] || '').trim();
         roll.fabricCode = String(row['Fabric Code'] || '').trim();
@@ -12251,11 +12251,11 @@ document.getElementById('rmPrintImportFileInput').addEventListener('change', (e)
       });
       saveRawMaterialRolls();
       renderRmPrintTab();
-      let msg = `${updated} roll berjaya diupdate.`;
-      if (errors.length) msg += `\n\n${errors.length} baris dilangkau:\n${errors.join('\n')}`;
+      let msg = `${updated} roll(s) updated successfully.`;
+      if (errors.length) msg += `\n\n${errors.length} row(s) skipped:\n${errors.join('\n')}`;
       alert(msg);
     } catch (err) {
-      alert('Gagal baca file. Pastikan format .xlsx/.csv betul.');
+      alert('Failed to read file. Make sure the .xlsx/.csv format is correct.');
     } finally {
       e.target.value = '';
     }
@@ -12322,7 +12322,7 @@ function renderAccPrintTab() {
     btn.addEventListener('click', () => {
       const carton = accessoriesReceipts.find(r => r.id === btn.dataset.id);
       if (!carton) return;
-      if (!confirm(`Padam carton ${carton.cartonNo} (${carton.name || '-'})? Tindakan ni tak boleh undo.`)) return;
+      if (!confirm(`Delete carton ${carton.cartonNo} (${carton.name || '-'})? This action cannot be undone.`)) return;
       accessoriesReceipts = accessoriesReceipts.filter(r => r.id !== carton.id);
       accPrintSelectedIds.delete(carton.id);
       saveAccessoriesReceipts();
@@ -12352,18 +12352,18 @@ document.getElementById('accPrintSelectedBtn').addEventListener('click', () => {
 document.getElementById('accPrintSelectRangeBtn').addEventListener('click', () => {
   const fromRaw = document.getElementById('accPrintRangeFrom').value.trim();
   const toRaw = document.getElementById('accPrintRangeTo').value.trim();
-  if (!fromRaw || !toRaw) { alert('Isi kedua-dua "From" dan "To" Carton No. dulu.'); return; }
+  if (!fromRaw || !toRaw) { alert('Please fill in both "From" and "To" Carton No. first.'); return; }
   const extractNum = (s) => { const m = /(\d+)\s*$/.exec(s); return m ? Number(m[1]) : null; };
   const fromNum = extractNum(fromRaw);
   const toNum = extractNum(toRaw);
-  if (fromNum === null || toNum === null) { alert('Carton No. tak sah — pastikan ada nombor kat hujung (contoh ACC-0001).'); return; }
+  if (fromNum === null || toNum === null) { alert('Carton No. is invalid — make sure there is a number at the end (e.g. ACC-0001).'); return; }
   const lo = Math.min(fromNum, toNum), hi = Math.max(fromNum, toNum);
   let matched = 0;
   accessoriesReceipts.forEach(r => {
     const n = extractNum(r.cartonNo || '');
     if (n !== null && n >= lo && n <= hi) { accPrintSelectedIds.add(r.id); matched++; }
   });
-  if (!matched) { alert('Takde carton dijumpai dalam range tu.'); return; }
+  if (!matched) { alert('No cartons found in that range.'); return; }
   renderAccPrintTab();
 });
 
@@ -12594,7 +12594,7 @@ function processUploadedPriceTagFile(file) {
       const campaignYear = (document.getElementById('priceTagUploadYearInput').value || '').trim();
       const { added, skippedDup } = upsertPriceTagImportRows(mapped, campaignYear);
       let msg = `Success: ${added} checklist item(s) added.`;
-      if (skippedDup) msg += ` ${skippedDup} row(s) skipped (dah wujud).`;
+      if (skippedDup) msg += ` ${skippedDup} row(s) skipped (already exists).`;
       statusEl.textContent = msg;
       statusEl.className = 'upload-status ok';
       renderPriceTagTab();
@@ -12647,7 +12647,7 @@ function downloadPriceTagSeriesReceivingExcel(seriesKey) {
   const withSku = eligible.filter(l => l.sku);
   const missingSku = eligible.length - withSku.length;
   if (!withSku.length) {
-    alert(`Takde SKU dalam Series "${series}" yang ada printed qty & SKU sekali.${missingSku ? ` (${missingSku} baris ada printed qty tapi SKU kosong — guna "Auto-fill SKU" atau isi manual dulu.)` : ''}`);
+    alert(`No SKU in Series "${series}" with both printed qty & SKU filled in.${missingSku ? ` (${missingSku} row(s) have printed qty but no SKU — use "Auto-fill SKU" or fill it in manually first.)` : ''}`);
     return;
   }
   const wsData = [
@@ -12660,7 +12660,7 @@ function downloadPriceTagSeriesReceivingExcel(seriesKey) {
   XLSX.utils.book_append_sheet(wb, ws, 'Receiving Upload');
   const safeSeries = (series || 'Series').replace(/[\\/:*?"<>|]/g, '_').trim() || 'Series';
   XLSX.writeFile(wb, `Receiving_Upload_${safeSeries}.xlsx`);
-  if (missingSku) setTimeout(() => alert(`Nota: ${missingSku} baris dalam Series ni ada printed qty tapi SKU kosong — tak dimasukkan dalam Excel yang baru download tu.`), 300);
+  if (missingSku) setTimeout(() => alert(`Note: ${missingSku} row(s) in this Series have printed qty but no SKU — not included in the Excel just downloaded.`), 300);
 }
 // Grouped by Series + Supplier (however she receives each sheet from the factory) — summary row
 // shows overall progress, expand to tick off individual Colour+Size lines. Mirrors
@@ -12681,7 +12681,7 @@ function renderPriceTagTab() {
   const q = (document.getElementById('priceTagSearchInput').value || '').trim().toLowerCase();
   const hideDone = document.getElementById('priceTagHideDoneToggle').checked;
   const rows = priceTagStickers.filter(p => !q || [p.series, p.supplier, p.nameOnSticker, p.colorName, p.colourCode, p.sku].filter(Boolean).join(' ').toLowerCase().includes(q));
-  if (!rows.length) { wrap.innerHTML = '<div class="data-note">Tiada senarai sticker lagi — upload dulu kat atas.</div>'; return; }
+  if (!rows.length) { wrap.innerHTML = '<div class="data-note">No sticker checklist yet — upload above first.</div>'; return; }
 
   const isLineDone = (l) => (Number(l.printedQty) || 0) >= (Number(l.quantity) || 0) && (Number(l.quantity) || 0) > 0;
   const groups = new Map();
@@ -12699,7 +12699,7 @@ function renderPriceTagTab() {
   if (hideDone) groupList = groupList.filter(g => g.lines.some(l => !isLineDone(l)));
   groupList.forEach(g => g.lines.sort((a, b) => (a.colourCode || '').localeCompare(b.colourCode || '') || priceTagSizeOrderIndex(a.size) - priceTagSizeOrderIndex(b.size)));
 
-  if (!groupList.length) { wrap.innerHTML = '<div class="empty-state">Semua siap! 🎉</div>'; return; }
+  if (!groupList.length) { wrap.innerHTML = '<div class="empty-state">All done! 🎉</div>'; return; }
 
   const printerOptionsHtml = (selected) => `<option value=""></option>` + priceTagPrinters.map(p => p.name).map(name => `<option value="${escapeHtml(name)}" ${selected === name ? 'selected' : ''}>${escapeHtml(name)}</option>`).join('');
 
@@ -12713,7 +12713,7 @@ function renderPriceTagTab() {
     const allSelected = availableLines.length > 0 && selectedAvailableCount === availableLines.length;
     const someSelected = selectedAvailableCount > 0 && !allSelected;
     html += `<tr class="acc-history-summary-row" style="cursor:pointer;" data-key="${escapeHtml(key)}">
-      <td style="width:24px;" onclick="event.stopPropagation();"><input type="checkbox" class="price-tag-series-select-checkbox" data-key="${escapeHtml(key)}" ${allSelected ? 'checked' : ''} ${!availableLines.length ? 'disabled' : ''} data-indeterminate="${someSelected ? '1' : '0'}" title="Pilih semua SKU siap-print dalam Series ni"></td>
+      <td style="width:24px;" onclick="event.stopPropagation();"><input type="checkbox" class="price-tag-series-select-checkbox" data-key="${escapeHtml(key)}" ${allSelected ? 'checked' : ''} ${!availableLines.length ? 'disabled' : ''} data-indeterminate="${someSelected ? '1' : '0'}" title="Select all print-ready SKUs in this Series"></td>
       <td class="rm-sto-toggle-icon" style="width:24px; cursor:pointer;">${expanded ? '▾' : '▸'}</td>
       <td><strong>${escapeHtml(g.series)}</strong></td>
       <td>${escapeHtml(g.supplier || '-')}</td>
@@ -12736,8 +12736,8 @@ function renderPriceTagTab() {
           ${g.lines.map(l => {
             const avail = priceTagLineAvailableToSend(l);
             return `<tr${isLineDone(l) ? ' style="opacity:0.5;"' : ''}>
-              <td><input type="checkbox" class="price-tag-line-select-checkbox" data-id="${l.id}" ${priceTagDoChecklistSelection.has(l.id) ? 'checked' : ''} ${!avail ? 'disabled' : ''} title="${avail ? 'Pilih untuk DO' : 'Belum ada qty siap-print untuk dihantar'}"></td>
-              <td>${escapeHtml(l.colourCode || '-')}${l.supplierColorName && l.supplierColorName !== l.colorName ? ` <span style="color:var(--text-muted);" title="Nama asal dari supplier">(${escapeHtml(l.supplierColorName)})</span>` : ''}</td>
+              <td><input type="checkbox" class="price-tag-line-select-checkbox" data-id="${l.id}" ${priceTagDoChecklistSelection.has(l.id) ? 'checked' : ''} ${!avail ? 'disabled' : ''} title="${avail ? 'Select for DO' : 'No print-ready qty to send yet'}"></td>
+              <td>${escapeHtml(l.colourCode || '-')}${l.supplierColorName && l.supplierColorName !== l.colorName ? ` <span style="color:var(--text-muted);" title="Original name from supplier">(${escapeHtml(l.supplierColorName)})</span>` : ''}</td>
               <td>${escapeHtml(l.colorName || '-')}</td>
               <td>${escapeHtml(l.nameOnSticker || '-')}</td>
               <td>${escapeHtml(l.size || '-')}</td>
@@ -12833,7 +12833,7 @@ function renderPriceTagTab() {
   wrap.querySelectorAll('.price-tag-delete-line-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (!confirm('Padam baris checklist ni?')) return;
+      if (!confirm('Delete this checklist line?')) return;
       priceTagStickers = priceTagStickers.filter(p => p.id !== btn.dataset.id);
       savePriceTagStickers();
       renderPriceTagTab();
@@ -12861,7 +12861,7 @@ function renderPriceTagTab() {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const [series, supplier] = btn.dataset.key.split('|||');
-      if (!confirm(`Padam SEMUA checklist untuk Series "${series}"? Tindakan ni tak boleh undo.`)) return;
+      if (!confirm(`Delete ALL checklist lines for Series "${series}"? This action cannot be undone.`)) return;
       priceTagStickers = priceTagStickers.filter(p => !(p.series === series && p.supplier === supplier));
       savePriceTagStickers();
       renderPriceTagTab();
@@ -12887,7 +12887,7 @@ function priceTagCopyTextToClipboard(text) {
     document.body.appendChild(ta);
     ta.select();
     try { document.execCommand('copy'); done(); }
-    catch (e) { alert('Gagal copy — cuba manual select & copy dari table tu.'); }
+    catch (e) { alert('Copy failed — try manually selecting & copying from the table.'); }
     document.body.removeChild(ta);
   };
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -12930,9 +12930,9 @@ document.getElementById('priceTagEditLineSaveBtn').addEventListener('click', () 
   if (!line) { closePriceTagEditLineModal(); return; }
   const showErr = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
   const newSize = document.getElementById('priceTagEditSize').value.trim();
-  if (!newSize) { showErr('Size tak boleh kosong.'); return; }
+  if (!newSize) { showErr('Size cannot be empty.'); return; }
   const newQuantity = Math.max(0, Math.floor(Number(document.getElementById('priceTagEditQuantity').value) || 0));
-  if (!newQuantity) { showErr('Quantity tak sah.'); return; }
+  if (!newQuantity) { showErr('Quantity is invalid.'); return; }
   line.colourCode = document.getElementById('priceTagEditColourCode').value.trim();
   line.colorName = document.getElementById('priceTagEditColorName').value.trim();
   line.nameOnSticker = document.getElementById('priceTagEditNameOnSticker').value.trim();
@@ -12975,7 +12975,7 @@ function closePriceTagDoModal() { document.getElementById('priceTagDoModal').cla
 function openPriceTagDoModalForSeries(seriesKey) {
   const [series, supplier] = seriesKey.split('|||');
   const availableLines = priceTagStickers.filter(l => l.series === series && l.supplier === supplier && priceTagLineAvailableToSend(l) > 0);
-  if (!availableLines.length) { alert(`Takde SKU dalam Series "${series}" yang dah siap print & belum dihantar lagi.`); return; }
+  if (!availableLines.length) { alert(`No SKU in Series "${series}" that is print-ready & not yet sent.`); return; }
   priceTagDoSelections = {};
   availableLines.forEach(l => { priceTagDoSelections[l.id] = priceTagLineAvailableToSend(l); });
   document.getElementById('priceTagDoNoInput').value = '';
@@ -12991,7 +12991,7 @@ function openPriceTagDoModalForSeries(seriesKey) {
 // — she can mix SKUs from any number of Series before opening this, unlike the per-Series shortcut.
 function openPriceTagDoModalFromChecklistSelection() {
   const selectedLines = [...priceTagDoChecklistSelection].map(id => priceTagStickers.find(p => p.id === id)).filter(l => l && priceTagLineAvailableToSend(l) > 0);
-  if (!selectedLines.length) { alert('Takde SKU yang dipilih lagi.'); return; }
+  if (!selectedLines.length) { alert('No SKU selected yet.'); return; }
   priceTagDoSelections = {};
   selectedLines.forEach(l => { priceTagDoSelections[l.id] = priceTagLineAvailableToSend(l); });
   document.getElementById('priceTagDoNoInput').value = '';
@@ -13019,10 +13019,10 @@ function renderPriceTagDoSelectionBar() {
   const seriesCount = new Set(selectedLines.map(l => `${l.series}|||${l.supplier}`)).size;
   bar.style.display = 'flex';
   bar.innerHTML = `
-    <div style="font-size:12px;"><strong>${selectedLines.length}</strong> SKU dipilih (${seriesCount} Series) &middot; <strong>${formatQty(totalQty)}</strong> pcs</div>
+    <div style="font-size:12px;"><strong>${selectedLines.length}</strong> SKU selected (${seriesCount} Series) &middot; <strong>${formatQty(totalQty)}</strong> pcs</div>
     <div style="display:flex; gap:8px;">
-      <button type="button" class="btn-ghost" id="priceTagDoSelectionClearBtn">Clear pilihan</button>
-      <button type="button" class="btn-primary" id="priceTagDoSelectionCreateBtn">📦 Create DO daripada pilihan</button>
+      <button type="button" class="btn-ghost" id="priceTagDoSelectionClearBtn">Clear selection</button>
+      <button type="button" class="btn-primary" id="priceTagDoSelectionCreateBtn">📦 Create DO from selection</button>
     </div>`;
   document.getElementById('priceTagDoSelectionClearBtn').addEventListener('click', () => {
     priceTagDoChecklistSelection.clear();
@@ -13039,7 +13039,7 @@ function renderPriceTagDoLines() {
   const q = (document.getElementById('priceTagDoSearchInput').value || '').trim().toLowerCase();
   let candidates = priceTagStickers.filter(l => priceTagLineAvailableToSend(l) > 0);
   if (q) candidates = candidates.filter(l => [l.series, l.supplier, l.colorName, l.colourCode, l.sku, l.size].filter(Boolean).join(' ').toLowerCase().includes(q));
-  if (!candidates.length) { wrap.innerHTML = '<div class="empty-state" style="padding:16px;">Takde line yang dah siap print & belum dihantar lagi.</div>'; renderPriceTagDoTotalNote(); return; }
+  if (!candidates.length) { wrap.innerHTML = '<div class="empty-state" style="padding:16px;">No lines that are print-ready & not yet sent.</div>'; renderPriceTagDoTotalNote(); return; }
   const groups = new Map();
   candidates.forEach(l => {
     const key = `${l.series}|||${l.supplier}`;
@@ -13048,7 +13048,7 @@ function renderPriceTagDoLines() {
   });
   const groupList = [...groups.values()].sort((a, b) => a.series.localeCompare(b.series));
   groupList.forEach(g => g.lines.sort((a, b) => (a.colourCode || '').localeCompare(b.colourCode || '') || priceTagSizeOrderIndex(a.size) - priceTagSizeOrderIndex(b.size)));
-  let html = `<table><thead><tr><th>Colour</th><th>Size</th><th>SKU</th><th>Batch No.</th><th>Qty nak hantar</th></tr></thead><tbody>`;
+  let html = `<table><thead><tr><th>Colour</th><th>Size</th><th>SKU</th><th>Batch No.</th><th>Qty to send</th></tr></thead><tbody>`;
   groupList.forEach(g => {
     html += `<tr style="background:rgba(255,255,255,0.03);"><td colspan="5" style="font-weight:600;">${escapeHtml(g.series)}${g.supplier ? ' — ' + escapeHtml(g.supplier) : ''}</td></tr>`;
     g.lines.forEach(l => {
@@ -13111,11 +13111,11 @@ document.getElementById('priceTagDoSaveBtn').addEventListener('click', () => {
   const destination = document.getElementById('priceTagDoDestinationInput').value.trim();
   const date = document.getElementById('priceTagDoDateInput').value || todayStr();
   let doNo = document.getElementById('priceTagDoNoInput').value.trim();
-  if (!destination) { showErr('Destination tak boleh kosong.'); return; }
+  if (!destination) { showErr('Destination cannot be empty.'); return; }
   const selectedLines = Object.entries(priceTagDoSelections).filter(([, qty]) => qty > 0);
-  if (!selectedLines.length) { showErr('Pilih sekurang-kurangnya satu line untuk dihantar.'); return; }
+  if (!selectedLines.length) { showErr('Select at least one line to send.'); return; }
   if (!doNo) doNo = formatPriceTagDoNo(destination, date, nextAvailablePriceTagDoSeq());
-  if (priceTagDos.some(d => d.doNo === doNo)) { showErr('DO No. ni dah wujud — tukar Destination/Date atau edit DO No. tu.'); return; }
+  if (priceTagDos.some(d => d.doNo === doNo)) { showErr('This DO No. already exists — change Destination/Date or edit the DO No.'); return; }
   const notes = document.getElementById('priceTagDoNotesInput').value.trim();
   const lines = [];
   selectedLines.forEach(([stickerId, qty]) => {
@@ -13130,7 +13130,7 @@ document.getElementById('priceTagDoSaveBtn').addEventListener('click', () => {
       size: line.size, qty: finalQty, price: line.price,
     });
   });
-  if (!lines.length) { showErr('Pilih sekurang-kurangnya satu line untuk dihantar.'); return; }
+  if (!lines.length) { showErr('Select at least one line to send.'); return; }
   const doRec = { id: genPriceTagDoId(), doNo, date, destination, notes, lines, createdAt: Date.now() };
   priceTagDos.push(doRec);
   lines.forEach(l => priceTagDoChecklistSelection.delete(l.stickerId));
@@ -13144,7 +13144,7 @@ document.getElementById('priceTagDoSaveBtn').addEventListener('click', () => {
 function renderPriceTagDoHistory() {
   const wrap = document.getElementById('priceTagDoHistoryWrap');
   if (!wrap) return;
-  if (!priceTagDos.length) { wrap.innerHTML = '<div class="data-note">Tiada DO lagi.</div>'; return; }
+  if (!priceTagDos.length) { wrap.innerHTML = '<div class="data-note">No DO yet.</div>'; return; }
   const sorted = [...priceTagDos].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   let html = `<table><thead><tr><th>DO No.</th><th>Date</th><th>Destination</th><th>Lines</th><th>Total Qty</th><th></th></tr></thead><tbody>`;
   sorted.forEach(d => {
@@ -13173,7 +13173,7 @@ function renderPriceTagDoHistory() {
     btn.addEventListener('click', () => {
       const d = priceTagDos.find(x => x.id === btn.dataset.id);
       if (!d) return;
-      if (!confirm(`Padam DO "${d.doNo}"? Quantity yang dah "sent" akan dikembalikan semula ke checklist (boleh masuk DO lain).`)) return;
+      if (!confirm(`Delete DO "${d.doNo}"? Quantity already "sent" will be returned to the checklist (can be included in another DO).`)) return;
       d.lines.forEach(l => {
         const line = priceTagStickers.find(p => p.id === l.stickerId);
         if (line) line.sentQty = Math.max(0, (Number(line.sentQty) || 0) - (Number(l.qty) || 0));
@@ -14182,7 +14182,7 @@ function addDriverFromInput() {
   const driverName = nameInput.value.trim();
   if (!driverName) { nameInput.focus(); return; }
   if (fleetDrivers.some(d => (d.driverName || '').trim().toLowerCase() === driverName.toLowerCase())) {
-    alert(`Driver "${driverName}" dah wujud dalam senarai.`);
+    alert(`Driver "${driverName}" already exists in the list.`);
     return;
   }
   fleetDrivers.push({
@@ -16576,7 +16576,7 @@ document.getElementById('financeExportModalCloseBtn').addEventListener('click', 
 document.getElementById('financeExportModalCancelBtn').addEventListener('click', closeFinanceExportModal);
 document.getElementById('financeExportModal').addEventListener('click', (e) => { if (e.target.id === 'financeExportModal') closeFinanceExportModal(); });
 document.getElementById('financeExportModalConfirmBtn').addEventListener('click', () => {
-  if (!financeExportSelectedFabrics.size) { alert('Pilih sekurang-kurangnya satu fabric untuk export.'); return; }
+  if (!financeExportSelectedFabrics.size) { alert('Select at least one fabric to export.'); return; }
   exportFinanceReport(financeExportSelectedFabrics);
   closeFinanceExportModal();
 });
@@ -16608,25 +16608,25 @@ function renderReqStockTemplateStatus() {
   const isAdminUser = !!(getCurrentUser() && getCurrentUser().isAdmin);
   if (uploadWrap) uploadWrap.style.display = isAdminUser ? '' : 'none';
   if (reqStockTemplate && reqStockTemplate.dataUrl) {
-    el.innerHTML = `<a href="${reqStockTemplate.dataUrl}" download="${escapeHtml(reqStockTemplate.name || 'request-form.pdf')}" style="color:var(--blue,#5b9dd9); font-weight:600;">⬇️ Download ${escapeHtml(reqStockTemplate.name || 'request-form.pdf')}</a>${isAdminUser ? ' <span style="margin-left:8px;">(upload fail baru kat sebelah untuk ganti)</span>' : ''}`;
+    el.innerHTML = `<a href="${reqStockTemplate.dataUrl}" download="${escapeHtml(reqStockTemplate.name || 'request-form.pdf')}" style="color:var(--blue,#5b9dd9); font-weight:600;">⬇️ Download ${escapeHtml(reqStockTemplate.name || 'request-form.pdf')}</a>${isAdminUser ? ' <span style="margin-left:8px;">(upload a new file alongside to replace it)</span>' : ''}`;
   } else {
-    el.textContent = isAdminUser ? 'Belum ada borang diupload lagi — upload fail PDF kat sebelah supaya staff boleh download.' : 'Borang belum diupload lagi. Hubungi Admin/Team Lead.';
+    el.textContent = isAdminUser ? 'No form uploaded yet — upload a PDF file alongside so staff can download it.' : 'Form not uploaded yet. Contact the Admin/Team Lead.';
   }
 }
 document.getElementById('reqStockTemplateUploadInput').addEventListener('change', (e) => {
   const file = e.target.files[0];
   e.target.value = '';
   if (!file) return;
-  if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) { alert('Sila upload fail PDF sahaja.'); return; }
-  if (file.size > 5 * 1024 * 1024) { alert('Fail terlalu besar (max 5MB).'); return; }
+  if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) { alert('Please upload a PDF file only.'); return; }
+  if (file.size > 5 * 1024 * 1024) { alert('File is too large (max 5MB).'); return; }
   const reader = new FileReader();
   reader.onload = (evt) => {
     reqStockTemplate = { name: file.name, dataUrl: evt.target.result };
     saveReqStockTemplate();
     renderReqStockTemplateStatus();
-    alert('Borang berjaya diupload. Staff lain akan nampak bila sync (dalam beberapa saat).');
+    alert('Form uploaded successfully. Other staff will see it once it syncs (a few seconds).');
   };
-  reader.onerror = () => alert('Gagal upload fail tu. Cuba lagi.');
+  reader.onerror = () => alert('Failed to upload that file. Please try again.');
   reader.readAsDataURL(file);
 });
 let requestStockList = []; // [{ id, requesterName, purpose, dateNeeded, items:[{sku,productName,qty}], notes, createdAt }]
@@ -16683,11 +16683,11 @@ function pushRequestStockAttachment(id, name, dataUrl) {
   });
 }
 function downloadRequestStockAttachment(id, fallbackName) {
-  if (!fbDb) { alert('Cloud sync tak available — tak boleh capai attachment ni.'); return; }
+  if (!fbDb) { alert('Cloud sync not available — can\'t reach this attachment.'); return; }
   fbDb.ref(REQ_STOCK_ATTACHMENTS_TABLE + '/' + fbSafeKey(id)).once('value')
     .then(snap => {
       const val = snap.val();
-      if (!val || !val.dataUrl) { alert('Attachment tak jumpa (mungkin belum sync sepenuhnya lagi — cuba sekejap lagi).'); return; }
+      if (!val || !val.dataUrl) { alert('Attachment not found (may not have fully synced yet — try again shortly).'); return; }
       const a = document.createElement('a');
       a.href = val.dataUrl;
       a.download = val.name || fallbackName || 'request-form.pdf';
@@ -16695,7 +16695,7 @@ function downloadRequestStockAttachment(id, fallbackName) {
       a.click();
       a.remove();
     })
-    .catch(e => alert('Gagal download attachment: ' + ((e && e.message) || e)));
+    .catch(e => alert('Failed to download attachment: ' + ((e && e.message) || e)));
 }
 
 // ONE picker row (Campaign Year -> Brand -> Group -> Color -> Size -> Qty, cascading <select>s) for
@@ -16807,13 +16807,13 @@ function renderReqStockItemLines() {
   const availDisplay = availQty === null ? '-' : formatQty(availQty);
   const availColor = (availQty !== null && availQty <= 0) ? 'color:var(--red);' : '';
   wrap.innerHTML = `<div class="rm-form-grid" style="grid-template-columns: 90px 1fr 1.3fr 1fr 1fr 90px 90px; align-items:end; margin-bottom:8px;">
-    <div class="field"><label>Campaign Year</label><select id="reqStockYearInput" style="width:100%;">${selectOptions(yearOpts, line.campaignYear, '-- Pilih --')}</select></div>
-    <div class="field"><label>Brand</label><select id="reqStockBrandInput" style="width:100%;" ${!line.campaignYear ? 'disabled' : ''}>${selectOptions(brandOpts, line.brand, line.campaignYear ? '-- Pilih --' : 'Pilih Tahun dulu')}</select></div>
-    <div class="field"><label>Group</label><select id="reqStockGroupInput" style="width:100%;" ${!line.brand ? 'disabled' : ''}>${selectOptions(groupOpts, line.group, line.brand ? '-- Pilih --' : 'Pilih Brand dulu')}</select></div>
-    <div class="field"><label>Color</label><select id="reqStockColorInput" style="width:100%;" ${!line.group ? 'disabled' : ''}>${selectOptions(colorOpts, line.color, line.group ? '-- Pilih --' : '-')}</select></div>
-    <div class="field"><label>Size</label><select id="reqStockSizeInput" style="width:100%;" ${!line.color ? 'disabled' : ''}>${selectOptions(sizeOpts, line.size, line.color ? '-- Pilih --' : '-')}</select></div>
+    <div class="field"><label>Campaign Year</label><select id="reqStockYearInput" style="width:100%;">${selectOptions(yearOpts, line.campaignYear, '-- Select --')}</select></div>
+    <div class="field"><label>Brand</label><select id="reqStockBrandInput" style="width:100%;" ${!line.campaignYear ? 'disabled' : ''}>${selectOptions(brandOpts, line.brand, line.campaignYear ? '-- Select --' : 'Select Year first')}</select></div>
+    <div class="field"><label>Group</label><select id="reqStockGroupInput" style="width:100%;" ${!line.brand ? 'disabled' : ''}>${selectOptions(groupOpts, line.group, line.brand ? '-- Select --' : 'Select Brand first')}</select></div>
+    <div class="field"><label>Color</label><select id="reqStockColorInput" style="width:100%;" ${!line.group ? 'disabled' : ''}>${selectOptions(colorOpts, line.color, line.group ? '-- Select --' : '-')}</select></div>
+    <div class="field"><label>Size</label><select id="reqStockSizeInput" style="width:100%;" ${!line.color ? 'disabled' : ''}>${selectOptions(sizeOpts, line.size, line.color ? '-- Select --' : '-')}</select></div>
     <div class="field"><label>Qty</label><input type="number" min="1" id="reqStockQtyInput" value="${escapeHtml(line.qty)}" style="width:100%;"></div>
-    <div class="field"><label>Available</label><div class="req-stock-available-qty" title="Total dari Stock Balance, semua lokasi kecuali Experience Conezion" style="padding:9px 2px; font-weight:600; ${availColor}">${availDisplay}</div></div>
+    <div class="field"><label>Available</label><div class="req-stock-available-qty" title="Total from Stock Balance, all locations except Experience Conezion" style="padding:9px 2px; font-weight:600; ${availColor}">${availDisplay}</div></div>
   </div>`;
   document.getElementById('reqStockYearInput').addEventListener('change', (e) => {
     reqStockDraftLine.campaignYear = e.target.value;
@@ -16843,7 +16843,7 @@ function renderReqStockItemLines() {
   if (listWrap) {
     listWrap.innerHTML = reqStockConfirmedItems.length
       ? reqStockConfirmedItems.map((it, i) => reqStockConfirmedItemRowHtml(it, i, 'req-stock-remove-item-btn')).join('')
-      : `<div class="data-note" style="margin:0;">Tiada item ditambah lagi.</div>`;
+      : `<div class="data-note" style="margin:0;">No items added yet.</div>`;
     listWrap.querySelectorAll('.req-stock-remove-item-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         reqStockConfirmedItems.splice(Number(btn.dataset.idx), 1);
@@ -16855,7 +16855,7 @@ function renderReqStockItemLines() {
 document.getElementById('reqStockAddItemBtn').addEventListener('click', () => {
   const line = reqStockDraftLine;
   if (!(line.campaignYear && line.brand && line.group && line.color && line.size && Number(line.qty) > 0)) {
-    alert('Sila lengkapkan Campaign Year, Brand, Group, Color, Size & Qty dulu sebelum Add.');
+    alert('Please complete Campaign Year, Brand, Group, Color, Size & Qty before Add.');
     return;
   }
   reqStockConfirmedItems.push({ ...line });
@@ -16866,14 +16866,14 @@ document.getElementById('reqStockAttachmentInput').addEventListener('change', (e
   const file = e.target.files[0];
   e.target.value = '';
   if (!file) return;
-  if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) { alert('Sila attach fail PDF sahaja.'); return; }
-  if (file.size > REQ_STOCK_ATTACHMENT_MAX_BYTES) { alert('Fail terlalu besar (max 5MB). Cuba compress PDF tu dulu.'); return; }
+  if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) { alert('Please attach a PDF file only.'); return; }
+  if (file.size > REQ_STOCK_ATTACHMENT_MAX_BYTES) { alert('File is too large (max 5MB). Try compressing that PDF first.'); return; }
   const reader = new FileReader();
   reader.onload = (evt) => {
     reqStockDraftAttachment = { name: file.name, dataUrl: evt.target.result };
     document.getElementById('reqStockAttachmentName').textContent = '📎 ' + file.name;
   };
-  reader.onerror = () => alert('Gagal load fail tu. Cuba lagi.');
+  reader.onerror = () => alert('Failed to load that file. Please try again.');
   reader.readAsDataURL(file);
 });
 document.getElementById('reqStockSubmitBtn').addEventListener('click', () => {
@@ -16894,8 +16894,8 @@ document.getElementById('reqStockSubmitBtn').addEventListener('click', () => {
     const productName = matched ? itemMasterProductName(matched) : `${line.group} - ${line.color} - ${line.size}`;
     return { sku: matched ? matched.sku : '', productName, campaignYear: line.campaignYear, brand: line.brand, group: line.group, color: line.color, size: line.size, qty: Number(line.qty) || 0 };
   });
-  if (!items.length) { alert('Tambah sekurang-kurangnya satu item lengkap (Campaign Year, Brand, Group, Color, Size, Qty).'); return; }
-  if (!reqStockDraftAttachment) { alert('Sila attach borang PDF yang dah diisi dulu sebelum submit.'); return; }
+  if (!items.length) { alert('Add at least one complete item (Campaign Year, Brand, Group, Color, Size, Qty).'); return; }
+  if (!reqStockDraftAttachment) { alert('Please attach the completed PDF form before submitting.'); return; }
   const reqId = genRequestStockId();
   requestStockList.push({
     id: reqId, requestNo: nextRequestStockNo(purpose), requesterName, purpose, dateNeeded, items, notes, createdAt: Date.now(),
@@ -16903,7 +16903,7 @@ document.getElementById('reqStockSubmitBtn').addEventListener('click', () => {
   });
   if (!saveRequestStockList()) {
     requestStockList.pop();
-    alert('Gagal simpan request tu — storan browser dah penuh. Cuba refresh page dulu (buka semula tab ni), atau hubungi IT kalau still gagal.');
+    alert('Failed to save that request — browser storage is full. Please try refreshing the page first (reopen this tab), or contact IT if it still fails.');
     return;
   }
   pushRequestStockAttachment(reqId, reqStockDraftAttachment.name, reqStockDraftAttachment.dataUrl);
@@ -16916,7 +16916,7 @@ document.getElementById('reqStockSubmitBtn').addEventListener('click', () => {
   document.getElementById('reqStockAttachmentName').textContent = '';
   renderReqStockItemLines();
   renderRequestStockHistory();
-  alert('Request stock berjaya disubmit.');
+  alert('Stock request submitted successfully.');
 });
 // One request = one row (with Request No.) — clicking anywhere on the row pops open the SKU list
 // straight away (the existing Process modal, which already lists every SKU with its location
@@ -16924,7 +16924,7 @@ document.getElementById('reqStockSubmitBtn').addEventListener('click', () => {
 function renderRequestStockHistory() {
   const wrap = document.getElementById('reqStockHistoryWrap');
   if (!wrap) return;
-  if (!requestStockList.length) { wrap.innerHTML = `<div class="empty-state">Tiada request lagi.</div>`; return; }
+  if (!requestStockList.length) { wrap.innerHTML = `<div class="empty-state">No requests yet.</div>`; return; }
   const sorted = [...requestStockList].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   let html = `<table><thead><tr><th>Request No.</th><th>Date Submitted</th><th>Requester</th><th>Purpose</th><th>Date Needed</th><th>Items</th><th>Status</th><th>Notes</th><th>Form</th><th></th></tr></thead><tbody>`;
   sorted.forEach(r => {
@@ -16932,7 +16932,7 @@ function renderRequestStockHistory() {
     const doneCount = items.filter(it => (it.status || 'Pending') !== 'Pending').length;
     const overall = reqStockOverallStatus(r);
     const formCell = r.attachmentName ? `<button type="button" class="btn-ghost req-stock-download-attachment-btn" data-id="${escapeHtml(r.id)}" data-name="${escapeHtml(r.attachmentName)}" style="color:var(--blue,#5b9dd9); padding:2px 6px;">📎 ${escapeHtml(r.attachmentName)}</button>` : '-';
-    html += `<tr class="req-stock-history-summary-row" style="cursor:pointer;" data-id="${escapeHtml(r.id)}" title="Klik untuk tengok senarai SKU">
+    html += `<tr class="req-stock-history-summary-row" style="cursor:pointer;" data-id="${escapeHtml(r.id)}" title="Click to view SKU list">
       <td class="mono-name">${escapeHtml(r.requestNo || '-')}</td>
       <td>${formatDateLabel(toIsoLocal(new Date(r.createdAt)))}</td>
       <td><strong>${escapeHtml(r.requesterName)}</strong></td>
@@ -16956,7 +16956,7 @@ function renderRequestStockHistory() {
   wrap.querySelectorAll('.req-stock-delete-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (!confirm('Padam request ni?')) return;
+      if (!confirm('Delete this request?')) return;
       requestStockList = requestStockList.filter(r => r.id !== btn.dataset.id);
       saveRequestStockList();
       renderRequestStockHistory();
@@ -16987,14 +16987,14 @@ let reqStockProcessTargetId = null;
 let reqStockProcessExchangeDraft = {};
 function reqStockLocationBreakdownHtml(sku) {
   const rows = stockBalanceRowsBySku(sku);
-  if (!rows || !rows.length) return `<span class="data-note" style="margin:0;">Tiada data Stock Balance untuk SKU ni.</span>`;
+  if (!rows || !rows.length) return `<span class="data-note" style="margin:0;">No Stock Balance data for this SKU.</span>`;
   const byLoc = new Map();
   rows.forEach(r => {
     const loc = stockBalanceShortLocation(r.location);
     byLoc.set(loc, (byLoc.get(loc) || 0) + (Number(r.qty) || 0));
   });
   const locs = [...byLoc.entries()].filter(([, qty]) => qty > 0).sort((a, b) => b[1] - a[1]);
-  if (!locs.length) return `<span class="data-note" style="margin:0; color:var(--red);">Takde stock di mana-mana location.</span>`;
+  if (!locs.length) return `<span class="data-note" style="margin:0; color:var(--red);">No stock at any location.</span>`;
   return locs.map(([loc, qty]) => `<span class="badge badge-gray" style="margin-right:4px;">${escapeHtml(loc)}: ${formatQty(qty)}</span>`).join(' ');
 }
 function openReqStockProcessModal(id) {
@@ -17044,7 +17044,7 @@ function reqStockProcessExchangePickerHtml(i) {
   if (line.confirmed && matched) {
     return `<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px; border:1px solid var(--green); background:var(--green-bg); border-radius:6px;">
       <span style="font-size:13px;">✓ Gantian: <strong class="mono-name">${escapeHtml(matched.sku)}</strong> ${escapeHtml(itemMasterProductName(matched))} · ${escapeHtml(line.color)} · ${escapeHtml(line.size)} × <strong>${formatQty(Number(line.qty) || 0)}</strong> <span style="color:var(--text-muted);">(Available: ${availQty === null ? '-' : formatQty(availQty)})</span></span>
-      <button type="button" class="btn-ghost req-stock-process-exchange-edit-btn" data-idx="${i}" style="padding:4px 10px; white-space:nowrap;">Tukar Pilihan</button>
+      <button type="button" class="btn-ghost req-stock-process-exchange-edit-btn" data-idx="${i}" style="padding:4px 10px; white-space:nowrap;">Change Pick</button>
     </div>`;
   }
   const selectOptions = (list, current, placeholder) => `<option value="">${escapeHtml(placeholder)}</option>` +
@@ -17057,11 +17057,11 @@ function reqStockProcessExchangePickerHtml(i) {
   const availDisplay = availQty === null ? '-' : formatQty(availQty);
   const canConfirm = !!(matched && Number(line.qty) > 0);
   return `<div class="rm-form-grid" style="grid-template-columns: 90px 1fr 1.3fr 1fr 1fr 90px 90px; align-items:end;">
-    <div class="field"><label>Campaign Year</label><select class="req-stock-process-exchange-year" data-idx="${i}" style="width:100%;">${selectOptions(yearOpts, line.campaignYear, '-- Pilih --')}</select></div>
-    <div class="field"><label>Brand</label><select class="req-stock-process-exchange-brand" data-idx="${i}" style="width:100%;" ${!line.campaignYear ? 'disabled' : ''}>${selectOptions(brandOpts, line.brand, line.campaignYear ? '-- Pilih --' : 'Pilih Tahun dulu')}</select></div>
-    <div class="field"><label>Group</label><select class="req-stock-process-exchange-group" data-idx="${i}" style="width:100%;" ${!line.brand ? 'disabled' : ''}>${selectOptions(groupOpts, line.group, line.brand ? '-- Pilih --' : 'Pilih Brand dulu')}</select></div>
-    <div class="field"><label>Color</label><select class="req-stock-process-exchange-color" data-idx="${i}" style="width:100%;" ${!line.group ? 'disabled' : ''}>${selectOptions(colorOpts, line.color, line.group ? '-- Pilih --' : '-')}</select></div>
-    <div class="field"><label>Size</label><select class="req-stock-process-exchange-size" data-idx="${i}" style="width:100%;" ${!line.color ? 'disabled' : ''}>${selectOptions(sizeOpts, line.size, line.color ? '-- Pilih --' : '-')}</select></div>
+    <div class="field"><label>Campaign Year</label><select class="req-stock-process-exchange-year" data-idx="${i}" style="width:100%;">${selectOptions(yearOpts, line.campaignYear, '-- Select --')}</select></div>
+    <div class="field"><label>Brand</label><select class="req-stock-process-exchange-brand" data-idx="${i}" style="width:100%;" ${!line.campaignYear ? 'disabled' : ''}>${selectOptions(brandOpts, line.brand, line.campaignYear ? '-- Select --' : 'Select Year first')}</select></div>
+    <div class="field"><label>Group</label><select class="req-stock-process-exchange-group" data-idx="${i}" style="width:100%;" ${!line.brand ? 'disabled' : ''}>${selectOptions(groupOpts, line.group, line.brand ? '-- Select --' : 'Select Brand first')}</select></div>
+    <div class="field"><label>Color</label><select class="req-stock-process-exchange-color" data-idx="${i}" style="width:100%;" ${!line.group ? 'disabled' : ''}>${selectOptions(colorOpts, line.color, line.group ? '-- Select --' : '-')}</select></div>
+    <div class="field"><label>Size</label><select class="req-stock-process-exchange-size" data-idx="${i}" style="width:100%;" ${!line.color ? 'disabled' : ''}>${selectOptions(sizeOpts, line.size, line.color ? '-- Select --' : '-')}</select></div>
     <div class="field"><label>Qty</label><input type="number" min="1" class="req-stock-process-exchange-qty" data-idx="${i}" value="${escapeHtml(line.qty)}" style="width:100%;"></div>
     <div class="field"><label>Available</label><div style="padding:9px 2px; font-weight:600;">${availDisplay}</div></div>
   </div>
@@ -17131,12 +17131,12 @@ function renderReqStockProcessModal() {
           <button type="button" class="btn-ghost req-stock-process-status-btn" data-status="OutOfStock" style="white-space:nowrap; padding:6px 8px; ${reqStockStatusBtnStyle('OutOfStock', status)}">❌ Out of Stock</button>
         </div>
       </div>
-      <div style="margin-top:8px;">${it.sku ? reqStockLocationBreakdownHtml(it.sku) : `<span class="data-note" style="margin:0;">SKU tak matched dengan Item Master List.</span>`}</div>
+      <div style="margin-top:8px;">${it.sku ? reqStockLocationBreakdownHtml(it.sku) : `<span class="data-note" style="margin:0;">SKU not matched with Item Master List.</span>`}</div>
       <div class="req-stock-process-exchange-picker-wrap" data-idx="${i}" style="display:${(status === 'Exchanged' || it.exchangeSku) ? '' : 'none'}; margin-top:8px;">
-        <div class="data-note" style="margin:0 0 6px;">Pilih barang gantian:</div>
+        <div class="data-note" style="margin:0 0 6px;">Pick a replacement item:</div>
         ${reqStockProcessExchangePickerHtml(i)}
       </div>
-      <input type="text" class="req-stock-process-note-input" data-idx="${i}" placeholder="Notes (cth: sebab tukar)" value="${escapeHtml(it.processNote || '')}" style="width:100%; margin-top:8px;">
+      <input type="text" class="req-stock-process-note-input" data-idx="${i}" placeholder="Notes (e.g. reason for exchange)" value="${escapeHtml(it.processNote || '')}" style="width:100%; margin-top:8px;">
     </div>`;
   }).join('');
   // Toggle status directly on the container (no full re-render) so any note text typed in OTHER
@@ -17182,7 +17182,7 @@ document.getElementById('reqStockProcessSaveBtn').addEventListener('click', () =
     const i = Number(key);
     if (statusByIdx[i] === 'Exchanged' && !(reqStockProcessExchangeDraft[i] && reqStockProcessExchangeDraft[i].confirmed)) {
       const label = (req.items[i] && (req.items[i].sku || req.items[i].productName)) || `SKU #${i + 1}`;
-      alert(`Sila tekan "Confirm Barang Gantian" dulu untuk ${label} sebelum Save.`);
+      alert(`Please press "Confirm" for the replacement item on ${label} before Save.`);
       return;
     }
   }
@@ -17215,12 +17215,12 @@ document.getElementById('reqStockProcessSaveBtn').addEventListener('click', () =
     }
   });
   if (!saveRequestStockList()) {
-    alert('Gagal simpan — storan browser penuh. Cuba refresh page dulu.');
+    alert('Failed to save — browser storage is full. Please try refreshing the page first.');
     return;
   }
   closeReqStockProcessModal();
   renderRequestStockHistory();
-  alert('Status disimpan.');
+  alert('Status saved.');
 });
 
 /* ================= Guest Request Stock (login screen, no auth) =================
@@ -20458,7 +20458,7 @@ function renderPutawayTab() {
           <div class="mono-name" style="font-size:12.5px; font-weight:700; overflow-wrap:anywhere;">${escapeHtml(g.sku || '-')}</div>
           <span style="display:flex; align-items:center; gap:4px; flex:0 0 auto;">
             ${g.done ? `<span style="font-size:13px; color:var(--green);">✓</span>` : ''}
-            <button type="button" class="icon-btn putaway-sku-delete-btn" data-rollcage="${escapeHtml(rc.name)}" data-sku="${escapeHtml(g.key)}" title="Padam SKU ni dari rollcage" style="font-size:11px; padding:0 2px; color:#e0685c;">🗑</button>
+            <button type="button" class="icon-btn putaway-sku-delete-btn" data-rollcage="${escapeHtml(rc.name)}" data-sku="${escapeHtml(g.key)}" title="Delete this SKU from the rollcage" style="font-size:11px; padding:0 2px; color:#e0685c;">🗑</button>
           </span>
         </div>
         <div style="font-size:11px; color:var(--text-muted); margin-top:2px; overflow-wrap:anywhere;">${escapeHtml([...g.batchNos].join(', ') || '-')}</div>
@@ -20525,7 +20525,7 @@ function deletePutawaySkuTile(rollcageName, groupKey) {
   const items = (rc.putawayItems || []).filter(it => (it.sku || it.batchNo || '-') === groupKey);
   if (!items.length) return;
   const totalQty = items.reduce((sum, it) => sum + (Number(it.qty) || 0), 0);
-  if (!confirm(`Padam "${groupKey}" (${formatQty(totalQty)} pcs) dari "${rollcageName}"? Tindakan ni tak boleh undo.`)) return;
+  if (!confirm(`Delete "${groupKey}" (${formatQty(totalQty)} pcs) from "${rollcageName}"? This action cannot be undone.`)) return;
   rc.putawayItems = (rc.putawayItems || []).filter(it => (it.sku || it.batchNo || '-') !== groupKey);
   if (!rc.putawayItems.length) rc.putawayInUse = false;
   saveRollcages();
@@ -20543,7 +20543,7 @@ function editPutawaySkuQty(rollcageName, groupKey) {
   const items = (rc.putawayItems || []).filter(it => (it.sku || it.batchNo || '-') === groupKey);
   if (!items.length) return;
   const currentTotal = items.reduce((sum, it) => sum + (Number(it.qty) || 0), 0);
-  const input = prompt(`Betulkan quantity untuk "${groupKey}" kat "${rollcageName}" (sekarang: ${currentTotal}):`, String(currentTotal));
+  const input = prompt(`Correct the quantity for "${groupKey}" on "${rollcageName}" (currently: ${currentTotal}):`, String(currentTotal));
   if (input === null) return;
   const newQty = Math.max(0, Math.floor(Number(input) || 0));
   if (newQty === currentTotal) return;
@@ -21133,7 +21133,7 @@ function renderGarmentSkuRows(batch, searchQ) {
   const batchNameMatches = !needle || (batch.batchNo || '').toLowerCase().includes(needle) || (batch.garmentName || '').toLowerCase().includes(needle);
   const localNeedle = (garmentSkuLocalSearch[batch.batchNo] || '').trim().toLowerCase();
   const searchBoxHtml = `<div class="field" style="max-width:260px; margin-bottom:10px;">
-    <input type="text" class="garment-sku-local-search" data-batch="${escapeHtml(batch.batchNo)}" placeholder="🔎 Cari SKU dalam batch ni..." value="${escapeHtml(garmentSkuLocalSearch[batch.batchNo] || '')}">
+    <input type="text" class="garment-sku-local-search" data-batch="${escapeHtml(batch.batchNo)}" placeholder="🔎 Search SKU in this batch..." value="${escapeHtml(garmentSkuLocalSearch[batch.batchNo] || '')}">
   </div>`;
   // A station attached to THIS COMPUTER ("This Device's Station" button in the sidebar),
   // or failing that an account-level link, auto-attaches it (no dropdown needed — see
@@ -21186,7 +21186,7 @@ function renderGarmentSkuRows(batch, searchQ) {
     </tr>`;
   });
   html += `</tbody></table>`;
-  if (!shownCount) html = `<div class="empty-state">Takde SKU yang sepadan carian.</div>`;
+  if (!shownCount) html = `<div class="empty-state">No SKU matches the search.</div>`;
   return searchBoxHtml + html;
 }
 
@@ -22175,11 +22175,11 @@ function renderReceiveStationsTab() {
       // of Active, Role = Receiver staff (same pool the Auto Day/Night fill draws from).
       const eligibleNames = staffRoster.filter(st => st.active !== false && staffRoleFunction(st.role) === 'Receiver').map(st => st.name).sort();
       const current = s.manpower || [];
-      const summaryText = current.length ? current.map(escapeHtml).join(', ') : '— pilih staff —';
+      const summaryText = current.length ? current.map(escapeHtml).join(', ') : '— select staff —';
       const checklistHtml = eligibleNames.length
         ? eligibleNames.map(n => `<label class="manpower-check-row"><input type="checkbox" class="receive-station-manpower-check" data-idx="${i}" value="${escapeHtml(n)}" ${current.includes(n) ? 'checked' : ''}> ${escapeHtml(n)}</label>`).join('')
-        : `<div class="data-note" style="margin:0;">Takde staff Role Receiver (Active) dalam Staff Schedule.</div>`;
-      manpowerCell = (shiftLabel ? `<div class="data-note" style="margin:0 0 3px 0;">Manual — pilih siapa ada kat station ni</div>` : '') +
+        : `<div class="data-note" style="margin:0;">No Role Receiver (Active) staff in Staff Schedule.</div>`;
+      manpowerCell = (shiftLabel ? `<div class="data-note" style="margin:0 0 3px 0;">Manual — select who is at this station</div>` : '') +
         `<details class="manpower-dropdown"><summary>${summaryText}</summary><div class="manpower-dropdown-panel">${checklistHtml}</div></details>`;
     }
     html += `<tr>
@@ -22246,7 +22246,7 @@ function renderReceiveStationsTab() {
       else if (pos !== -1) { list.splice(pos, 1); }
       markReceiveStationsDirty();
       const summary = e.target.closest('.manpower-dropdown').querySelector('summary');
-      summary.textContent = list.length ? list.join(', ') : '— pilih staff —';
+      summary.textContent = list.length ? list.join(', ') : '— select staff —';
     });
   });
   wrap.querySelectorAll('.remove-receive-station-btn').forEach(btn => {
