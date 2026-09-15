@@ -8130,18 +8130,20 @@ function fbSafeKey(key) { return String(key).replace(/[.#$\[\]/]/g, '_'); }
 // tables) pushes through this helper instead of calling ref.update() directly, splitting one big write
 // into several smaller ones on the SAME path. That's safe — Firebase merges each chunk's keys in
 // without touching any others — so the end result is identical to one big update, it just arrives in
-// pieces small enough to never hit the limit.
+// pieces small enough to never hit the limit. Chunks fire in parallel (not one-by-one) — they touch
+// disjoint keys under the same path, so there's no conflict, and for a big upload (35+ chunks for
+// 10,000+ rows) waiting for each round trip in turn made the upload feel sluggish for no reason.
 function fbChunkedUpdate(ref, updateObj, chunkSize) {
   chunkSize = chunkSize || 300;
   const keys = Object.keys(updateObj);
   if (!keys.length) return Promise.resolve();
-  return (async () => {
-    for (let i = 0; i < keys.length; i += chunkSize) {
-      const chunk = {};
-      keys.slice(i, i + chunkSize).forEach(k => { chunk[k] = updateObj[k]; });
-      await ref.update(chunk);
-    }
-  })();
+  const chunks = [];
+  for (let i = 0; i < keys.length; i += chunkSize) {
+    const chunk = {};
+    keys.slice(i, i + chunkSize).forEach(k => { chunk[k] = updateObj[k]; });
+    chunks.push(chunk);
+  }
+  return Promise.all(chunks.map(chunk => ref.update(chunk)));
 }
 
 let cloudSyncStatus = 'idle'; // 'idle' | 'syncing' | 'error'
