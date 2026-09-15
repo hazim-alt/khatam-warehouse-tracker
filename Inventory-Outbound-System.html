@@ -9536,8 +9536,133 @@ function renderStockBalanceStatusNote() {
 
 // Location buckets that mean "not real sellable stock" in her export (quarantined/rewash items,
 // or a catch-all for SKUs not currently in use) — always excluded on import, per her instruction,
-// so she never has to pre-filter the export herself before uploading.
+// so she never has to pre-filter the export herself before uploading. (Also duplicated inline inside
+// STOCK_BALANCE_WORKER_SRC below — a Worker can't see this page's globals, so it needs its own copy.)
 const STOCK_BALANCE_EXCLUDED_LOCATIONS = ['UNUSED PRODUCT', 'CHINA REWASH'];
+// XLSX.read()/sheet_to_json() plus the SKU+Location grouping loop are both synchronous, and for a
+// big export (100,000+ raw rows) that's enough continuous main-thread work to freeze the tab outright
+// — confirmed via Chrome's own "Page Unresponsive" dialog while diagnosing a slow Stock Balance
+// upload (this was the real remaining cause even after the storage-write step was already moved to
+// run in chunks in the background — parsing itself was the bottleneck, and a library call like
+// XLSX.read() has no yield point of its own to hook into). Running the whole parse+group step inside
+// a Web Worker keeps it off the main thread entirely, so the page stays fully responsive no matter
+// how big the file is — same logic as the old inline version above, just running on its own thread.
+const STOCK_BALANCE_WORKER_SRC = `
+self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+var STOCK_BALANCE_EXCLUDED_LOCATIONS = ['UNUSED PRODUCT', 'CHINA REWASH'];
+function parseCsvRows(text) {
+  var rows = [];
+  var row = [], field = '', inQuotes = false;
+  for (var i = 0; i < text.length; i++) {
+    var c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i+1] === '"') { field += '"'; i++; }
+        else inQuotes = false;
+      } else field += c;
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else if (c === '\\r') { /* skip */ }
+      else field += c;
+    }
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+function genStockBalanceId() { return 'sb_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+self.onmessage = function(e) {
+  try {
+    var ext = e.data.ext, buffer = e.data.buffer, text = e.data.text;
+    // Read as raw rows (arrays), NOT header-mapped objects — her "per boutique" export has one more
+    // column in the data than the header row declares (an extra unlabeled Boutique/Customer column
+    // got inserted between "Customer" and "Zone" without the header text being updated), so mapping
+    // by header name would silently misalign and read the wrong (empty) field as "Total Qty". Reading
+    // positionally sidesteps that: SKU/Description/UOM/Group/Brand are always the first columns
+    // (found by header name, which IS reliable for that stable prefix), Total Qty is always the LAST
+    // column in the data row, and the Boutique/Location name — when present — is whichever middle
+    // column between Brand and Qty actually has a value.
+    var rows = [];
+    if (ext === 'csv') {
+      rows = parseCsvRows(String(text).replace(/^\\uFEFF/, ''));
+    } else {
+      var wb = XLSX.read(buffer, { type: 'array' });
+      var sheet = wb.Sheets[wb.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    }
+    if (!rows.length) throw new Error('File is empty / has no data.');
+    var header = rows[0].map(function(h) { return String(h || '').trim().toLowerCase(); });
+    var skuIdx = header.findIndex(function(h) { return h === 'sku'; });
+    if (skuIdx === -1) throw new Error('This file needs a "SKU" column.');
+    var descIdx = header.findIndex(function(h) { return h === 'sku description'; });
+    var uomIdx = header.findIndex(function(h) { return h === 'item uom'; });
+    var groupIdx = header.findIndex(function(h) { return h === 'item group'; });
+    var brandIdx = header.findIndex(function(h) { return h === 'item brand'; });
+    var coreIdxMax = Math.max(skuIdx, descIdx, uomIdx, groupIdx, brandIdx);
+    var dataRows = rows.slice(1);
+    var excludedCount = 0;
+    // Aggregate by SKU + Location (not SKU alone) — she wants the per-boutique breakdown kept, not
+    // collapsed into one network-wide total. If there's no per-location data at all in this file
+    // (older "Summary" export, no extra column), location stays '' for every row and this collapses
+    // back to one row per SKU, same as before.
+    var byKey = new Map();
+    dataRows.forEach(function(r) {
+      if (!r || !r.length) return;
+      var sku = String(r[skuIdx] || '').trim();
+      if (!sku) return;
+      var qty = parseFloat(r[r.length - 1]) || 0;
+      var midFields = r.slice(coreIdxMax + 1, r.length - 1);
+      var location = (midFields.find(function(v) { return String(v || '').trim(); }) || '').toString().trim();
+      var locUpper = location.toUpperCase();
+      if (STOCK_BALANCE_EXCLUDED_LOCATIONS.some(function(x) { return locUpper.includes(x); })) { excludedCount++; return; }
+      var key = sku.toUpperCase() + '|||' + locUpper;
+      if (byKey.has(key)) {
+        byKey.get(key).qty += qty;
+      } else {
+        byKey.set(key, {
+          id: genStockBalanceId(),
+          sku: sku,
+          description: descIdx > -1 ? String(r[descIdx] || '').trim() : '',
+          itemGroup: groupIdx > -1 ? String(r[groupIdx] || '').trim() : '',
+          itemBrand: brandIdx > -1 ? String(r[brandIdx] || '').trim() : '',
+          uom: uomIdx > -1 ? String(r[uomIdx] || '').trim() : '',
+          location: location,
+          qty: qty,
+        });
+      }
+    });
+    var mapped = Array.from(byKey.values());
+    self.postMessage({ ok: true, mapped: mapped, excludedCount: excludedCount });
+  } catch (err) {
+    self.postMessage({ ok: false, error: (err && err.message) || String(err) });
+  }
+};
+`;
+let stockBalanceWorker = null;
+function stockBalanceParseInWorker(ext, buffer, text) {
+  return new Promise((resolve, reject) => {
+    if (!stockBalanceWorker) {
+      const blob = new Blob([STOCK_BALANCE_WORKER_SRC], { type: 'application/javascript' });
+      stockBalanceWorker = new Worker(URL.createObjectURL(blob));
+    }
+    const worker = stockBalanceWorker;
+    const onMessage = (e) => {
+      worker.removeEventListener('message', onMessage);
+      worker.removeEventListener('error', onError);
+      if (e.data && e.data.ok) resolve({ mapped: e.data.mapped, excludedCount: e.data.excludedCount });
+      else reject(new Error((e.data && e.data.error) || 'Failed to process file.'));
+    };
+    const onError = (e) => {
+      worker.removeEventListener('message', onMessage);
+      worker.removeEventListener('error', onError);
+      reject(new Error(e.message || 'Worker error while processing file.'));
+    };
+    worker.addEventListener('message', onMessage);
+    worker.addEventListener('error', onError);
+    worker.postMessage({ ext, buffer, text }, buffer ? [buffer] : []);
+  });
+}
 function processUploadedStockBalanceFile(file) {
   const statusEl = document.getElementById('stockBalanceUploadStatus');
   statusEl.textContent = 'Processing file... (large list, may take a few seconds)';
@@ -9546,65 +9671,11 @@ function processUploadedStockBalanceFile(file) {
   const reader = new FileReader();
   reader.onload = async (evt) => {
     try {
-      // Read as raw rows (arrays), NOT header-mapped objects — her "per boutique" export has one
-      // more column in the data than the header row declares (an extra unlabeled Boutique/Customer
-      // column got inserted between "Customer" and "Zone" without the header text being updated),
-      // so mapping by header name would silently misalign and read the wrong (empty) field as
-      // "Total Qty". Reading positionally sidesteps that: SKU/Description/UOM/Group/Brand are
-      // always the first columns (found by header name, which IS reliable for that stable prefix),
-      // Total Qty is always the LAST column in the data row, and the Boutique/Location name — when
-      // present — is whichever middle column between Brand and Qty actually has a value.
-      let rows = [];
-      if (ext === 'csv') {
-        const text = String(evt.target.result).replace(/^﻿/, '');
-        rows = parseCsvRows(text);
-      } else {
-        const wb = XLSX.read(evt.target.result, { type: 'array' });
-        const sheet = wb.Sheets[wb.SheetNames[0]];
-        rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-      }
-      if (!rows.length) throw new Error('File is empty / has no data.');
-      const header = rows[0].map(h => String(h || '').trim().toLowerCase());
-      const skuIdx = header.findIndex(h => h === 'sku');
-      if (skuIdx === -1) throw new Error('This file needs a "SKU" column.');
-      const descIdx = header.findIndex(h => h === 'sku description');
-      const uomIdx = header.findIndex(h => h === 'item uom');
-      const groupIdx = header.findIndex(h => h === 'item group');
-      const brandIdx = header.findIndex(h => h === 'item brand');
-      const coreIdxMax = Math.max(skuIdx, descIdx, uomIdx, groupIdx, brandIdx);
-      const dataRows = rows.slice(1);
-      let excludedCount = 0;
-      // Aggregate by SKU + Location (not SKU alone) — she wants the per-boutique breakdown kept,
-      // not collapsed into one network-wide total. If there's no per-location data at all in this
-      // file (older "Summary" export, no extra column), location stays '' for every row and this
-      // collapses back to one row per SKU, same as before.
-      const byKey = new Map();
-      dataRows.forEach(r => {
-        if (!r || !r.length) return;
-        const sku = String(r[skuIdx] || '').trim();
-        if (!sku) return;
-        const qty = parseFloat(r[r.length - 1]) || 0;
-        const midFields = r.slice(coreIdxMax + 1, r.length - 1);
-        const location = (midFields.find(v => String(v || '').trim()) || '').toString().trim();
-        const locUpper = location.toUpperCase();
-        if (STOCK_BALANCE_EXCLUDED_LOCATIONS.some(x => locUpper.includes(x))) { excludedCount++; return; }
-        const key = sku.toUpperCase() + '|||' + locUpper;
-        if (byKey.has(key)) {
-          byKey.get(key).qty += qty;
-        } else {
-          byKey.set(key, {
-            id: genStockBalanceId(),
-            sku,
-            description: descIdx > -1 ? String(r[descIdx] || '').trim() : '',
-            itemGroup: groupIdx > -1 ? String(r[groupIdx] || '').trim() : '',
-            itemBrand: brandIdx > -1 ? String(r[brandIdx] || '').trim() : '',
-            uom: uomIdx > -1 ? String(r[uomIdx] || '').trim() : '',
-            location,
-            qty,
-          });
-        }
-      });
-      const mapped = [...byKey.values()];
+      const { mapped, excludedCount } = await stockBalanceParseInWorker(
+        ext,
+        ext === 'csv' ? null : evt.target.result,
+        ext === 'csv' ? evt.target.result : null
+      );
       if (!mapped.length) throw new Error('No valid rows (all SKUs blank, or all rows excluded?).');
       // Show results and push to everyone else's devices FIRST — don't make the whole upload wait on
       // writing every row into this device's own local IndexedDB cache (that step alone could take
