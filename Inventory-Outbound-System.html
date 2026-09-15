@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,12 +14,20 @@
 <meta name="apple-mobile-web-app-title" content="KHATAM">
 <link rel="apple-touch-icon" href="./Khatam_Icon_192x192.png">
 <script>
-  // Registers the service worker below the manifest so Chrome/Android treats this
-  // page as a real installable app (full icon, no browser badge, no address bar)
-  // instead of a plain bookmark shortcut.
+  // The "minimal passthrough" service worker previously registered here (sw.js — installed only
+  // so Chrome/Android would treat this page as a real installable app) turned out to intermittently
+  // swallow its own re-issued fetch()/long-polling requests ("TypeError: Failed to fetch" inside
+  // sw.js, "FetchEvent ... resulted in a network error response"). Firebase's realtime connection
+  // falls back to long-polling (visible in DevTools as an "lp" iframe request) whenever a plain
+  // WebSocket can't be established, and THAT traffic goes through this same service worker's fetch
+  // handler — so a flaky passthrough here could silently drop large writes (e.g. the whole Stock
+  // Balance upload) while smaller ones mostly got through, with no error ever surfacing in the app's
+  // own Cloud Sync status. Simplest fix: stop registering it, and actively unregister any copy a
+  // device may already have installed from before (this runs automatically on next load, for
+  // everyone, without needing anyone to manually clear anything in DevTools).
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
+      navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
     });
   }
 </script>
