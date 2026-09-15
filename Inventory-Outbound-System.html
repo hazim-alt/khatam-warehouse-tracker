@@ -8122,6 +8122,28 @@ function syncKeyOf(record) {
 // with a "/" in it, if one is ever used as a raw key somewhere) from crashing a write.
 function fbSafeKey(key) { return String(key).replace(/[.#$\[\]/]/g, '_'); }
 
+// Firebase Realtime Database rejects one single .update() outright once its payload gets big enough
+// ("FIREBASE INTERNAL ERROR: ... Write too large") — confirmed live in DevTools while diagnosing why
+// a 10,000+-row Stock Balance upload never reached the server despite the push code running with no
+// visible error (the .catch() below never even fired for it — this is a lower-level SDK rejection).
+// Every table that can grow large (Stock Balance, Item Master, and any of the generic SYNC_COLLECTIONS
+// tables) pushes through this helper instead of calling ref.update() directly, splitting one big write
+// into several smaller ones on the SAME path. That's safe — Firebase merges each chunk's keys in
+// without touching any others — so the end result is identical to one big update, it just arrives in
+// pieces small enough to never hit the limit.
+function fbChunkedUpdate(ref, updateObj, chunkSize) {
+  chunkSize = chunkSize || 300;
+  const keys = Object.keys(updateObj);
+  if (!keys.length) return Promise.resolve();
+  return (async () => {
+    for (let i = 0; i < keys.length; i += chunkSize) {
+      const chunk = {};
+      keys.slice(i, i + chunkSize).forEach(k => { chunk[k] = updateObj[k]; });
+      await ref.update(chunk);
+    }
+  })();
+}
+
 let cloudSyncStatus = 'idle'; // 'idle' | 'syncing' | 'error'
 let cloudSyncLastError = '';
 let cloudSyncLastAt = null;
@@ -8245,7 +8267,7 @@ function pushCollectionDiff(def) {
   Object.keys(prev).forEach(k => { if (!(k in nowKeyed)) { updateObj[k] = null; changed = true; } });
   if (!changed) return;
   fbLastServerSnapshot[def.table] = nowKeyed;
-  fbDb.ref(def.table).update(updateObj).catch(e => {
+  fbChunkedUpdate(fbDb.ref(def.table), updateObj).catch(e => {
     cloudSyncStatus = 'error';
     cloudSyncLastError = `${def.table}: ${(e && e.message) || e}`;
     renderCloudSyncStatus();
@@ -8857,7 +8879,7 @@ function pushItemMasterDiffToFirebase() {
   Object.keys(_itemMasterLastServerSnapshot).forEach(k => { if (!(k in nowKeyed)) { updateObj[k] = null; changed = true; } });
   if (!changed) return;
   _itemMasterLastServerSnapshot = nowKeyed;
-  fbDb.ref(ITEM_MASTER_FB_TABLE).update(updateObj).catch(e => {
+  fbChunkedUpdate(fbDb.ref(ITEM_MASTER_FB_TABLE), updateObj).catch(e => {
     cloudSyncStatus = 'error';
     cloudSyncLastError = `ItemMasterList: ${(e && e.message) || e}`;
     renderCloudSyncStatus();
@@ -9404,7 +9426,7 @@ function pushStockBalanceDiffToFirebase() {
   Object.keys(_stockBalanceLastServerSnapshot).forEach(k => { if (!(k in nowKeyed)) { updateObj[k] = null; changed = true; } });
   if (!changed) return;
   _stockBalanceLastServerSnapshot = nowKeyed;
-  fbDb.ref(STOCK_BALANCE_FB_TABLE).update(updateObj).catch(e => {
+  fbChunkedUpdate(fbDb.ref(STOCK_BALANCE_FB_TABLE), updateObj).catch(e => {
     cloudSyncStatus = 'error';
     cloudSyncLastError = `StockBalanceList: ${(e && e.message) || e}`;
     renderCloudSyncStatus();
