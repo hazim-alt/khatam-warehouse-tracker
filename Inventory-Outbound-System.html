@@ -9209,6 +9209,95 @@ async function loadStockBalanceList() {
   const tabEl = document.getElementById('tab-stock-balance');
   if (tabEl && tabEl.classList.contains('active')) renderStockBalanceTab();
 }
+
+/* ---- Stock Balance cloud sync — same pattern as Item Master List's (see that block's comment for
+   the full reasoning): was local-only per computer (IndexedDB only), so a device that never
+   uploaded its own Stock Balance file showed blank "Warehouse: n" badges in Request Stock even
+   though another computer had already uploaded it — per Shaila, this needs to match across every
+   account/computer too. Pushes only right after an actual local mutation (currently just the
+   upload, which always replaces the whole list — see processUploadedStockBalanceFile), and pulls
+   via a realtime listener that only does work when the data genuinely changes. */
+const STOCK_BALANCE_FB_TABLE = 'StockBalanceList';
+let _stockBalanceLastServerSnapshot = {}; // fbSafeKey(id) -> record, mirrors fbLastServerSnapshot's role
+let stockBalanceFbListenerAttached = false;
+function pushStockBalanceDiffToFirebase() {
+  if (!fbDb) return;
+  const nowKeyed = {};
+  stockBalanceList.forEach(it => { nowKeyed[fbSafeKey(it.id)] = it; });
+  const updateObj = {};
+  let changed = false;
+  Object.keys(nowKeyed).forEach(k => {
+    const prevStr = (_stockBalanceLastServerSnapshot[k] !== undefined) ? stableStringify(_stockBalanceLastServerSnapshot[k]) : undefined;
+    if (stableStringify(nowKeyed[k]) !== prevStr) { updateObj[k] = nowKeyed[k]; changed = true; }
+  });
+  Object.keys(_stockBalanceLastServerSnapshot).forEach(k => { if (!(k in nowKeyed)) { updateObj[k] = null; changed = true; } });
+  if (!changed) return;
+  _stockBalanceLastServerSnapshot = nowKeyed;
+  fbDb.ref(STOCK_BALANCE_FB_TABLE).update(updateObj).catch(e => {
+    cloudSyncStatus = 'error';
+    cloudSyncLastError = `StockBalanceList: ${(e && e.message) || e}`;
+    renderCloudSyncStatus();
+  });
+}
+function applyStockBalanceServerSnapshot(remoteObj) {
+  _stockBalanceLastServerSnapshot = remoteObj || {};
+  const remoteArr = Object.values(_stockBalanceLastServerSnapshot);
+  if (stableStringify(remoteArr) === stableStringify(stockBalanceList)) return; // no-op — likely our own echo
+  stockBalanceList = remoteArr;
+  stockBalanceReplaceAll(remoteArr).catch(e => console.error('stockBalanceReplaceAll (remote sync) failed', e));
+  stockBalancePage = 0;
+  const tabEl = document.getElementById('tab-stock-balance');
+  if (tabEl && tabEl.classList.contains('active')) renderStockBalanceTab();
+}
+function attachStockBalanceFbListener() {
+  if (!fbDb || stockBalanceFbListenerAttached) return;
+  stockBalanceFbListenerAttached = true;
+  fbDb.ref(STOCK_BALANCE_FB_TABLE).on('value', snapshot => {
+    applyStockBalanceServerSnapshot(snapshot.val() || {});
+  }, error => {
+    cloudSyncStatus = 'error';
+    cloudSyncLastError = `StockBalanceList: ${(error && error.message) || error}`;
+    renderCloudSyncStatus();
+  });
+}
+// Runs once at startup (alongside initialCloudSync / initialItemMasterCloudSync). First time EVER
+// on this computer: union-merge (keep this computer's own upload, adopt remote-only rows) so an
+// existing local upload isn't silently discarded just because Firebase happened to already have
+// something (or nothing). Every run after that: remote wins outright — same reasoning as Item
+// Master's own first-run handling.
+async function initialStockBalanceCloudSync() {
+  if (!fbDb) return;
+  await loadStockBalanceList(); // make sure stockBalanceList reflects this computer's IndexedDB before merging
+  try {
+    const snap = await fbDb.ref(STOCK_BALANCE_FB_TABLE).once('value');
+    const remoteObj = snap.val() || {};
+    _stockBalanceLastServerSnapshot = remoteObj;
+    const everMergedKey = fbEverMergedKey(STOCK_BALANCE_FB_TABLE);
+    if (!localStorage.getItem(everMergedKey)) {
+      const localKeys = new Set(stockBalanceList.map(it => fbSafeKey(it.id)));
+      const mergedArr = [...stockBalanceList];
+      Object.keys(remoteObj).forEach(k => { if (!localKeys.has(k)) mergedArr.push(remoteObj[k]); });
+      if (stableStringify(mergedArr) !== stableStringify(stockBalanceList)) {
+        stockBalanceList = mergedArr;
+        await stockBalanceReplaceAll(mergedArr);
+        stockBalancePage = 0;
+        const tabEl = document.getElementById('tab-stock-balance');
+        if (tabEl && tabEl.classList.contains('active')) renderStockBalanceTab();
+      }
+      pushStockBalanceDiffToFirebase();
+      localStorage.setItem(everMergedKey, '1');
+    } else {
+      applyStockBalanceServerSnapshot(remoteObj);
+      pushStockBalanceDiffToFirebase();
+    }
+  } catch (e) {
+    cloudSyncStatus = 'error';
+    cloudSyncLastError = `StockBalanceList: ${(e && e.message) || e}`;
+    renderCloudSyncStatus();
+  }
+  attachStockBalanceFbListener();
+}
+
 function genStockBalanceId() { return 'sb_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
 function renderStockBalanceStatusNote() {
@@ -9297,6 +9386,7 @@ function processUploadedStockBalanceFile(file) {
       stockBalanceList = mapped;
       stockBalanceImportedAt = new Date().toISOString();
       localStorage.setItem(STOCK_BALANCE_IMPORTED_AT_KEY, stockBalanceImportedAt);
+      pushStockBalanceDiffToFirebase();
       stockBalancePage = 0;
       const distinctSkuCount = new Set(mapped.map(it => it.sku.toUpperCase())).size;
       statusEl.textContent = `Success: ${formatQty(distinctSkuCount)} SKU (${formatQty(mapped.length)} row(s), across all boutiques) loaded (old list replaced)${excludedCount > 0 ? ` — ${formatQty(excludedCount)} "Unused Product"/"China Rewash" row(s) dropped` : ''}.`;
@@ -13945,8 +14035,8 @@ function renderCloudSyncStatus() {
   if (sidebarNote) sidebarNote.textContent = shortText;
   updateSidebarSyncBarVisibility();
 }
-document.getElementById('cloudSyncNowBtn').addEventListener('click', () => { initialCloudSync(); initialItemMasterCloudSync(); });
-document.getElementById('sidebarSyncNowBtn').addEventListener('click', () => { initialCloudSync(); initialItemMasterCloudSync(); });
+document.getElementById('cloudSyncNowBtn').addEventListener('click', () => { initialCloudSync(); initialItemMasterCloudSync(); initialStockBalanceCloudSync(); });
+document.getElementById('sidebarSyncNowBtn').addEventListener('click', () => { initialCloudSync(); initialItemMasterCloudSync(); initialStockBalanceCloudSync(); });
 
 const FLEET_DRIVERS_KEY = 'sto_fleet_drivers_v1';
 const FLEET_VEHICLES_KEY_LEGACY = 'sto_fleet_vehicles_v1'; // pre-simplification key (had plate/vehicle type too)
@@ -23569,7 +23659,7 @@ async function syncThenRecheckAuthGate() {
   if (isCloudSyncEnabled()) {
     // Run together (not one-after-another) so the large Item Master sync doesn't add extra wait
     // time on top of the normal (much smaller/faster) collections sync before the login gate re-checks.
-    try { await Promise.all([initialCloudSync(), initialItemMasterCloudSync()]); } catch (e) { /* keep whatever's already showing */ }
+    try { await Promise.all([initialCloudSync(), initialItemMasterCloudSync(), initialStockBalanceCloudSync()]); } catch (e) { /* keep whatever's already showing */ }
     initAuthGate();
     renderLoginBoutiqueMarkers();
   }
