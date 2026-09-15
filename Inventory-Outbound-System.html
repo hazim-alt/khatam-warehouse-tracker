@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8262,7 +8261,7 @@ function anySetupDirty() {
 // enough to always fit in one chunk so this rarely bites, but it costs nothing to guard every table
 // the same way in case one grows past the chunk size.
 const collectionPushInFlight = new Set();
-function pushCollectionDiff(def) {
+function pushCollectionDiff(def, opts) {
   if (!fbDb) return;
   const arr = def.getArray();
   const prev = fbLastServerSnapshot[def.table] || {};
@@ -8273,7 +8272,18 @@ function pushCollectionDiff(def) {
   // now missing" and delete them for real — for every other device too. Confirmed as the actual
   // cause of the Users table losing accounts down to just a handful. Mirrors the same protection
   // already in place for Stock Balance / Item Master (added after a near-identical incident there).
-  if (!arr.length && Object.keys(prev).length) return;
+  //
+  // BUT that same guard also blocked a genuinely intentional case: deleting the very last remaining
+  // record in a table (e.g. Request Stock's own delete button) legitimately makes the local array
+  // empty, and this guard would then silently refuse to push that deletion — the record just sat on
+  // the server forever, looking exactly like "this one table doesn't sync". The push*Now() helpers
+  // (pushRequestStockNow, pushRollcagesNow, etc.) fire only right after a real, deliberate local
+  // save the user just made on data that's already loaded and on-screen — never during an early/
+  // unloaded startup race — so those pass { skipEmptyGuard: true } to bypass this check. The
+  // background paths that DO still need protecting (cloudSyncReconcile's periodic tick,
+  // initialCloudSync's startup pass, both of which run automatically and could fire before a table's
+  // local data has genuinely loaded) call this with no opts, so the guard stays on for them.
+  if (!(opts && opts.skipEmptyGuard) && !arr.length && Object.keys(prev).length) return;
   const nowKeyed = {};
   arr.forEach(rec => { nowKeyed[fbSafeKey(syncKeyOf(rec))] = rec; });
   const updateObj = {};
@@ -8302,13 +8312,16 @@ function applyServerSnapshot(table) {
   const remoteObj = fbLastServerSnapshot[table] || {};
   let remoteArr = Object.values(remoteObj);
   if (def.sortKey) remoteArr.sort((a, b) => def.sortKey(a).localeCompare(def.sortKey(b)));
-  // Mirrors the push-side guard in pushCollectionDiff: never let an empty remote snapshot wipe an
-  // already-populated local list. A genuinely empty remote (the table really has nothing, e.g. brand
-  // new) is harmless to skip — this device's own next push simply re-establishes it — but an
-  // ACCIDENTALLY empty remote (another device's buggy/racy push, or exactly the Users-table incident
-  // this comment was added after) would otherwise instantly erase every connected device's good local
-  // copy too, within about a second of the listener firing.
-  if (!remoteArr.length && def.getArray().length) { pendingRemoteApply.delete(table); return; }
+  // NOTE: deliberately NOT guarding against an empty remoteArr here (unlike Stock Balance/Item
+  // Master's bespoke sync, which never has a legitimate "delete everything" path). This generic
+  // mechanism DOES — e.g. deleting the last remaining Request Stock entry — and pushCollectionDiff's
+  // own { skipEmptyGuard: true } is what makes that delete reach the server as a real empty state in
+  // the first place. If this side also refused to adopt an empty remote, that legitimate deletion
+  // would reach Firebase fine but then never actually reach any OTHER device — exactly the "only
+  // this one table doesn't sync" symptom this comment replaces. Because pushCollectionDiff already
+  // refuses to write an accidental empty state (its guard stays on for every automatic/background
+  // caller), an empty remoteArr reaching this point can now only mean a genuine, intentional delete,
+  // so it's safe — correct, even — to apply it like any other change below.
   if (table === 'STO_Records' || table === 'Inbound_STO') checkStoCollisionOnIncoming(table, remoteArr);
   if (stableStringify(remoteArr) === stableStringify(def.getArray())) { pendingRemoteApply.delete(table); return; }
   if (isUserActivelyTyping() || isTableDirty(table)) { pendingRemoteApply.add(table); return; }
@@ -8551,7 +8564,7 @@ function loadPriceTagStickers() {
 function pushPriceTagStickersNow() {
   if (!fbDb || !SYNC_COLLECTIONS._fbListenersAttached) return;
   const def = SYNC_COLLECTIONS.find(d => d.table === 'PriceTag_Stickers');
-  if (def) pushCollectionDiff(def);
+  if (def) pushCollectionDiff(def, { skipEmptyGuard: true });
 }
 function savePriceTagStickers() {
   localStorage.setItem(PRICE_TAG_KEY, JSON.stringify(priceTagStickers));
@@ -8582,7 +8595,7 @@ function loadPriceTagDos() {
 function pushPriceTagDosNow() {
   if (!fbDb || !SYNC_COLLECTIONS._fbListenersAttached) return;
   const def = SYNC_COLLECTIONS.find(d => d.table === 'PriceTag_DOs');
-  if (def) pushCollectionDiff(def);
+  if (def) pushCollectionDiff(def, { skipEmptyGuard: true });
 }
 function savePriceTagDos() {
   localStorage.setItem(PRICE_TAG_DOS_KEY, JSON.stringify(priceTagDos));
@@ -17059,10 +17072,14 @@ let requestStockList = []; // [{ id, requesterName, purpose, dateNeeded, items:[
 function loadRequestStockList() {
   try { requestStockList = JSON.parse(localStorage.getItem(REQUEST_STOCK_KEY)) || []; } catch (e) { requestStockList = []; }
 }
-function pushRequestStockNow() { if (!fbDb || !SYNC_COLLECTIONS._fbListenersAttached) return; const def = SYNC_COLLECTIONS.find(d => d.table === 'RequestStock'); if (def) pushCollectionDiff(def); }
+// { skipEmptyGuard: true } — this fires only right after a real, deliberate local save (add/edit/
+// delete) on data that's already loaded and on-screen, so an empty result (e.g. deleting the very
+// last remaining request) is a genuine, intentional delete, not an unloaded-startup race — see
+// pushCollectionDiff's own comment for the full reasoning.
+function pushRequestStockNow() { if (!fbDb || !SYNC_COLLECTIONS._fbListenersAttached) return; const def = SYNC_COLLECTIONS.find(d => d.table === 'RequestStock'); if (def) pushCollectionDiff(def, { skipEmptyGuard: true }); }
 // Called from saveRollcages() itself (see that function's comment) so every local rollcage change
 // reaches Firebase immediately instead of waiting for the next ~2s cloudSyncReconcile tick.
-function pushRollcagesNow() { if (!fbDb || !SYNC_COLLECTIONS._fbListenersAttached) return; const def = SYNC_COLLECTIONS.find(d => d.table === 'Rollcages'); if (def) pushCollectionDiff(def); }
+function pushRollcagesNow() { if (!fbDb || !SYNC_COLLECTIONS._fbListenersAttached) return; const def = SYNC_COLLECTIONS.find(d => d.table === 'Rollcages'); if (def) pushCollectionDiff(def, { skipEmptyGuard: true }); }
 // Returns true/false instead of throwing — requests now carry a base64 PDF attachment (see
 // REQ_STOCK_ATTACHMENT_MAX_BYTES), and localStorage has a hard ~5-10MB quota per origin shared with
 // everything else this app stores there. Enough attachments piling up (e.g. from repeat testing) can
