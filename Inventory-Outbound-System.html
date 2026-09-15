@@ -1336,6 +1336,7 @@
                   <option value="sku">Breakdown by SKU</option>
                 </select>
                 <span id="garmentDoActualGroupByAutoNote" class="data-note" style="margin:0; font-size:10px; white-space:nowrap;"></span>
+                <button type="button" class="btn-ghost" id="garmentDoActualGoToReceivingBtn" style="padding:3px 8px; font-size:11px; white-space:nowrap;">Receiving Summary →</button>
               </div>
             </div>
             <div class="chart-wrap" style="position:relative;">
@@ -23250,6 +23251,23 @@ document.getElementById('garmentDoActualGroupBy').addEventListener('change', (e)
 });
 document.getElementById('garmentDoActualSkuFilter').addEventListener('change', () => {
   renderGarmentDoActualChart();
+});
+// Jumps straight to the Receiving Summary (Garment Order) tab — expands the Inbound sidebar group
+// first (in case she'd collapsed it) so the highlighted nav button is actually visible, then just
+// clicks the real nav button so the normal tab-switch handler does the work (panel toggle +
+// render), same as if she'd clicked it herself.
+document.getElementById('garmentDoActualGoToReceivingBtn').addEventListener('click', () => {
+  const navGroup = document.getElementById('navGroupInbound');
+  const navToggle = document.getElementById('navGroupInboundToggle');
+  if (navGroup && navGroup.classList.contains('collapsed')) {
+    navGroup.classList.remove('collapsed');
+    if (navToggle) navToggle.classList.remove('collapsed');
+    const s = loadNavGroupState();
+    s.navGroupInbound = false;
+    saveNavGroupState(s);
+  }
+  const navBtn = document.querySelector('.tab-btn[data-tab="inbound-garment-receiving"]');
+  if (navBtn) navBtn.click();
 });
 
 let inboundTargetChart = null;
