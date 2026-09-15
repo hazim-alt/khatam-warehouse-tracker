@@ -1096,7 +1096,6 @@
   <button type="button" class="btn-ghost" id="deviceStationBtn" style="width:100%; text-align:left; padding:4px 10px; font-size:11px; margin:0 0 10px;">📍 <span id="deviceStationBtnLabel">This device's station: — none —</span></button>
   <nav class="tabs">
     <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
-    <button class="tab-btn" data-tab="dashboard-summary">Dashboard Summary</button>
     <button type="button" class="nav-group-toggle" id="navGroupRawMaterialToggle" data-group="navGroupRawMaterial">
       <span>Raw Material</span><span class="nav-group-chevron">▾</span>
     </button>
@@ -1113,6 +1112,7 @@
     </button>
     <div class="nav-group" id="navGroupInbound">
       <button class="tab-btn" data-tab="inbound-garment">Garment Order</button>
+      <button class="tab-btn" data-tab="inbound-garment-receiving">Receiving Summary</button>
       <button class="tab-btn" data-tab="inbound-sto">STO From Boutique</button>
       <button class="tab-btn" data-tab="inbound-board">Progress Board</button>
       <button class="tab-btn" data-tab="inbound-putaway">Putaway</button>
@@ -1429,122 +1429,6 @@
           </div>
         </div>
       </div>
-    </div>
-  </section>
-
-  <section class="tab-panel" id="tab-dashboard-summary">
-    <p class="section-title">Dashboard Summary</p>
-    <div class="card">
-      <div class="data-note" id="dashSummaryUpdatedNote" style="margin-bottom:0;">Live snapshot — current status across all modules (not date-filtered).</div>
-
-      <div id="dashSummaryExecWrap" class="report-exec-summary"></div>
-
-      <p class="section-title" style="margin-top:0;">Module Health</p>
-      <div class="charts-row" style="grid-template-columns: repeat(5, 1fr);">
-        <div class="chart-card">
-          <h3>📦 Outbound STO</h3>
-          <div style="display:flex; flex-direction:column; align-items:center;">
-            <div class="chart-wrap" style="position:relative; width:120px; height:120px;">
-              <canvas id="dashSummaryOutboundPie"></canvas>
-              <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
-                <div id="dashSummaryOutboundPct" style="font-size:20px; font-weight:700; font-family:Georgia, serif; white-space:nowrap;">—</div>
-              </div>
-            </div>
-            <div id="dashSummaryOutboundLegend" style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;"></div>
-          </div>
-        </div>
-        <div class="chart-card">
-          <h3>📥 Inbound STO</h3>
-          <div style="display:flex; flex-direction:column; align-items:center;">
-            <div class="chart-wrap" style="position:relative; width:120px; height:120px;">
-              <canvas id="dashSummaryInboundPie"></canvas>
-              <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
-                <div id="dashSummaryInboundPct" style="font-size:20px; font-weight:700; font-family:Georgia, serif; white-space:nowrap;">—</div>
-              </div>
-            </div>
-            <div id="dashSummaryInboundLegend" style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;"></div>
-          </div>
-        </div>
-        <div class="chart-card">
-          <h3>🧵 Garment Order</h3>
-          <div style="display:flex; flex-direction:column; align-items:center;">
-            <div class="chart-wrap" style="position:relative; width:120px; height:120px;">
-              <canvas id="dashSummaryGarmentPie"></canvas>
-              <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
-                <div id="dashSummaryGarmentPct" style="font-size:20px; font-weight:700; font-family:Georgia, serif; white-space:nowrap;">—</div>
-              </div>
-            </div>
-            <div id="dashSummaryGarmentLegend" style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;"></div>
-          </div>
-        </div>
-        <div class="chart-card">
-          <h3>🚚 Fleet — Today</h3>
-          <div style="display:flex; flex-direction:column; align-items:center;">
-            <div class="chart-wrap" style="position:relative; width:120px; height:120px;">
-              <canvas id="dashSummaryFleetPie"></canvas>
-              <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
-                <div id="dashSummaryFleetPct" style="font-size:20px; font-weight:700; font-family:Georgia, serif; white-space:nowrap;">—</div>
-              </div>
-            </div>
-            <div id="dashSummaryFleetLegend" style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;"></div>
-          </div>
-        </div>
-        <div class="chart-card">
-          <h3>🧶 Raw Material</h3>
-          <div style="display:flex; flex-direction:column; align-items:center;">
-            <div class="chart-wrap" style="position:relative; width:120px; height:120px;">
-              <canvas id="dashSummaryRawMaterialPie"></canvas>
-              <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
-                <div id="dashSummaryRawMaterialPct" style="font-size:20px; font-weight:700; font-family:Georgia, serif; white-space:nowrap;">—</div>
-              </div>
-            </div>
-            <div id="dashSummaryRawMaterialLegend" style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;"></div>
-          </div>
-        </div>
-      </div>
-
-      <p class="section-title">🎯 Today's Target Achievement</p>
-      <div class="charts-row" style="grid-template-columns: repeat(3, 1fr);">
-        <div class="chart-card">
-          <h3>Picker</h3>
-          <div style="display:flex; flex-direction:column; align-items:center;">
-            <div class="chart-wrap" style="position:relative; width:110px; height:110px;">
-              <canvas id="dashSummaryPickerPie"></canvas>
-              <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
-                <div id="dashSummaryPickerPct" style="font-size:16px; font-weight:700; font-family:Georgia, serif;">—</div>
-              </div>
-            </div>
-            <div id="dashSummaryPickerLegend" style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;"></div>
-          </div>
-        </div>
-        <div class="chart-card">
-          <h3>Packer</h3>
-          <div style="display:flex; flex-direction:column; align-items:center;">
-            <div class="chart-wrap" style="position:relative; width:110px; height:110px;">
-              <canvas id="dashSummaryPackerPie"></canvas>
-              <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
-                <div id="dashSummaryPackerPct" style="font-size:16px; font-weight:700; font-family:Georgia, serif;">—</div>
-              </div>
-            </div>
-            <div id="dashSummaryPackerLegend" style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;"></div>
-          </div>
-        </div>
-        <div class="chart-card">
-          <h3>Inbound</h3>
-          <div style="display:flex; flex-direction:column; align-items:center;">
-            <div class="chart-wrap" style="position:relative; width:110px; height:110px;">
-              <canvas id="dashSummaryInboundTargetPie"></canvas>
-              <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
-                <div id="dashSummaryInboundTargetPct" style="font-size:16px; font-weight:700; font-family:Georgia, serif;">—</div>
-              </div>
-            </div>
-            <div id="dashSummaryInboundTargetLegend" style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;"></div>
-          </div>
-        </div>
-      </div>
-
-      <p class="section-title">⚠️ Needs Attention</p>
-      <div class="card" style="margin-bottom:0;"><div id="dashSummaryAttentionWrap" class="scroll-table"></div></div>
     </div>
   </section>
 
@@ -2386,7 +2270,10 @@
     <div class="card" style="margin-bottom:24px;">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
         <span class="data-note" style="margin:0;">Import a whole list of staff straight from Excel or CSV instead of adding one by one.</span>
-        <button type="button" class="btn-ghost" id="downloadStaffRosterTemplateBtn">⬇ Download Template</button>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <input type="month" id="staffRosterTemplateMonthInput" style="width:auto;">
+          <button type="button" class="btn-ghost" id="downloadStaffRosterTemplateBtn">⬇ Download Template</button>
+        </div>
       </div>
       <div class="dropzone" id="staffRosterDropzone">
         <div class="dropzone-icon">⬆</div>
@@ -2845,6 +2732,60 @@
         </select>
       </div>
       <div id="garmentOrderTableWrap"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-inbound-garment-receiving">
+    <p class="section-title">Receiving Summary (Garment Order)</p>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="kpi-grid" id="garmentRecvSummaryKpiGrid" style="grid-template-columns: repeat(4, 1fr); margin-bottom:0;"></div>
+    </div>
+    <div class="charts-row" style="grid-template-columns: 1fr 1.4fr;">
+      <div class="chart-card">
+        <h3 id="garmentRecvSummaryStatusTitle">Overall % Received</h3>
+        <div style="display:flex; flex-direction:row; align-items:flex-start; gap:14px;">
+          <div style="display:flex; flex-direction:column; align-items:center; flex:0 0 auto;">
+            <div class="chart-wrap" style="position:relative; width:140px; height:140px;">
+              <canvas id="garmentRecvSummaryStatusChart"></canvas>
+              <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
+                <div id="garmentRecvSummaryStatusPct" style="font-size:22px; font-weight:700; font-family:Georgia, serif; white-space:nowrap;">—</div>
+              </div>
+            </div>
+            <div id="garmentRecvSummaryStatusLegend" style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;"></div>
+          </div>
+          <div id="garmentRecvSummaryStatusDesc" style="flex:1; min-width:0; font-size:11px; color:var(--text-muted);">Batch status by count — how many batches are fully received (Complete), still coming in (Partial), or not started (Pending). Follows the search box below.</div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3 id="garmentRecvSummaryBarTitle">Order vs Actual Received by Batch</h3>
+        <div class="chart-wrap"><canvas id="garmentRecvSummaryOrderVsRecvChart"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
+        <button type="button" class="btn-primary garment-recv-summary-subnav-btn" data-view="date">📅 By Date</button>
+        <button type="button" class="btn-ghost garment-recv-summary-subnav-btn" data-view="batch">📦 By Batch</button>
+        <button type="button" class="btn-ghost garment-recv-summary-subnav-btn" data-view="sku">🏷 By SKU</button>
+      </div>
+      <div class="filters" style="align-items:center; margin-bottom:10px; flex-wrap:wrap;">
+        <span class="data-note" style="margin-top:0;">Date:</span>
+        <input type="date" id="garmentRecvSummaryFromInput">
+        <span class="data-note" style="margin-top:0;">to</span>
+        <input type="date" id="garmentRecvSummaryToInput">
+        <button type="button" class="btn-ghost" id="garmentRecvSummaryRangeClearBtn">All</button>
+        <input type="text" id="garmentRecvSummarySearchInput" placeholder="Search batch / garment / SKU..." style="flex:1; min-width:220px; margin:0;">
+      </div>
+      <div class="filters" style="align-items:center; margin-bottom:10px; flex-wrap:wrap;">
+        <span class="data-note" style="margin-top:0;">Brand:</span>
+        <select id="garmentRecvSummaryBrandFilter"><option value="">All</option></select>
+        <span class="data-note" style="margin-top:0;">Color:</span>
+        <select id="garmentRecvSummaryColorFilter"><option value="">All</option></select>
+        <span class="data-note" style="margin-top:0;">Size:</span>
+        <select id="garmentRecvSummarySizeFilter"><option value="">All</option></select>
+        <button type="button" class="btn-ghost" id="garmentRecvSummaryAttrClearBtn">Clear</button>
+      </div>
+      <div class="data-note" id="garmentRecvSummaryRangeNote" style="margin-bottom:10px;"></div>
+      <div id="garmentRecvSummaryViewWrap"></div>
     </div>
   </section>
 
@@ -4929,7 +4870,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
       else if (currentDashSlide === 'fleet') renderFleetDashboard();
       else if (currentDashSlide === 'raw-material') renderRawMaterialDashboard();
     }
-    if (btn.dataset.tab === 'dashboard-summary') renderDashboardSummary();
     if (btn.dataset.tab === 'rm-import') renderRmImportTab();
     if (btn.dataset.tab === 'rm-receive-pick') { renderRmReceiveTab(); renderRmPickTab(); setRmReceivePickMode(rmReceivePickMode); setRmItemType(rmReceiveItemType); }
     if (btn.dataset.tab === 'rm-sto') renderRmStoTab();
@@ -4942,6 +4882,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'sla') renderSlaTab();
     if (btn.dataset.tab === 'laporan') renderLaporan();
     if (btn.dataset.tab === 'inbound-garment') renderGarmentOrderTab();
+    if (btn.dataset.tab === 'inbound-garment-receiving') renderGarmentRecvSummaryTab();
     if (btn.dataset.tab === 'inbound-sto') renderInboundStoTab();
     if (btn.dataset.tab === 'inbound-board') renderInboundKanban();
     if (btn.dataset.tab === 'inbound-sla') renderInboundSlaTab();
@@ -5885,7 +5826,9 @@ function renderDeliveredTab() {
   let list = buildDoGroupsFromShippedRecords(shippedRecords).filter(g => !!g.doNo).map(group => {
     const doRec = doRecords.find(d => d.doNo === group.doNo);
     const isCourier = !!(doRec && doRec.deliveryMethod && doRec.deliveryMethod !== 'Own Fleet');
-    const totalCarton = group.records.reduce((sum, r) => sum + (r.cartonLock ? r.cartonLock.totalCarton : 0), 0);
+    // No cartonLock yet still counts as 1 carton, matching the DO preview's own fallback (see
+    // fleetPendingStoCartonByBoutique) — keeps this tab's Total Carton in agreement with the DO.
+    const totalCarton = group.records.reduce((sum, r) => sum + (r.cartonLock ? r.cartonLock.totalCarton : 1), 0);
     // Courier DOs (Lalamove/Grab/Other) never have a Fleet trip at all — Outbound's own "Mark
     // Delivered" click (Progress Board DO Issued card) is what flips this to Delivered instead.
     if (isCourier) {
@@ -6802,8 +6745,19 @@ function addStaffFromInput() {
 // in and uploaded later without caring what week happens to be on screen at upload time (upload
 // reads the dates back OUT of the header, not off current state).
 function daysInMonth(year, monthIndex0) { return new Date(year, monthIndex0 + 1, 0).getDate(); }
+// Defaults to the current month on load, but she can pick any month before downloading — the
+// template's day-columns (and the filename) follow whatever's selected here.
+(() => {
+  const input = document.getElementById('staffRosterTemplateMonthInput');
+  if (input && !input.value) {
+    const now = new Date();
+    input.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }
+})();
 document.getElementById('downloadStaffRosterTemplateBtn').addEventListener('click', () => {
-  const anchor = new Date(staffScheduleWeekStart + 'T00:00:00');
+  const monthInput = document.getElementById('staffRosterTemplateMonthInput');
+  const monthVal = monthInput && monthInput.value; // "YYYY-MM"
+  const anchor = monthVal ? new Date(monthVal + '-01T00:00:00') : new Date(staffScheduleWeekStart + 'T00:00:00');
   const year = anchor.getFullYear();
   const monthIndex0 = anchor.getMonth();
   const numDays = daysInMonth(year, monthIndex0);
@@ -7625,7 +7579,6 @@ function getCurrentUser() {
 // user can be granted access via one module without the other.
 const PERMISSION_TABS = [
   { id: 'dashboard', label: 'Dashboard' },
-  { id: 'dashboard-summary', label: 'Dashboard Summary' },
   { id: 'rm-import', label: 'Import Data (Raw Material)' },
   { id: 'rm-receive-pick', label: 'Receive & Pick (Raw Material)' },
   { id: 'rm-sto', label: 'Create STO (Raw Material)' },
@@ -7637,6 +7590,7 @@ const PERMISSION_TABS = [
   { id: 'delivered-outbound', label: 'Delivery Status (Outbound)' },
   { id: 'sla', label: 'SLA Settings (Outbound)' },
   { id: 'inbound-garment', label: 'Garment Order (Inbound)' },
+  { id: 'inbound-garment-receiving', label: 'Receiving Summary (Garment Order)' },
   { id: 'inbound-sto', label: 'STO From Boutique (Inbound)' },
   { id: 'inbound-board', label: 'Progress Board (Inbound)' },
   { id: 'inbound-putaway', label: 'Putaway (Inbound)' },
@@ -15766,7 +15720,10 @@ function fleetPendingStoCartonByBoutique() {
     (d.orderNumbers || []).forEach(on => {
       bucket.sto++;
       const rec = records.find(r => r.orderNumber === on);
-      if (rec && rec.cartonLock) bucket.carton += rec.cartonLock.totalCarton;
+      // Match the DO preview's own assumption (renderDOPreview): an STO whose carton stickers were
+      // never printed (no cartonLock yet) still counts as 1 carton, not 0 — otherwise this board
+      // undercounts against what's actually printed on the DO the boutique receives.
+      if (rec) bucket.carton += rec.cartonLock ? rec.cartonLock.totalCarton : 1;
     });
   });
   return result;
@@ -15785,7 +15742,9 @@ function fleetStoCartonFromDoNos(doNos, boutique) {
     (doRec.orderNumbers || []).forEach(on => {
       sto++;
       const rec = records.find(r => r.orderNumber === on);
-      if (rec && rec.cartonLock) carton += rec.cartonLock.totalCarton;
+      // Same "no cartonLock yet = still counts as 1 carton" fallback as fleetPendingStoCartonByBoutique
+      // above, so this always agrees with what's printed on the actual DO.
+      if (rec) carton += rec.cartonLock ? rec.cartonLock.totalCarton : 1;
     });
   });
   return { sto, carton, doCount };
@@ -16943,7 +16902,7 @@ function renderRequestStockHistory() {
       <td style="color:var(--text-muted); font-size:12px;">${escapeHtml(r.notes || '-')}</td>
       <td style="font-size:12px;">${formCell}</td>
       <td class="row-actions">
-        <button type="button" class="btn-ghost req-stock-process-btn" data-id="${r.id}" style="padding:4px 8px;">Approve</button>
+        <button type="button" class="btn-ghost req-stock-process-btn" data-id="${r.id}" style="padding:4px 8px; ${r.approved ? 'color:var(--green); border-color:var(--green);' : ''}">${r.approved ? '✓ Approve' : 'Approve'}</button>
         <button class="icon-btn req-stock-delete-btn" data-id="${r.id}" title="Delete">✕</button>
       </td>
     </tr>`;
@@ -16966,7 +16925,19 @@ function renderRequestStockHistory() {
     btn.addEventListener('click', (e) => { e.stopPropagation(); downloadRequestStockAttachment(btn.dataset.id, btn.dataset.name); });
   });
   wrap.querySelectorAll('.req-stock-process-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => { e.stopPropagation(); openReqStockProcessModal(btn.dataset.id); });
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // Clicking "Approve" itself marks the request Approved right away (turns the button green
+      // immediately) — she no longer has to open the modal and hit Save just to flip this status.
+      // The modal still opens straight after, for the actual per-SKU stock check.
+      const req = requestStockList.find(r => r.id === btn.dataset.id);
+      if (req && !req.approved) {
+        req.approved = true;
+        saveRequestStockList();
+        renderRequestStockHistory();
+      }
+      openReqStockProcessModal(btn.dataset.id);
+    });
   });
 }
 
@@ -21778,6 +21749,414 @@ document.getElementById('addGarmentOrderBtn').addEventListener('click', () => {
 // re-render — wired once here rather than re-attached inside renderGarmentOrderTab().
 document.getElementById('garmentOrderSearchInput').addEventListener('input', () => renderGarmentOrderTab());
 document.getElementById('garmentOrderStatusFilter').addEventListener('change', () => renderGarmentOrderTab());
+
+/* ---------- Receiving Summary (Garment Order) — read-only rollup over garmentReceiveLogs +
+   garmentOrders, three views (By Date / By Batch / By SKU) sharing one date-range + search filter,
+   mirroring the Finance tab's subnav pattern. garmentReceiveLogs is the flat per-scan log
+   ({ batchNo, sku, station, qty, date }) written by performGarmentSkuLog() — the "in range" qty
+   columns below are always summed straight from that log, so they stay accurate no matter what
+   date range is picked; the "Qty Ordered (Total)" / "Qty Received (All-Time)" columns instead read
+   straight off the batch/SKU's own running totals (garmentBatchTotals), since those aren't
+   date-scoped by nature. ---------- */
+let garmentRecvSummaryView = 'date';
+let garmentRecvSummaryExpandedDates = new Set();
+// Brand/Color/Size filters read straight off Item Master (joined by SKU) — a SKU with no Item
+// Master match gets filtered OUT the moment any one of these three is set, same logic as the By
+// SKU table's "-" columns just made strict instead of cosmetic.
+function garmentRecvSummarySkuMatchesAttrFilters(sku) {
+  const brand = document.getElementById('garmentRecvSummaryBrandFilter').value;
+  const color = document.getElementById('garmentRecvSummaryColorFilter').value;
+  const size = document.getElementById('garmentRecvSummarySizeFilter').value;
+  if (!brand && !color && !size) return true;
+  const im = itemMasterLookupBySku(sku);
+  if (!im) return false;
+  if (brand && (im.itemBrand || '') !== brand) return false;
+  if (color && (im.itemColor || '') !== color) return false;
+  if (size && (im.itemSize || '') !== size) return false;
+  return true;
+}
+// Color and Size options cascade off whichever Brand is currently selected (Brand itself always
+// lists every brand seen in Garment Order, unfiltered) — so picking a Brand first narrows Color
+// and Size down to only what that brand actually has, instead of showing every color/size across
+// all brands. Re-run this (not just at tab-open) whenever the Brand dropdown changes.
+function garmentRecvSummaryPopulateAttrFilters() {
+  const skuSet = new Set();
+  garmentOrders.forEach(b => b.skus.forEach(s => { if (s.sku) skuSet.add(s.sku); }));
+  const selectedBrand = document.getElementById('garmentRecvSummaryBrandFilter').value;
+  const brands = new Set(), colors = new Set(), sizes = new Set();
+  skuSet.forEach(sku => {
+    const im = itemMasterLookupBySku(sku);
+    if (!im) return;
+    if (im.itemBrand) brands.add(im.itemBrand);
+    if (selectedBrand && (im.itemBrand || '') !== selectedBrand) return; // brand filters Color + Size only
+    if (im.itemColor) colors.add(im.itemColor);
+    if (im.itemSize) sizes.add(im.itemSize);
+  });
+  const fill = (id, values) => {
+    const sel = document.getElementById(id);
+    const current = sel.value;
+    sel.innerHTML = '<option value="">All</option>' + [...values].sort().map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+    // If the previously-picked Color/Size no longer applies under the new Brand, fall back to "All"
+    // rather than silently keeping an invalid selection.
+    sel.value = values.has(current) ? current : '';
+  };
+  fill('garmentRecvSummaryBrandFilter', brands);
+  fill('garmentRecvSummaryColorFilter', colors);
+  fill('garmentRecvSummarySizeFilter', sizes);
+}
+function garmentRecvSummaryLogMatchesSearch(l) {
+  const q = (document.getElementById('garmentRecvSummarySearchInput').value || '').trim().toLowerCase();
+  if (!q) return true;
+  const batch = garmentOrders.find(b => b.batchNo === l.batchNo);
+  const hay = [l.batchNo, l.sku, batch ? batch.garmentName : ''].filter(Boolean).join(' ').toLowerCase();
+  return hay.includes(q);
+}
+function garmentRecvSummaryFilteredLogs() {
+  const fromVal = document.getElementById('garmentRecvSummaryFromInput').value;
+  const toVal = document.getElementById('garmentRecvSummaryToInput').value;
+  return (garmentReceiveLogs || []).filter(l => {
+    if (fromVal && (l.date || '') < fromVal) return false;
+    if (toVal && (l.date || '') > toVal) return false;
+    if (!garmentRecvSummarySkuMatchesAttrFilters(l.sku)) return false;
+    if (!garmentRecvSummaryLogMatchesSearch(l)) return false;
+    return true;
+  });
+}
+// Every SKU line (batch + sku pair) that passes the search + Brand/Color/Size filters — the
+// shared basis for the KPI cards and the By SKU view, so both count the exact same set of lines.
+// NOT date-scoped (a SKU line either belongs to the filtered set or it doesn't; the date range only
+// narrows how much of its qty counts as "received", via garmentRecvSummaryFilteredLogs above).
+function garmentRecvSummaryFilteredSkuLines() {
+  const q = (document.getElementById('garmentRecvSummarySearchInput').value || '').trim().toLowerCase();
+  const lines = [];
+  garmentOrders.forEach(b => {
+    b.skus.forEach(s => {
+      const key = s.sku || '';
+      if (q && !key.toLowerCase().includes(q) && !(b.batchNo || '').toLowerCase().includes(q) && !(b.garmentName || '').toLowerCase().includes(q)) return;
+      if (!garmentRecvSummarySkuMatchesAttrFilters(s.sku)) return;
+      lines.push({ batch: b, sku: s });
+    });
+  });
+  return lines;
+}
+// Search + Brand/Color/Size filter over garmentOrders (batches) — shared by the By Batch table,
+// the By SKU table's batch-membership check, and both charts, so every filter control on this tab
+// zooms all four in together. Deliberately NOT date-scoped (order/received totals aren't date
+// events). A batch passes the attribute filter if ANY of its SKU lines match — the batch's own
+// totals (qtyOrder/qtyReceived) still show the WHOLE batch though, since garmentBatchTotals()
+// isn't SKU-filtered; that's fine for "does this batch contain a red / size M / Brand X item?"
+// but not for "how much of Brand X arrived in this batch" — the By SKU view answers that instead.
+function garmentRecvSummarySearchFilteredBatches() {
+  const q = (document.getElementById('garmentRecvSummarySearchInput').value || '').trim().toLowerCase();
+  let list = garmentOrders.slice();
+  if (q) list = list.filter(b => [b.batchNo, b.garmentName].filter(Boolean).join(' ').toLowerCase().includes(q) || b.skus.some(s => (s.sku || '').toLowerCase().includes(q)));
+  list = list.filter(b => b.skus.some(s => garmentRecvSummarySkuMatchesAttrFilters(s.sku)));
+  return list;
+}
+// All 4 KPI cards now follow every active filter (date range, search, Brand/Color/Size) — same
+// filtered basis as the charts and the 3 views below, so the top row always matches what she's
+// currently looking at instead of always showing the unfiltered grand total.
+function renderGarmentRecvSummaryKpis() {
+  const wrap = document.getElementById('garmentRecvSummaryKpiGrid');
+  if (!wrap) return;
+  const hasRange = document.getElementById('garmentRecvSummaryFromInput').value || document.getElementById('garmentRecvSummaryToInput').value;
+  const lines = garmentRecvSummaryFilteredSkuLines();
+  const totalBatches = new Set(lines.map(l => l.batch.batchNo)).size;
+  const totalSkuLines = lines.length;
+  const qtyOrder = lines.reduce((sum, l) => sum + (Number(l.sku.qtyOrder) || 0), 0);
+  const qtyReceived = garmentRecvSummaryFilteredLogs().reduce((sum, l) => sum + (Number(l.qty) || 0), 0);
+  const todayQty = (garmentReceiveLogs || []).filter(l => l.date === todayStr() && garmentRecvSummarySkuMatchesAttrFilters(l.sku) && garmentRecvSummaryLogMatchesSearch(l)).reduce((sum, l) => sum + (Number(l.qty) || 0), 0);
+  const card = (label, icon, value) => `<div class="kpi-card"><div class="kpi-label">${icon} ${label}</div><div class="kpi-num">${value}</div></div>`;
+  wrap.innerHTML = card('Total Batches', '📦', formatQty(totalBatches))
+    + card('Total SKU Lines', '🏷', formatQty(totalSkuLines))
+    + card(`Qty Received${hasRange ? ' (Range)' : ''} / Ordered`, '📊', `${formatQty(qtyReceived)} / ${formatQty(qtyOrder)}`)
+    + card('Received Today', '📅', formatQty(todayQty));
+}
+function setGarmentRecvSummaryView(view) {
+  garmentRecvSummaryView = view;
+  document.querySelectorAll('.garment-recv-summary-subnav-btn').forEach(btn => {
+    const active = btn.dataset.view === view;
+    btn.classList.toggle('btn-primary', active);
+    btn.classList.toggle('btn-ghost', !active);
+  });
+  renderGarmentRecvSummaryCharts();
+  renderGarmentRecvSummaryView();
+}
+function renderGarmentRecvSummaryRangeNote() {
+  const el = document.getElementById('garmentRecvSummaryRangeNote');
+  if (!el) return;
+  const fromVal = document.getElementById('garmentRecvSummaryFromInput').value;
+  const toVal = document.getElementById('garmentRecvSummaryToInput').value;
+  el.textContent = (fromVal || toVal)
+    ? `Showing: ${fromVal ? formatDateLabel(fromVal) : 'the beginning'} to ${toVal ? formatDateLabel(toVal) : 'now'}.`
+    : 'Showing: all time.';
+}
+function renderGarmentRecvSummaryByDate(wrap) {
+  const logs = garmentRecvSummaryFilteredLogs();
+  if (!logs.length) { wrap.innerHTML = `<div class="empty-state">No receiving logged yet for this range/search.</div>`; return; }
+  const groups = new Map();
+  logs.forEach(l => {
+    if (!groups.has(l.date)) groups.set(l.date, { date: l.date, qty: 0, batches: new Set(), lines: [] });
+    const g = groups.get(l.date);
+    g.qty += Number(l.qty) || 0;
+    g.batches.add(l.batchNo);
+    g.lines.push(l);
+  });
+  const dateList = [...groups.values()].sort((a, b) => b.date.localeCompare(a.date));
+  let html = `<table><thead><tr><th></th><th>Date</th><th>Batches</th><th>SKU Lines</th><th>Qty Received</th></tr></thead><tbody>`;
+  dateList.forEach(g => {
+    const expanded = garmentRecvSummaryExpandedDates.has(g.date);
+    html += `<tr class="garment-recv-summary-date-row" style="cursor:pointer;" data-date="${escapeHtml(g.date)}">
+      <td class="rm-sto-toggle-icon" style="width:24px; cursor:pointer;">${expanded ? '▾' : '▸'}</td>
+      <td><strong>${formatDateLabel(g.date)}</strong></td>
+      <td>${g.batches.size}</td>
+      <td>${g.lines.length}</td>
+      <td>${formatQty(g.qty)}</td>
+    </tr>
+    <tr class="garment-recv-summary-date-detail-row" style="display:${expanded ? 'table-row' : 'none'};">
+      <td></td>
+      <td colspan="4" style="padding:6px 10px;">
+        <table style="font-size:12px;"><thead><tr><th>Batch No.</th><th>SKU</th><th>Qty</th><th>Station</th></tr></thead><tbody>
+          ${g.lines.map(l => `<tr>
+            <td class="mono-name">${escapeHtml(l.batchNo || '-')}</td>
+            <td class="mono-name">${escapeHtml(l.sku || '-')}</td>
+            <td>${formatQty(l.qty)}</td>
+            <td>${escapeHtml(l.station || '-')}</td>
+          </tr>`).join('')}
+        </tbody></table>
+      </td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('.garment-recv-summary-date-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const date = row.dataset.date;
+      if (garmentRecvSummaryExpandedDates.has(date)) garmentRecvSummaryExpandedDates.delete(date);
+      else garmentRecvSummaryExpandedDates.add(date);
+      renderGarmentRecvSummaryByDate(wrap);
+    });
+  });
+}
+function renderGarmentRecvSummaryByBatch(wrap) {
+  const logs = garmentRecvSummaryFilteredLogs();
+  const receivedInRangeByBatch = new Map();
+  logs.forEach(l => receivedInRangeByBatch.set(l.batchNo, (receivedInRangeByBatch.get(l.batchNo) || 0) + (Number(l.qty) || 0)));
+  const list = garmentRecvSummarySearchFilteredBatches();
+  if (!list.length) { wrap.innerHTML = `<div class="empty-state">No batch matches the search.</div>`; return; }
+  list.sort((a, b) => (b.orderDate || '').localeCompare(a.orderDate || ''));
+  let html = `<table><thead><tr><th>Batch No.</th><th>Garment Name</th><th>Order Date</th><th>Qty Received (Range)</th><th>Qty Received / Ordered (All-Time)</th><th>Status</th><th>Last Received</th></tr></thead><tbody>`;
+  list.forEach(b => {
+    const totals = garmentBatchTotals(b);
+    const status = garmentBatchStatus(b);
+    const lastDate = garmentBatchLastReceivedDate(b);
+    html += `<tr>
+      <td class="mono-name">${escapeHtml(b.batchNo)}</td>
+      <td>${escapeHtml(b.garmentName || '-')}</td>
+      <td>${b.orderDate ? formatDateLabel(b.orderDate) : '-'}</td>
+      <td>${formatQty(receivedInRangeByBatch.get(b.batchNo) || 0)}</td>
+      <td>${formatQty(totals.qtyReceived)} / ${formatQty(totals.qtyOrder)}</td>
+      <td><span class="badge ${garmentStatusBadgeClass(status)}">${status}</span></td>
+      <td>${lastDate ? formatDateLabel(lastDate) : '-'}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+}
+function renderGarmentRecvSummaryBySku(wrap) {
+  const q = (document.getElementById('garmentRecvSummarySearchInput').value || '').trim().toLowerCase();
+  const logs = garmentRecvSummaryFilteredLogs();
+  const receivedInRangeBySku = new Map();
+  logs.forEach(l => receivedInRangeBySku.set(l.sku, (receivedInRangeBySku.get(l.sku) || 0) + (Number(l.qty) || 0)));
+  const groups = new Map();
+  garmentOrders.forEach(b => {
+    b.skus.forEach(s => {
+      const key = s.sku || '(no SKU)';
+      if (q && !key.toLowerCase().includes(q) && !(b.batchNo || '').toLowerCase().includes(q) && !(b.garmentName || '').toLowerCase().includes(q)) return;
+      if (!garmentRecvSummarySkuMatchesAttrFilters(s.sku)) return;
+      if (!groups.has(key)) groups.set(key, { sku: key, qtyOrder: 0, qtyReceived: 0, batchNos: new Set() });
+      const g = groups.get(key);
+      g.qtyOrder += Number(s.qtyOrder) || 0;
+      g.qtyReceived += Number(s.qtyReceived) || 0;
+      g.batchNos.add(b.batchNo);
+    });
+  });
+  const list = [...groups.values()].sort((a, b) => a.sku.localeCompare(b.sku));
+  if (!list.length) { wrap.innerHTML = `<div class="empty-state">No SKU matches the search.</div>`; return; }
+  // Description/Brand/Color/Size pulled from Item Master by SKU — Garment Order itself only tracks
+  // sku/qtyOrder/qtyReceived, so this is a join, not a stored field. If a SKU isn't in Item Master
+  // yet (not uploaded, or a typo), those columns just show "-" rather than blocking the row.
+  let html = `<table><thead><tr><th>SKU</th><th>Description</th><th>Brand</th><th>Color</th><th>Size</th><th>Batches</th><th>Qty Received (Range)</th><th>Qty Received / Ordered (All-Time)</th></tr></thead><tbody>`;
+  list.forEach(g => {
+    const im = itemMasterLookupBySku(g.sku);
+    html += `<tr>
+      <td class="mono-name">${escapeHtml(g.sku)}</td>
+      <td>${escapeHtml(im && im.description ? im.description : '-')}</td>
+      <td>${escapeHtml(im && im.itemBrand ? im.itemBrand : '-')}</td>
+      <td>${escapeHtml(im && im.itemColor ? im.itemColor : '-')}</td>
+      <td>${escapeHtml(im && im.itemSize ? im.itemSize : '-')}</td>
+      <td>${g.batchNos.size}</td>
+      <td>${formatQty(receivedInRangeBySku.get(g.sku) || 0)}</td>
+      <td>${formatQty(g.qtyReceived)} / ${formatQty(g.qtyOrder)}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+}
+function renderGarmentRecvSummaryView() {
+  const wrap = document.getElementById('garmentRecvSummaryViewWrap');
+  if (!wrap) return;
+  renderGarmentRecvSummaryRangeNote();
+  if (garmentRecvSummaryView === 'date') renderGarmentRecvSummaryByDate(wrap);
+  else if (garmentRecvSummaryView === 'batch') renderGarmentRecvSummaryByBatch(wrap);
+  else renderGarmentRecvSummaryBySku(wrap);
+}
+// Groups garmentRecvSummaryFilteredSkuLines() (search + Brand/Color/Size already applied) by
+// batch, summing ONLY the matching SKU lines' own qtyOrder/qtyReceived — this is what makes the
+// charts actually shrink to "just this SKU" or "just this Brand" instead of always showing each
+// batch's grand total regardless of the SKU-level filter.
+function garmentRecvSummaryFilteredBatchTotals() {
+  const map = new Map();
+  garmentRecvSummaryFilteredSkuLines().forEach(l => {
+    if (!map.has(l.batch.batchNo)) map.set(l.batch.batchNo, { batch: l.batch, qtyOrder: 0, qtyReceived: 0 });
+    const g = map.get(l.batch.batchNo);
+    g.qtyOrder += Number(l.sku.qtyOrder) || 0;
+    g.qtyReceived += Number(l.sku.qtyReceived) || 0;
+  });
+  return [...map.values()];
+}
+// Same idea as garmentRecvSummaryFilteredBatchTotals, grouped by SKU instead of by batch — powers
+// the charts when the SKU subnav is active.
+function garmentRecvSummaryFilteredSkuGroupTotals() {
+  const map = new Map();
+  garmentRecvSummaryFilteredSkuLines().forEach(l => {
+    const key = l.sku.sku || '(no SKU)';
+    if (!map.has(key)) map.set(key, { sku: key, qtyOrder: 0, qtyReceived: 0 });
+    const g = map.get(key);
+    g.qtyOrder += Number(l.sku.qtyOrder) || 0;
+    g.qtyReceived += Number(l.sku.qtyReceived) || 0;
+  });
+  return [...map.values()];
+}
+function garmentRecvSummaryBarChart(labels, datasets) {
+  const barCtx = document.getElementById('garmentRecvSummaryOrderVsRecvChart');
+  if (!barCtx) return;
+  if (garmentRecvSummaryOrderVsRecvChart) { garmentRecvSummaryOrderVsRecvChart.destroy(); garmentRecvSummaryOrderVsRecvChart = null; }
+  garmentRecvSummaryOrderVsRecvChart = new Chart(barCtx.getContext('2d'), {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: datasets.length > 1, position: 'top', labels: { boxWidth: 10, font: { size: 11 } } } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0, font: { size: 11 } } }, x: { ticks: { font: { size: 10 } } } }
+    }
+  });
+}
+function garmentRecvSummarySetChartLabels(title, desc) {
+  const t = document.getElementById('garmentRecvSummaryStatusTitle');
+  const d = document.getElementById('garmentRecvSummaryStatusDesc');
+  if (t) t.textContent = title;
+  if (d) d.textContent = desc;
+}
+// "For the boss": at-a-glance charts, always visible above the 3-view table. Both charts follow
+// EVERY active filter (date range, search, Brand/Color/Size) same as the KPI row, AND regroup to
+// match whichever subnav is currently open — By Date groups by date, By Batch by batch, By SKU by
+// SKU — so the charts always mirror the table underneath instead of always showing "by batch".
+let garmentRecvSummaryOrderVsRecvChart = null;
+function renderGarmentRecvSummaryCharts() {
+  const barTitleEl = document.getElementById('garmentRecvSummaryBarTitle');
+
+  if (garmentRecvSummaryView === 'date') {
+    // Order totals aren't date events, so there's no per-date "Ordered" to compare — instead the
+    // donut shows how much of the (filtered) total order has been received WITHIN the picked date
+    // range, and the bar shows the daily received-qty trend for that same range.
+    if (barTitleEl) barTitleEl.textContent = 'Qty Received by Date';
+    garmentRecvSummarySetChartLabels('Qty Received Progress', 'Share of the filtered qty ordered that has been received within the selected date range (or all-time, if no range is set).');
+    const lines = garmentRecvSummaryFilteredSkuLines();
+    const totalOrdered = lines.reduce((sum, l) => sum + (Number(l.sku.qtyOrder) || 0), 0);
+    const logs = garmentRecvSummaryFilteredLogs();
+    const receivedInRange = logs.reduce((sum, l) => sum + (Number(l.qty) || 0), 0);
+    const pct = totalOrdered ? Math.round((receivedInRange / totalOrdered) * 100) : 0;
+    dashSummaryDonut('garmentRecvSummaryStatusChart', 'garmentRecvSummaryStatusPct', 'garmentRecvSummaryStatusLegend', [
+      { label: 'Received', count: receivedInRange, color: KPI_COLOR_HEX.green },
+      { label: 'Remaining', count: Math.max(0, totalOrdered - receivedInRange), color: KPI_COLOR_HEX.amber },
+    ], pct, targetBarHex(pct), 'Received', 'No receiving matches the current filters.');
+
+    const byDate = new Map();
+    logs.forEach(l => byDate.set(l.date, (byDate.get(l.date) || 0) + (Number(l.qty) || 0)));
+    const dates = [...byDate.keys()].sort().slice(-20); // last 20 dates in range, oldest-to-newest
+    garmentRecvSummaryBarChart(dates.map(formatDateLabel), [
+      { label: 'Received', data: dates.map(d => byDate.get(d)), backgroundColor: KPI_COLOR_HEX.green, borderRadius: 3 },
+    ]);
+    return;
+  }
+
+  const groups = garmentRecvSummaryView === 'sku' ? garmentRecvSummaryFilteredSkuGroupTotals() : garmentRecvSummaryFilteredBatchTotals();
+  const groupLabel = garmentRecvSummaryView === 'sku' ? 'SKU' : 'Batch';
+  if (barTitleEl) barTitleEl.textContent = `Order vs Actual Received by ${groupLabel}`;
+  garmentRecvSummarySetChartLabels(`Overall % Received (by ${groupLabel})`, `${groupLabel} status by count — how many ${groupLabel.toLowerCase()}s are fully received (Complete), still coming in (Partial), or not started (Pending). Follows every filter above.`);
+
+  let pending = 0, partial = 0, complete = 0;
+  groups.forEach(g => {
+    if (g.qtyOrder > 0 && g.qtyReceived >= g.qtyOrder) complete++;
+    else if (g.qtyReceived > 0) partial++;
+    else pending++;
+  });
+  const total = pending + partial + complete;
+  const completePct = total ? Math.round((complete / total) * 100) : 0;
+  dashSummaryDonut('garmentRecvSummaryStatusChart', 'garmentRecvSummaryStatusPct', 'garmentRecvSummaryStatusLegend', [
+    { label: 'Complete', count: complete, color: KPI_COLOR_HEX.green },
+    { label: 'Partial', count: partial, color: KPI_COLOR_HEX.amber },
+    { label: 'Pending', count: pending, color: KPI_COLOR_HEX.red },
+  ], completePct, targetBarHex(completePct), 'Complete', 'No match for the current filters.');
+
+  // Sorted by qty ordered (biggest first) and capped at 15 bars so the chart stays readable — the
+  // table below still has every row if she needs to check one that's not shown here.
+  const barGroups = groups.slice().sort((a, b) => b.qtyOrder - a.qtyOrder).slice(0, 15);
+  garmentRecvSummaryBarChart(barGroups.map(g => garmentRecvSummaryView === 'sku' ? g.sku : g.batch.batchNo), [
+    { label: 'Ordered', data: barGroups.map(g => g.qtyOrder), backgroundColor: KPI_COLOR_HEX.track, borderRadius: 3 },
+    { label: 'Received', data: barGroups.map(g => g.qtyReceived), backgroundColor: KPI_COLOR_HEX.green, borderRadius: 3 },
+  ]);
+}
+// Single entry point for "any filter changed" — keeps the KPI row, both charts, and the active
+// view table all reading off the exact same filter state, so the top of the tab never drifts out
+// of sync with whatever's picked below it. Goes through setGarmentRecvSummaryView (not a direct
+// renderGarmentRecvSummaryCharts() call) so the charts also stay in sync with whichever subnav
+// (Date/Batch/SKU) is currently active, same as the table.
+function garmentRecvSummaryRefreshAll() {
+  renderGarmentRecvSummaryKpis();
+  setGarmentRecvSummaryView(garmentRecvSummaryView);
+}
+function renderGarmentRecvSummaryTab() {
+  garmentRecvSummaryPopulateAttrFilters();
+  garmentRecvSummaryRefreshAll();
+}
+document.querySelectorAll('.garment-recv-summary-subnav-btn').forEach(btn => {
+  btn.addEventListener('click', () => setGarmentRecvSummaryView(btn.dataset.view));
+});
+document.getElementById('garmentRecvSummaryFromInput').addEventListener('change', garmentRecvSummaryRefreshAll);
+document.getElementById('garmentRecvSummaryToInput').addEventListener('change', garmentRecvSummaryRefreshAll);
+document.getElementById('garmentRecvSummarySearchInput').addEventListener('input', garmentRecvSummaryRefreshAll);
+document.getElementById('garmentRecvSummaryRangeClearBtn').addEventListener('click', () => {
+  document.getElementById('garmentRecvSummaryFromInput').value = '';
+  document.getElementById('garmentRecvSummaryToInput').value = '';
+  garmentRecvSummaryRefreshAll();
+});
+['garmentRecvSummaryBrandFilter', 'garmentRecvSummaryColorFilter', 'garmentRecvSummarySizeFilter'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => {
+    // Re-run every time (not just on Brand change) — cheap, and keeps Color/Size in lockstep
+    // with whatever Brand is currently picked no matter which dropdown the user touched.
+    garmentRecvSummaryPopulateAttrFilters();
+    garmentRecvSummaryRefreshAll();
+  });
+});
+document.getElementById('garmentRecvSummaryAttrClearBtn').addEventListener('click', () => {
+  document.getElementById('garmentRecvSummaryBrandFilter').value = '';
+  document.getElementById('garmentRecvSummaryColorFilter').value = '';
+  document.getElementById('garmentRecvSummarySizeFilter').value = '';
+  garmentRecvSummaryPopulateAttrFilters();
+  garmentRecvSummaryRefreshAll();
+});
 
 /* ---------- STO From Boutique ---------- */
 const INBOUND_STO_KEY = 'sto_inbound_records_v1';
