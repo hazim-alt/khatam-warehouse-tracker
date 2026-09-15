@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -21138,6 +21139,9 @@ let garmentBatchDateEditingKey = null;
 // wrong/late-logged date (e.g. staff only got round to logging it in the system days after it
 // physically happened). Admin/Team Lead only, since it feeds Reports/duration/daily totals too.
 let garmentBatchReceivedDateEditingKey = null;
+// Same idea again, for the Putaway Date shown once a batch's putaway is fully Done — corrects a
+// wrong/late-confirmed date the same way Received Date does. Admin/Team Lead only.
+let garmentBatchPutawayDateEditingKey = null;
 function loadGarmentOrders() {
   try { garmentOrders = JSON.parse(localStorage.getItem(GARMENT_ORDERS_KEY)) || []; } catch (e) { garmentOrders = []; }
   // Migrate from the old flat structure (one row = one batch = one SKU) to the new nested
@@ -21484,6 +21488,15 @@ function garmentBatchLastReceivedDate(batch) {
   if (!dates.length) return null;
   return dates.reduce((max, d) => (d > max ? d : max));
 }
+// Most recent doneDate across every 'done' putawayAssignment in the batch — mirrors
+// garmentBatchLastReceivedDate above, but for putaway completion. Null if nothing's been marked
+// done yet (including when putaway doesn't apply to this batch at all).
+function garmentBatchLastPutawayDate(batch) {
+  const dates = [];
+  batch.skus.forEach(s => (s.putawayAssignments || []).forEach(a => { if (a.status === 'done' && a.doneDate) dates.push(a.doneDate); }));
+  if (!dates.length) return null;
+  return dates.reduce((max, d) => (d > max ? d : max));
+}
 // Status is evaluated per-SKU (not off the raw summed pcs) so a "Close Short" on one SKU is
 // respected — otherwise a batch could stay stuck on Partial forever even after every SKU inside
 // it has been resolved.
@@ -21528,10 +21541,11 @@ function garmentPutawayBadgeClass(status) { return status === 'Done' ? 'badge-gr
 // line item (across every batch) that was loaded into it, so the batch cards' Putaway badges flip
 // over without needing their own separate "mark done" step.
 function markGarmentSkusPutawayDoneForRollcage(rollcageName) {
+  const doneDate = todayStr();
   garmentOrders.forEach(b => {
     b.skus.forEach(s => {
       (s.putawayAssignments || []).forEach(a => {
-        if (a.rollcage === rollcageName && a.status === 'pending') a.status = 'done';
+        if (a.rollcage === rollcageName && a.status === 'pending') { a.status = 'done'; a.doneDate = doneDate; }
       });
     });
   });
@@ -21554,11 +21568,15 @@ function toggleRollcageSkuPutawayDone(rollcageName, groupKey) {
   // all falls back to its batchNo as the group key, which garmentOrders.skus can't be matched by).
   const realSku = items[0].sku;
   if (realSku) {
+    const toggleDate = todayStr();
     garmentOrders.forEach(b => {
       b.skus.forEach(s => {
         if (s.sku !== realSku) return;
         (s.putawayAssignments || []).forEach(a => {
-          if (a.rollcage === rollcageName) a.status = newDone ? 'done' : 'pending';
+          if (a.rollcage === rollcageName) {
+            a.status = newDone ? 'done' : 'pending';
+            if (newDone) a.doneDate = toggleDate; else delete a.doneDate;
+          }
         });
       });
     });
@@ -21729,6 +21747,7 @@ function renderGarmentOrderTab() {
     const currentUser = getCurrentUser();
     const canDeleteBatch = !isFullyDone || !!(currentUser && currentUser.isAdmin);
     const lastReceivedDate = garmentBatchLastReceivedDate(batch);
+    const lastPutawayDate = garmentBatchLastPutawayDate(batch);
     return `<div class="card garment-batch-card" style="padding:0; overflow:hidden;${expanded ? ' grid-column: 1 / -1;' : ''}">
       <div class="garment-batch-header" data-batch="${escapeHtml(batch.batchNo)}" style="padding:14px 16px; cursor:pointer;">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;">
@@ -21751,6 +21770,15 @@ function renderGarmentOrderTab() {
                <button type="button" class="icon-btn garment-batch-received-date-save-btn" data-batch="${escapeHtml(batch.batchNo)}" title="Save">✓</button>
                <button type="button" class="icon-btn garment-batch-received-date-cancel-btn" data-batch="${escapeHtml(batch.batchNo)}" title="Cancel">✕</button>`
             : `<span>${formatDateLabel(lastReceivedDate)}</span>${(currentUser && currentUser.isAdmin) ? `<button type="button" class="icon-btn garment-batch-received-date-edit-btn" data-batch="${escapeHtml(batch.batchNo)}" title="Edit Received Date (Admin/Team Lead only) — applies to every SKU already received in this batch">✎</button>` : ''}`
+          }
+        </div>` : ''}
+        ${(putawayStatus === 'Done' || garmentBatchPutawayDateEditingKey === batch.batchNo) ? `<div class="data-note garment-batch-putaway-date-row" data-batch="${escapeHtml(batch.batchNo)}" style="margin:0 0 10px; display:flex; align-items:center; gap:6px;">
+          <span style="color:var(--text-muted); font-size:10px; text-transform:uppercase; letter-spacing:0.03em;">Putaway:</span>
+          ${garmentBatchPutawayDateEditingKey === batch.batchNo
+            ? `<input type="date" class="garment-batch-putaway-date-input" data-batch="${escapeHtml(batch.batchNo)}" value="${escapeHtml(lastPutawayDate || '')}" style="max-width:150px;">
+               <button type="button" class="icon-btn garment-batch-putaway-date-save-btn" data-batch="${escapeHtml(batch.batchNo)}" title="Save">✓</button>
+               <button type="button" class="icon-btn garment-batch-putaway-date-cancel-btn" data-batch="${escapeHtml(batch.batchNo)}" title="Cancel">✕</button>`
+            : `<span>${formatDateLabel(lastPutawayDate)}</span>${(currentUser && currentUser.isAdmin) ? `<button type="button" class="icon-btn garment-batch-putaway-date-edit-btn" data-batch="${escapeHtml(batch.batchNo)}" title="Edit Putaway Date (Admin/Team Lead only) — applies to every SKU already marked done in this batch">✎</button>` : ''}`
           }
         </div>` : ''}
         <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;">
@@ -21807,7 +21835,7 @@ function renderGarmentOrderTab() {
   // it bails out of the toggle instead of also opening/closing the card.
   wrap.querySelectorAll('.garment-batch-header').forEach(header => {
     header.addEventListener('click', (e) => {
-      if (e.target.closest('.remove-garment-batch-btn') || e.target.closest('.garment-batch-date-row') || e.target.closest('.garment-batch-received-date-row')) return;
+      if (e.target.closest('.remove-garment-batch-btn') || e.target.closest('.garment-batch-date-row') || e.target.closest('.garment-batch-received-date-row') || e.target.closest('.garment-batch-putaway-date-row')) return;
       const batchNo = header.dataset.batch;
       if (garmentExpandedBatches.has(batchNo)) garmentExpandedBatches.delete(batchNo);
       else garmentExpandedBatches.add(batchNo);
@@ -21923,6 +21951,44 @@ function renderGarmentOrderTab() {
       garmentBatchReceivedDateEditingKey = null;
       renderGarmentOrderTab();
       renderInboundAll();
+    });
+  });
+
+  // Putaway Date edit — Admin/Team Lead only, same reasoning as Received Date above. Corrects
+  // doneDate on every putawayAssignment already marked 'done' in this batch (never touches a
+  // still-pending assignment), so the correction is consistent with whatever the Receiving
+  // Summary "Putaway Date" column (and this card's own badge) is reading off.
+  wrap.querySelectorAll('.garment-batch-putaway-date-edit-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      garmentBatchPutawayDateEditingKey = btn.dataset.batch;
+      renderGarmentOrderTab();
+    });
+  });
+  wrap.querySelectorAll('.garment-batch-putaway-date-cancel-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      garmentBatchPutawayDateEditingKey = null;
+      renderGarmentOrderTab();
+    });
+  });
+  wrap.querySelectorAll('.garment-batch-putaway-date-save-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const user = getCurrentUser();
+      if (!user || !user.isAdmin) { alert('Admin/Team Lead only.'); garmentBatchPutawayDateEditingKey = null; renderGarmentOrderTab(); return; }
+      const batchNo = btn.dataset.batch;
+      const input = wrap.querySelector(`.garment-batch-putaway-date-input[data-batch="${CSS.escape(batchNo)}"]`);
+      const newDate = input ? input.value : '';
+      if (!newDate) { alert('Pick a valid date first.'); return; }
+      const batch = garmentOrders.find(b => b.batchNo === batchNo);
+      if (batch) {
+        let touched = false;
+        batch.skus.forEach(s => (s.putawayAssignments || []).forEach(a => { if (a.status === 'done') { a.doneDate = newDate; touched = true; } }));
+        if (touched) saveGarmentOrders();
+      }
+      garmentBatchPutawayDateEditingKey = null;
+      renderGarmentOrderTab();
     });
   });
 
@@ -22380,6 +22446,34 @@ function renderGarmentRecvSummaryRangeNote() {
     ? `Showing: ${fromVal ? formatDateLabel(fromVal) : 'the beginning'} to ${toVal ? formatDateLabel(toVal) : 'now'}.`
     : 'Showing: all time.';
 }
+// Derives one "Putaway Date" summary for a By-Date group: the LAST completion date among every
+// putaway assignment tied to the (batchNo, sku) pairs received on that date, across every rollcage
+// they were ever loaded into (a SKU can be split across more than one trolley). Deliberately keyed
+// by batch+sku, not by the individual log line/date, since putawayAssignments live on the Garment
+// Order SKU itself and aren't stamped with which particular receiving scan they came from.
+// Returns { text, cls }: a real date once every relevant assignment is done, "Pending" if any of
+// them still isn't, or "—" when nothing in this group was ever loaded into a rollcage for putaway
+// at all (received straight through / prompt skipped — see garmentBatchPutawayStatus's comment).
+function garmentRecvSummaryDateGroupPutaway(lines) {
+  const pairs = new Set();
+  lines.forEach(l => pairs.add(`${l.batchNo}::${l.sku}`));
+  let anyAssignment = false, anyPending = false, lastDone = '';
+  pairs.forEach(key => {
+    const sep = key.lastIndexOf('::');
+    const batchNo = key.slice(0, sep), sku = key.slice(sep + 2);
+    const batch = garmentOrders.find(b => b.batchNo === batchNo);
+    const skuObj = batch && batch.skus.find(s => s.sku === sku);
+    if (!skuObj) return;
+    (skuObj.putawayAssignments || []).forEach(a => {
+      anyAssignment = true;
+      if (a.status === 'done') { if ((a.doneDate || '') > lastDone) lastDone = a.doneDate || ''; }
+      else anyPending = true;
+    });
+  });
+  if (!anyAssignment) return { text: '—', cls: 'data-note' };
+  if (anyPending) return { text: 'Pending', cls: 'badge badge-amber' };
+  return { text: lastDone ? formatDateLabel(lastDone) : '—', cls: 'badge badge-green' };
+}
 function renderGarmentRecvSummaryByDate(wrap) {
   const logs = garmentRecvSummaryFilteredLogs();
   if (!logs.length) { wrap.innerHTML = `<div class="empty-state">No receiving logged yet for this range/search.</div>`; return; }
@@ -22392,19 +22486,21 @@ function renderGarmentRecvSummaryByDate(wrap) {
     g.lines.push(l);
   });
   const dateList = [...groups.values()].sort((a, b) => b.date.localeCompare(a.date));
-  let html = `<table><thead><tr><th></th><th>Date</th><th>Batches</th><th>SKU Lines</th><th>Qty Received</th></tr></thead><tbody>`;
+  let html = `<table><thead><tr><th></th><th>Date</th><th>Batches</th><th>SKU Lines</th><th>Qty Received</th><th>Putaway Date</th></tr></thead><tbody>`;
   dateList.forEach(g => {
     const expanded = garmentRecvSummaryExpandedDates.has(g.date);
+    const putaway = garmentRecvSummaryDateGroupPutaway(g.lines);
     html += `<tr class="garment-recv-summary-date-row" style="cursor:pointer;" data-date="${escapeHtml(g.date)}">
       <td class="rm-sto-toggle-icon" style="width:24px; cursor:pointer;">${expanded ? '▾' : '▸'}</td>
       <td><strong>${formatDateLabel(g.date)}</strong></td>
       <td>${g.batches.size}</td>
       <td>${g.lines.length}</td>
       <td>${formatQty(g.qty)}</td>
+      <td><span class="${putaway.cls}" style="margin:0;">${putaway.text}</span></td>
     </tr>
     <tr class="garment-recv-summary-date-detail-row" style="display:${expanded ? 'table-row' : 'none'};">
       <td></td>
-      <td colspan="4" style="padding:6px 10px;">
+      <td colspan="5" style="padding:6px 10px;">
         <table style="font-size:12px;"><thead><tr><th>Batch No.</th><th>SKU</th><th>Qty</th><th>Station</th></tr></thead><tbody>
           ${g.lines.map(l => `<tr>
             <td class="mono-name">${escapeHtml(l.batchNo || '-')}</td>
