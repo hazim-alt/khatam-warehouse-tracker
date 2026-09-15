@@ -8796,7 +8796,7 @@ function itemMasterClearBackup() {
 // total) lets the caller show live status instead of one static "Saving..." message the whole time.
 function idbReplaceAllChunked(db, storeName, list, onProgress) {
   return new Promise((resolve, reject) => {
-    const CHUNK = 2000;
+    const CHUNK = 800;
     if (!list.length) {
       const tx = db.transaction(storeName, 'readwrite');
       tx.objectStore(storeName).clear();
@@ -9606,19 +9606,30 @@ function processUploadedStockBalanceFile(file) {
       });
       const mapped = [...byKey.values()];
       if (!mapped.length) throw new Error('No valid rows (all SKUs blank, or all rows excluded?).');
-      statusEl.textContent = `Saving ${formatQty(mapped.length)} row(s) to storage...`;
-      await stockBalanceReplaceAll(mapped, (done, total) => {
-        statusEl.textContent = `Saving ${formatQty(done)} / ${formatQty(total)} row(s) to storage...`;
-      });
+      // Show results and push to everyone else's devices FIRST — don't make the whole upload wait on
+      // writing every row into this device's own local IndexedDB cache (that step alone could take
+      // long enough on a big file to freeze the tab outright, confirmed via Chrome's own "Page
+      // Unresponsive" dialog). The on-screen table and the cross-device Firebase sync only need the
+      // in-memory list, which is instant — the local persistence copy (only needed so this device
+      // still has the data after a browser refresh) finishes quietly in the background afterward.
       stockBalanceList = mapped;
       stockBalanceImportedAt = new Date().toISOString();
       localStorage.setItem(STOCK_BALANCE_IMPORTED_AT_KEY, stockBalanceImportedAt);
       pushStockBalanceDiffToFirebase();
       stockBalancePage = 0;
       const distinctSkuCount = new Set(mapped.map(it => it.sku.toUpperCase())).size;
-      statusEl.textContent = `Success: ${formatQty(distinctSkuCount)} SKU (${formatQty(mapped.length)} row(s), across all boutiques) loaded (old list replaced)${excludedCount > 0 ? ` — ${formatQty(excludedCount)} "Unused Product"/"China Rewash" row(s) dropped` : ''}.`;
+      const successLine = `Success: ${formatQty(distinctSkuCount)} SKU (${formatQty(mapped.length)} row(s), across all boutiques) loaded and synced${excludedCount > 0 ? ` — ${formatQty(excludedCount)} "Unused Product"/"China Rewash" row(s) dropped` : ''}.`;
+      statusEl.textContent = `${successLine} Saving a local backup copy in the background…`;
       statusEl.className = 'upload-status ok';
       renderStockBalanceTab();
+      stockBalanceReplaceAll(mapped, (done, total) => {
+        statusEl.textContent = `${successLine} Saving local backup copy: ${formatQty(done)} / ${formatQty(total)}…`;
+      }).then(() => {
+        statusEl.textContent = successLine;
+      }).catch(e => {
+        console.error('stockBalanceReplaceAll (background save) failed', e);
+        statusEl.textContent = `${successLine} (Local backup copy on this device had an issue — cloud sync already succeeded, everyone else is fine; this device may just need a Sync Now / refresh to re-pull it.)`;
+      });
     } catch (err) {
       statusEl.textContent = 'Failed to process file: ' + err.message;
       statusEl.className = 'upload-status err';
