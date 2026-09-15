@@ -8254,6 +8254,13 @@ function anySetupDirty() {
 // records nobody touched are left alone, and any key present before but missing now is explicitly
 // cleared with `null` (Firebase's way of deleting just that one child path, without touching any
 // sibling record).
+// Tables whose push to Firebase is currently mid-flight (fbChunkedUpdate still landing its chunks).
+// Firebase's realtime listener fires on every individual chunk as it arrives, not just once at the
+// end, so applyServerSnapshot() could otherwise adopt a genuinely PARTIAL snapshot mid-push (same
+// race documented in detail on stockBalancePushInFlight) — most SYNC_COLLECTIONS tables are small
+// enough to always fit in one chunk so this rarely bites, but it costs nothing to guard every table
+// the same way in case one grows past the chunk size.
+const collectionPushInFlight = new Set();
 function pushCollectionDiff(def) {
   if (!fbDb) return;
   const arr = def.getArray();
@@ -8269,16 +8276,18 @@ function pushCollectionDiff(def) {
   Object.keys(prev).forEach(k => { if (!(k in nowKeyed)) { updateObj[k] = null; changed = true; } });
   if (!changed) return;
   fbLastServerSnapshot[def.table] = nowKeyed;
+  collectionPushInFlight.add(def.table);
   fbChunkedUpdate(fbDb.ref(def.table), updateObj).catch(e => {
     cloudSyncStatus = 'error';
     cloudSyncLastError = `${def.table}: ${(e && e.message) || e}`;
     renderCloudSyncStatus();
-  });
+  }).finally(() => { collectionPushInFlight.delete(def.table); });
 }
 // Rebuilds this table's local array from the cached server snapshot and adopts it, unless the user
 // is actively typing or has an unsaved edit pending in this exact section (see isTableDirty above)
 // — in which case it's queued in pendingRemoteApply for cloudSyncReconcile() to retry shortly.
 function applyServerSnapshot(table) {
+  if (collectionPushInFlight.has(table)) return;
   const def = SYNC_COLLECTIONS.find(d => d.table === table);
   if (!def) return;
   const remoteObj = fbLastServerSnapshot[table] || {};
@@ -8897,6 +8906,10 @@ async function loadItemMasterList() {
 const ITEM_MASTER_FB_TABLE = 'ItemMasterList';
 let _itemMasterLastServerSnapshot = {}; // fbSafeKey(id) -> record, mirrors fbLastServerSnapshot's role
 let itemMasterFbListenerAttached = false;
+// See stockBalancePushInFlight's comment — same race: Firebase's realtime listener fires on every
+// individual chunk of a multi-chunk push, not just once at the end, so applying mid-push would apply
+// a genuinely partial snapshot. Skipped while our own push is still landing.
+let itemMasterPushInFlight = false;
 function pushItemMasterDiffToFirebase() {
   if (!fbDb) return;
   const nowKeyed = {};
@@ -8910,13 +8923,15 @@ function pushItemMasterDiffToFirebase() {
   Object.keys(_itemMasterLastServerSnapshot).forEach(k => { if (!(k in nowKeyed)) { updateObj[k] = null; changed = true; } });
   if (!changed) return;
   _itemMasterLastServerSnapshot = nowKeyed;
+  itemMasterPushInFlight = true;
   fbChunkedUpdate(fbDb.ref(ITEM_MASTER_FB_TABLE), updateObj).catch(e => {
     cloudSyncStatus = 'error';
     cloudSyncLastError = `ItemMasterList: ${(e && e.message) || e}`;
     renderCloudSyncStatus();
-  });
+  }).finally(() => { itemMasterPushInFlight = false; });
 }
 function applyItemMasterServerSnapshot(remoteObj) {
+  if (itemMasterPushInFlight) return;
   _itemMasterLastServerSnapshot = remoteObj || {};
   const remoteArr = Object.values(_itemMasterLastServerSnapshot);
   if (stableStringify(remoteArr) === stableStringify(itemMasterList)) return; // no-op — likely our own echo
@@ -9384,6 +9399,16 @@ const STOCK_BALANCE_STORE = 'items';
 let stockBalanceList = []; // [{ id, sku, description, itemGroup, itemBrand, uom, location, qty }] — one row per SKU, or per SKU+Boutique when the upload has a per-location breakdown ("location" is '' for a plain non-boutique summary report)
 let stockBalanceImportedAt = '';
 let stockBalanceDb = null;
+// True while a big upload's local IndexedDB backup save (stockBalanceReplaceAll, running in the
+// background after "Success" already shows — see processUploadedStockBalanceFile) is still writing.
+// idbReplaceAllChunked clears the store up front, then refills it chunk by chunk — so mid-save,
+// IndexedDB genuinely only has a PARTIAL set of records. If loadStockBalanceList() runs during that
+// window (startup, or anyone clicking "Sync Now"/re-triggering initialStockBalanceCloudSync), it
+// would read that partial snapshot straight from IndexedDB and overwrite the correct, complete
+// in-memory stockBalanceList with it — flashing a wrong, smaller SKU/qty count on screen (confirmed
+// live: the counters briefly matched the save's own progress number exactly). While this flag is
+// true, loadStockBalanceList() leaves stockBalanceList (already correct in memory) alone.
+let stockBalanceLocalSaveInFlight = false;
 function openStockBalanceDb() {
   return new Promise((resolve, reject) => {
     if (stockBalanceDb) { resolve(stockBalanceDb); return; }
@@ -9412,6 +9437,7 @@ function stockBalanceGetAll() {
 // happens to already be open when it resolves, it re-renders itself so it doesn't sit empty/stale.
 async function loadStockBalanceList() {
   stockBalanceImportedAt = localStorage.getItem(STOCK_BALANCE_IMPORTED_AT_KEY) || '';
+  if (stockBalanceLocalSaveInFlight) return; // see stockBalanceLocalSaveInFlight's comment — IndexedDB is mid-rewrite, only partial right now
   try {
     stockBalanceList = await stockBalanceGetAll();
   } catch (err) {
@@ -9431,6 +9457,15 @@ async function loadStockBalanceList() {
 const STOCK_BALANCE_FB_TABLE = 'StockBalanceList';
 let _stockBalanceLastServerSnapshot = {}; // fbSafeKey(id) -> record, mirrors fbLastServerSnapshot's role
 let stockBalanceFbListenerAttached = false;
+// True while THIS device's own chunked push (fbChunkedUpdate) to StockBalanceList is still landing.
+// Firebase's realtime 'value' listener fires on every individual chunk as it arrives, not just once
+// at the end — so mid-push, the listener can see a genuinely PARTIAL snapshot (some chunks written,
+// others not yet), even though nothing is actually wrong. Applying that partial state would flash
+// wrong totals on screen (confirmed live: SKU/qty counters briefly showing a different, wrong number
+// right after a big upload) and could clobber the diff bookkeeping used for the NEXT push. While this
+// flag is true, applyStockBalanceServerSnapshot skips entirely; the final 'value' event, once every
+// chunk has landed, carries the complete correct data and gets applied normally.
+let stockBalancePushInFlight = false;
 function pushStockBalanceDiffToFirebase() {
   if (!fbDb) return;
   // Safety guard: a device with an EMPTY local list (never uploaded here, or its own pull just
@@ -9450,13 +9485,15 @@ function pushStockBalanceDiffToFirebase() {
   Object.keys(_stockBalanceLastServerSnapshot).forEach(k => { if (!(k in nowKeyed)) { updateObj[k] = null; changed = true; } });
   if (!changed) return;
   _stockBalanceLastServerSnapshot = nowKeyed;
+  stockBalancePushInFlight = true;
   fbChunkedUpdate(fbDb.ref(STOCK_BALANCE_FB_TABLE), updateObj).catch(e => {
     cloudSyncStatus = 'error';
     cloudSyncLastError = `StockBalanceList: ${(e && e.message) || e}`;
     renderCloudSyncStatus();
-  });
+  }).finally(() => { stockBalancePushInFlight = false; });
 }
 function applyStockBalanceServerSnapshot(remoteObj) {
+  if (stockBalancePushInFlight) return;
   _stockBalanceLastServerSnapshot = remoteObj || {};
   const remoteArr = Object.values(_stockBalanceLastServerSnapshot);
   // Safety guard: never let an EMPTY remote snapshot wipe a non-empty local list. There's no
@@ -9663,8 +9700,20 @@ function stockBalanceParseInWorker(ext, buffer, text) {
     worker.postMessage({ ext, buffer, text }, buffer ? [buffer] : []);
   });
 }
+// Guards against two uploads overlapping — e.g. clicking upload again before a big file has finished
+// its background local-save (stockBalanceLocalSaveInFlight above). Two concurrent
+// idbReplaceAllChunked runs against the SAME IndexedDB store (each clearing it, then racing to
+// refill it) would fight each other and could take drastically longer than either alone, or leave
+// the local backup in a half-written state.
+let stockBalanceUploadInFlight = false;
 function processUploadedStockBalanceFile(file) {
   const statusEl = document.getElementById('stockBalanceUploadStatus');
+  if (stockBalanceUploadInFlight) {
+    statusEl.textContent = 'Still finishing the previous upload — please wait for it to complete before uploading again.';
+    statusEl.className = 'upload-status err';
+    return;
+  }
+  stockBalanceUploadInFlight = true;
   statusEl.textContent = 'Processing file... (large list, may take a few seconds)';
   statusEl.className = 'upload-status';
   const ext = file.name.split('.').pop().toLowerCase();
@@ -9693,6 +9742,7 @@ function processUploadedStockBalanceFile(file) {
       statusEl.textContent = `${successLine} Saving a local backup copy in the background…`;
       statusEl.className = 'upload-status ok';
       renderStockBalanceTab();
+      stockBalanceLocalSaveInFlight = true;
       stockBalanceReplaceAll(mapped, (done, total) => {
         statusEl.textContent = `${successLine} Saving local backup copy: ${formatQty(done)} / ${formatQty(total)}…`;
       }).then(() => {
@@ -9700,13 +9750,14 @@ function processUploadedStockBalanceFile(file) {
       }).catch(e => {
         console.error('stockBalanceReplaceAll (background save) failed', e);
         statusEl.textContent = `${successLine} (Local backup copy on this device had an issue — cloud sync already succeeded, everyone else is fine; this device may just need a Sync Now / refresh to re-pull it.)`;
-      });
+      }).finally(() => { stockBalanceLocalSaveInFlight = false; stockBalanceUploadInFlight = false; });
     } catch (err) {
       statusEl.textContent = 'Failed to process file: ' + err.message;
       statusEl.className = 'upload-status err';
+      stockBalanceUploadInFlight = false;
     }
   };
-  reader.onerror = () => { statusEl.textContent = 'Failed to read file.'; statusEl.className = 'upload-status err'; };
+  reader.onerror = () => { statusEl.textContent = 'Failed to read file.'; statusEl.className = 'upload-status err'; stockBalanceUploadInFlight = false; };
   if (ext === 'csv') reader.readAsText(file);
   else reader.readAsArrayBuffer(file);
 }
