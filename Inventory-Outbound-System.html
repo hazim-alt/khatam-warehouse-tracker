@@ -3460,6 +3460,42 @@
   </div>
 </div>
 
+<!-- Manual status toggle for a Rollcage/Trolley (Team Setup admin list) — separate from the
+     automatic "In use" status driven by a real STO/putaway job (see rollcageInUseByDetail /
+     rc.putawayInUse). Lets her flag one as busy for a reason that isn't a tracked STO, e.g. under
+     repair, on loan, reserved for an event — with a free-text note for what it's actually being
+     used for. -->
+<div class="modal-overlay hidden" id="rollcageStatusModal">
+  <div class="modal-box" style="max-width:380px;">
+    <div class="modal-header">
+      <h2>Rollcage / Trolley Status</h2>
+      <button class="modal-close" id="rollcageStatusCloseBtn">&times;</button>
+    </div>
+    <div class="field" style="margin-bottom:14px;">
+      <label>Rollcage No.</label>
+      <div id="rollcageStatusNameLabel" class="mono-name" style="font-weight:700; font-size:15px;"></div>
+    </div>
+    <div class="data-note" id="rollcageStatusLockedNote" style="display:none; margin-bottom:14px; color:var(--amber);"></div>
+    <div id="rollcageStatusEditableWrap">
+      <div class="field" style="margin-bottom:14px;">
+        <label>Status</label>
+        <select id="rollcageStatusSelect">
+          <option value="">Free</option>
+          <option value="manual">In Use</option>
+        </select>
+      </div>
+      <div class="field" id="rollcageStatusNoteWrap" style="display:none; margin-bottom:14px;">
+        <label>Used For / Notes</label>
+        <input type="text" id="rollcageStatusNoteInput" placeholder="e.g. Reserved for event, Under repair, On loan to...">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="rollcageStatusCancelBtn">Cancel</button>
+      <button class="btn-primary" id="rollcageStatusSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay hidden" id="deviceStationModal">
   <div class="modal-box" style="max-width:400px;">
     <div class="modal-header">
@@ -3822,7 +3858,17 @@ function loadRollcages() {
     return true;
   });
 }
-function saveRollcages() { localStorage.setItem(ROLLCAGES_KEY, JSON.stringify(rollcages)); }
+// Pushes to Firebase right after every local write (not just the generic ~2s cloudSyncReconcile
+// loop) — rollcages don't have an isTableDirty() guard covering "just added, not pushed yet" (only
+// the rename-input's in-progress edit is guarded), so without an immediate push there's a real race:
+// add a rollcage -> before the next reconcile tick, something re-triggers this table's realtime
+// listener (e.g. a reload) -> it pulls the still-OLD server snapshot and silently overwrites the
+// brand new local addition. pushRollcagesNow() is defined later (near SYNC_COLLECTIONS) but that's
+// fine — this only ever RUNS after the whole script (and that definition) has already loaded.
+function saveRollcages() {
+  localStorage.setItem(ROLLCAGES_KEY, JSON.stringify(rollcages));
+  if (typeof pushRollcagesNow === 'function') pushRollcagesNow();
+}
 
 /* ---------- Staff Roster + Weekly Schedule (Inbound/Outbound shift planning) ---------- */
 // Register staff once here; this roster is also the name source for adding Pickers/Drivers
@@ -7139,33 +7185,76 @@ function populatePickerRosterSelect() {
 function populateDriverRosterSelect() {}
 
 /* ---------- Rollcages / Trolleys list rendering ---------- */
+// Groups by leading letter-prefix (e.g. "RC-4" -> "RC", "TR-1" -> "TR") so the list reads as RC-1,
+// RC-2, RC-3... then TR-1, TR-2... instead of whatever order they were originally added in — purely
+// a DISPLAY order; data-idx on every row still points at the item's real position in the rollcages
+// array, so editing/deleting still works exactly as before.
+function rollcageGroupKey(name) {
+  const m = String(name || '').match(/^([A-Za-z]+)/);
+  return m ? m[1].toUpperCase() : '(Other)';
+}
+function rollcageSortKey(name) {
+  const m = String(name || '').match(/(\d+)/);
+  return m ? parseInt(m[1], 10) : Infinity;
+}
+function rollcagesGroupedOrder() {
+  return rollcages
+    .map((rc, i) => ({ rc, i }))
+    .sort((a, b) => {
+      const ga = rollcageGroupKey(a.rc.name), gb = rollcageGroupKey(b.rc.name);
+      if (ga !== gb) return ga.localeCompare(gb);
+      const sa = rollcageSortKey(a.rc.name), sb = rollcageSortKey(b.rc.name);
+      if (sa !== sb) return sa - sb;
+      return a.rc.name.localeCompare(b.rc.name);
+    });
+}
+// Compact card grid (grouped by prefix, same grouping as before) instead of one long vertical
+// table — each card is self-contained (name/status/actions), so the list stays short and scannable
+// even with dozens of rollcages, wrapping into as many columns as fit the panel width.
 function renderRollcagesList() {
   const wrap = document.getElementById('rollcagesListWrap');
   if (!rollcages.length) {
     wrap.innerHTML = `<div class="empty-state">No rollcages/trolleys registered yet. Add one above — it'll show up as a dropdown when an STO is dragged into Packing.</div>`;
     return;
   }
-  let html = `<table><thead><tr><th>Rollcage No.</th><th>Status</th><th></th><th></th></tr></thead><tbody>`;
-  rollcages.forEach((rc, i) => {
+  let html = '';
+  let lastGroup = null;
+  let gridOpen = false;
+  rollcagesGroupedOrder().forEach(({ rc, i }) => {
+    const group = rollcageGroupKey(rc.name);
+    if (group !== lastGroup) {
+      if (gridOpen) html += `</div>`;
+      html += `<div style="font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-muted); margin:${lastGroup === null ? '0' : '18'}px 0 8px;">${escapeHtml(group)}</div>`;
+      html += `<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap:10px;">`;
+      gridOpen = true;
+      lastGroup = group;
+    }
+    // Automatic status (a real STO/putaway job) always wins over the manual one below — a rollcage
+    // genuinely attached to work in progress can't be hand-waved "Free" from this screen.
     const detail = rollcageInUseByDetail(rc.name, null);
-    const statusBadge = detail
-      ? `<span class="badge badge-red">In use — ${escapeHtml(detail.orderNumber)} (${escapeHtml(detail.source)})</span>`
-      : `<span class="badge badge-green">Free</span>`;
+    let statusBadge;
+    if (detail) {
+      statusBadge = `<span class="badge badge-red" title="${escapeHtml(detail.orderNumber)} (${escapeHtml(detail.source)})">In use</span>`;
+    } else if (rc.manualStatus === 'manual') {
+      statusBadge = `<span class="badge badge-amber" title="${escapeHtml(rc.manualNote || 'No notes')}">In use (manual)</span>`;
+    } else {
+      statusBadge = `<span class="badge badge-green">Free</span>`;
+    }
     // "Putaway Done" only shows up once this rollcage actually has something loaded for putaway —
     // clicking it frees the rollcage regardless of how many separate SKU logs fed into it.
     const putawayBtn = rc.putawayInUse
-      ? `<button type="button" class="btn-ghost rollcage-putaway-done-btn" data-idx="${i}">Putaway Done</button>`
+      ? `<button type="button" class="btn-ghost rollcage-putaway-done-btn" data-idx="${i}" style="width:100%; margin-top:6px; padding:4px 6px; font-size:11px;">Putaway Done</button>`
       : '';
-    html += `<tr>
-      <td><input type="text" class="rollcage-roster-name-input" data-idx="${i}" value="${escapeHtml(rc.name)}"></td>
-      <td>${statusBadge}</td>
-      <td class="row-actions">${putawayBtn}</td>
-      <td class="row-actions">
-        <button class="icon-btn remove-rollcage-btn" data-idx="${i}" title="Delete">✕</button>
-      </td>
-    </tr>`;
+    // Clicking anywhere on the card (except the name field or delete button — those have their own
+    // handlers) opens the manual status modal, per Shaila's request.
+    html += `<div class="rollcage-card" data-idx="${i}" style="position:relative; border:1px solid var(--border); border-radius:8px; padding:10px 8px 8px; cursor:pointer;" title="Click to change status">
+      <button class="icon-btn remove-rollcage-btn" data-idx="${i}" title="Delete" style="position:absolute; top:4px; right:4px; padding:1px 5px; font-size:10px;">✕</button>
+      <input type="text" class="rollcage-roster-name-input" data-idx="${i}" value="${escapeHtml(rc.name)}" style="width:100%; font-weight:600; padding-right:18px; margin-bottom:6px;">
+      ${statusBadge}
+      ${putawayBtn}
+    </div>`;
   });
-  html += `</tbody></table>`;
+  if (gridOpen) html += `</div>`;
   wrap.innerHTML = html;
 
   wrap.querySelectorAll('.rollcage-putaway-done-btn').forEach(btn => {
@@ -7210,6 +7299,17 @@ function renderRollcagesList() {
       renderRollcagesList();
     });
   });
+
+  // Click anywhere on a card EXCEPT the name field or the delete button opens the manual status
+  // modal (those two already have their own click behavior — a plain text input and a button —
+  // and stopping propagation there would fight with focus/click order, so instead this checks
+  // e.target here on the way in).
+  wrap.querySelectorAll('.rollcage-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('input, button')) return;
+      openRollcageStatusModal(Number(card.dataset.idx));
+    });
+  });
 }
 
 let rollcagesDirty = false;
@@ -7230,6 +7330,64 @@ function addRollcageFromInput() {
 document.getElementById('addRollcageBtn').addEventListener('click', addRollcageFromInput);
 document.getElementById('inputNewRollcageName').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); addRollcageFromInput(); }
+});
+
+/* ---------- Manual status toggle (Rollcage/Trolley card click) ----------
+   Separate from the automatic "In use" status driven by a real STO/putaway job — this lets her
+   flag a rollcage busy for a reason that ISN'T a tracked STO (under repair, on loan, reserved for
+   an event, etc.), with a free-text note for what it's actually being used for. A rollcage that's
+   genuinely attached to an STO/putaway can't be manually changed from here — the modal shows why
+   and only offers Close in that case, since the real status will free up on its own. */
+let rollcageStatusTargetIdx = null;
+function openRollcageStatusModal(idx) {
+  const rc = rollcages[idx];
+  if (!rc) return;
+  rollcageStatusTargetIdx = idx;
+  document.getElementById('rollcageStatusNameLabel').textContent = rc.name;
+  const detail = rollcageInUseByDetail(rc.name, null);
+  const lockedNote = document.getElementById('rollcageStatusLockedNote');
+  const editableWrap = document.getElementById('rollcageStatusEditableWrap');
+  const saveBtn = document.getElementById('rollcageStatusSaveBtn');
+  if (detail || rc.putawayInUse) {
+    lockedNote.textContent = detail
+      ? `This rollcage is currently attached to STO "${detail.orderNumber}" (${detail.source}) — it'll free up automatically once that's done. Status can't be changed manually while it's attached to a real STO.`
+      : `This rollcage currently has putaway items loaded on it — use the "Putaway Done" button on its card to free it up first.`;
+    lockedNote.style.display = '';
+    editableWrap.style.display = 'none';
+    saveBtn.style.display = 'none';
+  } else {
+    lockedNote.style.display = 'none';
+    editableWrap.style.display = '';
+    saveBtn.style.display = '';
+    document.getElementById('rollcageStatusSelect').value = rc.manualStatus === 'manual' ? 'manual' : '';
+    document.getElementById('rollcageStatusNoteInput').value = rc.manualNote || '';
+    document.getElementById('rollcageStatusNoteWrap').style.display = rc.manualStatus === 'manual' ? '' : 'none';
+  }
+  document.getElementById('rollcageStatusModal').classList.remove('hidden');
+}
+function closeRollcageStatusModal() {
+  document.getElementById('rollcageStatusModal').classList.add('hidden');
+  rollcageStatusTargetIdx = null;
+}
+document.getElementById('rollcageStatusCloseBtn').addEventListener('click', closeRollcageStatusModal);
+document.getElementById('rollcageStatusCancelBtn').addEventListener('click', closeRollcageStatusModal);
+document.getElementById('rollcageStatusModal').addEventListener('click', (e) => {
+  if (e.target.id === 'rollcageStatusModal') closeRollcageStatusModal();
+});
+document.getElementById('rollcageStatusSelect').addEventListener('change', (e) => {
+  document.getElementById('rollcageStatusNoteWrap').style.display = e.target.value === 'manual' ? '' : 'none';
+});
+document.getElementById('rollcageStatusSaveBtn').addEventListener('click', () => {
+  const rc = rollcages[rollcageStatusTargetIdx];
+  if (!rc) return;
+  const status = document.getElementById('rollcageStatusSelect').value;
+  const note = document.getElementById('rollcageStatusNoteInput').value.trim();
+  if (status === 'manual' && !note) { alert('Please note what this rollcage/trolley is being used for.'); return; }
+  rc.manualStatus = status === 'manual' ? 'manual' : '';
+  rc.manualNote = status === 'manual' ? note : '';
+  saveRollcages();
+  closeRollcageStatusModal();
+  renderRollcagesList();
 });
 
 // Shared "Rollcage / Trolley Usage" widget — shown on BOTH the Outbound and Inbound dashboard
@@ -16684,6 +16842,9 @@ function loadRequestStockList() {
   try { requestStockList = JSON.parse(localStorage.getItem(REQUEST_STOCK_KEY)) || []; } catch (e) { requestStockList = []; }
 }
 function pushRequestStockNow() { if (!fbDb || !SYNC_COLLECTIONS._fbListenersAttached) return; const def = SYNC_COLLECTIONS.find(d => d.table === 'RequestStock'); if (def) pushCollectionDiff(def); }
+// Called from saveRollcages() itself (see that function's comment) so every local rollcage change
+// reaches Firebase immediately instead of waiting for the next ~2s cloudSyncReconcile tick.
+function pushRollcagesNow() { if (!fbDb || !SYNC_COLLECTIONS._fbListenersAttached) return; const def = SYNC_COLLECTIONS.find(d => d.table === 'Rollcages'); if (def) pushCollectionDiff(def); }
 // Returns true/false instead of throwing — requests now carry a base64 PDF attachment (see
 // REQ_STOCK_ATTACHMENT_MAX_BYTES), and localStorage has a hard ~5-10MB quota per origin shared with
 // everything else this app stores there. Enough attachments piling up (e.g. from repeat testing) can
