@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8265,6 +8266,14 @@ function pushCollectionDiff(def) {
   if (!fbDb) return;
   const arr = def.getArray();
   const prev = fbLastServerSnapshot[def.table] || {};
+  // CRITICAL safety guard: an empty local array must never be allowed to wipe an already-populated
+  // remote table. Without this, any device whose local copy of this table is momentarily empty or
+  // not yet loaded (e.g. cloudSyncReconcile ticking right after a fresh page load, before the
+  // initial pull has finished) would have its push read as "every record that exists remotely is
+  // now missing" and delete them for real — for every other device too. Confirmed as the actual
+  // cause of the Users table losing accounts down to just a handful. Mirrors the same protection
+  // already in place for Stock Balance / Item Master (added after a near-identical incident there).
+  if (!arr.length && Object.keys(prev).length) return;
   const nowKeyed = {};
   arr.forEach(rec => { nowKeyed[fbSafeKey(syncKeyOf(rec))] = rec; });
   const updateObj = {};
@@ -8293,6 +8302,13 @@ function applyServerSnapshot(table) {
   const remoteObj = fbLastServerSnapshot[table] || {};
   let remoteArr = Object.values(remoteObj);
   if (def.sortKey) remoteArr.sort((a, b) => def.sortKey(a).localeCompare(def.sortKey(b)));
+  // Mirrors the push-side guard in pushCollectionDiff: never let an empty remote snapshot wipe an
+  // already-populated local list. A genuinely empty remote (the table really has nothing, e.g. brand
+  // new) is harmless to skip — this device's own next push simply re-establishes it — but an
+  // ACCIDENTALLY empty remote (another device's buggy/racy push, or exactly the Users-table incident
+  // this comment was added after) would otherwise instantly erase every connected device's good local
+  // copy too, within about a second of the listener firing.
+  if (!remoteArr.length && def.getArray().length) { pendingRemoteApply.delete(table); return; }
   if (table === 'STO_Records' || table === 'Inbound_STO') checkStoCollisionOnIncoming(table, remoteArr);
   if (stableStringify(remoteArr) === stableStringify(def.getArray())) { pendingRemoteApply.delete(table); return; }
   if (isUserActivelyTyping() || isTableDirty(table)) { pendingRemoteApply.add(table); return; }
