@@ -8396,7 +8396,7 @@ function attachPostponedDoNosListener() {
 // in the file would throw "Cannot access before initialization". Calling this only from inside the
 // functions below (which only ever run after the whole script has finished loading) avoids that.
 function syncSettingsKeys() {
-  return [SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, STICKER_KEY, DAILY_TARGETS_KEY, CAMPAIGN_MODE_KEY, DAILY_TARGETS_CAMPAIGN_SNAPSHOT_KEY, INBOUND_ALERT_SETTINGS_KEY, EMAILJS_SETTINGS_KEY, ADMIN_PASSWORD_KEY, PACKING_STATION_RR_KEY, STAFF_SCHEDULE_KEY, STATION_PRESENCE_KEY, REQ_STOCK_TEMPLATE_KEY, REQUEST_STOCK_COUNTER_KEY, ITEM_MASTER_IMPORTED_AT_KEY];
+  return [SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, STICKER_KEY, DAILY_TARGETS_KEY, CAMPAIGN_MODE_KEY, DAILY_TARGETS_CAMPAIGN_SNAPSHOT_KEY, INBOUND_ALERT_SETTINGS_KEY, EMAILJS_SETTINGS_KEY, ADMIN_PASSWORD_KEY, PACKING_STATION_RR_KEY, STAFF_SCHEDULE_KEY, STATION_PRESENCE_KEY, REQ_STOCK_TEMPLATE_KEY, ITEM_MASTER_IMPORTED_AT_KEY];
 }
 const FB_SETTINGS_TABLE = 'AppSettings';
 function pushSettingsDiff() {
@@ -17098,16 +17098,18 @@ function saveRequestStockList() {
   return true;
 }
 function genRequestStockId() { return 'reqstk_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
-// Human-facing Request No. — "KFA-REQ/<Purpose>/<YYYYMMDD>/<running no.>". Per Shaila: the running
-// number is a single GLOBAL counter that never resets (same pattern as DO_COUNTER_KEY elsewhere in
-// this app), synced via AppSettings/syncSettingsKeys so every device (including guest submissions
-// from the login screen, on devices that may never log in at all) shares the same counter instead of
-// each device keeping its own. Same accepted race-condition caveat as DO_COUNTER_KEY: two submits
-// from two different devices within the same ~2s sync window could grab the same number.
-const REQUEST_STOCK_COUNTER_KEY = 'sto_request_stock_counter_v1';
+// Human-facing Request No. — "KFA-REQ/<Purpose>/<YYYYMMDD>/<running no.>". This used to be a single
+// GLOBAL counter that never reset (same pattern as DO_COUNTER_KEY elsewhere in this app) — but per
+// Shaila, after a lot of test deletions inflated it to a far-too-high number, she wants a deleted
+// number freed up for reuse instead of the count just climbing forever. So this is now simply
+// "however many requests exist right now, plus one" — computed fresh from requestStockList.length
+// every time (called before the new record is pushed in, so it doesn't count itself), no separate
+// persisted counter at all. Deleting a request immediately frees its number for the next one created.
+// Same accepted race-condition caveat as before (two submits within the same ~2s sync window could
+// land on the same number) — if anything slightly more likely now, but that trade-off is exactly
+// what she asked for.
 function nextRequestStockNo(purpose) {
-  const n = Math.max(0, Number(localStorage.getItem(REQUEST_STOCK_COUNTER_KEY)) || 0) + 1;
-  localStorage.setItem(REQUEST_STOCK_COUNTER_KEY, String(n));
+  const n = requestStockList.length + 1;
   const dateStr = toIsoLocal(new Date()).replace(/-/g, '');
   return `KFA-REQ/${purpose || '-'}/${dateStr}/${String(n).padStart(3, '0')}`;
 }
