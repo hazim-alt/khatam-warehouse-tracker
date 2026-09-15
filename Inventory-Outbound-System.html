@@ -9380,6 +9380,12 @@ let _stockBalanceLastServerSnapshot = {}; // fbSafeKey(id) -> record, mirrors fb
 let stockBalanceFbListenerAttached = false;
 function pushStockBalanceDiffToFirebase() {
   if (!fbDb) return;
+  // Safety guard: a device with an EMPTY local list (never uploaded here, or its own pull just
+  // hasn't happened/finished yet) has nothing useful to contribute — if it pushed anyway, the diff
+  // below would read as "every record that exists remotely is now missing" and delete the whole
+  // shared list out from under everyone else. Only a real upload (always non-empty — see
+  // processUploadedStockBalanceFile) should ever be treated as an intentional replace.
+  if (!stockBalanceList.length && Object.keys(_stockBalanceLastServerSnapshot).length) return;
   const nowKeyed = {};
   stockBalanceList.forEach(it => { nowKeyed[fbSafeKey(it.id)] = it; });
   const updateObj = {};
@@ -9400,6 +9406,14 @@ function pushStockBalanceDiffToFirebase() {
 function applyStockBalanceServerSnapshot(remoteObj) {
   _stockBalanceLastServerSnapshot = remoteObj || {};
   const remoteArr = Object.values(_stockBalanceLastServerSnapshot);
+  // Safety guard: never let an EMPTY remote snapshot wipe a non-empty local list. There's no
+  // "delete everything" action for Stock Balance (unlike Item Master's own Reset button) — every
+  // upload always replaces with a NON-empty list (processUploadedStockBalanceFile already rejects
+  // empty files) — so an empty pull here can only mean "the cloud genuinely has nothing yet"
+  // (e.g. a write was blocked by a permissions/rules error) or a transient read hiccup, never an
+  // intentional clear. Without this guard, another device's blocked/incomplete sync could silently
+  // erase a fully-uploaded local Stock Balance the moment this listener re-fires.
+  if (!remoteArr.length && stockBalanceList.length) return;
   if (stableStringify(remoteArr) === stableStringify(stockBalanceList)) return; // no-op — likely our own echo
   stockBalanceList = remoteArr;
   stockBalanceReplaceAll(remoteArr).catch(e => console.error('stockBalanceReplaceAll (remote sync) failed', e));
