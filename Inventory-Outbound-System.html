@@ -8786,15 +8786,44 @@ function itemMasterClearBackup() {
     tx.onerror = () => reject(tx.error);
   }));
 }
-function itemMasterReplaceAll(list) {
-  return openItemMasterDb().then(db => new Promise((resolve, reject) => {
-    const tx = db.transaction(ITEM_MASTER_STORE, 'readwrite');
-    const store = tx.objectStore(ITEM_MASTER_STORE);
-    store.clear();
-    list.forEach(it => store.put(it));
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  }));
+// Writing tens/hundreds of thousands of records via store.put() in one tight synchronous loop can
+// block the main thread long enough for Chrome to show its own "Page Unresponsive" dialog (confirmed
+// live while diagnosing why a 121,000-row Stock Balance upload appeared to hang) — even though the
+// IndexedDB writes themselves are async, calling .put() that many times back-to-back without ever
+// yielding still keeps the JS thread busy long enough to trip it. This splits the replace into
+// chunks (each its own transaction), yielding back to the browser between them, so the page stays
+// responsive throughout — same total work, just given room to breathe. Optional onProgress(done,
+// total) lets the caller show live status instead of one static "Saving..." message the whole time.
+function idbReplaceAllChunked(db, storeName, list, onProgress) {
+  return new Promise((resolve, reject) => {
+    const CHUNK = 2000;
+    if (!list.length) {
+      const tx = db.transaction(storeName, 'readwrite');
+      tx.objectStore(storeName).clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      return;
+    }
+    let i = 0;
+    let cleared = false;
+    const writeNext = () => {
+      const tx = db.transaction(storeName, 'readwrite');
+      const store = tx.objectStore(storeName);
+      if (!cleared) { store.clear(); cleared = true; }
+      list.slice(i, i + CHUNK).forEach(it => store.put(it));
+      tx.oncomplete = () => {
+        i += CHUNK;
+        if (onProgress) onProgress(Math.min(i, list.length), list.length);
+        if (i < list.length) setTimeout(writeNext, 0);
+        else resolve();
+      };
+      tx.onerror = () => reject(tx.error);
+    };
+    writeNext();
+  });
+}
+function itemMasterReplaceAll(list, onProgress) {
+  return openItemMasterDb().then(db => idbReplaceAllChunked(db, ITEM_MASTER_STORE, list, onProgress));
 }
 function itemMasterPutOne(item) {
   return openItemMasterDb().then(db => new Promise((resolve, reject) => {
@@ -9368,15 +9397,8 @@ function openStockBalanceDb() {
     req.onerror = (e) => reject((e.target && e.target.error) || new Error('Failed to open Stock Balance storage.'));
   });
 }
-function stockBalanceReplaceAll(list) {
-  return openStockBalanceDb().then(db => new Promise((resolve, reject) => {
-    const tx = db.transaction(STOCK_BALANCE_STORE, 'readwrite');
-    const store = tx.objectStore(STOCK_BALANCE_STORE);
-    store.clear();
-    list.forEach(it => store.put(it));
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  }));
+function stockBalanceReplaceAll(list, onProgress) {
+  return openStockBalanceDb().then(db => idbReplaceAllChunked(db, STOCK_BALANCE_STORE, list, onProgress));
 }
 function stockBalanceGetAll() {
   return openStockBalanceDb().then(db => new Promise((resolve, reject) => {
@@ -9585,7 +9607,9 @@ function processUploadedStockBalanceFile(file) {
       const mapped = [...byKey.values()];
       if (!mapped.length) throw new Error('No valid rows (all SKUs blank, or all rows excluded?).');
       statusEl.textContent = `Saving ${formatQty(mapped.length)} row(s) to storage...`;
-      await stockBalanceReplaceAll(mapped);
+      await stockBalanceReplaceAll(mapped, (done, total) => {
+        statusEl.textContent = `Saving ${formatQty(done)} / ${formatQty(total)} row(s) to storage...`;
+      });
       stockBalanceList = mapped;
       stockBalanceImportedAt = new Date().toISOString();
       localStorage.setItem(STOCK_BALANCE_IMPORTED_AT_KEY, stockBalanceImportedAt);
