@@ -9589,32 +9589,21 @@ async function initialStockBalanceCloudSync() {
   if (!fbDb) { stockBalanceInitialSyncDone = true; return; } // no cloud configured at all — nothing to wait for, local IndexedDB data (if any) is authoritative
   await loadStockBalanceList(); // make sure stockBalanceList reflects this computer's IndexedDB before merging
   try {
-    const [snap, resetMarkerSnap] = await Promise.all([
-      fbDb.ref(STOCK_BALANCE_FB_TABLE).once('value'),
-      fbDb.ref(STOCK_BALANCE_RESET_MARKER_TABLE).once('value'),
-    ]);
+    const snap = await fbDb.ref(STOCK_BALANCE_FB_TABLE).once('value');
     const remoteObj = snap.val() || {};
     _stockBalanceLastServerSnapshot = remoteObj;
-    const everMergedKey = fbEverMergedKey(STOCK_BALANCE_FB_TABLE);
-    const aResetHasHappened = !!resetMarkerSnap.val();
-    if (!localStorage.getItem(everMergedKey) && !aResetHasHappened) {
-      const localKeys = new Set(stockBalanceList.map(it => fbSafeKey(it.id)));
-      const mergedArr = [...stockBalanceList];
-      Object.keys(remoteObj).forEach(k => { if (!localKeys.has(k)) mergedArr.push(remoteObj[k]); });
-      if (stableStringify(mergedArr) !== stableStringify(stockBalanceList)) {
-        stockBalanceList = mergedArr;
-        await stockBalanceReplaceAll(mergedArr);
-        stockBalancePage = 0;
-        const tabEl = document.getElementById('tab-stock-balance');
-        if (tabEl && tabEl.classList.contains('active')) renderStockBalanceTab();
-      }
-      pushStockBalanceDiffToFirebase();
-      localStorage.setItem(everMergedKey, '1');
-    } else {
-      if (!localStorage.getItem(everMergedKey)) localStorage.setItem(everMergedKey, '1');
-      applyStockBalanceServerSnapshot(remoteObj);
-      pushStockBalanceDiffToFirebase();
-    }
+    // Cloud is ALWAYS authoritative here — deliberately no "first ever sync, union-merge local into
+    // cloud" step (unlike Item Master List's equivalent function). This is a from-scratch rebuild;
+    // there's no legitimate local-only data anywhere that's worth protecting/promoting to the cloud.
+    // A real, "no legacy data to lose" version of this DID exist here before, but it caused a genuine
+    // bug: a device that had old local IndexedDB rows sitting around from BEFORE Stock Balance ever
+    // had cloud sync (a much older build of this feature) would treat that leftover local cache as
+    // "this device's not-yet-synced data" on its first run of the new code, and push it straight back
+    // up to Firebase — silently resurrecting old data nobody asked for. Since every upload always
+    // fully REPLACES the list anyway (see processUploadedStockBalanceFile), there's never a scenario
+    // where "keep local, adopt remote-only extras" is the right call for this particular table.
+    applyStockBalanceServerSnapshot(remoteObj);
+    localStorage.setItem(fbEverMergedKey(STOCK_BALANCE_FB_TABLE), '1');
   } catch (e) {
     cloudSyncStatus = 'error';
     cloudSyncLastError = `StockBalanceList: ${(e && e.message) || e}`;
