@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -406,6 +405,15 @@
   tr:last-child td { border-bottom: none; }
   tr:hover { background: rgba(255,255,255,0.03); }
   .mono-name { font-weight: 600; font-family: Georgia, serif; }
+  /* Stock Available pivot table (SKU rows × Boutique/Zone columns) — same sticky-SKU-column /
+     single-line-cell treatment as other pivot tables in this app, so a wide boutique list stays
+     scrollable without losing track of which row is which. */
+  .stock-available-pivot-table td { white-space: nowrap; text-align: right; }
+  .stock-available-pivot-table th.sap-text, .stock-available-pivot-table td.sap-text { text-align: left; }
+  .stock-available-pivot-table th.sap-sku, .stock-available-pivot-table td.sap-sku {
+    position: sticky; left: 0; background: var(--card); z-index: 2; text-align: left;
+  }
+  .stock-available-pivot-table thead th.sap-sku { z-index: 3; }
   #lateStoListWrap table { font-size: 11px; }
   #lateStoListWrap th, #lateStoListWrap td { padding: 6px 8px; }
   #lateStoListWrap .mono-name { font-weight: 600; font-size: 11px; }
@@ -1146,7 +1154,7 @@
     </div>
     <button class="tab-btn" data-tab="staff-schedule">Staff Schedule</button>
     <button class="tab-btn" data-tab="item-master">Item Master List</button>
-    <button class="tab-btn" data-tab="stock-available">Stock Available</button>
+    <button class="tab-btn" data-tab="stock-available">Available Stock</button>
     <button class="tab-btn" data-tab="finance">Finance</button>
     <button class="tab-btn" data-tab="request-stock">Request Stock</button>
     <button class="tab-btn" data-tab="laporan">Reports</button>
@@ -2483,9 +2491,51 @@
   </section>
 
   <section class="tab-panel" id="tab-stock-available">
-    <p class="section-title">Stock Available</p>
+    <p class="section-title">Available Stock</p>
     <div class="card">
-      <div class="empty-state">This tab is a placeholder — tell me what it should do and I'll build it.</div>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <span class="data-note" style="margin:0;">Upload the Inventory Balance report export (needs "SKU", "Item Group", "Item Brand", "Zone" &amp; "Total Qty" columns). Grouped by SKU, with each Zone/boutique becoming its own column. Color &amp; Size are pulled automatically from Item Master List by SKU. "Unused Product" &amp; "China Rewash" zones are auto-excluded. Each upload FULLY REPLACES the existing list (a fresh snapshot, not additive) — cloud-synced automatically, so every account/device picks it up on its own.</span>
+        <span id="stockAvailableStatusNote" class="data-note" style="margin:0; white-space:nowrap;"></span>
+      </div>
+      <div class="dropzone" id="stockAvailableDropzone">
+        <div class="dropzone-icon">⬆</div>
+        <div class="upload-row">
+          <label class="upload-btn-label">
+            Choose File
+            <input type="file" id="stockAvailableFileInput" accept=".csv,.xlsx,.xls">
+          </label>
+          <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx / .xls file here</span>
+        </div>
+      </div>
+      <div class="upload-status" id="stockAvailableUploadStatus"></div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <p class="section-title" style="margin-top:0;">Stock List</p>
+      <div id="stockAvailableKpiGrid" class="kpi-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom:14px;"></div>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <input type="text" id="stockAvailableSearchInput" placeholder="Search SKU / Brand / Group / Color / Size / Boutique..." style="flex:1; min-width:220px;">
+        <select id="stockAvailableBrandFilter" style="width:auto;"><option value="">All Brands</option></select>
+        <select id="stockAvailableGroupFilter" style="width:auto;"><option value="">All Groups</option></select>
+        <select id="stockAvailableColorFilter" style="width:auto;"><option value="">All Colors</option></select>
+        <select id="stockAvailableSizeFilter" style="width:auto;"><option value="">All Sizes</option></select>
+        <select id="stockAvailableBoutiqueFilter" style="width:auto;"><option value="">All Boutiques</option></select>
+        <select id="stockAvailableYearFilter" style="width:auto;"><option value="">All Campaign Years</option></select>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0 0 10px;">
+        <span class="data-note" style="margin:0;">Each boutique/zone becomes one column (like a pivot table) — scroll right if there are many columns.</span>
+        <button type="button" class="btn-ghost" id="stockAvailableReorderColsBtn" style="white-space:nowrap;">↕ Reorder Columns</button>
+      </div>
+      <div id="stockAvailableTableWrap" class="scroll-table"></div>
+      <div id="stockAvailablePaginationWrap" style="display:flex; align-items:center; justify-content:center; gap:10px; margin-top:12px;"></div>
+    </div>
+
+    <div class="card" style="margin-top:16px; border-color:#e0685c;">
+      <p class="rm-form-section-label" style="margin-top:0; color:#e0685c;">⚠ Danger Zone</p>
+      <span class="data-note" style="margin:0;">Delete ALL Available Stock data — to clear old/test data before starting fresh. This clears it for everyone (synced), not just this device. PERMANENT — no backup is kept and this cannot be undone. Simply re-upload a file to load data again.</span>
+      <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+        <button class="btn-ghost" id="resetStockAvailableBtn" style="color:#e0685c;">🗑 Reset Available Stock</button>
+      </div>
     </div>
   </section>
 
@@ -3298,6 +3348,21 @@
     <div class="modal-actions" style="margin-top:16px;">
       <button class="btn-ghost" id="fleetDispatchConfirmCancelBtn">Cancel</button>
       <button class="btn-primary" id="fleetDispatchConfirmOkBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="stockAvailableReorderColsModal">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-header">
+      <h2>Reorder Boutique Columns</h2>
+      <button class="modal-close" id="stockAvailableReorderColsCloseBtn">&times;</button>
+    </div>
+    <div class="data-note" style="margin-bottom:12px;">Use ▲ / ▼ to move a boutique up or down — this order is remembered on this device and used on the Stock List table. Any new boutique/zone that shows up in a later upload gets added to the end automatically.</div>
+    <div id="stockAvailableReorderColsList" style="display:flex; flex-direction:column; gap:4px; max-height:50vh; overflow-y:auto;"></div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn-ghost" id="stockAvailableReorderColsResetBtn">Reset to Default</button>
+      <button class="btn-primary" id="stockAvailableReorderColsSaveBtn">Save</button>
     </div>
   </div>
 </div>
@@ -4209,6 +4274,7 @@ function loadData() {
   loadReqStockTemplate();
   loadSkuReference();
   loadItemMasterList();
+  loadStockAvailableList();
   // Cleans up any STO No. duplicates already sitting in storage (e.g. from two devices each adding
   // the same STO No. before they'd ever synced with each other — see backfillNaturalSyncIds above)
   // and makes sure every record has a stable id going forward, right from the moment data loads —
@@ -4902,6 +4968,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'fleet-trips' || btn.dataset.tab === 'fleet-board' || btn.dataset.tab === 'fleet-driver-trip') renderFleetTab();
     if (btn.dataset.tab === 'staff-schedule') { renderStaffRosterList(); renderStaffScheduleGrid(); }
     if (btn.dataset.tab === 'item-master') renderItemMasterTab();
+    if (btn.dataset.tab === 'stock-available') { renderStockAvailableTab(); refreshStockAvailableFromServer(); }
     if (btn.dataset.tab === 'finance') renderFinanceTab();
     if (btn.dataset.tab === 'request-stock') renderRequestStockTab();
     updateSidebarSyncBarVisibility();
@@ -7732,6 +7799,7 @@ const PERMISSION_TABS = [
   { id: 'team-printers', label: 'Printers (Team Setup)' },
   { id: 'staff-schedule', label: 'Staff Schedule' },
   { id: 'item-master', label: 'Item Master List' },
+  { id: 'stock-available', label: 'Available Stock' },
   { id: 'finance', label: 'Finance' },
   { id: 'request-stock', label: 'Request Stock' },
   { id: 'laporan', label: 'Reports' },
@@ -7781,7 +7849,7 @@ function applyUserPermissions(user) {
   // team, not just this user's own work — Admin/Team Lead only, even for a non-admin who's been
   // granted the surrounding tab (Progress Board / Trip Schedule) itself.
   const isAdminUser = !!(user && user.isAdmin);
-  ['resetProgressBtn', 'undoResetProgressBtn', 'resetFleetTripsBtn', 'undoResetTripBtn', 'resetInboundStoBtn', 'undoResetInboundStoBtn', 'resetRmBtn', 'undoResetRmBtn', 'resetItemMasterBtn', 'undoResetItemMasterBtn'].forEach(id => {
+  ['resetProgressBtn', 'undoResetProgressBtn', 'resetFleetTripsBtn', 'undoResetTripBtn', 'resetInboundStoBtn', 'undoResetInboundStoBtn', 'resetRmBtn', 'undoResetRmBtn', 'resetItemMasterBtn', 'undoResetItemMasterBtn', 'resetStockAvailableBtn'].forEach(id => {
     const btn = document.getElementById(id);
     if (btn) btn.style.display = isAdminUser ? '' : 'none';
   });
@@ -9389,6 +9457,658 @@ document.getElementById('undoResetItemMasterBtn').addEventListener('click', asyn
   updateResetUndoButtons();
 });
 
+/* ==================== Stock Available (finished goods on-hand snapshot, by SKU × Zone) ====================
+   She uploads the "Inventory Balance ... Summary Report" export straight in — a long/tall report
+   with one row per SKU × Zone (Customer/Zone/Bin/Batch/Total Qty columns), which this groups down to
+   ONE record per SKU with a nested { zone: qty } map. Grouping by SKU up front (not storing one flat
+   record per SKU+Zone) is a deliberate design choice carried over from hard-won experience on a
+   similar feature: a real file with ~10,500 SKUs across ~24 zones has 130,000+ raw rows — flattening
+   that into one Firebase key per SKU+Zone explodes into 100,000+ individual keys, which is what
+   actually broke the very similar Stock Balance feature's cloud sync (hundreds of concurrent chunk
+   writes overwhelming the connection). Grouping by SKU keeps the record/key count down near the
+   actual distinct-SKU count instead, which is what IndexedDB/Firebase can handle comfortably. Color
+   & Size aren't in this report at all — they're pulled from Item Master List by SKU after parsing.
+   Cloud sync design: the cloud is ALWAYS authoritative on load (see initialStockAvailableCloudSync) —
+   no "first ever sync, keep local" merge step. That heuristic existed on Stock Balance and caused a
+   real bug: a device with old local leftovers from a previous build would push them back up on its
+   first run of new code, silently resurrecting data that had already been cleared elsewhere. Since
+   every upload here always fully REPLACES the list anyway, there's never a scenario where preserving
+   local-only data over the cloud is the right call — so that whole class of bug is designed out from
+   day one instead of needing to be found and patched later. */
+const STOCK_AVAILABLE_IMPORTED_AT_KEY = 'sto_stock_available_imported_at_v1';
+// Per-device column order preference for the boutique/zone columns — a display preference, not
+// data, so it's plain localStorage rather than anything cloud-synced.
+const STOCK_AVAILABLE_COL_ORDER_KEY = 'sto_stock_available_col_order_v1';
+const STOCK_AVAILABLE_DB_NAME = 'khatam_stock_available_db';
+const STOCK_AVAILABLE_DB_VERSION = 1;
+const STOCK_AVAILABLE_STORE = 'items';
+let stockAvailableList = []; // [{ id, sku, itemGroup, itemBrand, itemColor, itemSize, qtyByLocation: { [zone]: qty } }] — one record per SKU
+let stockAvailableImportedAt = '';
+let stockAvailableDb = null;
+let stockAvailableLocalSaveInFlight = false;
+// False until this device's first cloud check this page-load has resolved — see renderStockAvailableTab.
+let stockAvailableInitialSyncDone = false;
+function openStockAvailableDb() {
+  return new Promise((resolve, reject) => {
+    if (stockAvailableDb) { resolve(stockAvailableDb); return; }
+    if (!window.indexedDB) { reject(new Error('This browser does not support IndexedDB.')); return; }
+    const req = indexedDB.open(STOCK_AVAILABLE_DB_NAME, STOCK_AVAILABLE_DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STOCK_AVAILABLE_STORE)) db.createObjectStore(STOCK_AVAILABLE_STORE, { keyPath: 'id' });
+    };
+    req.onsuccess = (e) => { stockAvailableDb = e.target.result; resolve(stockAvailableDb); };
+    req.onerror = (e) => reject((e.target && e.target.error) || new Error('Failed to open Stock Available storage.'));
+  });
+}
+function stockAvailableReplaceAll(list, onProgress) {
+  return openStockAvailableDb().then(db => idbReplaceAllChunked(db, STOCK_AVAILABLE_STORE, list, onProgress));
+}
+function stockAvailableGetAll() {
+  return openStockAvailableDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(STOCK_AVAILABLE_STORE, 'readonly');
+    const req = tx.objectStore(STOCK_AVAILABLE_STORE).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  }));
+}
+async function loadStockAvailableList() {
+  stockAvailableImportedAt = localStorage.getItem(STOCK_AVAILABLE_IMPORTED_AT_KEY) || '';
+  if (stockAvailableLocalSaveInFlight) return;
+  try {
+    stockAvailableList = await stockAvailableGetAll();
+  } catch (err) {
+    stockAvailableList = [];
+  }
+  const tabEl = document.getElementById('tab-stock-available');
+  if (tabEl && tabEl.classList.contains('active')) renderStockAvailableTab();
+}
+
+/* ---- Stock Available cloud sync ---- */
+const STOCK_AVAILABLE_FB_TABLE = 'StockAvailableList';
+let _stockAvailableLastServerSnapshot = {};
+let stockAvailableFbListenerAttached = false;
+let stockAvailablePushInFlight = false;
+function pushStockAvailableDiffToFirebase(opts) {
+  if (!fbDb) return;
+  if (!(opts && opts.skipEmptyGuard) && !stockAvailableList.length && Object.keys(_stockAvailableLastServerSnapshot).length) return;
+  const nowKeyed = {};
+  stockAvailableList.forEach(it => { nowKeyed[fbSafeKey(it.id)] = it; });
+  const updateObj = {};
+  let changed = false;
+  Object.keys(nowKeyed).forEach(k => {
+    const prevStr = (_stockAvailableLastServerSnapshot[k] !== undefined) ? stableStringify(_stockAvailableLastServerSnapshot[k]) : undefined;
+    if (stableStringify(nowKeyed[k]) !== prevStr) { updateObj[k] = nowKeyed[k]; changed = true; }
+  });
+  Object.keys(_stockAvailableLastServerSnapshot).forEach(k => { if (!(k in nowKeyed)) { updateObj[k] = null; changed = true; } });
+  if (!changed) return;
+  _stockAvailableLastServerSnapshot = nowKeyed;
+  stockAvailablePushInFlight = true;
+  fbChunkedUpdate(fbDb.ref(STOCK_AVAILABLE_FB_TABLE), updateObj).catch(e => {
+    cloudSyncStatus = 'error';
+    cloudSyncLastError = `StockAvailableList: ${(e && e.message) || e}`;
+    renderCloudSyncStatus();
+  }).finally(() => { stockAvailablePushInFlight = false; });
+}
+function applyStockAvailableServerSnapshot(remoteObj) {
+  if (stockAvailablePushInFlight) return;
+  _stockAvailableLastServerSnapshot = remoteObj || {};
+  const remoteArr = Object.values(_stockAvailableLastServerSnapshot);
+  if (stableStringify(remoteArr) === stableStringify(stockAvailableList)) return;
+  stockAvailableList = remoteArr;
+  stockAvailableReplaceAll(remoteArr).catch(e => console.error('stockAvailableReplaceAll (remote sync) failed', e));
+  stockAvailablePage = 0;
+  const tabEl = document.getElementById('tab-stock-available');
+  if (tabEl && tabEl.classList.contains('active')) renderStockAvailableTab();
+}
+function attachStockAvailableFbListener() {
+  if (!fbDb || stockAvailableFbListenerAttached) return;
+  stockAvailableFbListenerAttached = true;
+  fbDb.ref(STOCK_AVAILABLE_FB_TABLE).on('value', snapshot => {
+    applyStockAvailableServerSnapshot(snapshot.val() || {});
+  }, error => {
+    cloudSyncStatus = 'error';
+    cloudSyncLastError = `StockAvailableList: ${(error && error.message) || error}`;
+    renderCloudSyncStatus();
+  });
+}
+function refreshStockAvailableFromServer() {
+  if (!fbDb) return;
+  fbDb.ref(STOCK_AVAILABLE_FB_TABLE).once('value').then(snap => {
+    applyStockAvailableServerSnapshot(snap.val() || {});
+  }).catch(() => {});
+}
+async function initialStockAvailableCloudSync() {
+  if (!fbDb) { stockAvailableInitialSyncDone = true; return; }
+  await loadStockAvailableList();
+  try {
+    const snap = await fbDb.ref(STOCK_AVAILABLE_FB_TABLE).once('value');
+    const remoteObj = snap.val() || {};
+    _stockAvailableLastServerSnapshot = remoteObj;
+    applyStockAvailableServerSnapshot(remoteObj); // cloud always wins — see module header for why
+  } catch (e) {
+    cloudSyncStatus = 'error';
+    cloudSyncLastError = `StockAvailableList: ${(e && e.message) || e}`;
+    renderCloudSyncStatus();
+  }
+  attachStockAvailableFbListener();
+  checkStockAvailableAutoReset();
+  stockAvailableInitialSyncDone = true;
+  const tabEl2 = document.getElementById('tab-stock-available');
+  if (tabEl2 && tabEl2.classList.contains('active')) renderStockAvailableTab();
+}
+
+function genStockAvailableId() { return 'sa_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+function renderStockAvailableStatusNote() {
+  const el = document.getElementById('stockAvailableStatusNote');
+  if (!el) return;
+  if (!stockAvailableList.length) { el.textContent = 'No Available Stock uploaded yet.'; return; }
+  const dateLabel = stockAvailableImportedAt ? formatDateLabel(stockAvailableImportedAt.slice(0, 10)) : '';
+  el.textContent = `${formatQty(stockAvailableList.length)} SKU loaded${dateLabel ? ` (${dateLabel})` : ''}.`;
+}
+
+/* ---- Stock Available daily auto-reset ----
+   Per Shaila's explicit request (Sep 16, 2026): permanently wipe ALL Available Stock data once a
+   new calendar day starts (device local time), same PERMANENT/no-backup delete as the manual Reset
+   button below — she wants staff to re-upload a fresh file every day rather than have stale numbers
+   sitting around for Request Stock to filter against. "lastResetDate" is stored in Firebase (shared
+   across every device, not per-device localStorage) so whichever device happens to be open first
+   after midnight performs the reset once, and every other device just sees the already-emptied list
+   moments later via the normal Firebase listener — no double-resets, no per-device drift. There's no
+   real server-side cron here (this is a static file on GitHub Pages) — checked right after initial
+   cloud sync (covers "first person opens the app that morning") AND on a 5-minute timer (covers a
+   device left open overnight), so the actual reset lands within ~5 min of midnight, not exactly
+   00:00:00. */
+const STOCK_AVAILABLE_AUTO_RESET_META = 'StockAvailableAutoResetMeta';
+function stockAvailableTodayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+async function performStockAvailableReset() {
+  await stockAvailableReplaceAll([]);
+  stockAvailableList = [];
+  stockAvailableImportedAt = '';
+  localStorage.removeItem(STOCK_AVAILABLE_IMPORTED_AT_KEY);
+  pushStockAvailableDiffToFirebase({ skipEmptyGuard: true });
+  stockAvailablePage = 0;
+  const tabEl = document.getElementById('tab-stock-available');
+  if (tabEl && tabEl.classList.contains('active')) renderStockAvailableTab();
+}
+async function checkStockAvailableAutoReset() {
+  if (!fbDb) return;
+  const today = stockAvailableTodayStr();
+  try {
+    const snap = await fbDb.ref(STOCK_AVAILABLE_AUTO_RESET_META + '/lastResetDate').once('value');
+    if ((snap.val() || '') === today) return; // already reset today, by this device or another
+    await fbDb.ref(STOCK_AVAILABLE_AUTO_RESET_META + '/lastResetDate').set(today); // claim today first
+    if (stockAvailableList.length) await performStockAvailableReset();
+  } catch (e) {
+    console.error('checkStockAvailableAutoReset failed', e);
+  }
+}
+setInterval(checkStockAvailableAutoReset, 5 * 60 * 1000);
+
+// Zones that mean "not real sellable stock" — quarantined/rewash items or a catch-all for SKUs not
+// currently in use — always excluded on import. Duplicated inline inside the Worker source below
+// (a Worker can't see this page's globals).
+const STOCK_AVAILABLE_EXCLUDED_ZONES = ['UNUSED PRODUCT', 'CHINA REWASH'];
+const STOCK_AVAILABLE_WORKER_SRC = `
+self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+self.postMessage({ libLoaded: true });
+var STOCK_AVAILABLE_EXCLUDED_ZONES = ['UNUSED PRODUCT', 'CHINA REWASH'];
+function parseCsvRows(text) {
+  var rows = [];
+  var row = [], field = '', inQuotes = false;
+  for (var i = 0; i < text.length; i++) {
+    var c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i+1] === '"') { field += '"'; i++; }
+        else inQuotes = false;
+      } else field += c;
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else if (c === '\\r') { /* skip */ }
+      else field += c;
+    }
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+function genStockAvailableId() { return 'sa_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+self.onmessage = function(e) {
+  try {
+    var ext = e.data.ext, buffer = e.data.buffer, text = e.data.text;
+    var rows = [];
+    if (ext === 'csv') {
+      rows = parseCsvRows(String(text).replace(/^\\uFEFF/, ''));
+    } else {
+      var wb = XLSX.read(buffer, { type: 'array' });
+      var sheet = wb.Sheets[wb.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    }
+    if (!rows.length) throw new Error('File is empty / has no data.');
+    // This report has clean, stable column headers (unlike a positional-guess format) — find each
+    // one by exact (case-insensitive) name instead of guessing by position.
+    var header = rows[0].map(function(h) { return String(h || '').trim().toLowerCase(); });
+    var skuIdx = header.indexOf('sku');
+    if (skuIdx === -1) throw new Error('This file needs a "SKU" column.');
+    var groupIdx = header.indexOf('item group');
+    var brandIdx = header.indexOf('item brand');
+    var zoneIdx = header.indexOf('zone');
+    var qtyIdx = header.indexOf('total qty');
+    if (qtyIdx === -1) throw new Error('This file needs a "Total Qty" column.');
+    var dataRows = rows.slice(1);
+    var excludedCount = 0;
+    var bySku = new Map();
+    dataRows.forEach(function(r) {
+      if (!r || !r.length) return;
+      var sku = String(r[skuIdx] || '').trim();
+      if (!sku) return;
+      var zone = zoneIdx > -1 ? String(r[zoneIdx] || '').trim() : '';
+      var zoneUpper = zone.toUpperCase();
+      if (STOCK_AVAILABLE_EXCLUDED_ZONES.some(function(x) { return zoneUpper.includes(x); })) { excludedCount++; return; }
+      // Real exports from this report have shown an extra unlabeled column squeezed in right before
+      // "Total Qty" (every data row one field longer than the header row declares) — trusting the
+      // header-declared qty position in that case reads an empty phantom cell instead of the real
+      // number, silently turning every quantity into 0. Total Qty is reliably the LAST column in the
+      // row regardless of exactly where that phantom column sits, so prefer that whenever a row is
+      // longer than the header — a row matching the header length exactly still uses the declared index.
+      var effectiveQtyIdx = (r.length > header.length) ? (r.length - 1) : qtyIdx;
+      var qty = parseFloat(r[effectiveQtyIdx]) || 0;
+      var skuUpper = sku.toUpperCase();
+      var rec = bySku.get(skuUpper);
+      if (!rec) {
+        rec = {
+          id: genStockAvailableId(),
+          sku: sku,
+          itemGroup: groupIdx > -1 ? String(r[groupIdx] || '').trim() : '',
+          itemBrand: brandIdx > -1 ? String(r[brandIdx] || '').trim() : '',
+          qtyByLocation: {},
+        };
+        bySku.set(skuUpper, rec);
+      }
+      rec.qtyByLocation[zone] = (rec.qtyByLocation[zone] || 0) + qty;
+    });
+    var mapped = Array.from(bySku.values());
+    self.postMessage({ ok: true, mapped: mapped, excludedCount: excludedCount });
+  } catch (err) {
+    self.postMessage({ ok: false, error: (err && err.message) || String(err) });
+  }
+};
+`;
+let stockAvailableWorker = null;
+function stockAvailableParseInWorker(ext, buffer, text) {
+  return new Promise((resolve, reject) => {
+    if (!stockAvailableWorker) {
+      const blob = new Blob([STOCK_AVAILABLE_WORKER_SRC], { type: 'application/javascript' });
+      stockAvailableWorker = new Worker(URL.createObjectURL(blob));
+    }
+    const worker = stockAvailableWorker;
+    let settled = false;
+    let timeoutId = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      worker.removeEventListener('message', onMessage);
+      worker.removeEventListener('error', onError);
+      worker.terminate();
+      stockAvailableWorker = null;
+      reject(new Error('Taking too long (45s+) — likely a slow/blocked internet connection while loading a required library. Check your connection and try uploading again.'));
+    }, 45000);
+    const onMessage = (e) => {
+      if (settled) return;
+      if (e.data && e.data.libLoaded) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          worker.removeEventListener('message', onMessage);
+          worker.removeEventListener('error', onError);
+          worker.terminate();
+          stockAvailableWorker = null;
+          reject(new Error('Taking way too long (10min+) to process this file — it may be corrupted, or an unusual format. Try re-saving/re-exporting the file and uploading again.'));
+        }, 600000);
+        return;
+      }
+      settled = true;
+      clearTimeout(timeoutId);
+      worker.removeEventListener('message', onMessage);
+      worker.removeEventListener('error', onError);
+      if (e.data && e.data.ok) resolve({ mapped: e.data.mapped, excludedCount: e.data.excludedCount });
+      else reject(new Error((e.data && e.data.error) || 'Failed to process file.'));
+    };
+    const onError = (e) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      worker.removeEventListener('message', onMessage);
+      worker.removeEventListener('error', onError);
+      reject(new Error(e.message || 'Worker error while processing file.'));
+    };
+    worker.addEventListener('message', onMessage);
+    worker.addEventListener('error', onError);
+    worker.postMessage({ ext, buffer, text }, buffer ? [buffer] : []);
+  });
+}
+let stockAvailableUploadInFlight = false;
+function processUploadedStockAvailableFile(file) {
+  const statusEl = document.getElementById('stockAvailableUploadStatus');
+  if (stockAvailableUploadInFlight) {
+    statusEl.textContent = 'Still finishing the previous upload — please wait for it to complete before uploading again.';
+    statusEl.className = 'upload-status err';
+    return;
+  }
+  stockAvailableUploadInFlight = true;
+  statusEl.textContent = 'Processing file... (large list, may take a few seconds)';
+  statusEl.className = 'upload-status';
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = async (evt) => {
+    try {
+      const { mapped, excludedCount } = await stockAvailableParseInWorker(
+        ext, ext === 'csv' ? null : evt.target.result, ext === 'csv' ? evt.target.result : null
+      );
+      if (!mapped.length) throw new Error('No valid rows (all SKUs blank, or all rows excluded?).');
+      // Color & Size aren't in this report — pull them from Item Master List by SKU. Main-thread only
+      // (the Worker can't see itemMasterList), so this happens here, right after parsing.
+      mapped.forEach(rec => {
+        const im = itemMasterLookupBySku(rec.sku);
+        rec.itemColor = (im && im.itemColor) || '';
+        rec.itemSize = (im && im.itemSize) || '';
+      });
+      stockAvailableList = mapped;
+      stockAvailableImportedAt = new Date().toISOString();
+      localStorage.setItem(STOCK_AVAILABLE_IMPORTED_AT_KEY, stockAvailableImportedAt);
+      pushStockAvailableDiffToFirebase();
+      stockAvailablePage = 0;
+      const zoneCount = new Set(mapped.flatMap(it => Object.keys(it.qtyByLocation || {}).filter(Boolean))).size;
+      const successLine = `Success: ${formatQty(mapped.length)} SKU${zoneCount ? ` across ${formatQty(zoneCount)} boutique/zone(s)` : ''} loaded and synced${excludedCount > 0 ? ` — ${formatQty(excludedCount)} "Unused Product"/"China Rewash" row(s) dropped` : ''}.`;
+      statusEl.textContent = `${successLine} Saving a local backup copy in the background…`;
+      statusEl.className = 'upload-status ok';
+      renderStockAvailableTab();
+      stockAvailableLocalSaveInFlight = true;
+      stockAvailableReplaceAll(mapped, (done, total) => {
+        statusEl.textContent = `${successLine} Saving local backup copy: ${formatQty(done)} / ${formatQty(total)}…`;
+      }).then(() => {
+        statusEl.textContent = successLine;
+      }).catch(e => {
+        console.error('stockAvailableReplaceAll (background save) failed', e);
+        statusEl.textContent = `${successLine} (Local backup copy on this device had an issue — cloud sync already succeeded, everyone else is fine; this device may just need a Sync Now / refresh to re-pull it.)`;
+      }).finally(() => { stockAvailableLocalSaveInFlight = false; stockAvailableUploadInFlight = false; });
+    } catch (err) {
+      statusEl.textContent = 'Failed to process file: ' + err.message;
+      statusEl.className = 'upload-status err';
+      stockAvailableUploadInFlight = false;
+    }
+  };
+  reader.onerror = () => { statusEl.textContent = 'Failed to read file.'; statusEl.className = 'upload-status err'; stockAvailableUploadInFlight = false; };
+  if (ext === 'csv') reader.readAsText(file);
+  else reader.readAsArrayBuffer(file);
+}
+document.getElementById('stockAvailableFileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  processUploadedStockAvailableFile(file);
+  e.target.value = '';
+});
+const stockAvailableDropzone = document.getElementById('stockAvailableDropzone');
+['dragenter', 'dragover'].forEach(evtName => {
+  stockAvailableDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); stockAvailableDropzone.classList.add('dragover'); });
+});
+['dragleave', 'drop'].forEach(evtName => {
+  stockAvailableDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); stockAvailableDropzone.classList.remove('dragover'); });
+});
+stockAvailableDropzone.addEventListener('drop', (e) => {
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (file) processUploadedStockAvailableFile(file);
+});
+
+/* ---- Stock List: search + Brand/Group/Color/Size filter + pagination + pivot table by zone ---- */
+let stockAvailablePage = 0;
+const STOCK_AVAILABLE_PAGE_SIZE = 50;
+function stockAvailableFilteredList() {
+  const search = (document.getElementById('stockAvailableSearchInput').value || '').trim().toLowerCase();
+  const brandFilter = document.getElementById('stockAvailableBrandFilter').value;
+  const groupFilter = document.getElementById('stockAvailableGroupFilter').value;
+  const colorFilter = document.getElementById('stockAvailableColorFilter').value;
+  const sizeFilter = document.getElementById('stockAvailableSizeFilter').value;
+  const yearFilter = document.getElementById('stockAvailableYearFilter').value;
+  // Note: the Boutique filter is deliberately NOT applied here — a SKU with zero stock at that
+  // boutique is still useful to see ("should be there, isn't"), so it doesn't drop rows. Instead it
+  // narrows which COLUMNS the table shows — see renderStockAvailableTable, which reads it directly.
+  return stockAvailableList.filter(it => {
+    if (search && ![it.sku, it.itemGroup, it.itemBrand, it.itemColor, it.itemSize, ...Object.keys(it.qtyByLocation || {})].filter(Boolean).join(' ').toLowerCase().includes(search)) return false;
+    if (brandFilter && (it.itemBrand || '') !== brandFilter) return false;
+    if (groupFilter && (it.itemGroup || '') !== groupFilter) return false;
+    if (colorFilter && (it.itemColor || '') !== colorFilter) return false;
+    if (sizeFilter && (it.itemSize || '') !== sizeFilter) return false;
+    if (yearFilter) {
+      const im = itemMasterLookupBySku(it.sku);
+      if (!im || (im.campaignYear || '') !== yearFilter) return false;
+    }
+    return true;
+  });
+}
+function stockAvailableFillSelect(id, values, allLabel) {
+  const sel = document.getElementById(id);
+  const cur = sel.value;
+  sel.innerHTML = `<option value="">${allLabel}</option>` + values.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+  if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+}
+function renderStockAvailableFilterOptions() {
+  stockAvailableFillSelect('stockAvailableBrandFilter', [...new Set(stockAvailableList.map(it => it.itemBrand).filter(Boolean))].sort(), 'All Brands');
+  stockAvailableFillSelect('stockAvailableGroupFilter', [...new Set(stockAvailableList.map(it => it.itemGroup).filter(Boolean))].sort(), 'All Groups');
+  stockAvailableFillSelect('stockAvailableColorFilter', [...new Set(stockAvailableList.map(it => it.itemColor).filter(Boolean))].sort(), 'All Colors');
+  stockAvailableFillSelect('stockAvailableSizeFilter', [...new Set(stockAvailableList.map(it => it.itemSize).filter(Boolean))].sort(), 'All Sizes');
+  const boutiqueSet = new Set();
+  stockAvailableList.forEach(it => Object.keys(it.qtyByLocation || {}).forEach(z => { if (z) boutiqueSet.add(z); }));
+  stockAvailableFillSelect('stockAvailableBoutiqueFilter', [...boutiqueSet].sort(), 'All Boutiques');
+  const years = [...new Set(stockAvailableList.map(it => { const im = itemMasterLookupBySku(it.sku); return im && im.campaignYear; }).filter(Boolean))].sort().reverse();
+  stockAvailableFillSelect('stockAvailableYearFilter', years, 'All Campaign Years');
+}
+function renderStockAvailableKpis() {
+  const distinctSku = stockAvailableList.length;
+  const totalQty = stockAvailableList.reduce((sum, it) => sum + Object.values(it.qtyByLocation || {}).reduce((s, q) => s + (Number(q) || 0), 0), 0);
+  const boutiqueSet = new Set();
+  stockAvailableList.forEach(it => Object.keys(it.qtyByLocation || {}).forEach(z => { if (z) boutiqueSet.add(z); }));
+  const cards = [
+    { num: formatQty(distinctSku), label: 'Total SKU' },
+    { num: formatQty(totalQty), label: 'Total Qty' },
+    { num: formatQty(boutiqueSet.size), label: 'Boutiques/Zones' },
+  ];
+  document.getElementById('stockAvailableKpiGrid').innerHTML = cards.map(c =>
+    `<div class="kpi-card ${c.cls || ''}"><div class="kpi-num">${c.num}</div><div class="kpi-label">${c.label}</div></div>`
+  ).join('');
+}
+function renderStockAvailableTable() {
+  const wrap = document.getElementById('stockAvailableTableWrap');
+  const pagWrap = document.getElementById('stockAvailablePaginationWrap');
+  const list = stockAvailableFilteredList();
+  if (!list.length) {
+    wrap.innerHTML = `<div class="empty-state">${stockAvailableList.length ? 'No rows match the search/filter.' : 'No Available Stock uploaded yet.'}</div>`;
+    pagWrap.innerHTML = '';
+    return;
+  }
+  const boutiqueFilter = document.getElementById('stockAvailableBoutiqueFilter').value;
+  const skuRows = [...list].sort((a, b) => a.sku.localeCompare(b.sku));
+  let zones;
+  if (boutiqueFilter) {
+    // Narrow to just the one selected boutique's column — rows themselves stay as-is (a SKU with 0
+    // stock there is still shown, see stockAvailableFilteredList's comment on this filter).
+    zones = [boutiqueFilter];
+  } else {
+    const zoneSet = new Set();
+    list.forEach(r => Object.keys(r.qtyByLocation || {}).forEach(z => zoneSet.add(z || '(No Zone)')));
+    zones = stockAvailableOrderedZones([...zoneSet]);
+  }
+
+  const totalPages = Math.max(1, Math.ceil(skuRows.length / STOCK_AVAILABLE_PAGE_SIZE));
+  if (stockAvailablePage >= totalPages) stockAvailablePage = totalPages - 1;
+  if (stockAvailablePage < 0) stockAvailablePage = 0;
+  const pageRows = skuRows.slice(stockAvailablePage * STOCK_AVAILABLE_PAGE_SIZE, (stockAvailablePage + 1) * STOCK_AVAILABLE_PAGE_SIZE);
+
+  let html = `<table class="stock-available-pivot-table"><thead><tr><th class="sap-sku sap-text">SKU</th><th class="sap-text">Brand</th><th class="sap-text">Group</th><th class="sap-text">Color</th><th class="sap-text">Size</th>${zones.map(z => `<th>${escapeHtml(z)}</th>`).join('')}</tr></thead><tbody>`;
+  pageRows.forEach(g => {
+    html += `<tr>
+      <td class="sap-sku mono-name">${escapeHtml(g.sku)}</td>
+      <td class="sap-text">${escapeHtml(g.itemBrand || '-')}</td>
+      <td class="sap-text">${escapeHtml(g.itemGroup || '-')}</td>
+      <td class="sap-text">${escapeHtml(g.itemColor || '-')}</td>
+      <td class="sap-text">${escapeHtml(g.itemSize || '-')}</td>
+      ${zones.map(z => `<td>${formatQty((g.qtyByLocation || {})[z === '(No Zone)' ? '' : z] || 0)}</td>`).join('')}
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+
+  pagWrap.innerHTML = `
+    <button type="button" class="btn-ghost" id="stockAvailablePrevPageBtn" ${stockAvailablePage === 0 ? 'disabled' : ''}>&#8249; Prev</button>
+    <span class="data-note" style="margin:0;">Page ${stockAvailablePage + 1} / ${totalPages} — ${formatQty(skuRows.length)} SKU</span>
+    <button type="button" class="btn-ghost" id="stockAvailableNextPageBtn" ${stockAvailablePage >= totalPages - 1 ? 'disabled' : ''}>Next &#8250;</button>
+  `;
+  document.getElementById('stockAvailablePrevPageBtn').addEventListener('click', () => { stockAvailablePage--; renderStockAvailableTable(); });
+  document.getElementById('stockAvailableNextPageBtn').addEventListener('click', () => { stockAvailablePage++; renderStockAvailableTable(); });
+}
+function renderStockAvailableTab() {
+  // See stockAvailableInitialSyncDone's comment — avoids flashing a stale local cache before this
+  // device's first cloud check of the page-load has resolved.
+  if (!stockAvailableInitialSyncDone && isCloudSyncEnabled()) {
+    document.getElementById('stockAvailableStatusNote').textContent = 'Syncing with cloud…';
+    document.getElementById('stockAvailableKpiGrid').innerHTML = '';
+    document.getElementById('stockAvailableTableWrap').innerHTML = '<div class="empty-state">Syncing with cloud…</div>';
+    document.getElementById('stockAvailablePaginationWrap').innerHTML = '';
+    return;
+  }
+  renderStockAvailableStatusNote();
+  renderStockAvailableFilterOptions();
+  renderStockAvailableKpis();
+  renderStockAvailableTable();
+}
+document.getElementById('stockAvailableSearchInput').addEventListener('input', () => { stockAvailablePage = 0; renderStockAvailableTable(); });
+document.getElementById('stockAvailableBrandFilter').addEventListener('change', () => { stockAvailablePage = 0; renderStockAvailableTable(); });
+document.getElementById('stockAvailableGroupFilter').addEventListener('change', () => { stockAvailablePage = 0; renderStockAvailableTable(); });
+document.getElementById('stockAvailableColorFilter').addEventListener('change', () => { stockAvailablePage = 0; renderStockAvailableTable(); });
+document.getElementById('stockAvailableSizeFilter').addEventListener('change', () => { stockAvailablePage = 0; renderStockAvailableTable(); });
+document.getElementById('stockAvailableBoutiqueFilter').addEventListener('change', () => { stockAvailablePage = 0; renderStockAvailableTable(); });
+document.getElementById('stockAvailableYearFilter').addEventListener('change', () => { stockAvailablePage = 0; renderStockAvailableTable(); });
+
+/* ---- Boutique/zone column order (per-device display preference, saved to localStorage) ---- */
+// Alphabetical, except "Khatam Warehouse" (the main/central location, not just another boutique)
+// is pinned first — see renderStockAvailableTable's earlier comment for why plain alpha sort alone
+// puts it near the end instead.
+function stockAvailableDefaultZoneOrder(zonesArr) {
+  const sorted = [...zonesArr].sort();
+  const warehouseIdx = sorted.findIndex(z => z.toUpperCase() === 'KHATAM WAREHOUSE');
+  if (warehouseIdx > 0) sorted.unshift(sorted.splice(warehouseIdx, 1)[0]);
+  return sorted;
+}
+function stockAvailableGetColumnOrder() {
+  try { return JSON.parse(localStorage.getItem(STOCK_AVAILABLE_COL_ORDER_KEY)) || null; } catch (e) { return null; }
+}
+function stockAvailableSaveColumnOrder(order) { localStorage.setItem(STOCK_AVAILABLE_COL_ORDER_KEY, JSON.stringify(order)); }
+// Applies the saved custom order (if any) to whatever zones are actually present right now — any
+// zone in the saved order that's no longer present is skipped, and any zone present now but NOT in
+// the saved order (e.g. a brand-new boutique from a later upload) is appended at the end, in default
+// order, rather than silently missing from the table.
+function stockAvailableOrderedZones(zonesArr) {
+  const saved = stockAvailableGetColumnOrder();
+  if (!saved || !saved.length) return stockAvailableDefaultZoneOrder(zonesArr);
+  const zoneSet = new Set(zonesArr);
+  const ordered = saved.filter(z => zoneSet.has(z));
+  const leftover = zonesArr.filter(z => !saved.includes(z));
+  return ordered.concat(stockAvailableDefaultZoneOrder(leftover));
+}
+// In-memory working copy while the Reorder modal is open — only written to localStorage on Save.
+let stockAvailableReorderWorkingList = [];
+// Index currently being dragged, while a drag gesture is in progress (null otherwise).
+let stockAvailableDragFromIndex = null;
+function renderStockAvailableReorderList() {
+  const wrap = document.getElementById('stockAvailableReorderColsList');
+  wrap.innerHTML = stockAvailableReorderWorkingList.map((z, i) => `
+    <div class="stockAvailableReorderRow" draggable="true" data-i="${i}" style="display:flex; align-items:center; gap:8px; padding:6px 8px; background:var(--bg); border-radius:4px; cursor:grab;">
+      <span style="opacity:0.5; cursor:grab;">⠿</span>
+      <span style="flex:1;">${escapeHtml(z)}</span>
+      <button type="button" class="btn-ghost stockAvailableReorderUpBtn" data-i="${i}" ${i === 0 ? 'disabled' : ''} style="padding:2px 8px;">▲</button>
+      <button type="button" class="btn-ghost stockAvailableReorderDownBtn" data-i="${i}" ${i === stockAvailableReorderWorkingList.length - 1 ? 'disabled' : ''} style="padding:2px 8px;">▼</button>
+    </div>
+  `).join('');
+  wrap.querySelectorAll('.stockAvailableReorderUpBtn').forEach(btn => btn.addEventListener('click', () => {
+    const i = Number(btn.dataset.i);
+    [stockAvailableReorderWorkingList[i - 1], stockAvailableReorderWorkingList[i]] = [stockAvailableReorderWorkingList[i], stockAvailableReorderWorkingList[i - 1]];
+    renderStockAvailableReorderList();
+  }));
+  wrap.querySelectorAll('.stockAvailableReorderDownBtn').forEach(btn => btn.addEventListener('click', () => {
+    const i = Number(btn.dataset.i);
+    [stockAvailableReorderWorkingList[i + 1], stockAvailableReorderWorkingList[i]] = [stockAvailableReorderWorkingList[i], stockAvailableReorderWorkingList[i + 1]];
+    renderStockAvailableReorderList();
+  }));
+  // Drag-and-drop reordering — an alternative to the ▲▼ buttons above, not a replacement (both act
+  // on the same stockAvailableReorderWorkingList array, so either works interchangeably).
+  wrap.querySelectorAll('.stockAvailableReorderRow').forEach(row => {
+    row.addEventListener('dragstart', (e) => {
+      stockAvailableDragFromIndex = Number(row.dataset.i);
+      e.dataTransfer.effectAllowed = 'move';
+      row.style.opacity = '0.4';
+    });
+    row.addEventListener('dragend', () => {
+      stockAvailableDragFromIndex = null;
+      row.style.opacity = '';
+      wrap.querySelectorAll('.stockAvailableReorderRow').forEach(r => r.style.borderTop = '');
+    });
+    row.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      row.style.borderTop = '2px solid var(--gold)';
+    });
+    row.addEventListener('dragleave', () => { row.style.borderTop = ''; });
+    row.addEventListener('drop', (e) => {
+      e.preventDefault();
+      row.style.borderTop = '';
+      const toIndex = Number(row.dataset.i);
+      if (stockAvailableDragFromIndex === null || stockAvailableDragFromIndex === toIndex) return;
+      const [moved] = stockAvailableReorderWorkingList.splice(stockAvailableDragFromIndex, 1);
+      stockAvailableReorderWorkingList.splice(toIndex, 0, moved);
+      renderStockAvailableReorderList();
+    });
+  });
+}
+document.getElementById('stockAvailableReorderColsBtn').addEventListener('click', () => {
+  const zoneSet = new Set();
+  stockAvailableList.forEach(it => Object.keys(it.qtyByLocation || {}).forEach(z => { if (z) zoneSet.add(z); }));
+  stockAvailableReorderWorkingList = stockAvailableOrderedZones([...zoneSet]);
+  renderStockAvailableReorderList();
+  document.getElementById('stockAvailableReorderColsModal').classList.remove('hidden');
+});
+document.getElementById('stockAvailableReorderColsCloseBtn').addEventListener('click', () => {
+  document.getElementById('stockAvailableReorderColsModal').classList.add('hidden');
+});
+document.getElementById('stockAvailableReorderColsModal').addEventListener('click', (e) => {
+  if (e.target.id === 'stockAvailableReorderColsModal') document.getElementById('stockAvailableReorderColsModal').classList.add('hidden');
+});
+document.getElementById('stockAvailableReorderColsResetBtn').addEventListener('click', () => {
+  const zoneSet = new Set();
+  stockAvailableList.forEach(it => Object.keys(it.qtyByLocation || {}).forEach(z => { if (z) zoneSet.add(z); }));
+  stockAvailableReorderWorkingList = stockAvailableDefaultZoneOrder([...zoneSet]);
+  renderStockAvailableReorderList();
+});
+document.getElementById('stockAvailableReorderColsSaveBtn').addEventListener('click', () => {
+  stockAvailableSaveColumnOrder(stockAvailableReorderWorkingList);
+  document.getElementById('stockAvailableReorderColsModal').classList.add('hidden');
+  renderStockAvailableTable();
+});
+
+document.getElementById('resetStockAvailableBtn').addEventListener('click', async () => {
+  if (!confirm(`Delete ALL Available Stock data (${formatQty(stockAvailableList.length)} SKU)? This clears it for EVERY device (synced), not just this one. PERMANENT — no backup is kept, this cannot be undone. Re-upload a file to load data again.`)) return;
+  try {
+    await performStockAvailableReset();
+  } catch (err) {
+    alert('Failed to reset Available Stock: ' + err.message);
+  }
+});
+/* ==================== end Stock Available ==================== */
 
 
 // ---- Auto-fill SKU: map a checklist Series to ONE "product" from Item Master List, then apply
@@ -13832,8 +14552,8 @@ function renderCloudSyncStatus() {
   if (sidebarNote) sidebarNote.textContent = shortText;
   updateSidebarSyncBarVisibility();
 }
-document.getElementById('cloudSyncNowBtn').addEventListener('click', () => { initialCloudSync(); initialItemMasterCloudSync(); });
-document.getElementById('sidebarSyncNowBtn').addEventListener('click', () => { initialCloudSync(); initialItemMasterCloudSync(); });
+document.getElementById('cloudSyncNowBtn').addEventListener('click', () => { initialCloudSync(); initialItemMasterCloudSync(); initialStockAvailableCloudSync(); });
+document.getElementById('sidebarSyncNowBtn').addEventListener('click', () => { initialCloudSync(); initialItemMasterCloudSync(); initialStockAvailableCloudSync(); });
 
 const FLEET_DRIVERS_KEY = 'sto_fleet_drivers_v1';
 const FLEET_VEHICLES_KEY_LEGACY = 'sto_fleet_vehicles_v1'; // pre-simplification key (had plate/vehicle type too)
@@ -16576,11 +17296,11 @@ function renderRequestStockTab() {
 }
 function reqStockUniqueValues(field, filters) {
   const seen = new Set();
-  // Used to hide combos with zero/no Stock Balance so staff only saw picks that actually had
-  // stock. Stock Balance (that tab) was removed per her request (Sep 16, 2026) — reqStockAvailableQty
-  // is now a permanent stub returning null, so this stays false and every combo shows, same as
-  // before Stock Balance ever existed.
-  const filterByStock = false;
+  // Hides Year/Brand/Group/Color/Size combos with zero (or no) stock, so staff only see picks that
+  // actually have something to give out — re-enabled Sep 16, 2026 now that reqStockAvailableQty
+  // reads real numbers from the Available Stock tab. Applies at every cascade level (Year down to
+  // Size), so e.g. a whole Campaign Year with nothing left in stock won't even show up.
+  const filterByStock = true;
   itemMasterList.forEach(it => {
     if (filters.campaignYear && (it.campaignYear || '') !== filters.campaignYear) return;
     if (filters.brand && (it.itemBrand || '') !== filters.brand) return;
@@ -16606,13 +17326,32 @@ function reqStockMatchedItem(line) {
     (it.itemSize || '') === line.size
   ) || null;
 }
-// "Available" column on the item line used to pull from Stock Balance (a separate tab, removed
-// per her request Sep 16, 2026 — see reqStockLocationBreakdownHtml below for the other half of
-// this). Kept as a stub returning null (= "no stock data available") rather than deleting outright,
-// since every call site below already handles null exactly the same way it handled "SKU not found
-// in Stock Balance" before — same as reqStockUniqueValues' filterByStock fallback right above.
+// "Available" column on the item line — linked to the Available Stock tab (Sep 16, 2026).
+// Sums qtyByLocation across every boutique/zone for the matched SKU. Returns null only when the
+// SKU has no Available Stock record at all (e.g. never uploaded / not in the last import) — every
+// call site already treats null as "no stock data available", same as the old Stock Balance stub.
+// Backed by a sku->qty Map (built once per distinct stockAvailableList array, cached by reference)
+// instead of a linear .find() — reqStockUniqueValues now calls this once per Item Master row on
+// every dropdown render (with filterByStock on), so a linear scan here made that an O(n*m) scan
+// across two ~10k-row lists — that was the actual cause of the lag after filterByStock was enabled.
+let _reqStockAvailQtyIndex = null;
+let _reqStockAvailQtyIndexSrc = null;
+function reqStockAvailableQtyIndex() {
+  if (_reqStockAvailQtyIndexSrc !== stockAvailableList) {
+    const map = new Map();
+    stockAvailableList.forEach(rec => {
+      const total = Object.values(rec.qtyByLocation || {}).reduce((sum, v) => sum + (Number(v) || 0), 0);
+      map.set(rec.sku, total);
+    });
+    _reqStockAvailQtyIndex = map;
+    _reqStockAvailQtyIndexSrc = stockAvailableList;
+  }
+  return _reqStockAvailQtyIndex;
+}
 function reqStockAvailableQty(sku) {
-  return null;
+  if (!sku) return null;
+  const map = reqStockAvailableQtyIndex();
+  return map.has(sku) ? map.get(sku) : null;
 }
 function reqStockConfirmedItemRowHtml(it, i, removeClass) {
   const matched = reqStockMatchedItem(it);
@@ -16645,7 +17384,7 @@ function renderReqStockItemLines() {
     <div class="field"><label>Color</label><select id="reqStockColorInput" style="width:100%;" ${!line.group ? 'disabled' : ''}>${selectOptions(colorOpts, line.color, line.group ? '-- Select --' : '-')}</select></div>
     <div class="field"><label>Size</label><select id="reqStockSizeInput" style="width:100%;" ${!line.color ? 'disabled' : ''}>${selectOptions(sizeOpts, line.size, line.color ? '-- Select --' : '-')}</select></div>
     <div class="field"><label>Qty</label><input type="number" min="1" id="reqStockQtyInput" value="${escapeHtml(line.qty)}" style="width:100%;"></div>
-    <div class="field"><label>Available</label><div class="req-stock-available-qty" title="Stock availability tracking is not currently set up" style="padding:9px 2px; font-weight:600; ${availColor}">${availDisplay}</div></div>
+    <div class="field"><label>Available</label><div class="req-stock-available-qty" title="Live total from Available Stock, summed across all boutiques/zones" style="padding:9px 2px; font-weight:600; ${availColor}">${availDisplay}</div></div>
   </div>`;
   document.getElementById('reqStockYearInput').addEventListener('change', (e) => {
     reqStockDraftLine.campaignYear = e.target.value;
@@ -16829,11 +17568,20 @@ let reqStockProcessTargetId = null;
 // index within the CURRENTLY open request; reset every time the modal opens for a (possibly
 // different) request so stale picks never leak between requests.
 let reqStockProcessExchangeDraft = {};
-// Used to show a per-location "Warehouse: n" breakdown from Stock Balance (that tab, removed per
-// her request Sep 16, 2026). Kept as a stub with the same "no data" message it already showed for
-// any SKU with no Stock Balance match, so the Process Request modal still renders correctly.
+// Per-location "Boutique: n" breakdown — linked to the Available Stock tab (Sep 16, 2026), used here
+// in the Process Request modal so staff can see exactly where the SKU sits while physically checking
+// it. Shows every zone (including 0-qty ones, dimmed) using the same custom column order as the
+// Available Stock table, so it reads consistently across both tabs.
 function reqStockLocationBreakdownHtml(sku) {
-  return `<span class="data-note" style="margin:0;">No Stock Balance data for this SKU.</span>`;
+  const rec = stockAvailableList.find(r => r.sku === sku);
+  if (!rec || !rec.qtyByLocation || !Object.keys(rec.qtyByLocation).length) {
+    return `<span class="data-note" style="margin:0;">No Available Stock data for this SKU.</span>`;
+  }
+  const zones = stockAvailableOrderedZones(Object.keys(rec.qtyByLocation));
+  return `<div style="display:flex; flex-wrap:wrap; gap:6px;">` + zones.map(z => {
+    const qty = rec.qtyByLocation[z] || 0;
+    return `<span style="font-size:12px; padding:3px 8px; border:1px solid var(--border); border-radius:4px; ${qty <= 0 ? 'color:var(--text-muted);' : ''}">${escapeHtml(z)}: <strong>${formatQty(qty)}</strong></span>`;
+  }).join('') + `</div>`;
 }
 function openReqStockProcessModal(id) {
   reqStockProcessTargetId = id;
@@ -17106,7 +17854,7 @@ function renderGuestReqStockItemLines() {
     <div class="field"><label>Color</label><select id="guestReqStockColorInput" style="width:100%;" ${!line.group ? 'disabled' : ''}>${selectOptions(colorOpts, line.color, line.group ? '-- Select --' : '-')}</select></div>
     <div class="field"><label>Size</label><select id="guestReqStockSizeInput" style="width:100%;" ${!line.color ? 'disabled' : ''}>${selectOptions(sizeOpts, line.size, line.color ? '-- Select --' : '-')}</select></div>
     <div class="field"><label>Qty</label><input type="number" min="1" id="guestReqStockQtyInput" value="${escapeHtml(line.qty)}" style="width:100%;"></div>
-    <div class="field"><label>Available</label><div class="req-stock-available-qty" title="Stock availability tracking is not currently set up" style="padding:9px 2px; font-weight:600; ${availColor}">${availDisplay}</div></div>
+    <div class="field"><label>Available</label><div class="req-stock-available-qty" title="Live total from Available Stock, summed across all boutiques/zones" style="padding:9px 2px; font-weight:600; ${availColor}">${availDisplay}</div></div>
   </div>`;
   document.getElementById('guestReqStockYearInput').addEventListener('change', (e) => {
     guestReqStockDraftLine.campaignYear = e.target.value;
@@ -23530,7 +24278,7 @@ async function syncThenRecheckAuthGate() {
   if (isCloudSyncEnabled()) {
     // Run together (not one-after-another) so the large Item Master sync doesn't add extra wait
     // time on top of the normal (much smaller/faster) collections sync before the login gate re-checks.
-    try { await Promise.all([initialCloudSync(), initialItemMasterCloudSync()]); } catch (e) { /* keep whatever's already showing */ }
+    try { await Promise.all([initialCloudSync(), initialItemMasterCloudSync(), initialStockAvailableCloudSync()]); } catch (e) { /* keep whatever's already showing */ }
     initAuthGate();
     renderLoginBoutiqueMarkers();
   }
