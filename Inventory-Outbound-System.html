@@ -9707,6 +9707,12 @@ self.onmessage = function(e) {
 };
 `;
 let stockBalanceWorker = null;
+// The worker's very first line (importScripts of the XLSX library) has to fetch it fresh from CDN
+// every time this page is freshly loaded/reloaded — workers don't persist across page loads, so
+// this happens again on day one of every new session, not just the very first time ever. If that
+// fetch is slow/blocked (flaky connection, corporate proxy, CDN hiccup) the worker just sits there
+// mid-importScripts with no error and no progress — this used to leave "Processing file..." stuck
+// forever with no feedback. A 45s timeout turns that into a clear, actionable error instead.
 function stockBalanceParseInWorker(ext, buffer, text) {
   return new Promise((resolve, reject) => {
     if (!stockBalanceWorker) {
@@ -9714,13 +9720,31 @@ function stockBalanceParseInWorker(ext, buffer, text) {
       stockBalanceWorker = new Worker(URL.createObjectURL(blob));
     }
     const worker = stockBalanceWorker;
+    let settled = false;
+    const timeoutId = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      worker.removeEventListener('message', onMessage);
+      worker.removeEventListener('error', onError);
+      // Kill and drop the stuck worker so the NEXT upload attempt spins up a fresh one instead of
+      // waiting on a worker that may still be wedged mid-importScripts.
+      worker.terminate();
+      stockBalanceWorker = null;
+      reject(new Error('Taking too long (45s+) — likely a slow/blocked internet connection while loading a required library. Check your connection and try uploading again.'));
+    }, 45000);
     const onMessage = (e) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
       worker.removeEventListener('message', onMessage);
       worker.removeEventListener('error', onError);
       if (e.data && e.data.ok) resolve({ mapped: e.data.mapped, excludedCount: e.data.excludedCount });
       else reject(new Error((e.data && e.data.error) || 'Failed to process file.'));
     };
     const onError = (e) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
       worker.removeEventListener('message', onMessage);
       worker.removeEventListener('error', onError);
       reject(new Error(e.message || 'Worker error while processing file.'));
