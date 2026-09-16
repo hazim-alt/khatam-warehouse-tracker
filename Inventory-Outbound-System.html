@@ -2499,7 +2499,7 @@
     <p class="section-title">Stock Balance</p>
     <div class="card">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-        <span class="data-note" style="margin:0;">Upload the "Inventory Balance Summary Report" export (must have a "SKU" column; the "SKU Description", "Item Group", "Item Brand", "Item UOM" &amp; "Total Qty" columns — if present — will also be used). If the report has a Boutique/Customer breakdown, each SKU will be stored separately per boutique. "Unused Product" &amp; "China Rewash" rows are auto-excluded on every upload. Each upload FULLY REPLACES the existing list (a fresh snapshot, not additive) — this data is stored on this browser/computer only (not cloud-synced, due to its size, like Item Master List) — if you open this on another computer, re-upload the file there too.</span>
+        <span class="data-note" style="margin:0;">Upload the "Inventory Balance Summary Report" export (must have a "SKU" column; the "SKU Description", "Item Group", "Item Brand", "Item UOM" &amp; "Total Qty" columns — if present — will also be used). If the report has a Boutique/Customer breakdown, each SKU will be stored separately per boutique. "Unused Product" &amp; "China Rewash" rows are auto-excluded on every upload. Each upload FULLY REPLACES the existing list (a fresh snapshot, not additive) — this list IS cloud-synced automatically (unlike Item Master List) once uploaded here, so every account/device picks it up on its own.</span>
         <span id="stockBalanceStatusNote" class="data-note" style="margin:0; white-space:nowrap;"></span>
       </div>
       <div class="dropzone" id="stockBalanceDropzone">
@@ -2527,6 +2527,15 @@
       <div class="data-note" style="margin:0 0 10px;">Each boutique becomes one column (like a pivot table) — scroll right if there are many columns.</div>
       <div id="stockBalanceTableWrap" class="scroll-table"></div>
       <div id="stockBalancePaginationWrap" style="display:flex; align-items:center; justify-content:center; gap:10px; margin-top:12px;"></div>
+    </div>
+
+    <div class="card" style="margin-top:16px; border-color:#e0685c;">
+      <p class="rm-form-section-label" style="margin-top:0; color:#e0685c;">⚠ Danger Zone</p>
+      <span class="data-note" style="margin:0;">Delete ALL Stock Balance data — to clear old/test data before starting fresh. This clears it for everyone (synced), not just this device. This action can be undone once, right after you click it (use "↩ Undo Reset") — resetting again will lose the ability to undo the previous one.</span>
+      <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+        <button class="btn-ghost" id="undoResetStockBalanceBtn" style="display:none;">↩ Undo Reset</button>
+        <button class="btn-ghost" id="resetStockBalanceBtn" style="color:#e0685c;">🗑 Reset Stock Balance</button>
+      </div>
     </div>
   </section>
 
@@ -4720,6 +4729,8 @@ function updateResetUndoButtons() {
   if (undoRmBtn) undoRmBtn.style.display = localStorage.getItem(RM_RESET_SNAPSHOT_KEY) ? '' : 'none';
   const undoItemMasterBtn = document.getElementById('undoResetItemMasterBtn');
   if (undoItemMasterBtn) undoItemMasterBtn.style.display = localStorage.getItem(ITEM_MASTER_HAS_BACKUP_KEY) ? '' : 'none';
+  const undoStockBalanceBtn = document.getElementById('undoResetStockBalanceBtn');
+  if (undoStockBalanceBtn) undoStockBalanceBtn.style.display = localStorage.getItem(STOCK_BALANCE_HAS_BACKUP_KEY) ? '' : 'none';
 }
 document.getElementById('resetProgressBtn').addEventListener('click', () => {
   if (!confirm('Reset the Progress Board? Every STO moves back to Active, and any Carton No. / DO No. / picker(s) / packing station / rollcage already assigned to them is cleared (Carton No. and DO No. counters reset to 0 too). Boutique SLA settings, boutique codes/addresses, label From-details and registered Packing Stations are kept. Click "Undo Reset" right after if this was a mistake — it stops working once you reset again.')) return;
@@ -7825,7 +7836,7 @@ function applyUserPermissions(user) {
   // team, not just this user's own work — Admin/Team Lead only, even for a non-admin who's been
   // granted the surrounding tab (Progress Board / Trip Schedule) itself.
   const isAdminUser = !!(user && user.isAdmin);
-  ['resetProgressBtn', 'undoResetProgressBtn', 'resetFleetTripsBtn', 'undoResetTripBtn', 'resetInboundStoBtn', 'undoResetInboundStoBtn', 'resetRmBtn', 'undoResetRmBtn', 'resetItemMasterBtn', 'undoResetItemMasterBtn'].forEach(id => {
+  ['resetProgressBtn', 'undoResetProgressBtn', 'resetFleetTripsBtn', 'undoResetTripBtn', 'resetInboundStoBtn', 'undoResetInboundStoBtn', 'resetRmBtn', 'undoResetRmBtn', 'resetItemMasterBtn', 'undoResetItemMasterBtn', 'resetStockBalanceBtn', 'undoResetStockBalanceBtn'].forEach(id => {
     const btn = document.getElementById(id);
     if (btn) btn.style.display = isAdminUser ? '' : 'none';
   });
@@ -9420,12 +9431,19 @@ document.getElementById('undoResetItemMasterBtn').addEventListener('click', asyn
    end to exclude unused products / China rewash items) — this tab does not compute IN/OUT itself,
    it just stores and browses whatever snapshot she uploads. Each upload REPLACES the whole list
    (it's a point-in-time snapshot, not an additive catalog like Item Master List). Same IndexedDB
-   storage pattern as Item Master List (can run to 10,000+ rows — way too big for localStorage, and
-   not synced to Firebase for the same reason). */
+   storage pattern as Item Master List locally (can run to 10,000+ rows — way too big for
+   localStorage) — but UNLIKE Item Master List, this one IS also pushed to Firebase (see the cloud
+   sync block below), so every account/device sees the same Stock Balance without its own upload. */
 const STOCK_BALANCE_IMPORTED_AT_KEY = 'sto_stock_balance_imported_at_v1';
 const STOCK_BALANCE_DB_NAME = 'khatam_stock_balance_db';
-const STOCK_BALANCE_DB_VERSION = 1;
+// Bumped 1 -> 2 to add STOCK_BALANCE_BACKUP_STORE (Reset/Undo Reset — Danger Zone below), same
+// one-level-undo pattern as Item Master List's own Reset button. Any device that already has the
+// version-1 database gets onupgradeneeded fired automatically the next time it opens this DB, which
+// creates the new store without touching the existing 'items' data.
+const STOCK_BALANCE_DB_VERSION = 2;
 const STOCK_BALANCE_STORE = 'items';
+const STOCK_BALANCE_BACKUP_STORE = 'backup';
+const STOCK_BALANCE_HAS_BACKUP_KEY = 'sto_stock_balance_has_backup_v1'; // cheap localStorage flag; the actual backup payload lives in IndexedDB (same size problem as the main list)
 let stockBalanceList = []; // [{ id, sku, description, itemGroup, itemBrand, uom, location, qty }] — one row per SKU, or per SKU+Boutique when the upload has a per-location breakdown ("location" is '' for a plain non-boutique summary report)
 let stockBalanceImportedAt = '';
 let stockBalanceDb = null;
@@ -9447,6 +9465,7 @@ function openStockBalanceDb() {
     req.onupgradeneeded = (e) => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains(STOCK_BALANCE_STORE)) db.createObjectStore(STOCK_BALANCE_STORE, { keyPath: 'id' });
+      if (!db.objectStoreNames.contains(STOCK_BALANCE_BACKUP_STORE)) db.createObjectStore(STOCK_BALANCE_BACKUP_STORE, { keyPath: 'key' });
     };
     req.onsuccess = (e) => { stockBalanceDb = e.target.result; resolve(stockBalanceDb); };
     req.onerror = (e) => reject((e.target && e.target.error) || new Error('Failed to open Stock Balance storage.'));
@@ -9461,6 +9480,32 @@ function stockBalanceGetAll() {
     const req = tx.objectStore(STOCK_BALANCE_STORE).getAll();
     req.onsuccess = () => resolve(req.result || []);
     req.onerror = () => reject(req.error);
+  }));
+}
+// "Reset Stock Balance" (Danger Zone) — wipes the whole list, one level of undo, same snapshot
+// pattern as Item Master List's Reset button (see itemMasterSaveBackup/LoadBackup/ClearBackup).
+function stockBalanceSaveBackup(list) {
+  return openStockBalanceDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(STOCK_BALANCE_BACKUP_STORE, 'readwrite');
+    tx.objectStore(STOCK_BALANCE_BACKUP_STORE).put({ key: 'reset_backup', items: list, importedAt: stockBalanceImportedAt, savedAt: new Date().toISOString() });
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+function stockBalanceLoadBackup() {
+  return openStockBalanceDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(STOCK_BALANCE_BACKUP_STORE, 'readonly');
+    const req = tx.objectStore(STOCK_BALANCE_BACKUP_STORE).get('reset_backup');
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  }));
+}
+function stockBalanceClearBackup() {
+  return openStockBalanceDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(STOCK_BALANCE_BACKUP_STORE, 'readwrite');
+    tx.objectStore(STOCK_BALANCE_BACKUP_STORE).delete('reset_backup');
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
   }));
 }
 // Async — called (unawaited, fire-and-forget) from loadData() at startup; if the Stock Balance tab
@@ -9496,14 +9541,18 @@ let stockBalanceFbListenerAttached = false;
 // flag is true, applyStockBalanceServerSnapshot skips entirely; the final 'value' event, once every
 // chunk has landed, carries the complete correct data and gets applied normally.
 let stockBalancePushInFlight = false;
-function pushStockBalanceDiffToFirebase() {
+// opts.skipEmptyGuard: set by the Reset Stock Balance button (Danger Zone) — a deliberate,
+// user-confirmed "clear everything" action, same reasoning/pattern as pushCollectionDiff's
+// skipEmptyGuard (see that comment for the full story of why the blanket guard alone isn't right).
+function pushStockBalanceDiffToFirebase(opts) {
   if (!fbDb) return;
   // Safety guard: a device with an EMPTY local list (never uploaded here, or its own pull just
   // hasn't happened/finished yet) has nothing useful to contribute — if it pushed anyway, the diff
   // below would read as "every record that exists remotely is now missing" and delete the whole
   // shared list out from under everyone else. Only a real upload (always non-empty — see
-  // processUploadedStockBalanceFile) should ever be treated as an intentional replace.
-  if (!stockBalanceList.length && Object.keys(_stockBalanceLastServerSnapshot).length) return;
+  // processUploadedStockBalanceFile) or a deliberate Reset (skipEmptyGuard) should ever be treated
+  // as an intentional replace.
+  if (!(opts && opts.skipEmptyGuard) && !stockBalanceList.length && Object.keys(_stockBalanceLastServerSnapshot).length) return;
   const nowKeyed = {};
   stockBalanceList.forEach(it => { nowKeyed[fbSafeKey(it.id)] = it; });
   const updateObj = {};
@@ -9526,14 +9575,15 @@ function applyStockBalanceServerSnapshot(remoteObj) {
   if (stockBalancePushInFlight) return;
   _stockBalanceLastServerSnapshot = remoteObj || {};
   const remoteArr = Object.values(_stockBalanceLastServerSnapshot);
-  // Safety guard: never let an EMPTY remote snapshot wipe a non-empty local list. There's no
-  // "delete everything" action for Stock Balance (unlike Item Master's own Reset button) — every
-  // upload always replaces with a NON-empty list (processUploadedStockBalanceFile already rejects
-  // empty files) — so an empty pull here can only mean "the cloud genuinely has nothing yet"
-  // (e.g. a write was blocked by a permissions/rules error) or a transient read hiccup, never an
-  // intentional clear. Without this guard, another device's blocked/incomplete sync could silently
-  // erase a fully-uploaded local Stock Balance the moment this listener re-fires.
-  if (!remoteArr.length && stockBalanceList.length) return;
+  // NOTE: there USED to be a guard here refusing to apply an empty remote snapshot onto a non-empty
+  // local list, back when there was no legitimate "delete everything" action for Stock Balance. Now
+  // that Reset Stock Balance (Danger Zone) exists, an empty remote CAN be a genuine, deliberate
+  // state — and that guard would have silently blocked a real Reset from ever reaching any other
+  // device (the exact same bug class fixed for Request Stock deletes — see pushCollectionDiff's
+  // skipEmptyGuard comment). The push side (pushStockBalanceDiffToFirebase) is the one place that
+  // actually knows the difference between "empty because nothing's loaded yet" and "empty because
+  // someone deliberately reset it" (via opts.skipEmptyGuard), so it's the sole gatekeeper now —
+  // whatever lands here is trusted as-is.
   if (stableStringify(remoteArr) === stableStringify(stockBalanceList)) return; // no-op — likely our own echo
   stockBalanceList = remoteArr;
   stockBalanceReplaceAll(remoteArr).catch(e => console.error('stockBalanceReplaceAll (remote sync) failed', e));
@@ -10006,6 +10056,50 @@ document.getElementById('stockBalanceSearchInput').addEventListener('input', () 
 document.getElementById('stockBalanceYearFilter').addEventListener('change', () => { stockBalancePage = 0; renderStockBalanceTable(); });
 document.getElementById('stockBalanceBrandFilter').addEventListener('change', () => { stockBalancePage = 0; renderStockBalanceTable(); });
 document.getElementById('stockBalanceGroupFilter').addEventListener('change', () => { stockBalancePage = 0; renderStockBalanceTable(); });
+
+// "Reset Stock Balance" (Danger Zone) — same one-level-undo pattern as Reset Item Master List, but
+// this one DOES need to reach Firebase (Stock Balance is cloud-synced, Item Master isn't) — see
+// pushStockBalanceDiffToFirebase's skipEmptyGuard and applyStockBalanceServerSnapshot's comment for
+// why the empty push/pull guards had to be updated to let a deliberate Reset propagate correctly.
+document.getElementById('resetStockBalanceBtn').addEventListener('click', async () => {
+  if (!confirm(`Delete ALL Stock Balance data (${formatQty(stockBalanceList.length)} row(s))? This clears it for EVERY device (synced), not just this one. This action can be undone once, right after you click it ("Undo Reset") — resetting again will lose the ability to undo the previous one.`)) return;
+  try {
+    await stockBalanceSaveBackup(stockBalanceList);
+    localStorage.setItem(STOCK_BALANCE_HAS_BACKUP_KEY, '1');
+    await stockBalanceReplaceAll([]);
+  } catch (err) {
+    alert('Failed to reset Stock Balance: ' + err.message);
+    return;
+  }
+  stockBalanceList = [];
+  stockBalanceImportedAt = '';
+  localStorage.removeItem(STOCK_BALANCE_IMPORTED_AT_KEY);
+  pushStockBalanceDiffToFirebase({ skipEmptyGuard: true });
+  stockBalancePage = 0;
+  renderStockBalanceTab();
+  updateResetUndoButtons();
+});
+document.getElementById('undoResetStockBalanceBtn').addEventListener('click', async () => {
+  if (!localStorage.getItem(STOCK_BALANCE_HAS_BACKUP_KEY)) return;
+  if (!confirm('Undo the last Stock Balance reset? All rows will be restored to how they were before that reset, on every device.')) return;
+  try {
+    const backup = await stockBalanceLoadBackup();
+    const restored = (backup && backup.items) || [];
+    await stockBalanceReplaceAll(restored);
+    stockBalanceList = restored;
+    stockBalanceImportedAt = (backup && backup.importedAt) || '';
+    if (stockBalanceImportedAt) localStorage.setItem(STOCK_BALANCE_IMPORTED_AT_KEY, stockBalanceImportedAt);
+    await stockBalanceClearBackup();
+  } catch (err) {
+    alert('Failed to undo reset: ' + err.message);
+    return;
+  }
+  localStorage.removeItem(STOCK_BALANCE_HAS_BACKUP_KEY);
+  pushStockBalanceDiffToFirebase();
+  stockBalancePage = 0;
+  renderStockBalanceTab();
+  updateResetUndoButtons();
+});
 /* ==================== end Stock Balance ==================== */
 
 // ---- Auto-fill SKU: map a checklist Series to ONE "product" from Item Master List, then apply
