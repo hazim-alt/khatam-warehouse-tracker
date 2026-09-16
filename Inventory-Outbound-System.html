@@ -9494,6 +9494,15 @@ async function loadStockBalanceList() {
    upload, which always replaces the whole list — see processUploadedStockBalanceFile), and pulls
    via a realtime listener that only does work when the data genuinely changes. */
 const STOCK_BALANCE_FB_TABLE = 'StockBalanceList';
+// Separate top-level marker, written by the Reset Stock Balance button, purely so every device can
+// tell "has ANYONE ever done a deliberate Reset" apart from "the cloud genuinely has never had
+// data yet". Without this, initialStockBalanceCloudSync's one-time union-merge (below) can't tell
+// those two cases apart — a device that hasn't completed its OWN one-time merge yet (a fresh
+// browser profile, or simply one that hadn't loaded since this cloud sync feature first shipped)
+// would see an empty-after-Reset server list and "helpfully" push its own still-populated, now-
+// stale local copy right back up, resurrecting exactly what Reset just deleted. Confirmed live:
+// resetting on one device, the data came back within moments across every other account/device.
+const STOCK_BALANCE_RESET_MARKER_TABLE = 'StockBalanceResetAt';
 let _stockBalanceLastServerSnapshot = {}; // fbSafeKey(id) -> record, mirrors fbLastServerSnapshot's role
 let stockBalanceFbListenerAttached = false;
 // True while THIS device's own chunked push (fbChunkedUpdate) to StockBalanceList is still landing.
@@ -9567,19 +9576,27 @@ function attachStockBalanceFbListener() {
   });
 }
 // Runs once at startup (alongside initialCloudSync / initialItemMasterCloudSync). First time EVER
-// on this computer: union-merge (keep this computer's own upload, adopt remote-only rows) so an
-// existing local upload isn't silently discarded just because Firebase happened to already have
-// something (or nothing). Every run after that: remote wins outright — same reasoning as Item
-// Master's own first-run handling.
+// on this computer AND only if nobody has ever hit Reset (see STOCK_BALANCE_RESET_MARKER_TABLE):
+// union-merge (keep this computer's own upload, adopt remote-only rows) so an existing local upload
+// isn't silently discarded just because Firebase happened to already have something (or nothing).
+// Every run after that (or immediately, if a Reset has ever happened): remote wins outright — same
+// reasoning as Item Master's own first-run handling, EXCEPT once a Reset marker exists, this
+// device's own local copy can no longer be trusted as "worth preserving" — it might just be stale
+// leftover data from before that Reset, and merging it back in would silently undo the Reset for
+// everyone (confirmed live — see that marker's comment).
 async function initialStockBalanceCloudSync() {
   if (!fbDb) return;
   await loadStockBalanceList(); // make sure stockBalanceList reflects this computer's IndexedDB before merging
   try {
-    const snap = await fbDb.ref(STOCK_BALANCE_FB_TABLE).once('value');
+    const [snap, resetMarkerSnap] = await Promise.all([
+      fbDb.ref(STOCK_BALANCE_FB_TABLE).once('value'),
+      fbDb.ref(STOCK_BALANCE_RESET_MARKER_TABLE).once('value'),
+    ]);
     const remoteObj = snap.val() || {};
     _stockBalanceLastServerSnapshot = remoteObj;
     const everMergedKey = fbEverMergedKey(STOCK_BALANCE_FB_TABLE);
-    if (!localStorage.getItem(everMergedKey)) {
+    const aResetHasHappened = !!resetMarkerSnap.val();
+    if (!localStorage.getItem(everMergedKey) && !aResetHasHappened) {
       const localKeys = new Set(stockBalanceList.map(it => fbSafeKey(it.id)));
       const mergedArr = [...stockBalanceList];
       Object.keys(remoteObj).forEach(k => { if (!localKeys.has(k)) mergedArr.push(remoteObj[k]); });
@@ -9593,6 +9610,7 @@ async function initialStockBalanceCloudSync() {
       pushStockBalanceDiffToFirebase();
       localStorage.setItem(everMergedKey, '1');
     } else {
+      if (!localStorage.getItem(everMergedKey)) localStorage.setItem(everMergedKey, '1'); // a Reset has happened — this device is "past" first-merge now too, permanently
       applyStockBalanceServerSnapshot(remoteObj);
       pushStockBalanceDiffToFirebase();
     }
@@ -10039,6 +10057,11 @@ document.getElementById('resetStockBalanceBtn').addEventListener('click', async 
   stockBalanceImportedAt = '';
   localStorage.removeItem(STOCK_BALANCE_IMPORTED_AT_KEY);
   pushStockBalanceDiffToFirebase({ skipEmptyGuard: true });
+  // Mark that a deliberate Reset happened — see STOCK_BALANCE_RESET_MARKER_TABLE's comment. Without
+  // this, another device/account that hasn't done its own one-time "first sync" merge yet would
+  // push its still-populated local copy back up and undo this Reset within moments.
+  if (fbDb) fbDb.ref(STOCK_BALANCE_RESET_MARKER_TABLE).set(new Date().toISOString()).catch(() => {});
+  localStorage.setItem(fbEverMergedKey(STOCK_BALANCE_FB_TABLE), '1'); // this device is now also "past" the first-merge stage
   stockBalancePage = 0;
   renderStockBalanceTab();
 });
