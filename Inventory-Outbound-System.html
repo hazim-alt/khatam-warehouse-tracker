@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1007,7 +1008,7 @@
 
 <!-- Guest Request Stock — lets staff submit a stock request (download blank form, fill, attach,
      submit) WITHOUT logging in. Reuses the same requestStockList/reqStock* helper functions and
-     data (itemMasterList, stockBalanceList, reqStockTemplate) as the authenticated Request Stock
+     data (itemMasterList, reqStockTemplate) as the authenticated Request Stock
      tab — those all load unconditionally at startup (see loadData()), independent of login state —
      but has its own separate DOM ids/draft state so it never touches or exposes anything else in
      the (still logged-out) app, including the Request History list of other people's requests. -->
@@ -2498,7 +2499,7 @@
     <p class="section-title">Stock Balance</p>
     <div class="card">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-        <span class="data-note" style="margin:0;">Upload the "Inventory Balance Summary Report" export (must have a "SKU" column; the "SKU Description", "Item Group", "Item Brand", "Item UOM" &amp; "Total Qty" columns — if present — will also be used). If the report has a Boutique/Customer breakdown, each SKU will be stored separately per boutique. "Unused Product" &amp; "China Rewash" rows are auto-excluded on every upload. Each upload FULLY REPLACES the existing list (a fresh snapshot, not additive) — this list IS cloud-synced automatically (unlike Item Master List) once uploaded here, so every account/device picks it up on its own.</span>
+        <span class="data-note" style="margin:0;">Upload the "Inventory Balance Summary Report" export (must have a "SKU" column; the "SKU Description", "Item Group", "Item Brand", "Item UOM" &amp; "Total Qty" columns — if present — will also be used). If the report has a Boutique/Customer breakdown, each SKU will be stored separately per boutique. "Unused Product" &amp; "China Rewash" rows are auto-excluded on every upload. Each upload FULLY REPLACES the existing list (a fresh snapshot, not additive) — this list is cloud-synced automatically, so every account/device picks it up on its own.</span>
         <span id="stockBalanceStatusNote" class="data-note" style="margin:0; white-space:nowrap;"></span>
       </div>
       <div class="dropzone" id="stockBalanceDropzone">
@@ -8265,7 +8266,7 @@ function anySetupDirty() {
 // Tables whose push to Firebase is currently mid-flight (fbChunkedUpdate still landing its chunks).
 // Firebase's realtime listener fires on every individual chunk as it arrives, not just once at the
 // end, so applyServerSnapshot() could otherwise adopt a genuinely PARTIAL snapshot mid-push (same
-// race documented in detail on stockBalancePushInFlight) — most SYNC_COLLECTIONS tables are small
+// race documented in detail on itemMasterPushInFlight below) — most SYNC_COLLECTIONS tables are small
 // enough to always fit in one chunk so this rarely bites, but it costs nothing to guard every table
 // the same way in case one grows past the chunk size.
 const collectionPushInFlight = new Set();
@@ -8943,9 +8944,9 @@ async function loadItemMasterList() {
 const ITEM_MASTER_FB_TABLE = 'ItemMasterList';
 let _itemMasterLastServerSnapshot = {}; // fbSafeKey(id) -> record, mirrors fbLastServerSnapshot's role
 let itemMasterFbListenerAttached = false;
-// See stockBalancePushInFlight's comment — same race: Firebase's realtime listener fires on every
-// individual chunk of a multi-chunk push, not just once at the end, so applying mid-push would apply
-// a genuinely partial snapshot. Skipped while our own push is still landing.
+// Firebase's realtime listener fires on every individual chunk of a multi-chunk push, not just once
+// at the end, so applying mid-push would apply a genuinely partial snapshot. Skipped while our own
+// push is still landing.
 let itemMasterPushInFlight = false;
 function pushItemMasterDiffToFirebase() {
   if (!fbDb) return;
@@ -9423,13 +9424,24 @@ document.getElementById('undoResetItemMasterBtn').addEventListener('click', asyn
 });
 
 /* ==================== Stock Balance (finished goods on-hand snapshot) ====================
-   She uploads her "Inventory Balance Summary Report" export straight in (already filtered on her
-   end to exclude unused products / China rewash items) — this tab does not compute IN/OUT itself,
-   it just stores and browses whatever snapshot she uploads. Each upload REPLACES the whole list
-   (it's a point-in-time snapshot, not an additive catalog like Item Master List). Same IndexedDB
-   storage pattern as Item Master List locally (can run to 10,000+ rows — way too big for
-   localStorage) — but UNLIKE Item Master List, this one IS also pushed to Firebase (see the cloud
-   sync block below), so every account/device sees the same Stock Balance without its own upload. */
+   Rebuilt from scratch (Sep 16, 2026) after the previous implementation was fully removed. She
+   uploads her "Inventory Balance Summary Report" export straight in (already filtered on her end
+   to exclude unused products / China rewash items) — this tab does not compute IN/OUT itself, it
+   just stores and browses whatever snapshot she uploads. Each upload REPLACES the whole list (a
+   point-in-time snapshot, not additive) — same IndexedDB storage pattern as Item Master List
+   locally (can run to 10,000+ rows — way too big for localStorage), and ALSO pushed to Firebase
+   (unlike Item Master) so every account/device sees the same Stock Balance without its own upload.
+   Every lesson learned building this the first time is baked in from day one this time:
+   Web Worker parsing (XLSX.read()/grouping is synchronous and freezes the tab on a big file),
+   chunked IndexedDB writes with yields (one giant transaction also freezes the tab),
+   chunked Firebase writes (a single huge .update() gets rejected outright as "Write too large"),
+   a mid-push guard (Firebase's realtime listener fires on every chunk landing, not just once at the
+   end — applying a genuinely partial mid-push snapshot flashes wrong numbers on screen),
+   a push-side empty-guard with an explicit skipEmptyGuard opt-in for Reset (an accidental empty
+   push from a device that hasn't loaded anything yet must never wipe everyone else's data — but a
+   deliberate Reset must still be able to, on purpose),
+   and a Reset marker (so another device/account that hasn't done its own first-time sync merge yet
+   doesn't "helpfully" push its own stale pre-Reset local copy back up and undo the Reset). */
 const STOCK_BALANCE_IMPORTED_AT_KEY = 'sto_stock_balance_imported_at_v1';
 const STOCK_BALANCE_DB_NAME = 'khatam_stock_balance_db';
 const STOCK_BALANCE_DB_VERSION = 1;
@@ -9438,14 +9450,10 @@ let stockBalanceList = []; // [{ id, sku, description, itemGroup, itemBrand, uom
 let stockBalanceImportedAt = '';
 let stockBalanceDb = null;
 // True while a big upload's local IndexedDB backup save (stockBalanceReplaceAll, running in the
-// background after "Success" already shows — see processUploadedStockBalanceFile) is still writing.
-// idbReplaceAllChunked clears the store up front, then refills it chunk by chunk — so mid-save,
-// IndexedDB genuinely only has a PARTIAL set of records. If loadStockBalanceList() runs during that
-// window (startup, or anyone clicking "Sync Now"/re-triggering initialStockBalanceCloudSync), it
-// would read that partial snapshot straight from IndexedDB and overwrite the correct, complete
-// in-memory stockBalanceList with it — flashing a wrong, smaller SKU/qty count on screen (confirmed
-// live: the counters briefly matched the save's own progress number exactly). While this flag is
-// true, loadStockBalanceList() leaves stockBalanceList (already correct in memory) alone.
+// background after "Success" already shows) is still writing — idbReplaceAllChunked clears the
+// store up front then refills it chunk by chunk, so mid-save, IndexedDB genuinely only has a
+// PARTIAL set of records. While this flag is true, loadStockBalanceList() leaves stockBalanceList
+// (already correct in memory) alone instead of reading that partial snapshot back over it.
 let stockBalanceLocalSaveInFlight = false;
 function openStockBalanceDb() {
   return new Promise((resolve, reject) => {
@@ -9460,6 +9468,8 @@ function openStockBalanceDb() {
     req.onerror = (e) => reject((e.target && e.target.error) || new Error('Failed to open Stock Balance storage.'));
   });
 }
+// idbReplaceAllChunked is the shared chunked-write helper (also used by Item Master List) defined
+// earlier in this file — reused here rather than duplicated.
 function stockBalanceReplaceAll(list, onProgress) {
   return openStockBalanceDb().then(db => idbReplaceAllChunked(db, STOCK_BALANCE_STORE, list, onProgress));
 }
@@ -9475,7 +9485,7 @@ function stockBalanceGetAll() {
 // happens to already be open when it resolves, it re-renders itself so it doesn't sit empty/stale.
 async function loadStockBalanceList() {
   stockBalanceImportedAt = localStorage.getItem(STOCK_BALANCE_IMPORTED_AT_KEY) || '';
-  if (stockBalanceLocalSaveInFlight) return; // see stockBalanceLocalSaveInFlight's comment — IndexedDB is mid-rewrite, only partial right now
+  if (stockBalanceLocalSaveInFlight) return;
   try {
     stockBalanceList = await stockBalanceGetAll();
   } catch (err) {
@@ -9485,37 +9495,24 @@ async function loadStockBalanceList() {
   if (tabEl && tabEl.classList.contains('active')) renderStockBalanceTab();
 }
 
-/* ---- Stock Balance cloud sync — same pattern as Item Master List's (see that block's comment for
-   the full reasoning): was local-only per computer (IndexedDB only), so a device that never
-   uploaded its own Stock Balance file showed blank "Warehouse: n" badges in Request Stock even
-   though another computer had already uploaded it — per Shaila, this needs to match across every
-   account/computer too. Pushes only right after an actual local mutation (currently just the
-   upload, which always replaces the whole list — see processUploadedStockBalanceFile), and pulls
-   via a realtime listener that only does work when the data genuinely changes. */
+/* ---- Stock Balance cloud sync ---- */
 const STOCK_BALANCE_FB_TABLE = 'StockBalanceList';
 // Separate top-level marker, written by the Reset Stock Balance button, purely so every device can
-// tell "has ANYONE ever done a deliberate Reset" apart from "the cloud genuinely has never had
-// data yet". Without this, initialStockBalanceCloudSync's one-time union-merge (below) can't tell
-// those two cases apart — a device that hasn't completed its OWN one-time merge yet (a fresh
-// browser profile, or simply one that hadn't loaded since this cloud sync feature first shipped)
-// would see an empty-after-Reset server list and "helpfully" push its own still-populated, now-
-// stale local copy right back up, resurrecting exactly what Reset just deleted. Confirmed live:
-// resetting on one device, the data came back within moments across every other account/device.
+// tell "has ANYONE ever done a deliberate Reset" apart from "the cloud genuinely has never had data
+// yet". Without this, a device that hasn't completed its OWN one-time union-merge yet (a fresh
+// browser profile, or one that hadn't loaded since this feature first shipped) would see an empty-
+// after-Reset server list and "helpfully" push its own still-populated, now-stale local copy right
+// back up, resurrecting exactly what Reset just deleted.
 const STOCK_BALANCE_RESET_MARKER_TABLE = 'StockBalanceResetAt';
 let _stockBalanceLastServerSnapshot = {}; // fbSafeKey(id) -> record, mirrors fbLastServerSnapshot's role
 let stockBalanceFbListenerAttached = false;
 // True while THIS device's own chunked push (fbChunkedUpdate) to StockBalanceList is still landing.
 // Firebase's realtime 'value' listener fires on every individual chunk as it arrives, not just once
 // at the end — so mid-push, the listener can see a genuinely PARTIAL snapshot (some chunks written,
-// others not yet), even though nothing is actually wrong. Applying that partial state would flash
-// wrong totals on screen (confirmed live: SKU/qty counters briefly showing a different, wrong number
-// right after a big upload) and could clobber the diff bookkeeping used for the NEXT push. While this
-// flag is true, applyStockBalanceServerSnapshot skips entirely; the final 'value' event, once every
-// chunk has landed, carries the complete correct data and gets applied normally.
+// others not yet). While this flag is true, applyStockBalanceServerSnapshot skips entirely.
 let stockBalancePushInFlight = false;
 // opts.skipEmptyGuard: set by the Reset Stock Balance button (Danger Zone) — a deliberate,
-// user-confirmed "clear everything" action, same reasoning/pattern as pushCollectionDiff's
-// skipEmptyGuard (see that comment for the full story of why the blanket guard alone isn't right).
+// user-confirmed "clear everything" action.
 function pushStockBalanceDiffToFirebase(opts) {
   if (!fbDb) return;
   // Safety guard: a device with an EMPTY local list (never uploaded here, or its own pull just
@@ -9543,19 +9540,12 @@ function pushStockBalanceDiffToFirebase(opts) {
     renderCloudSyncStatus();
   }).finally(() => { stockBalancePushInFlight = false; });
 }
+// No empty-guard here on purpose: the push side (above) is the sole gatekeeper for what "empty"
+// means (accidental vs. deliberate Reset via skipEmptyGuard) — whatever lands here is trusted as-is.
 function applyStockBalanceServerSnapshot(remoteObj) {
   if (stockBalancePushInFlight) return;
   _stockBalanceLastServerSnapshot = remoteObj || {};
   const remoteArr = Object.values(_stockBalanceLastServerSnapshot);
-  // NOTE: there USED to be a guard here refusing to apply an empty remote snapshot onto a non-empty
-  // local list, back when there was no legitimate "delete everything" action for Stock Balance. Now
-  // that Reset Stock Balance (Danger Zone) exists, an empty remote CAN be a genuine, deliberate
-  // state — and that guard would have silently blocked a real Reset from ever reaching any other
-  // device (the exact same bug class fixed for Request Stock deletes — see pushCollectionDiff's
-  // skipEmptyGuard comment). The push side (pushStockBalanceDiffToFirebase) is the one place that
-  // actually knows the difference between "empty because nothing's loaded yet" and "empty because
-  // someone deliberately reset it" (via opts.skipEmptyGuard), so it's the sole gatekeeper now —
-  // whatever lands here is trusted as-is.
   if (stableStringify(remoteArr) === stableStringify(stockBalanceList)) return; // no-op — likely our own echo
   stockBalanceList = remoteArr;
   stockBalanceReplaceAll(remoteArr).catch(e => console.error('stockBalanceReplaceAll (remote sync) failed', e));
@@ -9576,11 +9566,8 @@ function attachStockBalanceFbListener() {
 }
 // Defensive fallback, called every time the Stock Balance tab is opened (see the tab-switch handler
 // below) on TOP of the live listener above — a one-off .once('value') check against the server's
-// current truth. The live listener is normally enough on its own, but a tab that's been sitting in
-// the background a long time, or any brief reconnect gap, is enough real-world uncertainty that
-// "just opening the tab" should never trust a possibly-stale in-memory list without at least one
-// fresh check. Cheap and best-effort — errors here are silently ignored, the live listener is still
-// the primary path and keeps working regardless.
+// current truth, in case this device's live listener ever missed an update (tab backgrounded a long
+// time, brief reconnect gap). Cheap and best-effort — errors are silently ignored.
 function refreshStockBalanceFromServer() {
   if (!fbDb) return;
   fbDb.ref(STOCK_BALANCE_FB_TABLE).once('value').then(snap => {
@@ -9588,14 +9575,12 @@ function refreshStockBalanceFromServer() {
   }).catch(() => {});
 }
 // Runs once at startup (alongside initialCloudSync / initialItemMasterCloudSync). First time EVER
-// on this computer AND only if nobody has ever hit Reset (see STOCK_BALANCE_RESET_MARKER_TABLE):
-// union-merge (keep this computer's own upload, adopt remote-only rows) so an existing local upload
-// isn't silently discarded just because Firebase happened to already have something (or nothing).
-// Every run after that (or immediately, if a Reset has ever happened): remote wins outright — same
-// reasoning as Item Master's own first-run handling, EXCEPT once a Reset marker exists, this
-// device's own local copy can no longer be trusted as "worth preserving" — it might just be stale
-// leftover data from before that Reset, and merging it back in would silently undo the Reset for
-// everyone (confirmed live — see that marker's comment).
+// on this computer AND only if nobody has ever hit Reset: union-merge (keep this computer's own
+// upload, adopt remote-only rows) so an existing local upload isn't silently discarded just because
+// Firebase happened to already have something (or nothing). Every run after that (or immediately,
+// if a Reset has ever happened): remote wins outright — once a Reset marker exists, this device's
+// own local copy can no longer be trusted as "worth preserving" — it might just be stale leftover
+// data from before that Reset.
 async function initialStockBalanceCloudSync() {
   if (!fbDb) return;
   await loadStockBalanceList(); // make sure stockBalanceList reflects this computer's IndexedDB before merging
@@ -9622,7 +9607,7 @@ async function initialStockBalanceCloudSync() {
       pushStockBalanceDiffToFirebase();
       localStorage.setItem(everMergedKey, '1');
     } else {
-      if (!localStorage.getItem(everMergedKey)) localStorage.setItem(everMergedKey, '1'); // a Reset has happened — this device is "past" first-merge now too, permanently
+      if (!localStorage.getItem(everMergedKey)) localStorage.setItem(everMergedKey, '1');
       applyStockBalanceServerSnapshot(remoteObj);
       pushStockBalanceDiffToFirebase();
     }
@@ -9645,19 +9630,15 @@ function renderStockBalanceStatusNote() {
   el.textContent = `${formatQty(distinctSkuCount)} SKU (${formatQty(stockBalanceList.length)} row) loaded${dateLabel ? ` (${dateLabel})` : ''}.`;
 }
 
-// Location buckets that mean "not real sellable stock" in her export (quarantined/rewash items,
-// or a catch-all for SKUs not currently in use) — always excluded on import, per her instruction,
-// so she never has to pre-filter the export herself before uploading. (Also duplicated inline inside
-// STOCK_BALANCE_WORKER_SRC below — a Worker can't see this page's globals, so it needs its own copy.)
+// Location buckets that mean "not real sellable stock" in her export (quarantined/rewash items, or
+// a catch-all for SKUs not currently in use) — always excluded on import, per her instruction.
+// (Also duplicated inline inside STOCK_BALANCE_WORKER_SRC below — a Worker can't see this page's
+// globals, so it needs its own copy.)
 const STOCK_BALANCE_EXCLUDED_LOCATIONS = ['UNUSED PRODUCT', 'CHINA REWASH'];
 // XLSX.read()/sheet_to_json() plus the SKU+Location grouping loop are both synchronous, and for a
-// big export (100,000+ raw rows) that's enough continuous main-thread work to freeze the tab outright
-// — confirmed via Chrome's own "Page Unresponsive" dialog while diagnosing a slow Stock Balance
-// upload (this was the real remaining cause even after the storage-write step was already moved to
-// run in chunks in the background — parsing itself was the bottleneck, and a library call like
-// XLSX.read() has no yield point of its own to hook into). Running the whole parse+group step inside
-// a Web Worker keeps it off the main thread entirely, so the page stays fully responsive no matter
-// how big the file is — same logic as the old inline version above, just running on its own thread.
+// big export (100,000+ raw rows) that's enough continuous main-thread work to freeze the tab
+// outright. Running the whole parse+group step inside a Web Worker keeps it off the main thread
+// entirely, so the page stays fully responsive no matter how big the file is.
 const STOCK_BALANCE_WORKER_SRC = `
 self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
 var STOCK_BALANCE_EXCLUDED_LOCATIONS = ['UNUSED PRODUCT', 'CHINA REWASH'];
@@ -9686,14 +9667,13 @@ function genStockBalanceId() { return 'sb_' + Date.now().toString(36) + Math.ran
 self.onmessage = function(e) {
   try {
     var ext = e.data.ext, buffer = e.data.buffer, text = e.data.text;
-    // Read as raw rows (arrays), NOT header-mapped objects — her "per boutique" export has one more
-    // column in the data than the header row declares (an extra unlabeled Boutique/Customer column
-    // got inserted between "Customer" and "Zone" without the header text being updated), so mapping
-    // by header name would silently misalign and read the wrong (empty) field as "Total Qty". Reading
-    // positionally sidesteps that: SKU/Description/UOM/Group/Brand are always the first columns
-    // (found by header name, which IS reliable for that stable prefix), Total Qty is always the LAST
-    // column in the data row, and the Boutique/Location name — when present — is whichever middle
-    // column between Brand and Qty actually has a value.
+    // Read as raw rows (arrays), NOT header-mapped objects — a real "per boutique" export can have
+    // one more column in the data than the header row declares (an extra unlabeled Boutique/
+    // Customer column inserted without the header text being updated), so mapping by header name
+    // would silently misalign. Reading positionally sidesteps that: SKU/Description/UOM/Group/Brand
+    // are always the first columns (found by header name, which IS reliable for that stable
+    // prefix), Total Qty is always the LAST column in the data row, and the Boutique/Location name
+    // — when present — is whichever middle column between Brand and Qty actually has a value.
     var rows = [];
     if (ext === 'csv') {
       rows = parseCsvRows(String(text).replace(/^\\uFEFF/, ''));
@@ -9713,10 +9693,9 @@ self.onmessage = function(e) {
     var coreIdxMax = Math.max(skuIdx, descIdx, uomIdx, groupIdx, brandIdx);
     var dataRows = rows.slice(1);
     var excludedCount = 0;
-    // Aggregate by SKU + Location (not SKU alone) — she wants the per-boutique breakdown kept, not
-    // collapsed into one network-wide total. If there's no per-location data at all in this file
-    // (older "Summary" export, no extra column), location stays '' for every row and this collapses
-    // back to one row per SKU, same as before.
+    // Aggregate by SKU + Location (not SKU alone) — keeps a per-boutique breakdown when the file
+    // has one. If there's no per-location data at all (older "Summary" export), location stays ''
+    // for every row and this collapses back to one row per SKU.
     var byKey = new Map();
     dataRows.forEach(function(r) {
       if (!r || !r.length) return;
@@ -9752,11 +9731,10 @@ self.onmessage = function(e) {
 `;
 let stockBalanceWorker = null;
 // The worker's very first line (importScripts of the XLSX library) has to fetch it fresh from CDN
-// every time this page is freshly loaded/reloaded — workers don't persist across page loads, so
-// this happens again on day one of every new session, not just the very first time ever. If that
-// fetch is slow/blocked (flaky connection, corporate proxy, CDN hiccup) the worker just sits there
-// mid-importScripts with no error and no progress — this used to leave "Processing file..." stuck
-// forever with no feedback. A 45s timeout turns that into a clear, actionable error instead.
+// every time this page is freshly loaded — workers don't persist across page loads. If that fetch
+// is slow/blocked (flaky connection, corporate proxy, CDN hiccup) the worker just sits there
+// mid-importScripts with no error and no progress. A 45s timeout turns that into a clear, actionable
+// error instead of an indefinitely stuck "Processing file...".
 function stockBalanceParseInWorker(ext, buffer, text) {
   return new Promise((resolve, reject) => {
     if (!stockBalanceWorker) {
@@ -9770,8 +9748,6 @@ function stockBalanceParseInWorker(ext, buffer, text) {
       settled = true;
       worker.removeEventListener('message', onMessage);
       worker.removeEventListener('error', onError);
-      // Kill and drop the stuck worker so the NEXT upload attempt spins up a fresh one instead of
-      // waiting on a worker that may still be wedged mid-importScripts.
       worker.terminate();
       stockBalanceWorker = null;
       reject(new Error('Taking too long (45s+) — likely a slow/blocked internet connection while loading a required library. Check your connection and try uploading again.'));
@@ -9798,11 +9774,7 @@ function stockBalanceParseInWorker(ext, buffer, text) {
     worker.postMessage({ ext, buffer, text }, buffer ? [buffer] : []);
   });
 }
-// Guards against two uploads overlapping — e.g. clicking upload again before a big file has finished
-// its background local-save (stockBalanceLocalSaveInFlight above). Two concurrent
-// idbReplaceAllChunked runs against the SAME IndexedDB store (each clearing it, then racing to
-// refill it) would fight each other and could take drastically longer than either alone, or leave
-// the local backup in a half-written state.
+// Guards against two uploads overlapping.
 let stockBalanceUploadInFlight = false;
 function processUploadedStockBalanceFile(file) {
   const statusEl = document.getElementById('stockBalanceUploadStatus');
@@ -9819,17 +9791,13 @@ function processUploadedStockBalanceFile(file) {
   reader.onload = async (evt) => {
     try {
       const { mapped, excludedCount } = await stockBalanceParseInWorker(
-        ext,
-        ext === 'csv' ? null : evt.target.result,
-        ext === 'csv' ? evt.target.result : null
+        ext, ext === 'csv' ? null : evt.target.result, ext === 'csv' ? evt.target.result : null
       );
       if (!mapped.length) throw new Error('No valid rows (all SKUs blank, or all rows excluded?).');
-      // Show results and push to everyone else's devices FIRST — don't make the whole upload wait on
-      // writing every row into this device's own local IndexedDB cache (that step alone could take
-      // long enough on a big file to freeze the tab outright, confirmed via Chrome's own "Page
-      // Unresponsive" dialog). The on-screen table and the cross-device Firebase sync only need the
-      // in-memory list, which is instant — the local persistence copy (only needed so this device
-      // still has the data after a browser refresh) finishes quietly in the background afterward.
+      // Show results and push to everyone else's devices FIRST — don't make the whole upload wait
+      // on writing every row into this device's own local IndexedDB cache. The on-screen table and
+      // the cross-device Firebase sync only need the in-memory list, which is instant — the local
+      // persistence copy finishes quietly in the background afterward.
       stockBalanceList = mapped;
       stockBalanceImportedAt = new Date().toISOString();
       localStorage.setItem(STOCK_BALANCE_IMPORTED_AT_KEY, stockBalanceImportedAt);
@@ -9877,164 +9845,102 @@ stockBalanceDropzone.addEventListener('drop', (e) => {
   if (file) processUploadedStockBalanceFile(file);
 });
 
-/* ---- Stock List table: pivoted like her reference sheet — one row per SKU (with Description,
-   Group, Colour, Size), one column per boutique, qty in each cell — with search + Brand/Group
-   filter + pagination (list can run to 10,000+ distinct SKUs across 100,000+ source rows —
-   rendering all of it at once would freeze the browser). */
+/* ---- Stock List: search + Year/Brand/Group filter + pagination + pivot table by location ---- */
 let stockBalancePage = 0;
 const STOCK_BALANCE_PAGE_SIZE = 50;
-function stockBalanceBrands() { return [...new Set(stockBalanceList.map(it => it.itemBrand).filter(Boolean))].sort((a, b) => a.localeCompare(b)); }
-function stockBalanceGroups() { return [...new Set(stockBalanceList.map(it => it.itemGroup).filter(Boolean))].sort((a, b) => a.localeCompare(b)); }
-function stockBalanceLocations() { return [...new Set(stockBalanceList.map(it => it.location).filter(Boolean))].sort((a, b) => a.localeCompare(b)); }
-// Campaign Year isn't a column in the Stock Balance export itself — it's looked up per-SKU from
-// Item Master List (same source as the pivot table's Colour/Size), so this only lists years for
-// SKUs that also happen to be catalogued there. Newest first, like Request Stock's Year dropdown.
-function stockBalanceCampaignYears() {
-  const seen = new Set();
-  const skuSeen = new Set();
-  stockBalanceList.forEach(it => {
-    const key = it.sku.toUpperCase();
-    if (skuSeen.has(key)) return;
-    skuSeen.add(key);
-    const master = itemMasterLookupBySku(it.sku);
-    if (master && master.campaignYear) seen.add(master.campaignYear);
-  });
-  return [...seen].sort((a, b) => b.localeCompare(a));
-}
-// Her export's location names are long ("KHATAM BOUTIQUE, ANGSANA MALL", "KHATAM HEADQUARTER -
-// ONLINE") — too wide to use as column headers in a per-boutique pivot table, so this strips the
-// common "KHATAM BOUTIQUE, " / "KHATAM BOOTH, " / "KHATAM HEADQUARTER - " / "KHATAM " prefixes and
-// common mall/sentral suffixes down to just the short place name, matching the column-header style
-// on her reference sheet (e.g. "WAREHOUSE", "ONLINE", "ANGSANA", "BANGI", "I-CITY").
-function stockBalanceShortLocation(loc) {
-  if (!loc) return '(No Boutique)';
-  let s = loc.trim();
-  s = s.replace(/^KHATAM BOUTIQUE,\s*/i, '');
-  s = s.replace(/^KHATAM BOOTH,\s*/i, '');
-  s = s.replace(/^KHATAM HEADQUARTER\s*-\s*/i, '');
-  s = s.replace(/^KHATAM\s+/i, '');
-  s = s.replace(/\s+CITY MALL$/i, '');
-  s = s.replace(/\s+MALL$/i, '');
-  s = s.replace(/\s+SENTRAL$/i, '');
-  s = s.trim();
-  return s || loc;
-}
-// Groups the flat (SKU, Boutique, Qty) rows into one row per SKU with a qtyByLoc map — Colour/Size
-// come from Item Master List (the same finished-goods reference used elsewhere) when this SKU is
-// catalogued there, since the Stock Balance export itself doesn't have separate Colour/Size columns.
-function stockBalancePivotBuild(list) {
-  const bySku = new Map();
-  list.forEach(it => {
-    const key = it.sku.toUpperCase();
-    if (!bySku.has(key)) {
-      const master = itemMasterLookupBySku(it.sku);
-      bySku.set(key, {
-        sku: it.sku,
-        description: it.description || (master ? master.description : ''),
-        itemGroup: it.itemGroup || (master ? master.itemGroup : ''),
-        itemColor: master ? (master.itemColor || '') : '',
-        itemSize: master ? (master.itemSize || '') : '',
-        campaignYear: master ? (master.campaignYear || '') : '',
-        qtyByLoc: new Map(),
-      });
-    }
-    const row = bySku.get(key);
-    if (!row.itemGroup && it.itemGroup) row.itemGroup = it.itemGroup;
-    const locKey = stockBalanceShortLocation(it.location);
-    row.qtyByLoc.set(locKey, (row.qtyByLoc.get(locKey) || 0) + (Number(it.qty) || 0));
-  });
-  return [...bySku.values()].sort((a, b) => a.sku.localeCompare(b.sku));
-}
-// Warehouse/Online lead the column order (matching her reference sheet), rest alphabetical.
-function stockBalancePivotLocationColumns(pivotRows) {
-  const seen = new Set();
-  pivotRows.forEach(r => r.qtyByLoc.forEach((v, k) => seen.add(k)));
-  const priority = { WAREHOUSE: 0, ONLINE: 1 };
-  return [...seen].sort((a, b) => {
-    const pa = priority[a.toUpperCase()] ?? 99;
-    const pb = priority[b.toUpperCase()] ?? 99;
-    return pa !== pb ? pa - pb : a.localeCompare(b);
-  });
-}
-function stockBalanceFilteredPivotRows() {
+function stockBalanceFilteredList() {
   const search = (document.getElementById('stockBalanceSearchInput').value || '').trim().toLowerCase();
   const yearFilter = document.getElementById('stockBalanceYearFilter').value;
   const brandFilter = document.getElementById('stockBalanceBrandFilter').value;
   const groupFilter = document.getElementById('stockBalanceGroupFilter').value;
-  let list = stockBalanceList;
-  if (brandFilter) list = list.filter(it => it.itemBrand === brandFilter);
-  if (groupFilter) list = list.filter(it => it.itemGroup === groupFilter);
-  if (search) list = list.filter(it => [it.sku, it.description, it.itemGroup, it.itemBrand, it.location].filter(Boolean).join(' ').toLowerCase().includes(search));
-  let pivotRows = stockBalancePivotBuild(list);
-  // Campaign Year lives on Item Master List, not the raw Stock Balance rows, so this filter is
-  // applied AFTER the pivot is built (one campaignYear per SKU) rather than on the flat list.
-  if (yearFilter) pivotRows = pivotRows.filter(r => r.campaignYear === yearFilter);
-  return pivotRows;
+  return stockBalanceList.filter(it => {
+    if (search && ![it.sku, it.description, it.itemGroup, it.itemBrand, it.location].filter(Boolean).join(' ').toLowerCase().includes(search)) return false;
+    if (brandFilter && (it.itemBrand || '') !== brandFilter) return false;
+    if (groupFilter && (it.itemGroup || '') !== groupFilter) return false;
+    if (yearFilter) {
+      const im = itemMasterLookupBySku(it.sku);
+      if (!im || (im.campaignYear || '') !== yearFilter) return false;
+    }
+    return true;
+  });
 }
 function renderStockBalanceFilterOptions() {
   const yearSel = document.getElementById('stockBalanceYearFilter');
   const curYear = yearSel.value;
-  yearSel.innerHTML = `<option value="">All Campaign Years</option>` + stockBalanceCampaignYears().map(y => `<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join('');
+  const years = [...new Set(stockBalanceList.map(it => { const im = itemMasterLookupBySku(it.sku); return im && im.campaignYear; }).filter(Boolean))].sort().reverse();
+  yearSel.innerHTML = `<option value="">All Campaign Years</option>` + years.map(y => `<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join('');
   if ([...yearSel.options].some(o => o.value === curYear)) yearSel.value = curYear;
+
   const brandSel = document.getElementById('stockBalanceBrandFilter');
   const curBrand = brandSel.value;
-  brandSel.innerHTML = `<option value="">All Brands</option>` + stockBalanceBrands().map(b => `<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('');
+  const brands = [...new Set(stockBalanceList.map(it => it.itemBrand).filter(Boolean))].sort();
+  brandSel.innerHTML = `<option value="">All Brands</option>` + brands.map(b => `<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('');
   if ([...brandSel.options].some(o => o.value === curBrand)) brandSel.value = curBrand;
+
   const groupSel = document.getElementById('stockBalanceGroupFilter');
   const curGroup = groupSel.value;
-  groupSel.innerHTML = `<option value="">All Groups</option>` + stockBalanceGroups().map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
+  const groups = [...new Set(stockBalanceList.map(it => it.itemGroup).filter(Boolean))].sort();
+  groupSel.innerHTML = `<option value="">All Groups</option>` + groups.map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
   if ([...groupSel.options].some(o => o.value === curGroup)) groupSel.value = curGroup;
 }
 function renderStockBalanceKpis() {
-  const totalSku = new Set(stockBalanceList.map(it => it.sku.toUpperCase())).size;
+  const distinctSku = new Set(stockBalanceList.map(it => it.sku.toUpperCase())).size;
   const totalQty = stockBalanceList.reduce((sum, it) => sum + (Number(it.qty) || 0), 0);
-  const totalBoutiques = stockBalanceLocations().length;
+  const boutiques = new Set(stockBalanceList.map(it => it.location).filter(Boolean)).size;
   const cards = [
-    { num: formatQty(totalSku), label: 'Total SKU' },
-    { num: formatQty(totalQty), label: 'Total Qty', cls: 'blue' },
-    { num: formatQty(totalBoutiques), label: 'Boutiques' },
+    { num: formatQty(distinctSku), label: 'Total SKU' },
+    { num: formatQty(totalQty), label: 'Total Qty' },
+    { num: formatQty(boutiques), label: 'Boutiques' },
   ];
   document.getElementById('stockBalanceKpiGrid').innerHTML = cards.map(c =>
     `<div class="kpi-card ${c.cls || ''}"><div class="kpi-num">${c.num}</div><div class="kpi-label">${c.label}</div></div>`
   ).join('');
 }
-function stockBalanceRenderPivotTableHtml(pageItems, cols) {
-  let html = `<table class="stock-balance-pivot-table"><thead><tr>
-    <th class="sbp-sku">SKU</th><th class="sbp-text">Description</th><th class="sbp-text">Group</th><th class="sbp-text">Colour</th><th class="sbp-text">Size</th>
-    ${cols.map(c => `<th>${escapeHtml(c)}</th>`).join('')}
-  </tr></thead><tbody>`;
-  pageItems.forEach(r => {
-    html += `<tr>
-      <td class="mono-name sbp-sku">${escapeHtml(r.sku)}</td>
-      <td class="sbp-text sbp-desc" title="${escapeHtml(r.description || '')}">${escapeHtml(r.description || '-')}</td>
-      <td class="sbp-text">${escapeHtml(r.itemGroup || '-')}</td>
-      <td class="sbp-text">${escapeHtml(r.itemColor || '-')}</td>
-      <td class="sbp-text">${escapeHtml(r.itemSize || '-')}</td>
-      ${cols.map(c => `<td>${formatQty(r.qtyByLoc.get(c) || 0)}</td>`).join('')}
-    </tr>`;
-  });
-  html += `</tbody></table>`;
-  return html;
-}
 function renderStockBalanceTable() {
   const wrap = document.getElementById('stockBalanceTableWrap');
   const pagWrap = document.getElementById('stockBalancePaginationWrap');
-  const pivotRows = stockBalanceFilteredPivotRows();
-  if (!pivotRows.length) {
-    wrap.innerHTML = `<div class="empty-state">${stockBalanceList.length ? 'No SKU matches the search.' : 'No Stock Balance uploaded yet.'}</div>`;
+  const list = stockBalanceFilteredList();
+  if (!list.length) {
+    wrap.innerHTML = `<div class="empty-state">${stockBalanceList.length ? 'No rows match the search/filter.' : 'No Stock Balance uploaded yet.'}</div>`;
     pagWrap.innerHTML = '';
     return;
   }
-  const totalPages = Math.max(1, Math.ceil(pivotRows.length / STOCK_BALANCE_PAGE_SIZE));
+  // Pivot: one row per SKU, one column per distinct location seen in the FILTERED set — each
+  // boutique becomes its own column (like a pivot table), matching the upload note above the table.
+  const bySku = new Map();
+  const locSet = new Set();
+  list.forEach(r => {
+    const key = r.sku.toUpperCase();
+    if (!bySku.has(key)) bySku.set(key, { sku: r.sku, description: r.description, itemGroup: r.itemGroup, itemBrand: r.itemBrand, byLoc: new Map() });
+    const g = bySku.get(key);
+    const loc = r.location || '(No Location)';
+    g.byLoc.set(loc, (g.byLoc.get(loc) || 0) + (Number(r.qty) || 0));
+    locSet.add(loc);
+  });
+  const skuRows = [...bySku.values()].sort((a, b) => a.sku.localeCompare(b.sku));
+  const locations = [...locSet].sort();
+
+  const totalPages = Math.max(1, Math.ceil(skuRows.length / STOCK_BALANCE_PAGE_SIZE));
   if (stockBalancePage >= totalPages) stockBalancePage = totalPages - 1;
   if (stockBalancePage < 0) stockBalancePage = 0;
-  const pageItems = pivotRows.slice(stockBalancePage * STOCK_BALANCE_PAGE_SIZE, (stockBalancePage + 1) * STOCK_BALANCE_PAGE_SIZE);
-  const cols = stockBalancePivotLocationColumns(pivotRows); // computed over the full filtered set so columns stay stable across pages
-  wrap.innerHTML = stockBalanceRenderPivotTableHtml(pageItems, cols);
+  const pageRows = skuRows.slice(stockBalancePage * STOCK_BALANCE_PAGE_SIZE, (stockBalancePage + 1) * STOCK_BALANCE_PAGE_SIZE);
+
+  let html = `<table class="stock-balance-pivot-table"><thead><tr><th class="sbp-sku sbp-text">SKU</th><th class="sbp-text">Description</th><th class="sbp-text">Group</th><th class="sbp-text">Brand</th>${locations.map(l => `<th>${escapeHtml(l)}</th>`).join('')}</tr></thead><tbody>`;
+  pageRows.forEach(g => {
+    html += `<tr>
+      <td class="sbp-sku mono-name">${escapeHtml(g.sku)}</td>
+      <td class="sbp-text sbp-desc" title="${escapeHtml(g.description || '')}">${escapeHtml(g.description || '-')}</td>
+      <td class="sbp-text">${escapeHtml(g.itemGroup || '-')}</td>
+      <td class="sbp-text">${escapeHtml(g.itemBrand || '-')}</td>
+      ${locations.map(l => `<td>${formatQty(g.byLoc.get(l) || 0)}</td>`).join('')}
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
 
   pagWrap.innerHTML = `
     <button type="button" class="btn-ghost" id="stockBalancePrevPageBtn" ${stockBalancePage === 0 ? 'disabled' : ''}>&#8249; Prev</button>
-    <span class="data-note" style="margin:0;">Page ${stockBalancePage + 1} / ${totalPages} — ${formatQty(pivotRows.length)} SKU</span>
+    <span class="data-note" style="margin:0;">Page ${stockBalancePage + 1} / ${totalPages} — ${formatQty(skuRows.length)} SKU</span>
     <button type="button" class="btn-ghost" id="stockBalanceNextPageBtn" ${stockBalancePage >= totalPages - 1 ? 'disabled' : ''}>Next &#8250;</button>
   `;
   document.getElementById('stockBalancePrevPageBtn').addEventListener('click', () => { stockBalancePage--; renderStockBalanceTable(); });
@@ -10042,8 +9948,8 @@ function renderStockBalanceTable() {
 }
 function renderStockBalanceTab() {
   renderStockBalanceStatusNote();
-  renderStockBalanceKpis();
   renderStockBalanceFilterOptions();
+  renderStockBalanceKpis();
   renderStockBalanceTable();
 }
 document.getElementById('stockBalanceSearchInput').addEventListener('input', () => { stockBalancePage = 0; renderStockBalanceTable(); });
@@ -10051,12 +9957,11 @@ document.getElementById('stockBalanceYearFilter').addEventListener('change', () 
 document.getElementById('stockBalanceBrandFilter').addEventListener('change', () => { stockBalancePage = 0; renderStockBalanceTable(); });
 document.getElementById('stockBalanceGroupFilter').addEventListener('change', () => { stockBalancePage = 0; renderStockBalanceTable(); });
 
-// "Reset Stock Balance" (Danger Zone) — deliberately PERMANENT, per her request: no backup is
-// kept anywhere (not even the one-level "Undo Reset" snapshot Item Master List's own Reset button
-// keeps), so there's nothing lingering in this device's local storage after a reset either. This
-// DOES need to reach Firebase (Stock Balance is cloud-synced, Item Master isn't) — see
-// pushStockBalanceDiffToFirebase's skipEmptyGuard and applyStockBalanceServerSnapshot's comment for
-// why the empty push/pull guards had to be updated to let a deliberate Reset propagate correctly.
+// "Reset Stock Balance" (Danger Zone) — deliberately PERMANENT: no backup is kept anywhere, so
+// there's nothing lingering in this device's local storage after a reset either. This DOES need to
+// reach Firebase — see pushStockBalanceDiffToFirebase's skipEmptyGuard and
+// applyStockBalanceServerSnapshot's comment for why the empty push/pull guards are designed the way
+// they are so a deliberate Reset propagates correctly instead of getting undone.
 document.getElementById('resetStockBalanceBtn').addEventListener('click', async () => {
   if (!confirm(`Delete ALL Stock Balance data (${formatQty(stockBalanceList.length)} row(s))? This clears it for EVERY device (synced), not just this one. PERMANENT — no backup is kept, this cannot be undone. Re-upload a file to load data again.`)) return;
   try {
@@ -10069,15 +9974,14 @@ document.getElementById('resetStockBalanceBtn').addEventListener('click', async 
   stockBalanceImportedAt = '';
   localStorage.removeItem(STOCK_BALANCE_IMPORTED_AT_KEY);
   pushStockBalanceDiffToFirebase({ skipEmptyGuard: true });
-  // Mark that a deliberate Reset happened — see STOCK_BALANCE_RESET_MARKER_TABLE's comment. Without
-  // this, another device/account that hasn't done its own one-time "first sync" merge yet would
-  // push its still-populated local copy back up and undo this Reset within moments.
+  // Mark that a deliberate Reset happened — see STOCK_BALANCE_RESET_MARKER_TABLE's comment.
   if (fbDb) fbDb.ref(STOCK_BALANCE_RESET_MARKER_TABLE).set(new Date().toISOString()).catch(() => {});
   localStorage.setItem(fbEverMergedKey(STOCK_BALANCE_FB_TABLE), '1'); // this device is now also "past" the first-merge stage
   stockBalancePage = 0;
   renderStockBalanceTab();
 });
 /* ==================== end Stock Balance ==================== */
+
 
 // ---- Auto-fill SKU: map a checklist Series to ONE "product" from Item Master List, then apply
 // that mapping across every Colour+Size line in that series (matched on Item Color + Item Size —
@@ -17264,12 +17168,11 @@ function renderRequestStockTab() {
 }
 function reqStockUniqueValues(field, filters) {
   const seen = new Set();
-  // Hide combos with zero/no Stock Balance so staff only ever see picks that actually have stock —
-  // per Shaila, this makes the request form self-filtering rather than letting someone pick a combo
-  // that turns out to be empty when they get to the end. Only applies once Stock Balance has been
-  // uploaded at least once; before that there's nothing to filter against, so fall back to showing
-  // everything (Item Master List alone) like before.
-  const filterByStock = stockBalanceList.length > 0;
+  // Used to hide combos with zero/no Stock Balance so staff only saw picks that actually had
+  // stock. Stock Balance (that tab) was removed per her request (Sep 16, 2026) — reqStockAvailableQty
+  // is now a permanent stub returning null, so this stays false and every combo shows, same as
+  // before Stock Balance ever existed.
+  const filterByStock = false;
   itemMasterList.forEach(it => {
     if (filters.campaignYear && (it.campaignYear || '') !== filters.campaignYear) return;
     if (filters.brand && (it.itemBrand || '') !== filters.brand) return;
@@ -17295,36 +17198,13 @@ function reqStockMatchedItem(line) {
     (it.itemSize || '') === line.size
   ) || null;
 }
-// "Available" column on the item line — pulled from Stock Balance (uploaded separately, see that
-// tab), summed across ALL locations for this SKU EXCLUDING "Experience Conezion" per Shaila (that
-// boutique's stock isn't counted as available-to-request). Cached SKU->rows index mirrors
-// itemMasterSkuIndex's pattern: rebuilds itself whenever stockBalanceList is reassigned (a fresh
-// upload creates a new array), so this stays fast even with thousands of Stock Balance rows.
-let _stockBalanceSkuIndexCache = null;
-let _stockBalanceSkuIndexSource = null;
-function stockBalanceRowsBySku(sku) {
-  if (_stockBalanceSkuIndexSource !== stockBalanceList) {
-    _stockBalanceSkuIndexCache = new Map();
-    stockBalanceList.forEach(it => {
-      const key = it.sku.toUpperCase();
-      if (!_stockBalanceSkuIndexCache.has(key)) _stockBalanceSkuIndexCache.set(key, []);
-      _stockBalanceSkuIndexCache.get(key).push(it);
-    });
-    _stockBalanceSkuIndexSource = stockBalanceList;
-  }
-  return _stockBalanceSkuIndexCache.get(String(sku || '').trim().toUpperCase()) || null;
-}
-const REQ_STOCK_AVAILABLE_QTY_EXCLUDED_LOCATIONS = ['EXPERIENCE CONEZION'];
+// "Available" column on the item line used to pull from Stock Balance (a separate tab, removed
+// per her request Sep 16, 2026 — see reqStockLocationBreakdownHtml below for the other half of
+// this). Kept as a stub returning null (= "no stock data available") rather than deleting outright,
+// since every call site below already handles null exactly the same way it handled "SKU not found
+// in Stock Balance" before — same as reqStockUniqueValues' filterByStock fallback right above.
 function reqStockAvailableQty(sku) {
-  const rows = stockBalanceRowsBySku(sku);
-  if (!rows) return null; // SKU tak ada dalam Stock Balance langsung (belum diupload / tak match)
-  let total = 0;
-  rows.forEach(it => {
-    const locUpper = (it.location || '').toUpperCase();
-    if (REQ_STOCK_AVAILABLE_QTY_EXCLUDED_LOCATIONS.some(x => locUpper.includes(x))) return;
-    total += Number(it.qty) || 0;
-  });
-  return total;
+  return null;
 }
 function reqStockConfirmedItemRowHtml(it, i, removeClass) {
   const matched = reqStockMatchedItem(it);
@@ -17357,7 +17237,7 @@ function renderReqStockItemLines() {
     <div class="field"><label>Color</label><select id="reqStockColorInput" style="width:100%;" ${!line.group ? 'disabled' : ''}>${selectOptions(colorOpts, line.color, line.group ? '-- Select --' : '-')}</select></div>
     <div class="field"><label>Size</label><select id="reqStockSizeInput" style="width:100%;" ${!line.color ? 'disabled' : ''}>${selectOptions(sizeOpts, line.size, line.color ? '-- Select --' : '-')}</select></div>
     <div class="field"><label>Qty</label><input type="number" min="1" id="reqStockQtyInput" value="${escapeHtml(line.qty)}" style="width:100%;"></div>
-    <div class="field"><label>Available</label><div class="req-stock-available-qty" title="Total from Stock Balance, all locations except Experience Conezion" style="padding:9px 2px; font-weight:600; ${availColor}">${availDisplay}</div></div>
+    <div class="field"><label>Available</label><div class="req-stock-available-qty" title="Stock availability tracking is not currently set up" style="padding:9px 2px; font-weight:600; ${availColor}">${availDisplay}</div></div>
   </div>`;
   document.getElementById('reqStockYearInput').addEventListener('change', (e) => {
     reqStockDraftLine.campaignYear = e.target.value;
@@ -17537,21 +17417,15 @@ let reqStockProcessTargetId = null;
 // Per-item draft for the "pick a replacement SKU" picker that opens under an item when Exchange is
 // clicked — same cascading Year->Brand->Group->Color->Size->Qty flow as the New Request form, reused
 // via the same reqStockUniqueValues/reqStockMatchedItem/reqStockAvailableQty helpers (they only read
-// itemMasterList/stockBalanceList, no dependency on the New Request form's own state). Keyed by item
+// itemMasterList, no dependency on the New Request form's own state). Keyed by item
 // index within the CURRENTLY open request; reset every time the modal opens for a (possibly
 // different) request so stale picks never leak between requests.
 let reqStockProcessExchangeDraft = {};
+// Used to show a per-location "Warehouse: n" breakdown from Stock Balance (that tab, removed per
+// her request Sep 16, 2026). Kept as a stub with the same "no data" message it already showed for
+// any SKU with no Stock Balance match, so the Process Request modal still renders correctly.
 function reqStockLocationBreakdownHtml(sku) {
-  const rows = stockBalanceRowsBySku(sku);
-  if (!rows || !rows.length) return `<span class="data-note" style="margin:0;">No Stock Balance data for this SKU.</span>`;
-  const byLoc = new Map();
-  rows.forEach(r => {
-    const loc = stockBalanceShortLocation(r.location);
-    byLoc.set(loc, (byLoc.get(loc) || 0) + (Number(r.qty) || 0));
-  });
-  const locs = [...byLoc.entries()].filter(([, qty]) => qty > 0).sort((a, b) => b[1] - a[1]);
-  if (!locs.length) return `<span class="data-note" style="margin:0; color:var(--red);">No stock at any location.</span>`;
-  return locs.map(([loc, qty]) => `<span class="badge badge-gray" style="margin-right:4px;">${escapeHtml(loc)}: ${formatQty(qty)}</span>`).join(' ');
+  return `<span class="data-note" style="margin:0;">No Stock Balance data for this SKU.</span>`;
 }
 function openReqStockProcessModal(id) {
   reqStockProcessTargetId = id;
@@ -17824,7 +17698,7 @@ function renderGuestReqStockItemLines() {
     <div class="field"><label>Color</label><select id="guestReqStockColorInput" style="width:100%;" ${!line.group ? 'disabled' : ''}>${selectOptions(colorOpts, line.color, line.group ? '-- Select --' : '-')}</select></div>
     <div class="field"><label>Size</label><select id="guestReqStockSizeInput" style="width:100%;" ${!line.color ? 'disabled' : ''}>${selectOptions(sizeOpts, line.size, line.color ? '-- Select --' : '-')}</select></div>
     <div class="field"><label>Qty</label><input type="number" min="1" id="guestReqStockQtyInput" value="${escapeHtml(line.qty)}" style="width:100%;"></div>
-    <div class="field"><label>Available</label><div class="req-stock-available-qty" title="Total from Stock Balance, all locations except Experience Conezion" style="padding:9px 2px; font-weight:600; ${availColor}">${availDisplay}</div></div>
+    <div class="field"><label>Available</label><div class="req-stock-available-qty" title="Stock availability tracking is not currently set up" style="padding:9px 2px; font-weight:600; ${availColor}">${availDisplay}</div></div>
   </div>`;
   document.getElementById('guestReqStockYearInput').addEventListener('change', (e) => {
     guestReqStockDraftLine.campaignYear = e.target.value;
