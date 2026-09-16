@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9449,6 +9448,11 @@ const STOCK_BALANCE_STORE = 'items';
 let stockBalanceList = []; // [{ id, sku, description, itemGroup, itemBrand, uom, location, qty }] — one row per SKU, or per SKU+Boutique when the upload has a per-location breakdown ("location" is '' for a plain non-boutique summary report)
 let stockBalanceImportedAt = '';
 let stockBalanceDb = null;
+// False until this device's FIRST cloud check this page-load has resolved (or failed/given up).
+// Prevents a "flash" of this device's own possibly-stale local IndexedDB cache — e.g. right after a
+// Reset done on a DIFFERENT device, before this one has had a chance to catch up — by showing a
+// brief "Syncing..." state instead of real numbers until we know local truly matches the cloud.
+let stockBalanceInitialSyncDone = false;
 // True while a big upload's local IndexedDB backup save (stockBalanceReplaceAll, running in the
 // background after "Success" already shows) is still writing — idbReplaceAllChunked clears the
 // store up front then refills it chunk by chunk, so mid-save, IndexedDB genuinely only has a
@@ -9582,7 +9586,7 @@ function refreshStockBalanceFromServer() {
 // own local copy can no longer be trusted as "worth preserving" — it might just be stale leftover
 // data from before that Reset.
 async function initialStockBalanceCloudSync() {
-  if (!fbDb) return;
+  if (!fbDb) { stockBalanceInitialSyncDone = true; return; } // no cloud configured at all — nothing to wait for, local IndexedDB data (if any) is authoritative
   await loadStockBalanceList(); // make sure stockBalanceList reflects this computer's IndexedDB before merging
   try {
     const [snap, resetMarkerSnap] = await Promise.all([
@@ -9617,6 +9621,13 @@ async function initialStockBalanceCloudSync() {
     renderCloudSyncStatus();
   }
   attachStockBalanceFbListener();
+  // Whatever happened above (merged, adopted remote, or even errored out) — this device has now had
+  // its one chance to reconcile with the cloud, so it's safe to stop showing the "Syncing..." state
+  // and display real numbers from here on (falling back to whatever's in stockBalanceList/local
+  // IndexedDB if the cloud check itself failed, rather than blocking forever).
+  stockBalanceInitialSyncDone = true;
+  const tabEl2 = document.getElementById('tab-stock-balance');
+  if (tabEl2 && tabEl2.classList.contains('active')) renderStockBalanceTab();
 }
 
 function genStockBalanceId() { return 'sb_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
@@ -9641,6 +9652,7 @@ const STOCK_BALANCE_EXCLUDED_LOCATIONS = ['UNUSED PRODUCT', 'CHINA REWASH'];
 // entirely, so the page stays fully responsive no matter how big the file is.
 const STOCK_BALANCE_WORKER_SRC = `
 self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+self.postMessage({ libLoaded: true }); // lets the main thread swap from a short "network" timeout to a long "still computing" safety net — see stockBalanceParseInWorker
 var STOCK_BALANCE_EXCLUDED_LOCATIONS = ['UNUSED PRODUCT', 'CHINA REWASH'];
 function parseCsvRows(text) {
   var rows = [];
@@ -9743,7 +9755,15 @@ function stockBalanceParseInWorker(ext, buffer, text) {
     }
     const worker = stockBalanceWorker;
     let settled = false;
-    const timeoutId = setTimeout(() => {
+    // Two separate timeouts, not one: the FIRST 45s only covers importScripts fetching the XLSX
+    // library from CDN — that's the network-dependent, genuinely-should-be-fast part. The moment the
+    // worker confirms the library loaded (the 'libLoaded' ping below), that timer is swapped for a
+    // much longer one covering the actual parse+group work, which is CPU-bound and scales with file
+    // size — a much bigger file than usual (more rows than the ~121k she's dealt with so far) should
+    // simply take longer, not get killed by the same short network-oriented ceiling. That longer
+    // timer is a runaway/hang safety net (10 min), not a normal-size ceiling — it should basically
+    // never fire in practice.
+    let timeoutId = setTimeout(() => {
       if (settled) return;
       settled = true;
       worker.removeEventListener('message', onMessage);
@@ -9754,6 +9774,19 @@ function stockBalanceParseInWorker(ext, buffer, text) {
     }, 45000);
     const onMessage = (e) => {
       if (settled) return;
+      if (e.data && e.data.libLoaded) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          worker.removeEventListener('message', onMessage);
+          worker.removeEventListener('error', onError);
+          worker.terminate();
+          stockBalanceWorker = null;
+          reject(new Error('Taking way too long (10min+) to process this file — it may be corrupted, or an unusual format. Try re-saving/re-exporting the file and uploading again.'));
+        }, 600000);
+        return;
+      }
       settled = true;
       clearTimeout(timeoutId);
       worker.removeEventListener('message', onMessage);
@@ -9947,6 +9980,18 @@ function renderStockBalanceTable() {
   document.getElementById('stockBalanceNextPageBtn').addEventListener('click', () => { stockBalancePage++; renderStockBalanceTable(); });
 }
 function renderStockBalanceTab() {
+  // Before this device's first cloud check has resolved this page-load, avoid flashing whatever
+  // happens to already be sitting in local IndexedDB (which could be stale — e.g. a Reset done on a
+  // different device that this one hasn't caught up to yet). Show a brief "Syncing..." state instead
+  // of real numbers until initialStockBalanceCloudSync() confirms local matches the cloud (or gives
+  // up and falls back to local, on a cloud error) — see stockBalanceInitialSyncDone.
+  if (!stockBalanceInitialSyncDone && isCloudSyncEnabled()) {
+    document.getElementById('stockBalanceStatusNote').textContent = 'Syncing with cloud…';
+    document.getElementById('stockBalanceKpiGrid').innerHTML = '';
+    document.getElementById('stockBalanceTableWrap').innerHTML = '<div class="empty-state">Syncing with cloud…</div>';
+    document.getElementById('stockBalancePaginationWrap').innerHTML = '';
+    return;
+  }
   renderStockBalanceStatusNote();
   renderStockBalanceFilterOptions();
   renderStockBalanceKpis();
