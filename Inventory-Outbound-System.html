@@ -9640,8 +9640,15 @@ async function checkStockAvailableAutoReset() {
   const today = stockAvailableTodayStr();
   try {
     const snap = await fbDb.ref(STOCK_AVAILABLE_AUTO_RESET_META + '/lastResetDate').once('value');
-    if ((snap.val() || '') === today) return; // already reset today, by this device or another
+    const lastResetDate = snap.val();
+    if (lastResetDate === today) return; // already handled today, by this device or another
     await fbDb.ref(STOCK_AVAILABLE_AUTO_RESET_META + '/lastResetDate').set(today); // claim today first
+    // First time this feature has ever run (no marker in Firebase yet) — just establish the
+    // baseline date, don't wipe data. Without this guard, deploying the feature at ANY time of day
+    // would immediately delete everything on the very first load, since "no marker" and "a real,
+    // actual-midnight-just-passed day change" looked identical. This is exactly the bug that wiped
+    // her real uploaded data on first deploy (Sep 16, 2026) — fixed same day.
+    if (lastResetDate === null) return;
     if (stockAvailableList.length) await performStockAvailableReset();
   } catch (e) {
     console.error('checkStockAvailableAutoReset failed', e);
