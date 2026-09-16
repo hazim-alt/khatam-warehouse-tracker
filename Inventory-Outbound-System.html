@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -4952,7 +4951,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'fleet-trips' || btn.dataset.tab === 'fleet-board' || btn.dataset.tab === 'fleet-driver-trip') renderFleetTab();
     if (btn.dataset.tab === 'staff-schedule') { renderStaffRosterList(); renderStaffScheduleGrid(); }
     if (btn.dataset.tab === 'item-master') renderItemMasterTab();
-    if (btn.dataset.tab === 'stock-balance') renderStockBalanceTab();
+    if (btn.dataset.tab === 'stock-balance') { renderStockBalanceTab(); refreshStockBalanceFromServer(); }
     if (btn.dataset.tab === 'finance') renderFinanceTab();
     if (btn.dataset.tab === 'request-stock') renderRequestStockTab();
     updateSidebarSyncBarVisibility();
@@ -9574,6 +9573,19 @@ function attachStockBalanceFbListener() {
     cloudSyncLastError = `StockBalanceList: ${(error && error.message) || error}`;
     renderCloudSyncStatus();
   });
+}
+// Defensive fallback, called every time the Stock Balance tab is opened (see the tab-switch handler
+// below) on TOP of the live listener above — a one-off .once('value') check against the server's
+// current truth. The live listener is normally enough on its own, but a tab that's been sitting in
+// the background a long time, or any brief reconnect gap, is enough real-world uncertainty that
+// "just opening the tab" should never trust a possibly-stale in-memory list without at least one
+// fresh check. Cheap and best-effort — errors here are silently ignored, the live listener is still
+// the primary path and keeps working regardless.
+function refreshStockBalanceFromServer() {
+  if (!fbDb) return;
+  fbDb.ref(STOCK_BALANCE_FB_TABLE).once('value').then(snap => {
+    applyStockBalanceServerSnapshot(snap.val() || {});
+  }).catch(() => {});
 }
 // Runs once at startup (alongside initialCloudSync / initialItemMasterCloudSync). First time EVER
 // on this computer AND only if nobody has ever hit Reset (see STOCK_BALANCE_RESET_MARKER_TABLE):
