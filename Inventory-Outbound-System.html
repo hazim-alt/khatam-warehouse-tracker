@@ -35,6 +35,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
@@ -340,6 +341,10 @@
   .dash-tables-row .card { margin-bottom: 0; }
   .scroll-table { max-height: 320px; overflow-y: auto; overflow-x: auto; }
   .scroll-table table thead th { position: sticky; top: 0; background: var(--card); }
+  /* Opt-out of the 320px inner scrollbox — for tables that already paginate (so an internal
+     vertical scroll on top of the page's own scroll is just redundant/cramped-looking), the table
+     grows to its full natural height instead and the page scrolls normally. */
+  .scroll-table.scroll-table-flat { max-height: none; overflow-y: visible; }
 
   /* Let only the bottom table row (last row of each slide) grow to fill any leftover height,
      since tables (simple scroll) are safe to stretch — unlike charts, which broke when stretched.
@@ -1155,6 +1160,15 @@
     <button class="tab-btn" data-tab="staff-schedule">Staff Schedule</button>
     <button class="tab-btn" data-tab="item-master">Item Master List</button>
     <button class="tab-btn" data-tab="stock-available">Available Stock</button>
+    <button type="button" class="nav-group-toggle" id="navGroupProductionToggle" data-group="navGroupProduction">
+      <span>Production</span><span class="nav-group-chevron">▾</span>
+    </button>
+    <div class="nav-group" id="navGroupProduction">
+      <button class="tab-btn" data-tab="production-stock-balance">Stock Balance</button>
+      <button class="tab-btn" data-tab="production-fg">Stock Level Finish Good</button>
+      <button class="tab-btn" data-tab="production-rm">Stock Level Raw Materials</button>
+      <button class="tab-btn" data-tab="production-restock">Restock Status</button>
+    </div>
     <button class="tab-btn" data-tab="finance">Finance</button>
     <button class="tab-btn" data-tab="request-stock">Request Stock</button>
     <button class="tab-btn" data-tab="laporan">Reports</button>
@@ -1641,7 +1655,10 @@
       <div id="rmPickStoHint" class="data-note" style="color:#e0685c;"></div>
       <div class="rm-form-grid" style="grid-template-columns: 1fr auto; margin-top:10px;">
         <div class="field"><label>Roll No. / Carton No.</label><input type="text" id="rmPickRollInput" placeholder="Scan roll or carton (sends immediately)"></div>
-        <div class="field" style="align-self:flex-end;"><button type="button" class="btn-ghost" id="rmPickScanBtn">Scan</button></div>
+        <div class="field" style="align-self:flex-end; display:flex; gap:8px;">
+          <button type="button" class="btn-ghost" id="rmPickScanBtn">Scan</button>
+          <button type="button" class="btn-ghost" id="rmPickCameraScanBtn" title="Scan the printed QR sticker using your phone/laptop camera">📷 Camera</button>
+        </div>
       </div>
       <div id="rmPickScanResult" class="data-note"></div>
       <div class="data-note" style="margin-top:10px;">Scanning auto-sends & saves immediately (deducts stock) — there's no separate Complete step anymore. For accessories without a carton, use the "✅ Send" button under "To Pick" below.</div>
@@ -2539,6 +2556,103 @@
     </div>
   </section>
 
+  <section class="tab-panel" id="tab-production-stock-balance">
+    <p class="section-title">Production — Stock Balance</p>
+    <div class="card">
+      <div class="empty-state">This tab is a placeholder — tell me what it should do and I'll build it.</div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-production-fg">
+    <p class="section-title">Production — Stock Level Finish Good</p>
+    <div class="card">
+      <span class="data-note" style="margin:0;">Live from the Available Stock tab — Total Qty is summed across all boutiques/zones. Click "Update" on a row to set its produce-again decision — Status / Target Qty / Notes are saved separately, so they are NOT wiped by Available Stock's nightly auto-reset. Only items marked "Produce Again" or "Stop Production" show up in Restock Status.</span>
+      <div class="filters" style="margin-top:10px;">
+        <input type="text" id="productionStockFgSearchInput" placeholder="Search SKU / Brand / Group / Color / Size...">
+        <select id="productionStockFgBrandFilter"><option value="">All Brands</option></select>
+        <select id="productionStockFgGroupFilter"><option value="">All Groups</option></select>
+        <select id="productionStockFgColorFilter"><option value="">All Colors</option></select>
+        <select id="productionStockFgSizeFilter"><option value="">All Sizes</option></select>
+        <select id="productionStockFgYearFilter"><option value="">All Campaign Years</option></select>
+        <select id="productionStockFgStatusFilter">
+          <option value="">All Status</option>
+          <option value="produce">Produce Again</option>
+          <option value="stop">Stop Production</option>
+          <option value="undecided">Not Decided</option>
+        </select>
+      </div>
+      <div id="productionStockFgBulkBar" style="display:none; align-items:center; gap:10px; margin-top:10px; padding:8px 12px; border:1px solid var(--border); border-radius:6px;">
+        <span id="productionStockFgBulkCount" class="data-note" style="margin:0;"></span>
+        <button type="button" class="btn-primary" id="productionStockFgBulkUpdateBtn" style="margin-left:auto;">Bulk Update</button>
+        <button type="button" class="btn-ghost" id="productionStockFgBulkClearBtn">Clear Selection</button>
+      </div>
+      <div id="productionStockFgTableWrap" class="scroll-table scroll-table-flat" style="margin-top:10px;"></div>
+      <div id="productionStockFgPaginationWrap" style="display:flex; align-items:center; justify-content:center; gap:10px; margin-top:12px;"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-production-rm">
+    <p class="section-title">Production — Stock Level Raw Materials</p>
+    <div class="card">
+      <span class="data-note" style="margin:0;">Live from the Raw Material module (fabric roll meterage remaining, and accessories received minus what's already been sent out). Click "Update" on a row to set its topup decision. Only items marked "Topup" or "No Topup" show up in Restock Status.</span>
+      <input type="text" id="productionRmSearchInput" placeholder="Search fabric / accessories name..." style="margin-top:10px; max-width:320px;">
+      <p style="margin:14px 0 6px; font-weight:600; font-size:13px;">Fabric</p>
+      <div id="productionFabricTableWrap" class="scroll-table scroll-table-flat"></div>
+      <p style="margin:16px 0 6px; font-weight:600; font-size:13px;">Accessories</p>
+      <div id="productionAccTableWrap" class="scroll-table scroll-table-flat"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-production-restock">
+    <p class="section-title">Production — Restock Status</p>
+    <div class="card">
+      <span class="data-note" style="margin:0;">Read-only summary — only items marked "Produce Again" (Finished Goods) or "Topup" (Raw Material) on their respective Stock Level tabs show up here. Update the decision itself from Stock Level Finish Good / Stock Level Raw Materials.</span>
+      <p style="margin:16px 0 6px; font-weight:600; font-size:13px;">Finished Goods to Produce</p>
+      <div id="productionRestockFgWrap" class="scroll-table scroll-table-flat"></div>
+      <p style="margin:20px 0 6px; font-weight:600; font-size:13px;">Raw Material to Topup</p>
+      <div id="productionRestockRmWrap" class="scroll-table scroll-table-flat"></div>
+    </div>
+  </section>
+
+  <div class="modal-overlay hidden" id="productionRmDecisionModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <p class="section-title" style="margin:0;">Update Topup Status — <span id="productionRmDecisionLabel"></span></p>
+        <button type="button" class="icon-btn" id="productionRmDecisionCloseBtn">✕</button>
+      </div>
+      <div class="field"><label>Status</label>
+        <select id="productionRmDecisionStatusInput">
+          <option value="">Not Decided</option>
+          <option value="topup">Topup</option>
+          <option value="no">No Topup</option>
+        </select>
+      </div>
+      <div class="field" id="productionRmDecisionTargetQtyWrap"><label id="productionRmDecisionTargetQtyLabel">Target Qty to Topup</label><input type="number" min="0" id="productionRmDecisionTargetQtyInput"></div>
+      <div class="field"><label>Notes</label><textarea id="productionRmDecisionNotesInput" rows="3" placeholder="Optional notes..." style="width:100%;"></textarea></div>
+      <button type="button" class="btn-primary" id="productionRmDecisionSaveBtn" style="margin-top:10px;">Save</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay hidden" id="productionDecisionModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <p class="section-title" style="margin:0;">Update Production Status — <span id="productionDecisionSkuLabel"></span></p>
+        <button type="button" class="icon-btn" id="productionDecisionCloseBtn">✕</button>
+      </div>
+      <div id="productionDecisionBulkNote" class="data-note" style="display:none; margin:0 0 10px;">This will overwrite the current status for every selected SKU.</div>
+      <div class="field"><label>Status</label>
+        <select id="productionDecisionStatusInput">
+          <option value="">Not Decided</option>
+          <option value="produce">Produce Again</option>
+          <option value="stop">Stop Production</option>
+        </select>
+      </div>
+      <div class="field" id="productionDecisionTargetQtyWrap"><label>Target Qty to Produce</label><input type="number" min="0" id="productionDecisionTargetQtyInput"></div>
+      <div class="field"><label>Notes</label><textarea id="productionDecisionNotesInput" rows="3" placeholder="Optional notes..." style="width:100%;"></textarea></div>
+      <button type="button" class="btn-primary" id="productionDecisionSaveBtn" style="margin-top:10px;">Save</button>
+    </div>
+  </div>
+
   <section class="tab-panel" id="tab-finance">
     <p class="section-title">Finance — Fabric Stock Dashboard</p>
     <div class="card" style="margin-bottom:16px;">
@@ -3181,6 +3295,22 @@
   </div>
 </div>
 
+<div class="modal-overlay hidden" id="cameraScanModal">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-header">
+      <h2 style="margin:0;">Scan QR Sticker</h2>
+      <button class="modal-close" id="cameraScanCloseBtn">&times;</button>
+    </div>
+    <div class="data-note" id="cameraScanStatus" style="margin:0 0 10px;">Requesting camera…</div>
+    <div style="position:relative; width:100%; background:#000; border-radius:8px; overflow:hidden;">
+      <video id="cameraScanVideo" autoplay playsinline muted style="width:100%; display:block;"></video>
+    </div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn-ghost" id="cameraScanCancelBtn">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay hidden" id="rmEditRollModal">
   <div class="modal-box" style="max-width:480px;">
     <div class="modal-header">
@@ -3291,6 +3421,7 @@
     <div class="modal-header">
       <h2 id="fleetTripModalTitle">Schedule Trip</h2>
       <div style="display:flex; align-items:center; gap:10px;">
+        <button type="button" class="icon-btn" id="fleetTripEditDateBtn" title="Edit trip date (Admin)" style="display:none;">📅</button>
         <button type="button" class="icon-btn" id="fleetTripModalDeleteBtn" title="Delete trip" style="display:none;">🗑</button>
         <button class="modal-close" id="fleetTripModalCloseBtn">&times;</button>
       </div>
@@ -3298,6 +3429,11 @@
     <div class="data-note" id="fleetTripPastLockNote" style="display:none; margin-bottom:14px; align-items:center; justify-content:space-between; gap:10px;">
       <span>This trip is dated in the past and is locked as a log.</span>
       <button type="button" class="btn-ghost" id="fleetTripUnlockBtn" style="white-space:nowrap; padding:6px 12px; font-size:12px;">🔒 Unlock to Edit (Admin)</button>
+    </div>
+    <div class="data-note" id="fleetTripDateEditRow" style="display:none; align-items:center; gap:8px; margin-bottom:14px;">
+      <input type="date" id="fleetTripDateEditInput" style="flex:1;">
+      <button type="button" class="btn-primary" id="fleetTripDateEditSaveBtn" style="white-space:nowrap; padding:6px 12px; font-size:12px;">Save</button>
+      <button type="button" class="btn-ghost" id="fleetTripDateEditCancelBtn" style="white-space:nowrap; padding:6px 12px; font-size:12px;">Cancel</button>
     </div>
     <div class="field">
       <label>Driver</label>
@@ -4275,6 +4411,8 @@ function loadData() {
   loadSkuReference();
   loadItemMasterList();
   loadStockAvailableList();
+  loadProductionDecisions();
+  loadProductionRmDecisions();
   // Cleans up any STO No. duplicates already sitting in storage (e.g. from two devices each adding
   // the same STO No. before they'd ever synced with each other — see backfillNaturalSyncIds above)
   // and makes sure every record has a stable id going forward, right from the moment data loads —
@@ -4969,6 +5107,9 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'staff-schedule') { renderStaffRosterList(); renderStaffScheduleGrid(); }
     if (btn.dataset.tab === 'item-master') renderItemMasterTab();
     if (btn.dataset.tab === 'stock-available') { renderStockAvailableTab(); refreshStockAvailableFromServer(); }
+    if (btn.dataset.tab === 'production-fg') renderProductionStockFgTab();
+    if (btn.dataset.tab === 'production-rm') renderProductionRmTab();
+    if (btn.dataset.tab === 'production-restock') renderProductionRestockTab();
     if (btn.dataset.tab === 'finance') renderFinanceTab();
     if (btn.dataset.tab === 'request-stock') renderRequestStockTab();
     updateSidebarSyncBarVisibility();
@@ -7800,6 +7941,10 @@ const PERMISSION_TABS = [
   { id: 'staff-schedule', label: 'Staff Schedule' },
   { id: 'item-master', label: 'Item Master List' },
   { id: 'stock-available', label: 'Available Stock' },
+  { id: 'production-stock-balance', label: 'Stock Balance (Production)' },
+  { id: 'production-fg', label: 'Stock Level Finish Good (Production)' },
+  { id: 'production-rm', label: 'Stock Level Raw Materials (Production)' },
+  { id: 'production-restock', label: 'Restock Status (Production)' },
   { id: 'finance', label: 'Finance' },
   { id: 'request-stock', label: 'Request Stock' },
   { id: 'laporan', label: 'Reports' },
@@ -10117,6 +10262,466 @@ document.getElementById('resetStockAvailableBtn').addEventListener('click', asyn
 });
 /* ==================== end Stock Available ==================== */
 
+/* ==================== Production (finished goods produce-again decisions + RM stock awareness) ====================
+   Built Sep 16, 2026 per Shaila's request — gives the Production dept one place to see current
+   stock (Finished Goods from Available Stock, Raw Material fabric+accessories) and record whether
+   each finished-good SKU should be produced again. Decisions live in their OWN small synced
+   collection (productionDecisions, via the generic SYNC_COLLECTIONS mechanism — same pattern as
+   RequestStock/Rollcages/etc.), deliberately NOT embedded inside the Available Stock records:
+   Available Stock wipes itself every night (see checkStockAvailableAutoReset above), and a
+   produce-again decision has nothing to do with today's snapshot, so it must survive that reset. */
+const PRODUCTION_DECISIONS_KEY = 'sto_production_decisions_v1';
+let productionDecisions = []; // [{ id, sku, status: 'produce'|'stop'|'', targetQty, notes, updatedBy, updatedAt }]
+function loadProductionDecisions() {
+  try { productionDecisions = JSON.parse(localStorage.getItem(PRODUCTION_DECISIONS_KEY)) || []; } catch (e) { productionDecisions = []; }
+}
+function saveProductionDecisions() {
+  localStorage.setItem(PRODUCTION_DECISIONS_KEY, JSON.stringify(productionDecisions));
+  pushProductionDecisionsNow();
+}
+function pushProductionDecisionsNow() {
+  if (!fbDb || !SYNC_COLLECTIONS._fbListenersAttached) return;
+  const def = SYNC_COLLECTIONS.find(d => d.table === 'ProductionDecisions');
+  if (def) pushCollectionDiff(def, { skipEmptyGuard: true });
+}
+function genProductionDecisionId() { return 'prd_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+function productionDecisionFor(sku) { return productionDecisions.find(d => d.sku === sku) || null; }
+const PRODUCTION_STATUS_LABEL = { produce: 'Produce Again', stop: 'Stop Production', '': 'Not Decided' };
+const PRODUCTION_STATUS_BADGE_CLASS = { produce: 'badge-green', stop: 'badge-red', '': 'badge-gray' };
+
+/* ---- Tab: Stock Level Finish Good (stock view + produce-again decision) ---- */
+// Grouped by Brand (per Shaila's request, Sep 16, 2026 — a flat 10k-row list was too much) — one
+// collapsed row per brand, expand to see that brand's SKUs. In-memory only (not persisted), so
+// expand state resets on page reload, same as the equivalent Raw Material > Stock Balance pattern.
+let productionStockFgExpandedBrands = new Set();
+// SKU checkboxes for bulk-updating status/target qty/notes across several SKUs at once — global
+// (not per-brand), so a selection can span multiple expanded brand groups. In-memory only.
+let productionStockFgSelectedSkus = new Set();
+function productionStockFgFilteredList() {
+  const search = (document.getElementById('productionStockFgSearchInput').value || '').trim().toLowerCase();
+  const brandFilter = document.getElementById('productionStockFgBrandFilter').value;
+  const groupFilter = document.getElementById('productionStockFgGroupFilter').value;
+  const colorFilter = document.getElementById('productionStockFgColorFilter').value;
+  const sizeFilter = document.getElementById('productionStockFgSizeFilter').value;
+  const yearFilter = document.getElementById('productionStockFgYearFilter').value;
+  const statusFilter = document.getElementById('productionStockFgStatusFilter').value;
+  return stockAvailableList.filter(it => {
+    if (search && ![it.sku, it.itemGroup, it.itemBrand, it.itemColor, it.itemSize].filter(Boolean).join(' ').toLowerCase().includes(search)) return false;
+    if (brandFilter && (it.itemBrand || '') !== brandFilter) return false;
+    if (groupFilter && (it.itemGroup || '') !== groupFilter) return false;
+    if (colorFilter && (it.itemColor || '') !== colorFilter) return false;
+    if (sizeFilter && (it.itemSize || '') !== sizeFilter) return false;
+    if (yearFilter) {
+      const im = itemMasterLookupBySku(it.sku);
+      if (!im || (im.campaignYear || '') !== yearFilter) return false;
+    }
+    if (statusFilter) {
+      const st = (productionDecisionFor(it.sku) || {}).status || '';
+      if (statusFilter === 'undecided' ? st !== '' : st !== statusFilter) return false;
+    }
+    return true;
+  });
+}
+// Cascading filter options: each select's list of choices is built from rows matching every OTHER
+// currently active filter (but not its own dimension) — so picking Campaign Year 2027 narrows the
+// Brand/Group/Color/Size dropdowns down to only what actually exists in 2027, instead of always
+// listing every brand/group/etc. across all years regardless of what's selected.
+function productionStockFgFilterOptionsBaseList(excludeField) {
+  const brandFilter = document.getElementById('productionStockFgBrandFilter').value;
+  const groupFilter = document.getElementById('productionStockFgGroupFilter').value;
+  const colorFilter = document.getElementById('productionStockFgColorFilter').value;
+  const sizeFilter = document.getElementById('productionStockFgSizeFilter').value;
+  const yearFilter = document.getElementById('productionStockFgYearFilter').value;
+  return stockAvailableList.filter(it => {
+    if (excludeField !== 'brand' && brandFilter && (it.itemBrand || '') !== brandFilter) return false;
+    if (excludeField !== 'group' && groupFilter && (it.itemGroup || '') !== groupFilter) return false;
+    if (excludeField !== 'color' && colorFilter && (it.itemColor || '') !== colorFilter) return false;
+    if (excludeField !== 'size' && sizeFilter && (it.itemSize || '') !== sizeFilter) return false;
+    if (excludeField !== 'year' && yearFilter) {
+      const im = itemMasterLookupBySku(it.sku);
+      if (!im || (im.campaignYear || '') !== yearFilter) return false;
+    }
+    return true;
+  });
+}
+function renderProductionStockFgFilterOptions() {
+  stockAvailableFillSelect('productionStockFgBrandFilter', [...new Set(productionStockFgFilterOptionsBaseList('brand').map(it => it.itemBrand).filter(Boolean))].sort(), 'All Brands');
+  stockAvailableFillSelect('productionStockFgGroupFilter', [...new Set(productionStockFgFilterOptionsBaseList('group').map(it => it.itemGroup).filter(Boolean))].sort(), 'All Groups');
+  stockAvailableFillSelect('productionStockFgColorFilter', [...new Set(productionStockFgFilterOptionsBaseList('color').map(it => it.itemColor).filter(Boolean))].sort(), 'All Colors');
+  stockAvailableFillSelect('productionStockFgSizeFilter', [...new Set(productionStockFgFilterOptionsBaseList('size').map(it => it.itemSize).filter(Boolean))].sort(), 'All Sizes');
+  const yearBaseList = productionStockFgFilterOptionsBaseList('year');
+  const years = [...new Set(yearBaseList.map(it => { const im = itemMasterLookupBySku(it.sku); return im && im.campaignYear; }).filter(Boolean))].sort().reverse();
+  stockAvailableFillSelect('productionStockFgYearFilter', years, 'All Campaign Years');
+}
+function renderProductionStockFgTable() {
+  const wrap = document.getElementById('productionStockFgTableWrap');
+  const pagWrap = document.getElementById('productionStockFgPaginationWrap');
+  const list = productionStockFgFilteredList();
+  if (!list.length) {
+    wrap.innerHTML = `<div class="empty-state">${stockAvailableList.length ? 'No rows match the search/filter.' : 'No Available Stock uploaded yet — upload a file in the Available Stock tab first.'}</div>`;
+    pagWrap.innerHTML = '';
+    return;
+  }
+  const brandGroups = new Map();
+  list.forEach(g => {
+    const b = g.itemBrand || '(No Brand)';
+    if (!brandGroups.has(b)) brandGroups.set(b, []);
+    brandGroups.get(b).push(g);
+  });
+  const brands = [...brandGroups.keys()].sort((a, b) => a.localeCompare(b));
+  // While actively searching, auto-expand every matching brand so results aren't hidden behind a
+  // collapsed group — same convention as Raw Material > Stock Balance's fabric summary.
+  const searching = !!(document.getElementById('productionStockFgSearchInput').value || '').trim();
+
+  let html = `<table><thead><tr><th></th><th>Brand</th><th>SKU Count</th><th>Total Qty</th></tr></thead><tbody>`;
+  brands.forEach(b => {
+    const rows = [...brandGroups.get(b)].sort((a, c) => a.sku.localeCompare(c.sku));
+    const totalQty = rows.reduce((s, g) => s + Object.values(g.qtyByLocation || {}).reduce((s2, v) => s2 + (Number(v) || 0), 0), 0);
+    const expanded = searching || productionStockFgExpandedBrands.has(b);
+    const allSelected = rows.length > 0 && rows.every(g => productionStockFgSelectedSkus.has(g.sku));
+    html += `<tr class="production-fg-brand-row" style="cursor:pointer;" data-brand="${escapeHtml(b)}">
+      <td class="rm-sto-toggle-icon" style="width:24px;">${expanded ? '▾' : '▸'}</td>
+      <td><strong>${escapeHtml(b)}</strong></td>
+      <td>${formatQty(rows.length)}</td>
+      <td>${formatQty(totalQty)}</td>
+    </tr>
+    <tr class="production-fg-brand-detail-row" style="display:${expanded ? 'table-row' : 'none'};">
+      <td></td>
+      <td colspan="3" style="padding:6px 10px;">
+        <table style="font-size:12px;"><thead><tr><th><input type="checkbox" class="production-fg-select-all-checkbox" data-brand="${escapeHtml(b)}" ${allSelected ? 'checked' : ''}></th><th>SKU</th><th>Group</th><th>Color</th><th>Size</th><th>Total Qty</th><th>Status</th><th>Target Qty</th><th>Notes</th><th></th></tr></thead><tbody>
+          ${rows.map(g => {
+            const rowQty = Object.values(g.qtyByLocation || {}).reduce((s, v) => s + (Number(v) || 0), 0);
+            const d = productionDecisionFor(g.sku);
+            const status = (d && d.status) || '';
+            return `<tr>
+              <td><input type="checkbox" class="production-fg-sku-checkbox" data-sku="${escapeHtml(g.sku)}" ${productionStockFgSelectedSkus.has(g.sku) ? 'checked' : ''}></td>
+              <td class="mono-name">${escapeHtml(g.sku)}</td>
+              <td>${escapeHtml(g.itemGroup || '-')}</td>
+              <td>${escapeHtml(g.itemColor || '-')}</td>
+              <td>${escapeHtml(g.itemSize || '-')}</td>
+              <td>${formatQty(rowQty)}</td>
+              <td><span class="badge ${PRODUCTION_STATUS_BADGE_CLASS[status]}">${PRODUCTION_STATUS_LABEL[status]}</span></td>
+              <td>${d && d.targetQty ? formatQty(d.targetQty) : '-'}</td>
+              <td style="max-width:200px; white-space:normal; color:var(--text-muted);">${escapeHtml((d && d.notes) || '-')}</td>
+              <td><button type="button" class="btn-ghost production-edit-decision-btn" data-sku="${escapeHtml(g.sku)}" style="white-space:nowrap;">Update</button></td>
+            </tr>`;
+          }).join('')}
+        </tbody></table>
+      </td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+  pagWrap.innerHTML = `<span class="data-note" style="margin:0;">${formatQty(brands.length)} brand(s) — ${formatQty(list.length)} SKU total</span>`;
+
+  wrap.querySelectorAll('.production-fg-brand-row').forEach(row => {
+    // Clicking the row toggles that brand's detail row; the SKU-level Update buttons/checkboxes
+    // inside stop propagation so interacting with them doesn't also collapse the group.
+    row.addEventListener('click', () => {
+      const b = row.dataset.brand;
+      if (productionStockFgExpandedBrands.has(b)) productionStockFgExpandedBrands.delete(b); else productionStockFgExpandedBrands.add(b);
+      renderProductionStockFgTable();
+    });
+  });
+  wrap.querySelectorAll('.production-edit-decision-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.stopPropagation(); openProductionDecisionModal(btn.dataset.sku); });
+  });
+  wrap.querySelectorAll('.production-fg-sku-checkbox').forEach(cb => {
+    cb.addEventListener('click', (e) => e.stopPropagation());
+    cb.addEventListener('change', () => {
+      if (cb.checked) productionStockFgSelectedSkus.add(cb.dataset.sku); else productionStockFgSelectedSkus.delete(cb.dataset.sku);
+      renderProductionStockFgTable();
+    });
+  });
+  wrap.querySelectorAll('.production-fg-select-all-checkbox').forEach(cb => {
+    cb.addEventListener('click', (e) => e.stopPropagation());
+    cb.addEventListener('change', () => {
+      const b = cb.dataset.brand;
+      const rows = brandGroups.get(b) || [];
+      if (cb.checked) rows.forEach(g => productionStockFgSelectedSkus.add(g.sku));
+      else rows.forEach(g => productionStockFgSelectedSkus.delete(g.sku));
+      renderProductionStockFgTable();
+    });
+  });
+  renderProductionStockFgBulkBar();
+}
+function renderProductionStockFgBulkBar() {
+  const bar = document.getElementById('productionStockFgBulkBar');
+  const count = productionStockFgSelectedSkus.size;
+  if (!count) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  document.getElementById('productionStockFgBulkCount').textContent = `${formatQty(count)} SKU selected`;
+}
+document.getElementById('productionStockFgBulkUpdateBtn').addEventListener('click', () => {
+  if (!productionStockFgSelectedSkus.size) return;
+  openProductionDecisionModal([...productionStockFgSelectedSkus]);
+});
+document.getElementById('productionStockFgBulkClearBtn').addEventListener('click', () => {
+  productionStockFgSelectedSkus.clear();
+  renderProductionStockFgTable();
+});
+document.getElementById('productionStockFgSearchInput').addEventListener('input', () => { renderProductionStockFgTable(); });
+function productionStockFgOnStructuredFilterChange() { renderProductionStockFgFilterOptions(); renderProductionStockFgTable(); }
+document.getElementById('productionStockFgBrandFilter').addEventListener('change', productionStockFgOnStructuredFilterChange);
+document.getElementById('productionStockFgGroupFilter').addEventListener('change', productionStockFgOnStructuredFilterChange);
+document.getElementById('productionStockFgColorFilter').addEventListener('change', productionStockFgOnStructuredFilterChange);
+document.getElementById('productionStockFgSizeFilter').addEventListener('change', productionStockFgOnStructuredFilterChange);
+document.getElementById('productionStockFgYearFilter').addEventListener('change', productionStockFgOnStructuredFilterChange);
+document.getElementById('productionStockFgStatusFilter').addEventListener('change', () => { renderProductionStockFgTable(); });
+function renderProductionStockFgTab() {
+  renderProductionStockFgFilterOptions();
+  renderProductionStockFgTable();
+}
+
+/* ---- Finished Goods decision modal (opened from Stock Level Finish Good) ----
+   Handles both single-SKU (the row "Update" button) and bulk (the "Bulk Update" bar, once 1+ SKU
+   checkboxes are ticked) — openProductionDecisionModal always takes an array now; a single-SKU call
+   just passes a 1-item array. Bulk mode doesn't prefill from any one SKU's existing decision (they
+   may differ), it always starts blank and overwrites every selected SKU on Save — see the warning
+   note shown in the modal for >1 SKU. */
+let productionDecisionTargetSkus = [];
+function productionDecisionUpdateTargetQtyVisibility() {
+  const status = document.getElementById('productionDecisionStatusInput').value;
+  document.getElementById('productionDecisionTargetQtyWrap').style.display = status === 'produce' ? '' : 'none';
+}
+function openProductionDecisionModal(skuOrSkus) {
+  const skus = Array.isArray(skuOrSkus) ? skuOrSkus : [skuOrSkus];
+  productionDecisionTargetSkus = skus;
+  const bulk = skus.length > 1;
+  const d = bulk ? null : productionDecisionFor(skus[0]);
+  document.getElementById('productionDecisionSkuLabel').textContent = bulk ? `${skus.length} SKU selected` : skus[0];
+  document.getElementById('productionDecisionBulkNote').style.display = bulk ? '' : 'none';
+  document.getElementById('productionDecisionStatusInput').value = (d && d.status) || '';
+  document.getElementById('productionDecisionTargetQtyInput').value = (d && d.targetQty) || '';
+  document.getElementById('productionDecisionNotesInput').value = (d && d.notes) || '';
+  productionDecisionUpdateTargetQtyVisibility();
+  document.getElementById('productionDecisionModal').classList.remove('hidden');
+}
+function closeProductionDecisionModal() {
+  document.getElementById('productionDecisionModal').classList.add('hidden');
+  productionDecisionTargetSkus = [];
+}
+document.getElementById('productionDecisionCloseBtn').addEventListener('click', closeProductionDecisionModal);
+document.getElementById('productionDecisionStatusInput').addEventListener('change', productionDecisionUpdateTargetQtyVisibility);
+document.getElementById('productionDecisionSaveBtn').addEventListener('click', () => {
+  if (!productionDecisionTargetSkus.length) return;
+  const status = document.getElementById('productionDecisionStatusInput').value;
+  const targetQty = document.getElementById('productionDecisionTargetQtyInput').value;
+  const notes = document.getElementById('productionDecisionNotesInput').value.trim();
+  const cur = getCurrentUser();
+  productionDecisionTargetSkus.forEach(sku => {
+    let rec = productionDecisions.find(d => d.sku === sku);
+    if (!rec) {
+      rec = { id: genProductionDecisionId(), sku };
+      productionDecisions.push(rec);
+    }
+    rec.status = status;
+    rec.targetQty = status === 'produce' ? (targetQty ? Number(targetQty) : '') : '';
+    rec.notes = notes;
+    rec.updatedBy = cur ? cur.username : '';
+    rec.updatedAt = Date.now();
+  });
+  saveProductionDecisions();
+  closeProductionDecisionModal();
+  productionStockFgSelectedSkus.clear();
+  renderProductionStockFgTable();
+});
+
+/* ---- Tab: Stock Level Raw Materials (stock view + topup decision) ---- */
+const PRODUCTION_RM_DECISIONS_KEY = 'sto_production_rm_decisions_v1';
+let productionRmDecisions = []; // [{ id, itemType: 'fabric'|'accessories', key, label, status: 'topup'|'no'|'', targetQty, notes, updatedBy, updatedAt }]
+function loadProductionRmDecisions() {
+  try { productionRmDecisions = JSON.parse(localStorage.getItem(PRODUCTION_RM_DECISIONS_KEY)) || []; } catch (e) { productionRmDecisions = []; }
+}
+function saveProductionRmDecisions() {
+  localStorage.setItem(PRODUCTION_RM_DECISIONS_KEY, JSON.stringify(productionRmDecisions));
+  pushProductionRmDecisionsNow();
+}
+function pushProductionRmDecisionsNow() {
+  if (!fbDb || !SYNC_COLLECTIONS._fbListenersAttached) return;
+  const def = SYNC_COLLECTIONS.find(d => d.table === 'ProductionRmDecisions');
+  if (def) pushCollectionDiff(def, { skipEmptyGuard: true });
+}
+function genProductionRmDecisionId() { return 'prmd_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+function productionRmDecisionFor(itemType, key) { return productionRmDecisions.find(d => d.itemType === itemType && d.key === key) || null; }
+const PRODUCTION_RM_STATUS_LABEL = { topup: 'Topup', no: 'No Topup', '': 'Not Decided' };
+const PRODUCTION_RM_STATUS_BADGE_CLASS = { topup: 'badge-green', no: 'badge-red', '': 'badge-gray' };
+
+// Physical remaining = everything ever received minus what's already been physically sent out
+// (Completed STOs only) — deliberately simpler than rmStoAccessoriesAvailableQty, which also nets
+// out in-progress Open reservations and the current unsaved Create-STO draft; those are specific to
+// avoiding double-booking while building an STO, not relevant to Production's read-only "what's
+// actually on the shelf" awareness view.
+function productionAccessoriesQty(name) {
+  const totalReceived = accessoriesReceipts.filter(r => r.name === name).reduce((sum, r) => sum + (Number(r.qty) || 0), 0);
+  const totalSent = rawMaterialStos.filter(s => s.itemType === 'accessories' && s.accessoriesName === name && s.status === 'Completed').reduce((sum, s) => sum + (Number(s.qty) || 0), 0);
+  return Math.round((totalReceived - totalSent) * 100) / 100;
+}
+// Fabric — grouped by fabric (aggregated across colors/rolls), same meterRemaining source of truth
+// as Raw Material > Stock Balance. Shared by the RM table render AND the Restock Status summary
+// (via productionFabricMeterFor), so "current qty" never drifts between the two views.
+function productionFabricGroups() {
+  const fabricGroups = new Map();
+  rawMaterialRolls.forEach(r => {
+    const fk = r.fabricCode || r.fabricName || '';
+    if (!fabricGroups.has(fk)) fabricGroups.set(fk, { key: fk, fabricName: r.fabricName, fabricCode: r.fabricCode, totalMeter: 0 });
+    fabricGroups.get(fk).totalMeter += Number(r.meterRemaining) || 0;
+  });
+  return fabricGroups;
+}
+function productionFabricMeterFor(key) {
+  const g = productionFabricGroups().get(key);
+  return g ? g.totalMeter : 0;
+}
+function renderProductionRawMaterialTables() {
+  const search = (document.getElementById('productionRmSearchInput').value || '').trim().toLowerCase();
+
+  let fabricList = [...productionFabricGroups().values()].sort((a, b) => (a.fabricName || '').localeCompare(b.fabricName || ''));
+  if (search) fabricList = fabricList.filter(f => [f.fabricName, f.fabricCode].filter(Boolean).join(' ').toLowerCase().includes(search));
+  const fabricWrap = document.getElementById('productionFabricTableWrap');
+  fabricWrap.innerHTML = fabricList.length
+    ? `<table><thead><tr><th>Fabric</th><th>Total Meter Remaining</th><th>Status</th><th>Target Qty</th><th>Notes</th><th></th></tr></thead><tbody>${fabricList.map(f => {
+        const d = productionRmDecisionFor('fabric', f.key);
+        const status = (d && d.status) || '';
+        const label = f.fabricName + (f.fabricCode ? ` (${f.fabricCode})` : '');
+        return `<tr>
+          <td><strong>${escapeHtml(f.fabricName || '-')}</strong>${f.fabricCode ? ` <span style="color:var(--text-muted);">(${escapeHtml(f.fabricCode)})</span>` : ''}</td>
+          <td>${formatQty(f.totalMeter)} m</td>
+          <td><span class="badge ${PRODUCTION_RM_STATUS_BADGE_CLASS[status]}">${PRODUCTION_RM_STATUS_LABEL[status]}</span></td>
+          <td>${d && d.targetQty ? formatQty(d.targetQty) : '-'}</td>
+          <td style="max-width:200px; white-space:normal; color:var(--text-muted); font-size:12px;">${escapeHtml((d && d.notes) || '-')}</td>
+          <td><button type="button" class="btn-ghost production-edit-rm-decision-btn" data-item-type="fabric" data-key="${escapeHtml(f.key)}" data-label="${escapeHtml(label)}" style="white-space:nowrap;">Update</button></td>
+        </tr>`;
+      }).join('')}</tbody></table>`
+    : `<div class="empty-state">No fabric received yet.</div>`;
+
+  let accNames = [...new Set(accessoriesReceipts.map(r => r.name).filter(Boolean))];
+  if (search) accNames = accNames.filter(n => n.toLowerCase().includes(search));
+  accNames.sort((a, b) => a.localeCompare(b));
+  const accWrap = document.getElementById('productionAccTableWrap');
+  accWrap.innerHTML = accNames.length
+    ? `<table><thead><tr><th>Accessories</th><th>Qty Available</th><th>Status</th><th>Target Qty</th><th>Notes</th><th></th></tr></thead><tbody>${accNames.map(n => {
+        const d = productionRmDecisionFor('accessories', n);
+        const status = (d && d.status) || '';
+        return `<tr>
+          <td>${escapeHtml(n)}</td>
+          <td>${formatQty(productionAccessoriesQty(n))}</td>
+          <td><span class="badge ${PRODUCTION_RM_STATUS_BADGE_CLASS[status]}">${PRODUCTION_RM_STATUS_LABEL[status]}</span></td>
+          <td>${d && d.targetQty ? formatQty(d.targetQty) : '-'}</td>
+          <td style="max-width:200px; white-space:normal; color:var(--text-muted); font-size:12px;">${escapeHtml((d && d.notes) || '-')}</td>
+          <td><button type="button" class="btn-ghost production-edit-rm-decision-btn" data-item-type="accessories" data-key="${escapeHtml(n)}" data-label="${escapeHtml(n)}" style="white-space:nowrap;">Update</button></td>
+        </tr>`;
+      }).join('')}</tbody></table>`
+    : `<div class="empty-state">No accessories received yet.</div>`;
+
+  document.querySelectorAll('.production-edit-rm-decision-btn').forEach(btn => {
+    btn.addEventListener('click', () => openProductionRmDecisionModal(btn.dataset.itemType, btn.dataset.key, btn.dataset.label));
+  });
+}
+document.getElementById('productionRmSearchInput').addEventListener('input', renderProductionRawMaterialTables);
+function renderProductionRmTab() {
+  renderProductionRawMaterialTables();
+}
+
+/* ---- Raw Material decision modal (opened from Stock Level Raw Materials) ---- */
+let productionRmDecisionTarget = null; // { itemType, key, label }
+function productionRmDecisionUpdateTargetQtyVisibility() {
+  const status = document.getElementById('productionRmDecisionStatusInput').value;
+  document.getElementById('productionRmDecisionTargetQtyWrap').style.display = status === 'topup' ? '' : 'none';
+}
+function openProductionRmDecisionModal(itemType, key, label) {
+  productionRmDecisionTarget = { itemType, key, label };
+  const d = productionRmDecisionFor(itemType, key);
+  document.getElementById('productionRmDecisionLabel').textContent = label;
+  document.getElementById('productionRmDecisionTargetQtyLabel').textContent = itemType === 'fabric' ? 'Target Meter to Topup' : 'Target Qty to Topup';
+  document.getElementById('productionRmDecisionStatusInput').value = (d && d.status) || '';
+  document.getElementById('productionRmDecisionTargetQtyInput').value = (d && d.targetQty) || '';
+  document.getElementById('productionRmDecisionNotesInput').value = (d && d.notes) || '';
+  productionRmDecisionUpdateTargetQtyVisibility();
+  document.getElementById('productionRmDecisionModal').classList.remove('hidden');
+}
+function closeProductionRmDecisionModal() {
+  document.getElementById('productionRmDecisionModal').classList.add('hidden');
+  productionRmDecisionTarget = null;
+}
+document.getElementById('productionRmDecisionCloseBtn').addEventListener('click', closeProductionRmDecisionModal);
+document.getElementById('productionRmDecisionStatusInput').addEventListener('change', productionRmDecisionUpdateTargetQtyVisibility);
+document.getElementById('productionRmDecisionSaveBtn').addEventListener('click', () => {
+  if (!productionRmDecisionTarget) return;
+  const { itemType, key, label } = productionRmDecisionTarget;
+  const status = document.getElementById('productionRmDecisionStatusInput').value;
+  const targetQty = document.getElementById('productionRmDecisionTargetQtyInput').value;
+  const notes = document.getElementById('productionRmDecisionNotesInput').value.trim();
+  const cur = getCurrentUser();
+  let rec = productionRmDecisions.find(d => d.itemType === itemType && d.key === key);
+  if (!rec) {
+    rec = { id: genProductionRmDecisionId(), itemType, key };
+    productionRmDecisions.push(rec);
+  }
+  rec.label = label;
+  rec.status = status;
+  rec.targetQty = status === 'topup' ? (targetQty ? Number(targetQty) : '') : '';
+  rec.notes = notes;
+  rec.updatedBy = cur ? cur.username : '';
+  rec.updatedAt = Date.now();
+  saveProductionRmDecisions();
+  closeProductionRmDecisionModal();
+  renderProductionRawMaterialTables();
+});
+
+/* ---- Tab: Restock Status (read-only summary — only items marked for action) ---- */
+function renderProductionRestockFgList() {
+  const wrap = document.getElementById('productionRestockFgWrap');
+  const items = productionDecisions.filter(d => d.status === 'produce');
+  if (!items.length) { wrap.innerHTML = `<div class="empty-state">No finished goods currently marked "Produce Again".</div>`; return; }
+  const rows = items.map(d => {
+    const stock = stockAvailableList.find(it => it.sku === d.sku);
+    const totalQty = stock ? Object.values(stock.qtyByLocation || {}).reduce((s, v) => s + (Number(v) || 0), 0) : null;
+    return { d, stock, totalQty };
+  }).sort((a, b) => a.d.sku.localeCompare(b.d.sku));
+  let html = `<table><thead><tr><th>SKU</th><th>Brand</th><th>Group</th><th>Color</th><th>Size</th><th>Current Qty</th><th>Target Qty</th><th>Notes</th><th>Updated</th></tr></thead><tbody>`;
+  rows.forEach(({ d, stock, totalQty }) => {
+    html += `<tr>
+      <td class="mono-name">${escapeHtml(d.sku)}</td>
+      <td>${escapeHtml((stock && stock.itemBrand) || '-')}</td>
+      <td>${escapeHtml((stock && stock.itemGroup) || '-')}</td>
+      <td>${escapeHtml((stock && stock.itemColor) || '-')}</td>
+      <td>${escapeHtml((stock && stock.itemSize) || '-')}</td>
+      <td>${totalQty === null ? '-' : formatQty(totalQty)}</td>
+      <td>${d.targetQty ? formatQty(d.targetQty) : '-'}</td>
+      <td style="max-width:220px; white-space:normal; color:var(--text-muted); font-size:12px;">${escapeHtml(d.notes || '-')}</td>
+      <td style="color:var(--text-muted); font-size:12px;">${d.updatedBy ? escapeHtml(d.updatedBy) + ' · ' : ''}${d.updatedAt ? formatDateLabel(new Date(d.updatedAt).toISOString().slice(0, 10)) : '-'}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+}
+function renderProductionRestockRmList() {
+  const wrap = document.getElementById('productionRestockRmWrap');
+  const items = productionRmDecisions.filter(d => d.status === 'topup');
+  if (!items.length) { wrap.innerHTML = `<div class="empty-state">No raw material currently marked "Topup".</div>`; return; }
+  const rows = [...items].sort((a, b) => (a.label || '').localeCompare(b.label || ''));
+  let html = `<table><thead><tr><th>Type</th><th>Name</th><th>Current Qty</th><th>Target Qty</th><th>Notes</th><th>Updated</th></tr></thead><tbody>`;
+  rows.forEach(d => {
+    const currentQty = d.itemType === 'fabric' ? productionFabricMeterFor(d.key) : productionAccessoriesQty(d.key);
+    html += `<tr>
+      <td>${d.itemType === 'fabric' ? 'Fabric' : 'Accessories'}</td>
+      <td>${escapeHtml(d.label || d.key)}</td>
+      <td>${formatQty(currentQty)}${d.itemType === 'fabric' ? ' m' : ''}</td>
+      <td>${d.targetQty ? formatQty(d.targetQty) : '-'}</td>
+      <td style="max-width:220px; white-space:normal; color:var(--text-muted); font-size:12px;">${escapeHtml(d.notes || '-')}</td>
+      <td style="color:var(--text-muted); font-size:12px;">${d.updatedBy ? escapeHtml(d.updatedBy) + ' · ' : ''}${d.updatedAt ? formatDateLabel(new Date(d.updatedAt).toISOString().slice(0, 10)) : '-'}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+}
+function renderProductionRestockTab() {
+  renderProductionRestockFgList();
+  renderProductionRestockRmList();
+}
+/* ==================== end Production ==================== */
+
 
 // ---- Auto-fill SKU: map a checklist Series to ONE "product" from Item Master List, then apply
 // that mapping across every Colour+Size line in that series (matched on Item Color + Item Size —
@@ -11892,6 +12497,79 @@ document.getElementById('rmPickRollInput').addEventListener('input', (e) => {
   clearTimeout(rmPickScanDebounceTimer);
   if (!e.target.value.trim()) return;
   rmPickScanDebounceTimer = setTimeout(scanRmPickRoll, 120);
+});
+
+/* ==================== Camera QR Scan (generic/reusable) ====================
+   The printed roll/carton stickers are QR codes (via QRCode.js — see the sticker-print code
+   elsewhere in this file), so this uses jsQR to decode the same format from a live camera feed —
+   for phones/laptops that don't have a physical handheld barcode scanner attached. */
+let cameraScanStream = null;
+let cameraScanRafId = null;
+let cameraScanOnResult = null;
+let cameraScanCanvasEl = null; // reused across frames, avoids allocating a new canvas per tick
+function closeCameraScanModal() {
+  document.getElementById('cameraScanModal').classList.add('hidden');
+  if (cameraScanRafId) { cancelAnimationFrame(cameraScanRafId); cameraScanRafId = null; }
+  if (cameraScanStream) { cameraScanStream.getTracks().forEach(t => t.stop()); cameraScanStream = null; }
+  const video = document.getElementById('cameraScanVideo');
+  if (video) video.srcObject = null;
+  cameraScanOnResult = null;
+}
+function cameraScanTick() {
+  const video = document.getElementById('cameraScanVideo');
+  if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) {
+    cameraScanRafId = requestAnimationFrame(cameraScanTick);
+    return;
+  }
+  if (!cameraScanCanvasEl) cameraScanCanvasEl = document.createElement('canvas');
+  cameraScanCanvasEl.width = video.videoWidth;
+  cameraScanCanvasEl.height = video.videoHeight;
+  const ctx = cameraScanCanvasEl.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(video, 0, 0, cameraScanCanvasEl.width, cameraScanCanvasEl.height);
+  let code = null;
+  try {
+    const imageData = ctx.getImageData(0, 0, cameraScanCanvasEl.width, cameraScanCanvasEl.height);
+    if (window.jsQR) code = jsQR(imageData.data, imageData.width, imageData.height);
+  } catch (e) { /* ignore transient frame-read errors, keep scanning */ }
+  if (code && code.data) {
+    const cb = cameraScanOnResult;
+    closeCameraScanModal();
+    if (cb) cb(code.data);
+    return;
+  }
+  cameraScanRafId = requestAnimationFrame(cameraScanTick);
+}
+async function openCameraScanModal(onResult) {
+  cameraScanOnResult = onResult;
+  document.getElementById('cameraScanModal').classList.remove('hidden');
+  const statusEl = document.getElementById('cameraScanStatus');
+  statusEl.textContent = 'Requesting camera…';
+  if (!window.jsQR) {
+    statusEl.textContent = 'Scanner library failed to load — check your internet connection and try again.';
+    return;
+  }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    statusEl.textContent = 'This browser/device does not support camera access.';
+    return;
+  }
+  try {
+    cameraScanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+  } catch (e) {
+    statusEl.textContent = 'Could not access camera — check camera permission for this site and try again.';
+    return;
+  }
+  const video = document.getElementById('cameraScanVideo');
+  video.srcObject = cameraScanStream;
+  statusEl.textContent = 'Point the camera at the QR sticker…';
+  cameraScanRafId = requestAnimationFrame(cameraScanTick);
+}
+document.getElementById('cameraScanCloseBtn').addEventListener('click', closeCameraScanModal);
+document.getElementById('cameraScanCancelBtn').addEventListener('click', closeCameraScanModal);
+document.getElementById('rmPickCameraScanBtn').addEventListener('click', () => {
+  openCameraScanModal((text) => {
+    document.getElementById('rmPickRollInput').value = text;
+    scanRmPickRoll();
+  });
 });
 
 /* ---- Create STO (fabric transfer) ---- */
@@ -14387,6 +15065,8 @@ const SYNC_COLLECTIONS = [
   { table: 'PriceTag_Printers', getArray: () => priceTagPrinters, setArray: (a) => { priceTagPrinters = a; savePriceTagPrinters(); } },
   { table: 'PriceTag_DOs', getArray: () => priceTagDos, setArray: (a) => { priceTagDos = a; savePriceTagDos(); } },
   { table: 'RequestStock', getArray: () => requestStockList, setArray: (a) => { requestStockList = a; saveRequestStockList(); } },
+  { table: 'ProductionDecisions', getArray: () => productionDecisions, setArray: (a) => { productionDecisions = a; saveProductionDecisions(); } },
+  { table: 'ProductionRmDecisions', getArray: () => productionRmDecisions, setArray: (a) => { productionRmDecisions = a; saveProductionRmDecisions(); } },
   {
     table: 'Users',
     getArray: () => loadAppUsers(),
@@ -15231,6 +15911,8 @@ function openFleetTripModal(dateIso) {
   document.getElementById('fleetTripModalDispatchBtn').style.display = 'none';
   document.getElementById('fleetTripModalReassignBtn').style.display = 'none';
   document.getElementById('fleetTripModalDeleteBtn').style.display = 'none';
+  document.getElementById('fleetTripEditDateBtn').style.display = 'none';
+  document.getElementById('fleetTripDateEditRow').style.display = 'none';
   fleetTripModalViewOnly = false;
   document.getElementById('fleetTripModalCancelBtn').textContent = 'Cancel';
   document.getElementById('tripDestinationField').style.display = '';
@@ -15298,6 +15980,12 @@ function openFleetTripEditModal(tripId, fromCreateTab) {
   document.getElementById('fleetTripModalReassignBtn').style.display = (canDispatch && !pastLocked) ? '' : 'none';
   // Delete works on a trip of any status — shown whenever an existing trip (not the create form) is open.
   document.getElementById('fleetTripModalDeleteBtn').style.display = '';
+  // Edit Date: same "any existing trip, any status" availability as Delete — this is for correcting
+  // a mistake (e.g. a trip created under the wrong day), not routine scheduling, so it deliberately
+  // works even on a Completed/Delivered trip and always requires the Admin password (see its click
+  // handler below), regardless of whether the trip is otherwise past-locked.
+  document.getElementById('fleetTripEditDateBtn').style.display = '';
+  document.getElementById('fleetTripDateEditRow').style.display = 'none';
   // Past-lock banner + unlock affordance: only shown when the trip is actually locked right now
   // (i.e. would otherwise have been editable/dispatchable from this tab, but its date has passed).
   const lockNote = document.getElementById('fleetTripPastLockNote');
@@ -15342,6 +16030,37 @@ function closeFleetTripModal() {
   fleetTripEditId = null;
   fleetAdminUnlockedTripId = null;
 }
+// Edit Date — for correcting a trip that got created/dated wrong (e.g. it shows up on today's
+// board but was actually delivered days ago). Deliberately separate from the past-lock/unlock flow
+// above: it always asks for the Admin password regardless of the trip's current lock state, works
+// on a trip of ANY status including already-Delivered (that's the whole point — those are otherwise
+// fully read-only), and skips the normal same-day driver/destination conflict checks since this is
+// a one-off data correction, not a new scheduling commitment.
+document.getElementById('fleetTripEditDateBtn').addEventListener('click', () => {
+  if (!fleetTripEditId) return;
+  const trip = fleetTrips.find(t => t.id === fleetTripEditId);
+  if (!trip) return;
+  requireAdminPassword(() => {
+    document.getElementById('fleetTripDateEditInput').value = trip.date || '';
+    document.getElementById('fleetTripDateEditRow').style.display = 'flex';
+  });
+});
+document.getElementById('fleetTripDateEditCancelBtn').addEventListener('click', () => {
+  document.getElementById('fleetTripDateEditRow').style.display = 'none';
+});
+document.getElementById('fleetTripDateEditSaveBtn').addEventListener('click', () => {
+  if (!fleetTripEditId) return;
+  const trip = fleetTrips.find(t => t.id === fleetTripEditId);
+  if (!trip) return;
+  const newDate = document.getElementById('fleetTripDateEditInput').value;
+  if (!newDate) { alert('Pick a date first.'); return; }
+  trip.date = newDate;
+  saveFleetTrips();
+  document.getElementById('fleetTripDateEditRow').style.display = 'none';
+  document.getElementById('fleetTripModalTitle').textContent = `Trip Details — ${formatDateLabel(trip.date)}`;
+  fleetTripModalDate = trip.date;
+  renderFleetTab();
+});
 // Re-opens this same trip in edit mode once the Admin password is confirmed — stays unlocked for
 // the rest of this modal session (until it's closed) via fleetAdminUnlockedTripId.
 document.getElementById('fleetTripUnlockBtn').addEventListener('click', () => {
