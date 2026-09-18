@@ -2360,7 +2360,7 @@
         <button type="button" class="btn-ghost" id="staffScheduleWeekNextBtn">▶</button>
         <button type="button" class="btn-ghost" id="staffScheduleWeekTodayBtn">This Week</button>
       </div>
-      <div class="data-note" style="margin-bottom:14px;">Click a cell to cycle Normal → Day Shift → Night Shift → Off → On Leave. Normal (the default, blank cell) means a regular working day with no special campaign shift — Off means an actual day off/not working. Shift rotates independently every week — each week is set separately, so a campaign rotation just means paging forward and clicking through. Who's PIC/Backup PIC is set on the Staff Roster above (Role column), not here.</div>
+      <div class="data-note" style="margin-bottom:14px;">Click a cell to cycle Normal → Day Shift → Night Shift → Off → On Leave. Normal (the default, blank cell) means a regular working day with no special campaign shift — Off means an actual day off/not working. Right-click a cell (or press and hold on phone/tablet) to cycle None → Half Day (AM) → Half Day (PM) → None on top of whichever status it's already on — works the same way for Normal, Day Shift or Night Shift (shows as e.g. "Day ½AM" or "Normal ½PM"). Shift rotates independently every week — each week is set separately, so a campaign rotation just means paging forward and clicking through. Who's PIC/Backup PIC is set on the Staff Roster above (Role column), not here.</div>
       <div class="field" style="max-width:280px; margin-bottom:12px;">
         <input type="text" id="staffScheduleSearchInput" placeholder="🔎 Search name...">
       </div>
@@ -2559,7 +2559,19 @@
   <section class="tab-panel" id="tab-production-stock-balance">
     <p class="section-title">Production — Stock Balance</p>
     <div class="card">
-      <div class="empty-state">This tab is a placeholder — tell me what it should do and I'll build it.</div>
+      <span class="data-note" style="margin:0;">Live, read-only copy of the Available Stock tab — same data, same filters. To change the underlying numbers, upload a new file from the Available Stock tab itself.</span>
+      <div id="productionStockBalanceKpiGrid" class="kpi-grid" style="grid-template-columns: repeat(3, 1fr); margin:14px 0;"></div>
+      <div class="filters">
+        <input type="text" id="productionStockBalanceSearchInput" placeholder="Search SKU / Brand / Group / Color / Size / Boutique...">
+        <select id="productionStockBalanceBrandFilter"><option value="">All Brands</option></select>
+        <select id="productionStockBalanceGroupFilter"><option value="">All Groups</option></select>
+        <select id="productionStockBalanceColorFilter"><option value="">All Colors</option></select>
+        <select id="productionStockBalanceSizeFilter"><option value="">All Sizes</option></select>
+        <select id="productionStockBalanceBoutiqueFilter"><option value="">All Boutiques</option></select>
+        <select id="productionStockBalanceYearFilter"><option value="">All Campaign Years</option></select>
+      </div>
+      <div id="productionStockBalanceTableWrap" class="scroll-table scroll-table-flat" style="margin-top:10px;"></div>
+      <div id="productionStockBalancePaginationWrap" style="display:flex; align-items:center; justify-content:center; gap:10px; margin-top:12px;"></div>
     </div>
   </section>
 
@@ -4253,8 +4265,7 @@ function autoIndividualTargetPair(overallKey, count) {
 function pickerShiftStatusToday(picker) {
   const roster = staffRoster.find(s => staffRoleFunction(s.role) === 'Picker' && s.active !== false && (s.name || '').trim().toLowerCase() === (picker.name || '').trim().toLowerCase());
   if (!roster) return null; // not linked to an Active Picker-role entry on the Staff Schedule roster
-  const todayIso = todayStr();
-  return (staffSchedule[roster.id] && staffSchedule[roster.id][todayIso]) || 'Normal';
+  return staffScheduleBaseStatus(roster.id, todayStr());
 }
 function computeShiftPickerCounts() {
   let dayCount = 0, nightCount = 0;
@@ -4290,7 +4301,7 @@ function autoManpowerForStationShift(shiftLabel, role) {
   const todayIso = todayStr();
   return staffRoster
     .filter(s => s.active !== false && staffRoleFunction(s.role) === role)
-    .filter(s => ((staffSchedule[s.id] && staffSchedule[s.id][todayIso]) || 'Normal') === shiftLabel)
+    .filter(s => staffScheduleBaseStatus(s.id, todayIso) === shiftLabel)
     .map(s => s.name);
 }
 // Total pcs actually finished TODAY, matching each area's own "completed" rule elsewhere:
@@ -5107,6 +5118,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'staff-schedule') { renderStaffRosterList(); renderStaffScheduleGrid(); }
     if (btn.dataset.tab === 'item-master') renderItemMasterTab();
     if (btn.dataset.tab === 'stock-available') { renderStockAvailableTab(); refreshStockAvailableFromServer(); }
+    if (btn.dataset.tab === 'production-stock-balance') renderProductionStockBalanceTab();
     if (btn.dataset.tab === 'production-fg') renderProductionStockFgTab();
     if (btn.dataset.tab === 'production-rm') renderProductionRmTab();
     if (btn.dataset.tab === 'production-restock') renderProductionRestockTab();
@@ -5810,11 +5822,26 @@ function renderDashboard() { renderDashDutyBarOutbound(); renderKpis(); renderCh
 // matches a slot (e.g. 2 PIC Pickers both on shift), all their names show joined by ", " rather
 // than picking just one arbitrarily.
 function staffStatusToday(staff) {
-  return (staffSchedule[staff.id] && staffSchedule[staff.id][todayStr()]) || 'Normal';
+  return staffScheduleBaseStatus(staff.id, todayStr());
 }
+// A staff with ANY Half Day flag set today (AM or PM) is treated as on duty for at least part of the
+// day — even if their base status is Off/Leave (e.g. "Leave ½AM" means half-day leave: on leave the
+// other half, but physically in and working this half). Per Shaila's decision (Sep 18, 2026): this
+// half counts toward Manpower and the Half Day counter, and is excluded from the full-day On Leave
+// count below (see staffFullLeaveToday) — only an UNFLAGGED "Leave"/"Off" for the whole day counts
+// as not on duty at all.
 function staffOnDutyToday(staff) {
-  const status = staffStatusToday(staff);
-  return status !== 'Off' && status !== 'Leave';
+  const raw = (staffSchedule[staff.id] && staffSchedule[staff.id][todayStr()]) || 'Normal';
+  const { base, half } = parseStaffShiftCell(raw);
+  if (half) return true;
+  return base !== 'Off' && base !== 'Leave';
+}
+// Full-day Leave only (no Half Day flag) — see staffOnDutyToday's comment on why a half-day leave
+// ("Leave ½AM/½PM") is excluded from this and counted as Half Day instead.
+function staffFullLeaveToday(staff) {
+  const raw = (staffSchedule[staff.id] && staffSchedule[staff.id][todayStr()]) || 'Normal';
+  const { base, half } = parseStaffShiftCell(raw);
+  return base === 'Leave' && !half;
 }
 function dashDutyNamesFor(department, tierPrefix) {
   return staffRoster
@@ -5845,10 +5872,40 @@ function dashDutyManpowerTotal(department) {
 // Same shape as the Manpower counters above, but counting who's marked 'Leave' TODAY specifically
 // (not 'Off' — Off just means not scheduled to work that day at all, Leave is an actual absence).
 function dashDutyLeaveCount(department, fn) {
-  return staffRoster.filter(s => s.active !== false && s.department === department && staffRoleFunction(s.role) === fn && staffStatusToday(s) === 'Leave').length;
+  return staffRoster.filter(s => s.active !== false && s.department === department && staffRoleFunction(s.role) === fn && staffFullLeaveToday(s)).length;
 }
 function dashDutyLeaveTotal(department) {
-  return staffRoster.filter(s => s.active !== false && s.department === department && staffStatusToday(s) === 'Leave').length;
+  return staffRoster.filter(s => s.active !== false && s.department === department && staffFullLeaveToday(s)).length;
+}
+// Counts staff who carry a Half Day flag (AM or PM, set via right-click/long-press on the Staff
+// Schedule grid) TODAY — on top of ANY base status, including Off/Leave (see staffOnDutyToday's
+// comment on half-day leave). Counted separately from Manpower (they're still included there — Half
+// Day narrows their hours, not whether they're rostered at all) so the dashboard can show both numbers.
+function staffHalfDayPeriodToday(staff) {
+  const raw = (staffSchedule[staff.id] && staffSchedule[staff.id][todayStr()]) || 'Normal';
+  return parseStaffShiftCell(raw).half;
+}
+// The AM/PM tag names WHICH half of the day the staff is short for — "½AM" means they're out for the
+// morning and back in by the afternoon, "½PM" the reverse. Per Shaila's request (Sep 18, 2026), the
+// dashboard's ½ Half Day counter should only count them while that missing half is actually the
+// CURRENT half of the day — once the clock has moved past their missing half (e.g. it's now the
+// afternoon for someone tagged "½AM"), they've presumably already come back in ("dah masuk"), so they
+// drop out of the Half Day count and are treated as a normal full presence for the rest of the day.
+// Noon is used as the AM/PM cutoff (device local time). This only affects the ½ Half Day counter —
+// Manpower/On Leave are unaffected and don't change through the day.
+function staffHalfPeriodActiveNow(half) {
+  if (!half) return false;
+  const isPmNow = new Date().getHours() >= 12;
+  return half === 'AM' ? !isPmNow : isPmNow;
+}
+function staffHalfDayActiveNow(staff) {
+  return staffHalfPeriodActiveNow(staffHalfDayPeriodToday(staff));
+}
+function dashDutyHalfDayCount(department, fn) {
+  return staffRoster.filter(s => s.active !== false && s.department === department && staffRoleFunction(s.role) === fn && staffOnDutyToday(s) && staffHalfDayActiveNow(s)).length;
+}
+function dashDutyHalfDayTotal(department) {
+  return staffRoster.filter(s => s.active !== false && s.department === department && staffOnDutyToday(s) && staffHalfDayActiveNow(s)).length;
 }
 function renderDashDutyBarForModule(wrapId, department, icon, moduleLabel) {
   const wrap = document.getElementById(wrapId);
@@ -5857,8 +5914,9 @@ function renderDashDutyBarForModule(wrapId, department, icon, moduleLabel) {
   const pic = dashDutyNamesFor(department, 'PIC ');
   const backup = dashDutyNamesFor(department, 'Backup PIC ');
   const manpower = dashDutyManpowerTotal(department);
+  const halfDay = dashDutyHalfDayTotal(department);
   const onLeave = dashDutyLeaveTotal(department);
-  wrap.innerHTML = `<div class="dash-duty-item">${icon} ${escapeHtml(moduleLabel)} PIC: <strong>${nameListOrDash(pic)}</strong> &nbsp;|&nbsp; Backup: <strong>${nameListOrDash(backup)}</strong> &nbsp;|&nbsp; 👥 Manpower: <strong>${manpower}</strong> &nbsp;|&nbsp; 🏖️ On Leave: <strong>${onLeave}</strong></div>`;
+  wrap.innerHTML = `<div class="dash-duty-item">${icon} ${escapeHtml(moduleLabel)} PIC: <strong>${nameListOrDash(pic)}</strong> &nbsp;|&nbsp; Backup: <strong>${nameListOrDash(backup)}</strong> &nbsp;|&nbsp; 👥 Manpower: <strong>${manpower}</strong> &nbsp;|&nbsp; ½ Half Day: <strong>${halfDay}</strong> &nbsp;|&nbsp; 🏖️ On Leave: <strong>${onLeave}</strong></div>`;
 }
 // The date itself now lives in each slide's own title (" — 2 Sep 2026", same pattern the Fleet
 // slide's title already used) rather than as a separate line in the duty bar below it.
@@ -5876,12 +5934,14 @@ function renderDashDutyBarOutbound() {
   const packerBackup = dashDutyNamesForExactRole('Outbound', 'Backup PIC Packer');
   const pickerManpower = dashDutyManpowerCount('Outbound', 'Picker');
   const packerManpower = dashDutyManpowerCount('Outbound', 'Packer');
+  const pickerHalfDay = dashDutyHalfDayCount('Outbound', 'Picker');
+  const packerHalfDay = dashDutyHalfDayCount('Outbound', 'Packer');
   const pickerLeave = dashDutyLeaveCount('Outbound', 'Picker');
   const packerLeave = dashDutyLeaveCount('Outbound', 'Packer');
   wrap.innerHTML = `
-    <div class="dash-duty-item">🧺 Picker PIC: <strong>${nameListOrDash(pickerPic)}</strong> &nbsp;|&nbsp; Backup: <strong>${nameListOrDash(pickerBackup)}</strong> &nbsp;|&nbsp; 👥 Manpower: <strong>${pickerManpower}</strong> &nbsp;|&nbsp; 🏖️ On Leave: <strong>${pickerLeave}</strong></div>
+    <div class="dash-duty-item">🧺 Picker PIC: <strong>${nameListOrDash(pickerPic)}</strong> &nbsp;|&nbsp; Backup: <strong>${nameListOrDash(pickerBackup)}</strong> &nbsp;|&nbsp; 👥 Manpower: <strong>${pickerManpower}</strong> &nbsp;|&nbsp; ½ Half Day: <strong>${pickerHalfDay}</strong> &nbsp;|&nbsp; 🏖️ On Leave: <strong>${pickerLeave}</strong></div>
     <div class="dash-duty-divider"></div>
-    <div class="dash-duty-item">📦 Packer PIC: <strong>${nameListOrDash(packerPic)}</strong> &nbsp;|&nbsp; Backup: <strong>${nameListOrDash(packerBackup)}</strong> &nbsp;|&nbsp; 👥 Manpower: <strong>${packerManpower}</strong> &nbsp;|&nbsp; 🏖️ On Leave: <strong>${packerLeave}</strong></div>
+    <div class="dash-duty-item">📦 Packer PIC: <strong>${nameListOrDash(packerPic)}</strong> &nbsp;|&nbsp; Backup: <strong>${nameListOrDash(packerBackup)}</strong> &nbsp;|&nbsp; 👥 Manpower: <strong>${packerManpower}</strong> &nbsp;|&nbsp; ½ Half Day: <strong>${packerHalfDay}</strong> &nbsp;|&nbsp; 🏖️ On Leave: <strong>${packerLeave}</strong></div>
   `;
 }
 function renderDashDutyBarInbound() {
@@ -5889,6 +5949,18 @@ function renderDashDutyBarInbound() {
   if (title) title.textContent = `Inbound Performance Summary`;
   renderDashDutyBarForModule('dashDutyBarInbound', 'Inbound', '📥', 'Inbound');
 }
+// The ½ Half Day counter is time-of-day-aware (see staffHalfPeriodActiveNow) — it needs to re-render
+// on its own once the AM/PM cutoff (noon) passes, not just when the user switches tabs, otherwise a
+// dashboard left open across noon would show a stale count until something else forces a re-render.
+// Each render call below is a no-op if its wrap element isn't in the DOM (they all check for that
+// internally), so calling all three unconditionally on a timer is safe regardless of which tab/slide
+// is currently open.
+function refreshAllDashDutyBars() {
+  renderDashDutyBarOutbound();
+  renderDashDutyBarInbound();
+  renderDashDutyBarForModule('dashDutyBarRawMaterial', 'Raw Material', '🧶', 'Raw Material');
+}
+setInterval(refreshAllDashDutyBars, 60 * 1000);
 
 // Every boutique name the system already knows about, from ANY existing data — outbound STO
 // records, printed DO records (used by Operation Fleet), and boutiques already registered in SLA
@@ -7207,7 +7279,55 @@ const STAFF_SHIFT_CYCLE = ['Normal', 'Day', 'Night', 'Off', 'Leave'];
 const STAFF_SHIFT_BADGE_CLASS = { Normal: 'badge-gray', Day: 'badge-green', Night: 'badge-blue', Off: 'badge-amber', Leave: 'badge-red' };
 const STAFF_SHIFT_CELL_LABEL = { Normal: 'Normal', Day: 'Day', Night: 'Night', Off: 'Off', Leave: 'Leave' };
 const STAFF_SCHEDULE_WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+// A cell can carry a "+HalfAM"/"+HalfPM" suffix on top of its base status (e.g. "Day+HalfAM") meaning
+// that staff is only in for half a day — morning or afternoon — on top of whichever shift/status
+// they're tagged with (this applies the same way whether the base is Normal, Day Shift or Night
+// Shift — per Shaila's clarification, Sep 18, 2026: half day can happen on any of the three). Set
+// independently of the normal left-click cycle via right-click (desktop) or long-press (touch) on
+// the cell — see the click/contextmenu/touch handlers in renderStaffScheduleGrid, which cycle
+// None → AM → PM → None. Every place that reads a schedule cell for its BASE shift/status (picker
+// target split, station manpower auto-fill, On Leave counts, dashboard on-duty logic, etc.) must go
+// through staffScheduleBaseStatus/parseStaffShiftCell rather than comparing the raw stored string
+// directly, so the half-day flag never silently breaks those comparisons.
+function parseStaffShiftCell(raw) {
+  const val = raw || 'Normal';
+  if (val.endsWith('+HalfAM')) return { base: val.slice(0, -7), half: 'AM' };
+  if (val.endsWith('+HalfPM')) return { base: val.slice(0, -7), half: 'PM' };
+  if (val.endsWith('+Half')) return { base: val.slice(0, -5), half: 'AM' }; // legacy bare flag (pre-AM/PM) — migrate to AM
+  return { base: val, half: '' };
+}
+function staffShiftCellValue(base, half) {
+  if (base === 'Normal' && !half) return null; // matches the existing "blank cell = Normal" convention
+  return half ? `${base}+Half${half}` : base;
+}
+function staffScheduleBaseStatus(staffId, dateIso) {
+  const raw = (staffSchedule[staffId] && staffSchedule[staffId][dateIso]) || 'Normal';
+  return parseStaffShiftCell(raw).base;
+}
+function nextHalfDayPeriod(half) {
+  if (half === '') return 'AM';
+  if (half === 'AM') return 'PM';
+  return ''; // PM -> back to none
+}
 
+let staffShiftLongPressTimer = null;
+let staffShiftLongPressFired = false;
+function toggleStaffShiftHalf(staffId, dateIso) {
+  staffSchedule[staffId] = staffSchedule[staffId] || {};
+  const cur = staffSchedule[staffId][dateIso] || 'Normal';
+  const { base, half } = parseStaffShiftCell(cur);
+  const newVal = staffShiftCellValue(base, nextHalfDayPeriod(half));
+  if (newVal === null) delete staffSchedule[staffId][dateIso];
+  else staffSchedule[staffId][dateIso] = newVal;
+  saveStaffSchedule();
+  renderStaffScheduleGrid();
+  if (dateIso === todayStr()) {
+    renderPickersList();
+    renderPickerLowestList();
+    renderStationsTab();
+    renderReceiveStationsTab();
+  }
+}
 function renderStaffScheduleGrid() {
   const label = document.getElementById('staffScheduleWeekLabel');
   if (label) {
@@ -7264,8 +7384,13 @@ function renderStaffScheduleGrid() {
         <td><select class="staff-schedule-dept-select role-select ${staffDeptBadgeClass(s.department)}" data-staff="${s.id}">${deptOptionsHtml}</select></td>
         <td><select class="staff-schedule-role-select role-select ${staffRoleBadgeClass(s.role)}" data-staff="${s.id}">${roleOptionsHtml}</select></td>`;
       weekDates.forEach(dateIso => {
-        const shift = (staffSchedule[s.id] && staffSchedule[s.id][dateIso]) || 'Normal';
-        html += `<td style="text-align:center;"><button type="button" class="badge shift-cell-btn ${STAFF_SHIFT_BADGE_CLASS[shift]}" data-staff="${s.id}" data-date="${dateIso}" style="cursor:pointer; border:none; min-width:56px;">${STAFF_SHIFT_CELL_LABEL[shift]}</button></td>`;
+        const raw = (staffSchedule[s.id] && staffSchedule[s.id][dateIso]) || 'Normal';
+        const { base: shift, half } = parseStaffShiftCell(raw);
+        const cellLabel = STAFF_SHIFT_CELL_LABEL[shift] + (half ? ` ½${half}` : '');
+        const cellTitle = half
+          ? `Half day (${half === 'AM' ? 'morning' : 'afternoon'}) — right-click/long-press to cycle (${half === 'AM' ? 'AM → PM' : 'PM → none'})`
+          : 'Right-click/long-press to mark Half Day (cycles None → AM → PM → None)';
+        html += `<td style="text-align:center;"><button type="button" class="badge shift-cell-btn ${STAFF_SHIFT_BADGE_CLASS[shift]}" title="${cellTitle}" data-staff="${s.id}" data-date="${dateIso}" style="cursor:pointer; border:none; min-width:56px;">${cellLabel}</button></td>`;
       });
       html += `</tr>`;
     });
@@ -7274,14 +7399,21 @@ function renderStaffScheduleGrid() {
   wrap.innerHTML = html;
 
   wrap.querySelectorAll('.shift-cell-btn').forEach(btn => {
+    // Left-click cycles the BASE status (Normal/Day/Night/Off/Leave), preserving whatever Half Day
+    // flag is already set. Right-click (desktop) or long-press (touch, since staff may check this on
+    // a phone/tablet) toggles the Half Day flag on top of the current base status instead — see
+    // toggleStaffShiftHalf/staffShiftLongPressFired below.
     btn.addEventListener('click', () => {
+      if (staffShiftLongPressFired) { staffShiftLongPressFired = false; return; }
       const staffId = btn.dataset.staff;
       const dateIso = btn.dataset.date;
       staffSchedule[staffId] = staffSchedule[staffId] || {};
       const cur = staffSchedule[staffId][dateIso] || 'Normal';
-      const next = STAFF_SHIFT_CYCLE[(STAFF_SHIFT_CYCLE.indexOf(cur) + 1) % STAFF_SHIFT_CYCLE.length];
-      if (next === 'Normal') delete staffSchedule[staffId][dateIso];
-      else staffSchedule[staffId][dateIso] = next;
+      const { base, half } = parseStaffShiftCell(cur);
+      const nextBase = STAFF_SHIFT_CYCLE[(STAFF_SHIFT_CYCLE.indexOf(base) + 1) % STAFF_SHIFT_CYCLE.length];
+      const newVal = staffShiftCellValue(nextBase, half);
+      if (newVal === null) delete staffSchedule[staffId][dateIso];
+      else staffSchedule[staffId][dateIso] = newVal;
       saveStaffSchedule();
       renderStaffScheduleGrid();
       // Today's shift toggles change the live Picker target split and Day/Night station Manpower
@@ -7292,6 +7424,20 @@ function renderStaffScheduleGrid() {
         renderStationsTab();
         renderReceiveStationsTab();
       }
+    });
+    btn.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      toggleStaffShiftHalf(btn.dataset.staff, btn.dataset.date);
+    });
+    btn.addEventListener('touchstart', () => {
+      staffShiftLongPressFired = false;
+      staffShiftLongPressTimer = setTimeout(() => {
+        staffShiftLongPressFired = true;
+        toggleStaffShiftHalf(btn.dataset.staff, btn.dataset.date);
+      }, 550);
+    }, { passive: true });
+    ['touchend', 'touchmove', 'touchcancel'].forEach(evt => {
+      btn.addEventListener(evt, () => { clearTimeout(staffShiftLongPressTimer); });
     });
   });
 
@@ -10288,6 +10434,118 @@ function genProductionDecisionId() { return 'prd_' + Date.now().toString(36) + M
 function productionDecisionFor(sku) { return productionDecisions.find(d => d.sku === sku) || null; }
 const PRODUCTION_STATUS_LABEL = { produce: 'Produce Again', stop: 'Stop Production', '': 'Not Decided' };
 const PRODUCTION_STATUS_BADGE_CLASS = { produce: 'badge-green', stop: 'badge-red', '': 'badge-gray' };
+
+/* ---- Tab: Production Stock Balance (plain read-only mirror of Available Stock) ----
+   Per Shaila's request (Sep 17, 2026): "copy the Available Stock table + its filters" so Production
+   staff can see the same pivot-by-boutique table without needing access to the Available Stock tab
+   itself (which also has the Upload/Reset controls, not needed here). Reads directly from
+   stockAvailableList — no separate data store, so it's always in sync with Available Stock
+   automatically. Re-rendered on tab-switch only (same pattern as the other Production sub-tabs). */
+let productionStockBalancePage = 0;
+function productionStockBalanceFilteredList() {
+  const search = (document.getElementById('productionStockBalanceSearchInput').value || '').trim().toLowerCase();
+  const brandFilter = document.getElementById('productionStockBalanceBrandFilter').value;
+  const groupFilter = document.getElementById('productionStockBalanceGroupFilter').value;
+  const colorFilter = document.getElementById('productionStockBalanceColorFilter').value;
+  const sizeFilter = document.getElementById('productionStockBalanceSizeFilter').value;
+  const yearFilter = document.getElementById('productionStockBalanceYearFilter').value;
+  return stockAvailableList.filter(it => {
+    if (search && ![it.sku, it.itemGroup, it.itemBrand, it.itemColor, it.itemSize, ...Object.keys(it.qtyByLocation || {})].filter(Boolean).join(' ').toLowerCase().includes(search)) return false;
+    if (brandFilter && (it.itemBrand || '') !== brandFilter) return false;
+    if (groupFilter && (it.itemGroup || '') !== groupFilter) return false;
+    if (colorFilter && (it.itemColor || '') !== colorFilter) return false;
+    if (sizeFilter && (it.itemSize || '') !== sizeFilter) return false;
+    if (yearFilter) {
+      const im = itemMasterLookupBySku(it.sku);
+      if (!im || (im.campaignYear || '') !== yearFilter) return false;
+    }
+    return true;
+  });
+}
+function renderProductionStockBalanceFilterOptions() {
+  stockAvailableFillSelect('productionStockBalanceBrandFilter', [...new Set(stockAvailableList.map(it => it.itemBrand).filter(Boolean))].sort(), 'All Brands');
+  stockAvailableFillSelect('productionStockBalanceGroupFilter', [...new Set(stockAvailableList.map(it => it.itemGroup).filter(Boolean))].sort(), 'All Groups');
+  stockAvailableFillSelect('productionStockBalanceColorFilter', [...new Set(stockAvailableList.map(it => it.itemColor).filter(Boolean))].sort(), 'All Colors');
+  stockAvailableFillSelect('productionStockBalanceSizeFilter', [...new Set(stockAvailableList.map(it => it.itemSize).filter(Boolean))].sort(), 'All Sizes');
+  const boutiqueSet = new Set();
+  stockAvailableList.forEach(it => Object.keys(it.qtyByLocation || {}).forEach(z => { if (z) boutiqueSet.add(z); }));
+  stockAvailableFillSelect('productionStockBalanceBoutiqueFilter', [...boutiqueSet].sort(), 'All Boutiques');
+  const years = [...new Set(stockAvailableList.map(it => { const im = itemMasterLookupBySku(it.sku); return im && im.campaignYear; }).filter(Boolean))].sort().reverse();
+  stockAvailableFillSelect('productionStockBalanceYearFilter', years, 'All Campaign Years');
+}
+function renderProductionStockBalanceKpis() {
+  const distinctSku = stockAvailableList.length;
+  const totalQty = stockAvailableList.reduce((sum, it) => sum + Object.values(it.qtyByLocation || {}).reduce((s, q) => s + (Number(q) || 0), 0), 0);
+  const boutiqueSet = new Set();
+  stockAvailableList.forEach(it => Object.keys(it.qtyByLocation || {}).forEach(z => { if (z) boutiqueSet.add(z); }));
+  const cards = [
+    { num: formatQty(distinctSku), label: 'Total SKU' },
+    { num: formatQty(totalQty), label: 'Total Qty' },
+    { num: formatQty(boutiqueSet.size), label: 'Boutiques/Zones' },
+  ];
+  document.getElementById('productionStockBalanceKpiGrid').innerHTML = cards.map(c =>
+    `<div class="kpi-card ${c.cls || ''}"><div class="kpi-num">${c.num}</div><div class="kpi-label">${c.label}</div></div>`
+  ).join('');
+}
+function renderProductionStockBalanceTable() {
+  const wrap = document.getElementById('productionStockBalanceTableWrap');
+  const pagWrap = document.getElementById('productionStockBalancePaginationWrap');
+  const list = productionStockBalanceFilteredList();
+  if (!list.length) {
+    wrap.innerHTML = `<div class="empty-state">${stockAvailableList.length ? 'No rows match the search/filter.' : 'No Available Stock uploaded yet.'}</div>`;
+    pagWrap.innerHTML = '';
+    return;
+  }
+  const boutiqueFilter = document.getElementById('productionStockBalanceBoutiqueFilter').value;
+  const skuRows = [...list].sort((a, b) => a.sku.localeCompare(b.sku));
+  let zones;
+  if (boutiqueFilter) {
+    zones = [boutiqueFilter];
+  } else {
+    const zoneSet = new Set();
+    list.forEach(r => Object.keys(r.qtyByLocation || {}).forEach(z => zoneSet.add(z || '(No Zone)')));
+    zones = stockAvailableOrderedZones([...zoneSet]);
+  }
+
+  const totalPages = Math.max(1, Math.ceil(skuRows.length / STOCK_AVAILABLE_PAGE_SIZE));
+  if (productionStockBalancePage >= totalPages) productionStockBalancePage = totalPages - 1;
+  if (productionStockBalancePage < 0) productionStockBalancePage = 0;
+  const pageRows = skuRows.slice(productionStockBalancePage * STOCK_AVAILABLE_PAGE_SIZE, (productionStockBalancePage + 1) * STOCK_AVAILABLE_PAGE_SIZE);
+
+  let html = `<table class="stock-available-pivot-table"><thead><tr><th class="sap-sku sap-text">SKU</th><th class="sap-text">Brand</th><th class="sap-text">Group</th><th class="sap-text">Color</th><th class="sap-text">Size</th>${zones.map(z => `<th>${escapeHtml(z)}</th>`).join('')}</tr></thead><tbody>`;
+  pageRows.forEach(g => {
+    html += `<tr>
+      <td class="sap-sku mono-name">${escapeHtml(g.sku)}</td>
+      <td class="sap-text">${escapeHtml(g.itemBrand || '-')}</td>
+      <td class="sap-text">${escapeHtml(g.itemGroup || '-')}</td>
+      <td class="sap-text">${escapeHtml(g.itemColor || '-')}</td>
+      <td class="sap-text">${escapeHtml(g.itemSize || '-')}</td>
+      ${zones.map(z => `<td>${formatQty((g.qtyByLocation || {})[z === '(No Zone)' ? '' : z] || 0)}</td>`).join('')}
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+
+  pagWrap.innerHTML = `
+    <button type="button" class="btn-ghost" id="productionStockBalancePrevPageBtn" ${productionStockBalancePage === 0 ? 'disabled' : ''}>&#8249; Prev</button>
+    <span class="data-note" style="margin:0;">Page ${productionStockBalancePage + 1} / ${totalPages} — ${formatQty(skuRows.length)} SKU</span>
+    <button type="button" class="btn-ghost" id="productionStockBalanceNextPageBtn" ${productionStockBalancePage >= totalPages - 1 ? 'disabled' : ''}>Next &#8250;</button>
+  `;
+  document.getElementById('productionStockBalancePrevPageBtn').addEventListener('click', () => { productionStockBalancePage--; renderProductionStockBalanceTable(); });
+  document.getElementById('productionStockBalanceNextPageBtn').addEventListener('click', () => { productionStockBalancePage++; renderProductionStockBalanceTable(); });
+}
+function renderProductionStockBalanceTab() {
+  renderProductionStockBalanceFilterOptions();
+  renderProductionStockBalanceKpis();
+  renderProductionStockBalanceTable();
+}
+document.getElementById('productionStockBalanceSearchInput').addEventListener('input', () => { productionStockBalancePage = 0; renderProductionStockBalanceTable(); });
+document.getElementById('productionStockBalanceBrandFilter').addEventListener('change', () => { productionStockBalancePage = 0; renderProductionStockBalanceTable(); });
+document.getElementById('productionStockBalanceGroupFilter').addEventListener('change', () => { productionStockBalancePage = 0; renderProductionStockBalanceTable(); });
+document.getElementById('productionStockBalanceColorFilter').addEventListener('change', () => { productionStockBalancePage = 0; renderProductionStockBalanceTable(); });
+document.getElementById('productionStockBalanceSizeFilter').addEventListener('change', () => { productionStockBalancePage = 0; renderProductionStockBalanceTable(); });
+document.getElementById('productionStockBalanceBoutiqueFilter').addEventListener('change', () => { productionStockBalancePage = 0; renderProductionStockBalanceTable(); });
+document.getElementById('productionStockBalanceYearFilter').addEventListener('change', () => { productionStockBalancePage = 0; renderProductionStockBalanceTable(); });
 
 /* ---- Tab: Stock Level Finish Good (stock view + produce-again decision) ---- */
 // Grouped by Brand (per Shaila's request, Sep 16, 2026 — a flat 10k-row list was too much) — one
@@ -22472,7 +22730,7 @@ function renderGarmentSkuRows(batch, searchQ) {
   // no station attached (same as before Receive Stations existed).
   const needsStationPicker = !getEffectiveReceiveStationName() && receiveStations.length > 0;
   const onShiftStations = needsStationPicker ? receiveStations.filter(s => isStationOnShift(s)) : [];
-  let html = `<table><thead><tr><th>SKU</th><th>Qty Order</th><th>Qty Received</th><th>Remaining</th><th>Status</th><th>Log Received</th><th></th></tr></thead><tbody>`;
+  let html = `<table><thead><tr><th>SKU</th><th>Brand</th><th>Group</th><th>Color</th><th>Size</th><th>Qty Order</th><th>Qty Received</th><th>Remaining</th><th>Status</th><th>Log Received</th><th></th></tr></thead><tbody>`;
   let shownCount = 0;
   batch.skus.forEach((s, si) => {
     if (needle && !batchNameMatches && !(s.sku || '').toLowerCase().includes(needle)) return;
@@ -22482,6 +22740,10 @@ function renderGarmentSkuRows(batch, searchQ) {
     const received = Number(s.qtyReceived) || 0;
     const remaining = Math.max(0, order - received);
     const status = garmentSkuStatus(s);
+    // Brand/Group/Color/Size aren't stored on the garment order line itself — looked up live from
+    // Item Master List by SKU (same source as Available Stock's columns), so it stays in sync with
+    // whatever's currently uploaded there rather than needing its own copy per batch.
+    const im = itemMasterLookupBySku(s.sku);
     const shortNote = s.closedShort && remaining > 0
       ? ` <span style="color:var(--red); font-size:11px;" title="${escapeHtml(s.closedShortRemark || '')}">(Short ${formatQty(remaining)})${s.closedShortRemark ? ' — ' + escapeHtml(s.closedShortRemark) : ''}</span>`
       : '';
@@ -22490,6 +22752,10 @@ function renderGarmentSkuRows(batch, searchQ) {
       <td class="mono-name">${isEditingSku
         ? `<input type="text" class="garment-sku-name-input" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}" value="${escapeHtml(s.sku || '')}" style="width:140px;">`
         : escapeHtml(s.sku || '-')}</td>
+      <td>${escapeHtml((im && im.itemBrand) || '-')}</td>
+      <td>${escapeHtml((im && im.itemGroup) || '-')}</td>
+      <td>${escapeHtml((im && im.itemColor) || '-')}</td>
+      <td>${escapeHtml((im && im.itemSize) || '-')}</td>
       <td>${isEditingSku
         ? `<input type="number" class="garment-sku-order-input" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}" min="0" value="${order}" style="width:70px;">`
         : formatQty(order)}</td>
