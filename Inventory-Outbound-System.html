@@ -91,19 +91,39 @@
   /* Collapse (hides the sidebar entirely, main reclaims the space — handy on a narrow/phone screen
      or just to get more room) and its matching floating re-open button. State is remembered in
      localStorage so it doesn't need re-toggling every visit. */
+  /* Raised "physical button" look (soft outer shadow + inset gloss highlight/shade) rather than a
+     flat outlined square — gives these small icon buttons some real depth, with a lift on hover and
+     a satisfying push-in squish on click. */
   .sidebar-collapse-btn {
-    position: absolute; top: 2px; right: 4px; background: transparent; border: 1px solid rgba(255,255,255,0.25);
-    color: #d9cfc3; width: 24px; height: 24px; border-radius: 4px; cursor: pointer; font-size: 13px;
+    position: absolute; top: 2px; right: 4px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.14), rgba(0,0,0,0.18));
+    border: 1px solid rgba(255,255,255,0.25);
+    color: #d9cfc3; width: 24px; height: 24px; border-radius: 7px; cursor: pointer; font-size: 13px;
     display: flex; align-items: center; justify-content: center; padding: 0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 1px rgba(0,0,0,0.25);
+    transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s ease, color 0.18s ease, background 0.18s ease;
   }
-  .sidebar-collapse-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+  .sidebar-collapse-btn:hover {
+    background: linear-gradient(145deg, rgba(199,155,74,0.4), rgba(199,155,74,0.08));
+    color: #fff; transform: translateY(-1px) scale(1.06);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 1px rgba(0,0,0,0.2);
+  }
+  .sidebar-collapse-btn:active { transform: translateY(1px) scale(0.92); box-shadow: 0 1px 2px rgba(0,0,0,0.4), inset 0 1px 4px rgba(0,0,0,0.4); }
   .sidebar-expand-btn {
     display: none; position: fixed; top: 16px; left: 16px; z-index: 30;
-    background: var(--navy); color: #fff; border: 1px solid rgba(255,255,255,0.25);
-    width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-size: 15px;
+    background: linear-gradient(145deg, var(--navy-light), var(--navy));
+    color: #fff; border: 1px solid rgba(255,255,255,0.25);
+    width: 34px; height: 34px; border-radius: 9px; cursor: pointer; font-size: 15px;
     align-items: center; justify-content: center; padding: 0;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 1px rgba(0,0,0,0.3);
+    transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s ease, background 0.18s ease;
   }
-  .sidebar-expand-btn:hover { background: var(--navy-light); }
+  .sidebar-expand-btn:hover {
+    background: linear-gradient(145deg, var(--navy-light), #6b594f);
+    transform: translateY(-2px) scale(1.06);
+    box-shadow: 0 8px 18px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -1px 1px rgba(0,0,0,0.3);
+  }
+  .sidebar-expand-btn:active { transform: translateY(1px) scale(0.94); box-shadow: 0 2px 4px rgba(0,0,0,0.5), inset 0 1px 4px rgba(0,0,0,0.4); }
   body.sidebar-collapsed .sidebar-expand-btn { display: flex; }
   body.sidebar-collapsed aside.sidebar { transform: translateX(-100%); }
   body.sidebar-collapsed main { margin-left: 0; }
@@ -123,25 +143,80 @@
   .brand-title { font-family: Georgia, "Times New Roman", serif; font-size: 20px; margin: 0; font-weight: 700; letter-spacing: 0.01em; line-height: 1.3; }
   .sidebar-date { padding: 0 24px; font-size: 12px; color: #b3a89c; margin-bottom: 20px; }
 
-  nav.tabs { display: flex; flex-direction: column; gap: 2px; padding: 0 12px; }
+  @keyframes navActivePulse {
+    0%, 100% { box-shadow: 0 0 14px 1px rgba(199,155,74,0.16); }
+    50% { box-shadow: 0 0 24px 4px rgba(199,155,74,0.34); }
+  }
+  @keyframes navShimmer {
+    0% { transform: translateX(-140%) skewX(-18deg); }
+    55%, 100% { transform: translateX(260%) skewX(-18deg); }
+  }
+  @keyframes tabPanelIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  nav.tabs { display: flex; flex-direction: column; gap: 3px; padding: 0 12px; perspective: 800px; }
   nav.tabs button {
     background: transparent; border: none; color: #d9cfc3; padding: 12px 14px; font-size: 13px; font-weight: 600;
-    cursor: pointer; border-left: 3px solid transparent; border-radius: 4px; font-family: inherit; text-align: left;
+    cursor: pointer; border-left: 3px solid transparent; border-radius: 6px; font-family: inherit; text-align: left;
+    position: relative; overflow: hidden;
+    transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), background 0.22s ease, box-shadow 0.22s ease,
+      color 0.18s ease, border-left-color 0.22s ease;
+    transform-style: preserve-3d;
   }
-  nav.tabs button.active { color: #fff; background: var(--navy-light); border-left-color: var(--gold); }
-  nav.tabs button:hover:not(.active) { color: #fff; background: rgba(255,255,255,0.06); }
+  /* Subtle "lift toward you" on hover — a soft shadow + slide right reads as depth without actually
+     tilting/rotating the text (which would hurt legibility in a dense data app like this one). */
+  nav.tabs button:hover:not(.active) {
+    color: #fff;
+    background: linear-gradient(90deg, rgba(255,255,255,0.09), rgba(255,255,255,0.02));
+    transform: translateX(4px) translateZ(6px);
+    box-shadow: -2px 3px 10px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  nav.tabs button.active {
+    color: #fff;
+    background: linear-gradient(90deg, rgba(199,155,74,0.26), rgba(199,155,74,0.05) 70%);
+    border-left-color: var(--gold);
+    transform: translateX(2px) translateZ(10px);
+    box-shadow: 0 4px 14px rgba(199,155,74,0.28), inset 0 1px 0 rgba(255,255,255,0.07);
+  }
+  /* Tactile "press" feedback on click — a quick squish, on top of whatever hover/active look is
+     already showing. Same specificity as .active so it wins for the instant the mouse is down. */
+  nav.tabs button:active { transform: scale(0.965); }
+  /* A soft gold glow behind the active tab that gently breathes (pulses) forever, like it's lit
+     from within — purely decorative (pointer-events:none), fades in/out with the same transition as
+     everything else above so switching tabs feels like one continuous motion, not a hard cut. */
+  nav.tabs button.active::before {
+    content: ''; position: absolute; inset: 0; border-radius: 6px; pointer-events: none;
+    opacity: 1; transition: opacity 0.22s ease;
+    animation: navActivePulse 2.6s ease-in-out infinite;
+  }
+  /* A thin diagonal shine that sweeps across the active tab on a loop — the "wow" touch, kept subtle
+     (low opacity, contained by the button's own overflow:hidden) so it reads as premium polish
+     rather than a distracting flashing light. */
+  nav.tabs button.active::after {
+    content: ''; position: absolute; top: 0; left: 0; width: 45%; height: 100%; pointer-events: none;
+    background: linear-gradient(115deg, transparent, rgba(255,255,255,0.22), transparent);
+    animation: navShimmer 3.4s ease-in-out infinite;
+  }
 
-  .nav-group { display: flex; flex-direction: column; gap: 2px; margin: 2px 0 6px; padding-left: 10px; border-left: 2px solid rgba(255,255,255,0.14); overflow: hidden; }
-  .nav-group.collapsed { display: none; }
+  .nav-group {
+    display: flex; flex-direction: column; gap: 2px; margin: 2px 0 6px; padding-left: 10px;
+    border-left: 2px solid rgba(199,155,74,0.22); overflow: hidden;
+    max-height: 600px; opacity: 1;
+    transition: max-height 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.26s ease, margin 0.32s ease, border-color 0.32s ease;
+  }
+  .nav-group.collapsed { max-height: 0; opacity: 0; margin: 0; border-left-color: transparent; }
   .nav-group-toggle {
     display: flex; align-items: center; justify-content: space-between; width: 100%;
     background: transparent; border: none; font-family: inherit; cursor: pointer;
     font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #96897c; font-weight: 700;
-    padding: 6px 4px 2px; margin: 0;
+    padding: 6px 4px 2px; margin: 0; border-radius: 4px;
+    transition: color 0.18s ease, letter-spacing 0.18s ease, transform 0.18s ease;
   }
-  .nav-group-toggle:hover { color: #d9cfc3; }
-  .nav-group-chevron { font-size: 9px; transition: transform 0.15s ease; }
+  .nav-group-toggle:hover { color: var(--gold); letter-spacing: 0.14em; transform: translateX(2px); }
+  .nav-group-chevron { font-size: 9px; transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), color 0.18s ease; display: inline-block; }
   .nav-group-toggle.collapsed .nav-group-chevron { transform: rotate(-90deg); }
+  .nav-group-toggle:hover .nav-group-chevron { color: var(--gold); }
 
   .garment-batch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; align-items: start; }
   .garment-batch-card:hover { border-color: var(--navy); }
@@ -155,7 +230,7 @@
   }
 
   .tab-panel { display: none; }
-  .tab-panel.active { display: block; }
+  .tab-panel.active { display: block; animation: tabPanelIn 0.32s cubic-bezier(0.22, 1, 0.36, 1); }
   #tab-dashboard.active { display: flex; flex-direction: column; height: calc((100vh - 88px) / var(--dash-zoom, 1)); overflow: hidden; zoom: 1; --dash-zoom: 1; }
   /* The -88px above accounts for `main`'s own top/bottom padding (28px + 60px), which the
      dashboard sits inside of in normal (windowed) view. True Fullscreen API mode escapes `main`
@@ -857,8 +932,24 @@
   .modal-header h2 { font-size: 16px; margin: 0; font-family: Georgia, serif; }
   .modal-close { background: transparent; border: none; font-size: 22px; color: var(--text-muted); cursor: pointer; line-height: 1; }
   .modal-close:hover { color: var(--red); }
-  .icon-btn { background: transparent; border: 1px solid var(--border); color: var(--text-muted); width: 26px; height: 26px; border-radius: 4px; font-size: 13px; padding: 0; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .icon-btn:hover:not(:disabled) { background: rgba(255,255,255,0.08); color: var(--text); }
+  /* Same raised "physical button" treatment as the sidebar collapse/expand buttons — used
+     everywhere (row delete/edit icons, modal action icons, etc.) so the whole app's small icon
+     buttons feel consistently tactile rather than flat outlined squares. */
+  .icon-btn {
+    background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(0,0,0,0.14));
+    border: 1px solid var(--border); color: var(--text-muted);
+    width: 26px; height: 26px; border-radius: 7px; font-size: 13px; padding: 0; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 1px rgba(0,0,0,0.15);
+    transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.16s ease, color 0.16s ease, background 0.16s ease, border-color 0.16s ease;
+  }
+  .icon-btn:hover:not(:disabled) {
+    background: linear-gradient(145deg, rgba(199,155,74,0.22), rgba(0,0,0,0.12));
+    color: var(--text); border-color: rgba(199,155,74,0.45);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 7px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 1px rgba(0,0,0,0.15);
+  }
+  .icon-btn:active:not(:disabled) { transform: translateY(1px) scale(0.93); box-shadow: 0 1px 2px rgba(0,0,0,0.3), inset 0 1px 3px rgba(0,0,0,0.3); }
   .icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
   .sticker-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-bottom: 18px; }
@@ -1144,6 +1235,16 @@
       <button class="tab-btn" data-tab="fleet-driver-trip">Driver Trip</button>
       <button class="tab-btn" data-tab="delivered" data-perm="delivered-fleet">Delivery Status</button>
     </div>
+    <button type="button" class="nav-group-toggle" id="navGroupProductionToggle" data-group="navGroupProduction">
+      <span>Production</span><span class="nav-group-chevron">▾</span>
+    </button>
+    <div class="nav-group" id="navGroupProduction">
+      <button class="tab-btn" data-tab="production-stock-balance">Stock Balance</button>
+      <button class="tab-btn" data-tab="production-fg">Stock Level Finish Good</button>
+      <button class="tab-btn" data-tab="production-rm">Stock Level Raw Materials</button>
+      <button class="tab-btn" data-tab="production-restock">Restock Status</button>
+      <button class="tab-btn" data-tab="production-timeline">Timeline</button>
+    </div>
     <button type="button" class="nav-group-toggle" id="navGroupTeamToggle" data-group="navGroupTeam">
       <span>Team Setup</span><span class="nav-group-chevron">▾</span>
     </button>
@@ -1160,15 +1261,6 @@
     <button class="tab-btn" data-tab="staff-schedule">Staff Schedule</button>
     <button class="tab-btn" data-tab="item-master">Item Master List</button>
     <button class="tab-btn" data-tab="stock-available">Available Stock</button>
-    <button type="button" class="nav-group-toggle" id="navGroupProductionToggle" data-group="navGroupProduction">
-      <span>Production</span><span class="nav-group-chevron">▾</span>
-    </button>
-    <div class="nav-group" id="navGroupProduction">
-      <button class="tab-btn" data-tab="production-stock-balance">Stock Balance</button>
-      <button class="tab-btn" data-tab="production-fg">Stock Level Finish Good</button>
-      <button class="tab-btn" data-tab="production-rm">Stock Level Raw Materials</button>
-      <button class="tab-btn" data-tab="production-restock">Restock Status</button>
-    </div>
     <button class="tab-btn" data-tab="finance">Finance</button>
     <button class="tab-btn" data-tab="request-stock">Request Stock</button>
     <button class="tab-btn" data-tab="laporan">Reports</button>
@@ -1444,6 +1536,25 @@
           <div>
             <p class="section-title">Accessories Stock</p>
             <div class="card"><div id="rmDashRecentAccStoWrap" class="scroll-table"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-slide" data-slide="campaign-timeline">
+        <p class="section-title" id="campaignTimelineDashTitle">Campaign Timeline</p>
+        <div class="kpi-grid" id="campaignTimelineDashKpiGrid"></div>
+
+        <div class="charts-row dash-tables-row" style="margin-bottom:0;">
+          <div>
+            <p class="section-title">Coming Up Next</p>
+            <div class="card"><div id="campaignTimelineDashComingUpWrap" class="scroll-table"></div></div>
+          </div>
+          <div>
+            <p class="section-title">Release Calendar</p>
+            <div class="card" style="display:flex; flex-direction:column; flex:1; min-height:0;">
+              <div id="campaignTimelineDashCalendarHeader" style="flex-shrink:0;"></div>
+              <div id="campaignTimelineDashCalendarWrap" style="display:flex; flex-direction:column; justify-content:center; flex:1; min-height:0; overflow-y:auto; overflow-x:hidden;"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -1968,6 +2079,7 @@
       <span class="badge badge-blue" id="kanbanSelectedCount">0 selected</span>
       <button class="btn-ghost" id="kanbanSelectAllBtn">Select All Visible</button>
       <button class="btn-ghost" id="kanbanBulkClearBtn">Clear Selection</button>
+      <button class="btn-ghost" id="kanbanBulkDownloadLabelsBtn">⬇ Download Label List (Selected)</button>
       <span class="data-note" style="margin-top:0;">Move selected to:</span>
       <select id="kanbanBulkTarget"></select>
       <button class="btn-primary" id="kanbanBulkMoveBtn">Move Selected</button>
@@ -2623,6 +2735,47 @@
       <div id="productionRestockFgWrap" class="scroll-table scroll-table-flat"></div>
       <p style="margin:20px 0 6px; font-weight:600; font-size:13px;">Raw Material to Topup</p>
       <div id="productionRestockRmWrap" class="scroll-table scroll-table-flat"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-production-timeline">
+    <p class="section-title">Production — Timeline</p>
+    <div class="card">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <span class="data-note" style="margin:0;">Upload the campaign tracker export (e.g. "20XX Raya Campaign Tracker.xlsx") — reads the "Summary all series" sheet if present, otherwise the first sheet. Needs "Item", "Series", "Supplier", "Production status" and the ETA/date columns (Fabric, Finished Goods, Shipment 1/2/3, Release Date). Each upload FULLY REPLACES the current timeline (a fresh snapshot, not additive) — cloud-synced automatically, so every account/device picks it up on its own.</span>
+        <span id="campaignTimelineStatusNote" class="data-note" style="margin:0; white-space:nowrap;"></span>
+      </div>
+      <div class="dropzone" id="campaignTimelineDropzone">
+        <div class="dropzone-icon">⬆</div>
+        <div class="upload-row">
+          <label class="upload-btn-label">
+            Choose File
+            <input type="file" id="campaignTimelineFileInput" accept=".csv,.xlsx,.xls">
+          </label>
+          <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx / .xls file here</span>
+        </div>
+      </div>
+      <div class="upload-status" id="campaignTimelineUploadStatus"></div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <p class="section-title" style="margin-top:0;">Timeline — Sorted by Nearest Date</p>
+      <span class="data-note" style="margin:0;">Each item shows its NEXT upcoming milestone (whichever date — Fabric ETA, FG ETA, Shipment, or Release — is soonest) so the list is always ordered by what's coming up next. Click a row for the full date breakdown. Items with nothing upcoming (already released, or no dates filled in) sort to the bottom. The "Received" column is pulled live from the Garment Order tab — matched by Series = Brand, Supplier = Garment Name, and Product = Item Master Group (word-matched, since these are entered with the words in a different order across sheets). It's not stored here, so it's always up to date and won't be wiped when you re-upload this file. "Not Received Yet" means that exact supplier's batch for that product hasn't been entered into Garment Order at all yet — it never borrows another supplier's numbers just because the product name matches.</span>
+      <div class="filters" style="margin-top:10px;">
+        <input type="text" id="campaignTimelineSearchInput" placeholder="Search item / series / supplier...">
+        <select id="campaignTimelineSeriesFilter"><option value="">All Series</option></select>
+        <select id="campaignTimelineSupplierFilter"><option value="">All Suppliers</option></select>
+        <select id="campaignTimelineStatusFilter"><option value="">All Status</option></select>
+      </div>
+      <div id="campaignTimelineTableWrap" class="scroll-table scroll-table-flat" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="card" style="margin-top:16px; border-color:#e0685c;">
+      <p class="rm-form-section-label" style="margin-top:0; color:#e0685c;">⚠ Danger Zone</p>
+      <span class="data-note" style="margin:0;">Delete ALL Timeline data — to clear old/test data before starting fresh. This clears it for everyone (synced), not just this device. PERMANENT — no backup is kept and this cannot be undone. Simply re-upload a file to load data again.</span>
+      <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+        <button class="btn-ghost" id="resetCampaignTimelineBtn" style="color:#e0685c;">🗑 Reset Timeline</button>
+      </div>
     </div>
   </section>
 
@@ -4424,6 +4577,7 @@ function loadData() {
   loadStockAvailableList();
   loadProductionDecisions();
   loadProductionRmDecisions();
+  loadCampaignTimelineList();
   // Cleans up any STO No. duplicates already sitting in storage (e.g. from two devices each adding
   // the same STO No. before they'd ever synced with each other — see backfillNaturalSyncIds above)
   // and makes sure every record has a stable id going forward, right from the moment data loads —
@@ -4465,6 +4619,32 @@ function saveRecords() {
   localStorage.setItem(RECORDS_KEY, JSON.stringify(records));
 }
 function saveSla() { localStorage.setItem(SLA_KEY, JSON.stringify(sla)); }
+
+// SLA (which also holds the Boutique list: extraButiks + its per-boutique attribute maps) is a
+// single opaque JSON blob under the generic AppSettings sync (see syncSettingsKeys()/
+// applySettingsSnapshot()), which normally just overwrites the local copy with whatever the server
+// has. That's fine for single-owner settings like the Admin Password, but wrong for a growing list
+// two browsers can each add DIFFERENT new boutiques to within the same ~2s sync window: whichever
+// browser's push lands last would silently wipe out the other's brand-new boutique when its whole
+// blob got adopted wholesale. This merges instead — union of extraButiks (case-insensitive dedup)
+// and a key-union of every per-boutique attribute map — so a boutique added on either side survives
+// no matter which push wins the race, and the merged (superset) result gets pushed back out on the
+// very next reconcile tick, converging every browser to the same complete list.
+function mergeSlaBoutiqueData(localSla, remoteSla) {
+  if (!localSla || typeof localSla !== 'object') return remoteSla;
+  if (!remoteSla || typeof remoteSla !== 'object') return localSla;
+  const merged = { ...remoteSla, ...localSla };
+  const seen = new Map(); // lowercased name -> original-cased name actually kept
+  [...(remoteSla.extraButiks || []), ...(localSla.extraButiks || [])].forEach(name => {
+    const key = String(name || '').trim().toLowerCase();
+    if (key && !seen.has(key)) seen.set(key, name);
+  });
+  merged.extraButiks = [...seen.values()];
+  ['byButik', 'scheduleByButik', 'codeByButik', 'addressByButik', 'zoneByButik', 'emailByButik', 'cityByButik'].forEach(mapKey => {
+    merged[mapKey] = { ...(remoteSla[mapKey] || {}), ...(localSla[mapKey] || {}) };
+  });
+  return merged;
+}
 
 function toIsoLocal(d) {
   const y = d.getFullYear();
@@ -5122,6 +5302,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'production-fg') renderProductionStockFgTab();
     if (btn.dataset.tab === 'production-rm') renderProductionRmTab();
     if (btn.dataset.tab === 'production-restock') renderProductionRestockTab();
+    if (btn.dataset.tab === 'production-timeline') renderCampaignTimelineTab();
     if (btn.dataset.tab === 'finance') renderFinanceTab();
     if (btn.dataset.tab === 'request-stock') renderRequestStockTab();
     updateSidebarSyncBarVisibility();
@@ -5165,7 +5346,7 @@ document.querySelectorAll('.nav-group-toggle').forEach(toggle => {
 // One slide per module — "outbound", "inbound", and "fleet" (Operation Fleet's schedule summary).
 // Auto-rotates every 15s for an unattended TV screen, with manual arrows/dots that restart the
 // timer so a person browsing doesn't get yanked away mid-look.
-const DASH_SLIDES = ['outbound', 'inbound', 'fleet', 'raw-material'];
+const DASH_SLIDES = ['outbound', 'inbound', 'fleet', 'raw-material', 'campaign-timeline'];
 const DASH_SLIDE_INTERVAL_MS = 15000;
 let dashSlideIndex = 0;
 let dashSlideTimer = null;
@@ -5193,6 +5374,7 @@ function goToDashSlide(idx) {
   if (current === 'inbound') renderInboundDashboard();
   if (current === 'fleet') renderFleetDashboard();
   if (current === 'raw-material') renderRawMaterialDashboard();
+  if (current === 'campaign-timeline') renderDashCampaignTimelineSlide();
 }
 
 function restartDashSlideTimer() {
@@ -8091,6 +8273,7 @@ const PERMISSION_TABS = [
   { id: 'production-fg', label: 'Stock Level Finish Good (Production)' },
   { id: 'production-rm', label: 'Stock Level Raw Materials (Production)' },
   { id: 'production-restock', label: 'Restock Status (Production)' },
+  { id: 'production-timeline', label: 'Timeline (Production)' },
   { id: 'finance', label: 'Finance' },
   { id: 'request-stock', label: 'Request Stock' },
   { id: 'laporan', label: 'Reports' },
@@ -8767,7 +8950,19 @@ function applySettingsSnapshot() {
   settingsKeys.forEach(k => {
     const remote = Object.prototype.hasOwnProperty.call(remoteMap, k) ? remoteMap[k] : undefined;
     const local = localStorage.getItem(k);
-    if (remote !== undefined && remote !== local) { localStorage.setItem(k, remote); changed = true; }
+    if (remote === undefined || remote === local) return;
+    if (k === SLA_KEY) {
+      // Merge (see mergeSlaBoutiqueData above) instead of overwrite, so a boutique added on this
+      // browser right before an incoming update arrives from another browser never gets dropped.
+      let remoteObj = null, localObj = null;
+      try { remoteObj = JSON.parse(remote); } catch (e) {}
+      try { localObj = JSON.parse(local); } catch (e) {}
+      const mergedObj = mergeSlaBoutiqueData(localObj, remoteObj);
+      const mergedStr = JSON.stringify(mergedObj);
+      if (mergedStr !== local) { localStorage.setItem(k, mergedStr); changed = true; }
+      return;
+    }
+    localStorage.setItem(k, remote); changed = true;
   });
   settingsApplyPending = false;
   if (changed) {
@@ -10977,6 +11172,832 @@ function renderProductionRestockRmList() {
 function renderProductionRestockTab() {
   renderProductionRestockFgList();
   renderProductionRestockRmList();
+}
+
+/* ==================== Tab: Timeline (campaign tracker upload) ====================
+   Per Shaila's request (Sep 19, 2026): a read-at-a-glance list of when campaign stock is expected —
+   fabric ETA, finished-goods ETA, per-shipment estimates, and release date — sourced from her
+   existing "20XX Raya Campaign Tracker.xlsx" export (the same file she already maintains for
+   production tracking). Each upload is a FRESH SNAPSHOT that fully replaces the current list (same
+   "cloud-always-authoritative" design as Available Stock — see that module's comment for why: this
+   is a periodically re-exported report, not something staff edit a row at a time inside the app, so
+   there's no per-row data to lose by replacing wholesale). Kept as a small plain array in
+   localStorage (not IndexedDB) since a campaign tracker is on the order of dozens-to-low-hundreds of
+   line items, nowhere near Available Stock's 10k-SKU scale that actually needed that machinery. */
+const CAMPAIGN_TIMELINE_KEY = 'sto_campaign_timeline_v1';
+const CAMPAIGN_TIMELINE_IMPORTED_AT_KEY = 'sto_campaign_timeline_imported_at_v1';
+let campaignTimelineList = [];
+let campaignTimelineImportedAt = '';
+let campaignTimelineInitialSyncDone = false;
+function genCampaignTimelineId() { return 'ctl_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+function loadCampaignTimelineList() {
+  campaignTimelineImportedAt = localStorage.getItem(CAMPAIGN_TIMELINE_IMPORTED_AT_KEY) || '';
+  try { campaignTimelineList = JSON.parse(localStorage.getItem(CAMPAIGN_TIMELINE_KEY)) || []; } catch (e) { campaignTimelineList = []; }
+}
+function saveCampaignTimelineListLocal() {
+  localStorage.setItem(CAMPAIGN_TIMELINE_KEY, JSON.stringify(campaignTimelineList));
+  localStorage.setItem(CAMPAIGN_TIMELINE_IMPORTED_AT_KEY, campaignTimelineImportedAt);
+}
+
+/* ---- Cloud sync (mirrors Available Stock's pattern exactly — see its comment header) ---- */
+const CAMPAIGN_TIMELINE_FB_TABLE = 'CampaignTimelineList';
+let _campaignTimelineLastServerSnapshot = {};
+let campaignTimelineFbListenerAttached = false;
+let campaignTimelinePushInFlight = false;
+function pushCampaignTimelineDiffToFirebase(opts) {
+  if (!fbDb) return;
+  if (!(opts && opts.skipEmptyGuard) && !campaignTimelineList.length && Object.keys(_campaignTimelineLastServerSnapshot).length) return;
+  const nowKeyed = {};
+  campaignTimelineList.forEach(it => { nowKeyed[fbSafeKey(it.id)] = it; });
+  const updateObj = {};
+  let changed = false;
+  Object.keys(nowKeyed).forEach(k => {
+    const prevStr = (_campaignTimelineLastServerSnapshot[k] !== undefined) ? stableStringify(_campaignTimelineLastServerSnapshot[k]) : undefined;
+    if (stableStringify(nowKeyed[k]) !== prevStr) { updateObj[k] = nowKeyed[k]; changed = true; }
+  });
+  Object.keys(_campaignTimelineLastServerSnapshot).forEach(k => { if (!(k in nowKeyed)) { updateObj[k] = null; changed = true; } });
+  if (!changed) return;
+  _campaignTimelineLastServerSnapshot = nowKeyed;
+  campaignTimelinePushInFlight = true;
+  fbChunkedUpdate(fbDb.ref(CAMPAIGN_TIMELINE_FB_TABLE), updateObj).catch(e => {
+    cloudSyncStatus = 'error';
+    cloudSyncLastError = `CampaignTimelineList: ${(e && e.message) || e}`;
+    renderCloudSyncStatus();
+  }).finally(() => { campaignTimelinePushInFlight = false; });
+}
+function applyCampaignTimelineServerSnapshot(remoteObj) {
+  if (campaignTimelinePushInFlight) return;
+  _campaignTimelineLastServerSnapshot = remoteObj || {};
+  const remoteArr = Object.values(_campaignTimelineLastServerSnapshot);
+  if (stableStringify(remoteArr) === stableStringify(campaignTimelineList)) return;
+  campaignTimelineList = remoteArr;
+  saveCampaignTimelineListLocal();
+  const tabEl = document.getElementById('tab-production-timeline');
+  if (tabEl && tabEl.classList.contains('active')) renderCampaignTimelineTab();
+}
+function attachCampaignTimelineFbListener() {
+  if (!fbDb || campaignTimelineFbListenerAttached) return;
+  campaignTimelineFbListenerAttached = true;
+  fbDb.ref(CAMPAIGN_TIMELINE_FB_TABLE).on('value', snapshot => {
+    applyCampaignTimelineServerSnapshot(snapshot.val() || {});
+  }, error => {
+    cloudSyncStatus = 'error';
+    cloudSyncLastError = `CampaignTimelineList: ${(error && error.message) || error}`;
+    renderCloudSyncStatus();
+  });
+}
+async function initialCampaignTimelineCloudSync() {
+  if (!fbDb) { campaignTimelineInitialSyncDone = true; return; }
+  loadCampaignTimelineList();
+  try {
+    const snap = await fbDb.ref(CAMPAIGN_TIMELINE_FB_TABLE).once('value');
+    const remoteObj = snap.val() || {};
+    _campaignTimelineLastServerSnapshot = remoteObj;
+    applyCampaignTimelineServerSnapshot(remoteObj); // cloud always wins — see module header for why
+  } catch (e) {
+    cloudSyncStatus = 'error';
+    cloudSyncLastError = `CampaignTimelineList: ${(e && e.message) || e}`;
+    renderCloudSyncStatus();
+  }
+  attachCampaignTimelineFbListener();
+  campaignTimelineInitialSyncDone = true;
+  const tabEl = document.getElementById('tab-production-timeline');
+  if (tabEl && tabEl.classList.contains('active')) renderCampaignTimelineTab();
+}
+
+/* ---- Excel/CSV parsing ----
+   The tracker's real header row is row 3 (rows 1-2 are a title + merged group labels like "PROD
+   DEPT ETA FABRIC" / "PRODUCTION DEPT ETA FG" / "SUPPLIER ESTIMATION FG"), and several column names
+   are DELIBERATELY reused twice (e.g. "Estimate date delivery" appears once for fabric, once for
+   finished goods) — so this reads the sheet as raw rows (header:1) and resolves columns by name +
+   occurrence index, rather than trusting XLSX's own object-key parsing (which can't tell two
+   same-named columns apart). */
+function campaignTimelineNormHeader(v) { return String(v == null ? '' : v).replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase(); }
+function campaignTimelineFindColOccurrence(headerRow, name, occurrence) {
+  const target = campaignTimelineNormHeader(name);
+  let count = 0;
+  for (let i = 0; i < headerRow.length; i++) {
+    if (campaignTimelineNormHeader(headerRow[i]) === target) {
+      count++;
+      if (count === occurrence) return i;
+    }
+  }
+  return -1;
+}
+function campaignTimelineFindColContains(headerRow, parts) {
+  for (let i = 0; i < headerRow.length; i++) {
+    const h = campaignTimelineNormHeader(headerRow[i]);
+    if (parts.every(p => h.includes(p))) return i;
+  }
+  return -1;
+}
+function campaignTimelineCellDateIso(v) {
+  if (v instanceof Date && !isNaN(v)) return v.getFullYear() + '-' + String(v.getMonth() + 1).padStart(2, '0') + '-' + String(v.getDate()).padStart(2, '0');
+  return '';
+}
+function campaignTimelineCellText(v) {
+  if (v instanceof Date && !isNaN(v)) return formatDateLabel(campaignTimelineCellDateIso(v));
+  return String(v == null ? '' : v).trim();
+}
+function campaignTimelineCellNum(v) {
+  const n = Number(v);
+  return isNaN(n) ? 0 : n;
+}
+function parseCampaignTimelineWorkbook(wb) {
+  const sheetName = wb.SheetNames.find(n => campaignTimelineNormHeader(n) === 'summary all series') || wb.SheetNames[0];
+  const sheet = wb.Sheets[sheetName];
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+  const headerRow = rows[2] || []; // row 3 — see module comment above
+  const col = (name, occurrence) => campaignTimelineFindColOccurrence(headerRow, name, occurrence || 1);
+  const idx = {
+    item: col('item'), series: col('series'), category: col('category'), supplier: col('supplier'),
+    projectDescription: col('project description'), officialProductName: col('official product name'),
+    batch: col('batch'), material: col('material'), color: col('color'),
+    quantity: col('quantity'), quantityReceived: col('quantity received'),
+    poNumber: col('po number'), poDate: col('po date'), productionStatus: col('production status'),
+    fabricDelivery: col('estimate date delivery', 1), fabricArrive: col('estimate date arrive', 1),
+    fgDelivery: col('estimate date delivery', 2), fgArrive: col('estimate date arrive', 2),
+    releaseDate: campaignTimelineFindColContains(headerRow, ['release date']),
+    ship1Delivery: campaignTimelineFindColContains(headerRow, ['shipment 1', 'delivery']),
+    ship2Arrive: campaignTimelineFindColContains(headerRow, ['shipment 2', 'arrive']),
+    ship2Delivery: campaignTimelineFindColContains(headerRow, ['shipment 2', 'delivery']),
+    ship3Arrive: campaignTimelineFindColContains(headerRow, ['shipment 3', 'arrive']),
+  };
+  if (idx.item === -1 || idx.series === -1) throw new Error(`This file needs an "Item" and "Series" column (checked sheet "${sheetName}").`);
+  const mapped = [];
+  for (let r = 3; r < rows.length; r++) {
+    const row = rows[r];
+    if (!row || !row.length) continue;
+    const series = idx.series !== -1 ? campaignTimelineCellText(row[idx.series]) : '';
+    const officialName = idx.officialProductName !== -1 ? campaignTimelineCellText(row[idx.officialProductName]) : '';
+    const projectDesc = idx.projectDescription !== -1 ? campaignTimelineCellText(row[idx.projectDescription]) : '';
+    if (!series && !officialName && !projectDesc) continue; // skip blank padding rows
+    const releaseRaw = idx.releaseDate !== -1 ? row[idx.releaseDate] : '';
+    mapped.push({
+      id: genCampaignTimelineId(),
+      series, category: idx.category !== -1 ? campaignTimelineCellText(row[idx.category]) : '',
+      supplier: idx.supplier !== -1 ? campaignTimelineCellText(row[idx.supplier]) : '',
+      projectDescription: projectDesc, officialProductName: officialName,
+      batch: idx.batch !== -1 ? campaignTimelineCellText(row[idx.batch]) : '',
+      material: idx.material !== -1 ? campaignTimelineCellText(row[idx.material]) : '',
+      color: idx.color !== -1 ? campaignTimelineCellText(row[idx.color]) : '',
+      quantity: idx.quantity !== -1 ? campaignTimelineCellNum(row[idx.quantity]) : 0,
+      quantityReceived: idx.quantityReceived !== -1 ? campaignTimelineCellNum(row[idx.quantityReceived]) : 0,
+      poNumber: idx.poNumber !== -1 ? campaignTimelineCellText(row[idx.poNumber]) : '',
+      poDate: idx.poDate !== -1 ? campaignTimelineCellDateIso(row[idx.poDate]) : '',
+      productionStatus: idx.productionStatus !== -1 ? campaignTimelineCellText(row[idx.productionStatus]) : '',
+      fabricDelivery: idx.fabricDelivery !== -1 ? campaignTimelineCellDateIso(row[idx.fabricDelivery]) : '',
+      fabricArrive: idx.fabricArrive !== -1 ? campaignTimelineCellDateIso(row[idx.fabricArrive]) : '',
+      fgDelivery: idx.fgDelivery !== -1 ? campaignTimelineCellDateIso(row[idx.fgDelivery]) : '',
+      fgArrive: idx.fgArrive !== -1 ? campaignTimelineCellDateIso(row[idx.fgArrive]) : '',
+      // Release Date is free text in her file (e.g. "Early Dec") more often than a real date — kept
+      // as-is for display; releaseDateIso only gets set on the rare row where it IS a real date, so
+      // sorting/urgency-coloring can use it, but the raw label always shows in the detail view.
+      releaseDateRaw: campaignTimelineCellText(releaseRaw),
+      releaseDateIso: campaignTimelineCellDateIso(releaseRaw),
+      ship1Delivery: idx.ship1Delivery !== -1 ? campaignTimelineCellDateIso(row[idx.ship1Delivery]) : '',
+      ship2Arrive: idx.ship2Arrive !== -1 ? campaignTimelineCellDateIso(row[idx.ship2Arrive]) : '',
+      ship2Delivery: idx.ship2Delivery !== -1 ? campaignTimelineCellDateIso(row[idx.ship2Delivery]) : '',
+      ship3Arrive: idx.ship3Arrive !== -1 ? campaignTimelineCellDateIso(row[idx.ship3Arrive]) : '',
+    });
+  }
+  return mapped;
+}
+let campaignTimelineUploadInFlight = false;
+function processUploadedCampaignTimelineFile(file) {
+  const statusEl = document.getElementById('campaignTimelineUploadStatus');
+  if (campaignTimelineUploadInFlight) {
+    statusEl.textContent = 'Still finishing the previous upload — please wait for it to complete.';
+    statusEl.className = 'upload-status err';
+    return;
+  }
+  campaignTimelineUploadInFlight = true;
+  statusEl.textContent = 'Processing file...';
+  statusEl.className = 'upload-status';
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      let mapped;
+      if (ext === 'csv') {
+        const wb = XLSX.read(String(evt.target.result), { type: 'string', cellDates: true });
+        mapped = parseCampaignTimelineWorkbook(wb);
+      } else {
+        const wb = XLSX.read(evt.target.result, { type: 'array', cellDates: true });
+        mapped = parseCampaignTimelineWorkbook(wb);
+      }
+      if (!mapped.length) throw new Error('No valid rows found (all Series/Product Name blank?).');
+      campaignTimelineList = mapped;
+      campaignTimelineImportedAt = new Date().toISOString();
+      saveCampaignTimelineListLocal();
+      pushCampaignTimelineDiffToFirebase({ skipEmptyGuard: true });
+      statusEl.textContent = `Success: ${formatQty(mapped.length)} item(s) loaded and synced.`;
+      statusEl.className = 'upload-status ok';
+      renderCampaignTimelineTab();
+    } catch (err) {
+      statusEl.textContent = 'Failed to process file: ' + err.message;
+      statusEl.className = 'upload-status err';
+    } finally {
+      campaignTimelineUploadInFlight = false;
+    }
+  };
+  reader.onerror = () => { statusEl.textContent = 'Failed to read file.'; statusEl.className = 'upload-status err'; campaignTimelineUploadInFlight = false; };
+  if (ext === 'csv') reader.readAsText(file);
+  else reader.readAsArrayBuffer(file);
+}
+document.getElementById('campaignTimelineFileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  processUploadedCampaignTimelineFile(file);
+  e.target.value = '';
+});
+const campaignTimelineDropzone = document.getElementById('campaignTimelineDropzone');
+['dragenter', 'dragover'].forEach(evtName => {
+  campaignTimelineDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); campaignTimelineDropzone.classList.add('dragover'); });
+});
+['dragleave', 'drop'].forEach(evtName => {
+  campaignTimelineDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); campaignTimelineDropzone.classList.remove('dragover'); });
+});
+campaignTimelineDropzone.addEventListener('drop', (e) => {
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (file) processUploadedCampaignTimelineFile(file);
+});
+document.getElementById('resetCampaignTimelineBtn').addEventListener('click', () => {
+  if (!confirm('Delete ALL Timeline data? This is synced for everyone and cannot be undone — re-upload the tracker file to restore.')) return;
+  campaignTimelineList = [];
+  campaignTimelineImportedAt = '';
+  saveCampaignTimelineListLocal();
+  pushCampaignTimelineDiffToFirebase({ skipEmptyGuard: true });
+  renderCampaignTimelineTab();
+});
+
+/* ---- Render: filters + "next milestone" sort + expandable detail rows ---- */
+function renderCampaignTimelineStatusNote() {
+  const el = document.getElementById('campaignTimelineStatusNote');
+  if (!el) return;
+  if (!campaignTimelineList.length) { el.textContent = 'No Timeline data uploaded yet.'; return; }
+  const dateLabel = campaignTimelineImportedAt ? formatDateLabel(campaignTimelineImportedAt.slice(0, 10)) : '';
+  el.textContent = `${formatQty(campaignTimelineList.length)} item(s) loaded${dateLabel ? ` (${dateLabel})` : ''}.`;
+}
+function campaignTimelineFillSelect(id, values, allLabel) {
+  const sel = document.getElementById(id);
+  const cur = sel.value;
+  sel.innerHTML = `<option value="">${allLabel}</option>` + values.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+  if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+}
+function renderCampaignTimelineFilterOptions() {
+  campaignTimelineFillSelect('campaignTimelineSeriesFilter', [...new Set(campaignTimelineList.map(it => it.series).filter(Boolean))].sort(), 'All Series');
+  campaignTimelineFillSelect('campaignTimelineSupplierFilter', [...new Set(campaignTimelineList.map(it => it.supplier).filter(Boolean))].sort(), 'All Suppliers');
+  campaignTimelineFillSelect('campaignTimelineStatusFilter', [...new Set(campaignTimelineList.map(it => it.productionStatus).filter(Boolean))].sort(), 'All Status');
+}
+function campaignTimelineFilteredList() {
+  const search = (document.getElementById('campaignTimelineSearchInput').value || '').trim().toLowerCase();
+  const seriesFilter = document.getElementById('campaignTimelineSeriesFilter').value;
+  const supplierFilter = document.getElementById('campaignTimelineSupplierFilter').value;
+  const statusFilter = document.getElementById('campaignTimelineStatusFilter').value;
+  return campaignTimelineList.filter(it => {
+    if (search && ![it.series, it.officialProductName, it.projectDescription, it.supplier, it.category].filter(Boolean).join(' ').toLowerCase().includes(search)) return false;
+    if (seriesFilter && it.series !== seriesFilter) return false;
+    if (supplierFilter && it.supplier !== supplierFilter) return false;
+    if (statusFilter && it.productionStatus !== statusFilter) return false;
+    return true;
+  });
+}
+// Chronological order the milestones would naturally happen in — used both to pick the "next"
+// upcoming one and, for an item with nothing upcoming, the most recently-passed one.
+const CAMPAIGN_TIMELINE_MILESTONE_FIELDS = [
+  { key: 'poDate', label: 'PO Date' },
+  { key: 'fabricDelivery', label: 'Fabric Delivery' },
+  { key: 'fabricArrive', label: 'Fabric Arrive' },
+  { key: 'fgDelivery', label: 'FG Delivery' },
+  { key: 'fgArrive', label: 'FG Arrive' },
+  { key: 'ship1Delivery', label: 'Shipment 1 Delivery' },
+  { key: 'ship2Arrive', label: 'Shipment 2 Arrive' },
+  { key: 'ship2Delivery', label: 'Shipment 2 Delivery' },
+  { key: 'ship3Arrive', label: 'Shipment 3 Arrive' },
+  { key: 'releaseDateIso', label: 'Release' },
+];
+function campaignTimelineNextMilestone(rec) {
+  const today = todayStr();
+  let upcoming = null, latestPast = null;
+  CAMPAIGN_TIMELINE_MILESTONE_FIELDS.forEach(f => {
+    const iso = rec[f.key];
+    if (!iso) return;
+    if (iso >= today) { if (!upcoming || iso < upcoming.iso) upcoming = { label: f.label, iso, past: false }; }
+    else { if (!latestPast || iso > latestPast.iso) latestPast = { label: f.label, iso, past: true }; }
+  });
+  return upcoming || latestPast || null;
+}
+function campaignTimelineMilestoneBadgeClass(m) {
+  if (!m) return 'badge-gray';
+  if (m.past) return 'badge-gray';
+  const days = daysDiffFromToday(m.iso);
+  if (days <= 3) return 'badge-red';
+  if (days <= 7) return 'badge-amber';
+  if (days <= 30) return 'badge-green';
+  return 'badge-blue';
+}
+// Links Campaign Timeline rows to real receiving progress already tracked in the Garment Order tab.
+// The two modules have no shared SKU/ID — but three pairs of fields turn out to be the same underlying
+// value, just written differently: Timeline "Series" = Item Master "Brand", Timeline "Product" = Item
+// Master "Group" (same words, different order), and Timeline "Supplier" = Garment Order "Garment Name"
+// (again same words/spelling, different order — e.g. one batch actually finished at "Mama" while
+// another for the very same brand+product is still ongoing at "Cathaya", so without this we'd lump
+// both suppliers' quantities into one number and every row under that brand+product would wrongly show
+// the same combined total).
+//
+// So the join narrows in three steps: Brand (exact) -> Garment Name vs Supplier (word overlap) ->
+// Group vs Product (word overlap) — falling back a step at a time (drop Garment Name match, then drop
+// Group match) whenever a confident match isn't found, so we still show a total instead of nothing.
+//
+// Built as a single pass over garmentOrders (not per Timeline row), keyed off the garmentOrders array
+// reference so it auto-rebuilds only when garment order data actually changes — same caching pattern
+// as itemMasterSkuIndex().
+let _campaignTimelineReceivingCache = null;
+let _campaignTimelineReceivingCacheSrc = null;
+function campaignTimelineReceivingIndex() {
+  if (_campaignTimelineReceivingCacheSrc !== garmentOrders) {
+    const map = new Map(); // brand (upper) -> Map<garmentName, Map<group text, {totalOrder, totalReceived}>>
+    garmentOrders.forEach(b => {
+      const garmentName = (b.garmentName || '').trim() || '(No Garment Name)';
+      (b.skus || []).forEach(s => {
+        const im = itemMasterLookupBySku(s.sku);
+        const brand = ((im && im.itemBrand) || '').trim().toUpperCase();
+        const group = ((im && im.itemGroup) || '').trim();
+        if (!brand || !group) return;
+        if (!map.has(brand)) map.set(brand, new Map());
+        const nameMap = map.get(brand);
+        if (!nameMap.has(garmentName)) nameMap.set(garmentName, new Map());
+        const groupMap = nameMap.get(garmentName);
+        if (!groupMap.has(group)) groupMap.set(group, { totalOrder: 0, totalReceived: 0 });
+        const acc = groupMap.get(group);
+        acc.totalOrder += Number(s.qtyOrder) || 0;
+        acc.totalReceived += Number(s.qtyReceived) || 0;
+      });
+    });
+    _campaignTimelineReceivingCache = map;
+    _campaignTimelineReceivingCacheSrc = garmentOrders;
+  }
+  return _campaignTimelineReceivingCache;
+}
+function campaignTimelineNormWords(text) {
+  return String(text || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+}
+// Generic word-overlap matcher, reused for both Group-vs-Product and Garment Name-vs-Supplier: finds
+// the map key whose words best overlap with queryText, regardless of word order. Requires at least 60%
+// of the words on EITHER side to appear on the other before accepting a match. Checking both
+// directions (not just "how much of the candidate is found in the query") matters because one side is
+// often the longer/combined string — e.g. a Garment Name that bundles the supplier name together with
+// a batch or product word ("PESATIGA CATHAYA BATCH2"), so a short Supplier value like "Cathaya" would
+// only be a small fraction of the Garment Name's own words even though it's a full, confident match.
+function campaignTimelineBestWordMatch(map, queryText) {
+  const rowWords = new Set(campaignTimelineNormWords(queryText));
+  let best = null, bestScore = 0;
+  map.forEach((value, key) => {
+    const keyWords = campaignTimelineNormWords(key);
+    if (!keyWords.length || !rowWords.size) return;
+    const keyWordSet = new Set(keyWords);
+    const matchCount = keyWords.filter(w => rowWords.has(w)).length;
+    const scoreKeyInQuery = matchCount / keyWords.length; // how much of the candidate is found in the query
+    const scoreQueryInKey = matchCount / rowWords.size; // how much of the query is found in the candidate
+    const score = Math.max(scoreKeyInQuery, scoreQueryInKey);
+    if (score > bestScore) { bestScore = score; best = { key, value }; }
+  });
+  return (best && bestScore >= 0.6) ? best : null;
+}
+// Brand codes follow a "leading code + suffix" pattern that trips up the general word-overlap match —
+// e.g. Timeline Series "OG 26 (restocks)" vs Item Master Brand "OG Series": the only shared word is
+// "OG", so neither side reaches 60% overlap even though these clearly mean the same brand. Since the
+// code always leads, matching on just the first word is far more reliable at this level than overall
+// word overlap. Falls back to the general word-overlap match for the rare case with no shared leading
+// word at all.
+function campaignTimelineFirstWord(text) {
+  const words = campaignTimelineNormWords(text);
+  return words.length ? words[0] : '';
+}
+function campaignTimelineBestBrandMatch(receivingIndex, series) {
+  const seriesFirst = campaignTimelineFirstWord(series);
+  if (seriesFirst) {
+    let best = null;
+    receivingIndex.forEach((nameMap, brand) => {
+      if (!best && campaignTimelineFirstWord(brand) === seriesFirst) best = { key: brand, value: nameMap };
+    });
+    if (best) return best;
+  }
+  return campaignTimelineBestWordMatch(receivingIndex, series);
+}
+function campaignTimelineMergeGroupMaps(nameMap) {
+  const merged = new Map();
+  nameMap.forEach(groupMap => {
+    groupMap.forEach((acc, group) => {
+      if (!merged.has(group)) merged.set(group, { totalOrder: 0, totalReceived: 0 });
+      const m = merged.get(group);
+      m.totalOrder += acc.totalOrder;
+      m.totalReceived += acc.totalReceived;
+    });
+  });
+  return merged;
+}
+function campaignTimelineSumAcc(map) {
+  const total = { totalOrder: 0, totalReceived: 0 };
+  map.forEach(acc => { total.totalOrder += acc.totalOrder; total.totalReceived += acc.totalReceived; });
+  return total;
+}
+// Resolves one Timeline record down to its most specific matching Garment Order bucket. Returns
+// { acc: {totalOrder,totalReceived}|null, groupLabel: string (the matched Group text, '' if none) }.
+//
+// Important: we only ever return numbers once the specific PRODUCT (Group) is confidently identified.
+// Earlier this fell back to "whatever total exists for this brand/supplier" when no Group matched —
+// but if, say, only one supplier's batch has been entered into Garment Order so far, that fallback
+// would show ITS total on every other row for that brand too (e.g. a fully-received "Mama" batch's
+// 100% leaking onto unrelated, still-in-production "Cathaya" rows that have no Garment Order entry at
+// all yet). That's actively misleading, so now a row with no confirmed product match shows "no data"
+// instead of borrowing an unrelated batch's numbers.
+function campaignTimelineMatchReceiving(rec) {
+  // Series doesn't always match Brand exactly either — e.g. Series "OG 26 (restocks)" vs Brand
+  // "OG Series" in Item Master — so this matches on the shared leading brand code, not an exact string.
+  const brandMatch = campaignTimelineBestBrandMatch(campaignTimelineReceivingIndex(), rec.series || '');
+  if (!brandMatch) return { acc: null, groupLabel: '' };
+  const nameMap = brandMatch.value;
+  if (!nameMap || !nameMap.size) return { acc: null, groupLabel: '' };
+  const productText = rec.officialProductName || rec.projectDescription || '';
+  if (rec.supplier) {
+    // A supplier IS specified on this row — only trust a match within that exact supplier's own
+    // batches. If nothing has been entered into Garment Order under a matching Garment Name, that
+    // genuinely means no data exists for THIS row's supplier yet, even if some OTHER supplier happens
+    // to have a batch with the same product name — showing that other supplier's numbers here would
+    // wrongly attribute their receiving progress to this row.
+    const nameMatch = campaignTimelineBestWordMatch(nameMap, rec.supplier);
+    if (!nameMatch) return { acc: null, groupLabel: '' };
+    const groupMatch = campaignTimelineBestWordMatch(nameMatch.value, productText);
+    return groupMatch ? { acc: groupMatch.value, groupLabel: groupMatch.key } : { acc: null, groupLabel: '' };
+  }
+  // No supplier on this row at all — the best we can do is match the product across all suppliers
+  // combined under this brand.
+  const groupMatchAny = campaignTimelineBestWordMatch(campaignTimelineMergeGroupMaps(nameMap), productText);
+  return groupMatchAny ? { acc: groupMatchAny.value, groupLabel: groupMatchAny.key } : { acc: null, groupLabel: '' };
+}
+// Shows the Item Master Group name in place of the Timeline's raw product text when we found a
+// confident match — same product, just written consistently with the rest of the app.
+function campaignTimelineProductLabel(rec) {
+  const raw = rec.officialProductName || rec.projectDescription || '-';
+  const match = campaignTimelineMatchReceiving(rec);
+  return match.groupLabel || raw;
+}
+function campaignTimelineReceivedBadgeHtml(rec) {
+  const p = campaignTimelineMatchReceiving(rec).acc;
+  if (!p || !p.totalOrder) return `<span class="badge badge-red">Not Received Yet</span>`;
+  // Percent against the Timeline's own planned Qty (rec.quantity, from the campaign tracker Excel) —
+  // not the matched Garment Order batch's own order quantity. Those two can genuinely differ (e.g. a
+  // campaign projected 1,500 units, but the PO actually placed in Garment Order so far only covers
+  // 402), and showing "100%" once that smaller PO is fully received is misleading when only a fraction
+  // of what was actually PLANNED for the campaign has arrived.
+  const plannedQty = Number(rec.quantity) || p.totalOrder;
+  const pct = Math.round((p.totalReceived / plannedQty) * 100);
+  const cls = pct >= 100 ? 'badge-green' : (pct > 0 ? 'badge-amber' : 'badge-gray');
+  return `<span class="badge ${cls}">${formatQty(p.totalReceived)} / ${formatQty(plannedQty)} (${pct}%)</span>`;
+}
+let campaignTimelineExpandedIds = new Set();
+// Shared by the Timeline tab's table and the TV Dashboard slide — soonest upcoming milestone first,
+// then anything with only a past milestone (most recently passed first), then anything with no
+// dates at all, last.
+function campaignTimelineSortedRows(list) {
+  return list.map(rec => ({ rec, milestone: campaignTimelineNextMilestone(rec) }))
+    .sort((a, b) => {
+      const ma = a.milestone, mb = b.milestone;
+      if (ma && !ma.past && mb && !mb.past) return ma.iso.localeCompare(mb.iso);
+      if (ma && !ma.past) return -1;
+      if (mb && !mb.past) return 1;
+      if (ma && mb) return mb.iso.localeCompare(ma.iso); // both past — most recently passed first
+      if (ma) return -1;
+      if (mb) return 1;
+      return (a.rec.series || '').localeCompare(b.rec.series || '');
+    });
+}
+function renderCampaignTimelineTable() {
+  const wrap = document.getElementById('campaignTimelineTableWrap');
+  const list = campaignTimelineFilteredList();
+  if (!list.length) {
+    wrap.innerHTML = `<div class="empty-state">${campaignTimelineList.length ? 'No rows match the search/filter.' : 'No Timeline data uploaded yet — upload the campaign tracker file above.'}</div>`;
+    return;
+  }
+  const rows = campaignTimelineSortedRows(list);
+  let html = `<table><thead><tr><th></th><th>Next Milestone</th><th>Series</th><th>Product</th><th>Supplier</th><th>Qty</th><th>Production Status</th><th>Release Date</th><th>Received (Garment Order)</th></tr></thead><tbody>`;
+  rows.forEach(({ rec, milestone }) => {
+    const expanded = campaignTimelineExpandedIds.has(rec.id);
+    const milestoneHtml = milestone
+      ? `<span class="badge ${campaignTimelineMilestoneBadgeClass(milestone)}">${escapeHtml(milestone.label)}${milestone.past ? ' (passed)' : ''}: ${formatDateLabel(milestone.iso)}</span>`
+      : `<span class="badge badge-gray">No dates yet</span>`;
+    html += `<tr class="campaign-timeline-row" data-id="${escapeHtml(rec.id)}" style="cursor:pointer;">
+      <td class="rm-sto-toggle-icon" style="width:20px;">${expanded ? '▾' : '▸'}</td>
+      <td>${milestoneHtml}</td>
+      <td>${escapeHtml(rec.series || '-')}</td>
+      <td>${escapeHtml(campaignTimelineProductLabel(rec))}</td>
+      <td>${escapeHtml(rec.supplier || '-')}</td>
+      <td>${formatQty(rec.quantity || 0)}</td>
+      <td>${rec.productionStatus ? `<span class="badge badge-gray">${escapeHtml(rec.productionStatus)}</span>` : '-'}</td>
+      <td><strong>${escapeHtml(rec.releaseDateRaw || '-')}</strong></td>
+      <td>${campaignTimelineReceivedBadgeHtml(rec)}</td>
+    </tr>`;
+    if (expanded) {
+      const dateField = (label, iso) => `<div style="margin-bottom:4px;"><span class="data-note" style="margin:0;">${label}:</span> <strong>${iso ? formatDateLabel(iso) : '-'}</strong></div>`;
+      html += `<tr class="campaign-timeline-detail-row"><td></td><td colspan="8" style="padding:10px 14px; background:rgba(255,255,255,0.03);">
+        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap:4px 16px; font-size:12px;">
+          ${dateField('PO Date', rec.poDate)}
+          ${dateField('Fabric Delivery', rec.fabricDelivery)}
+          ${dateField('Fabric Arrive', rec.fabricArrive)}
+          ${dateField('FG Delivery', rec.fgDelivery)}
+          ${dateField('FG Arrive', rec.fgArrive)}
+          ${dateField('Shipment 1 Delivery', rec.ship1Delivery)}
+          ${dateField('Shipment 2 Arrive', rec.ship2Arrive)}
+          ${dateField('Shipment 2 Delivery', rec.ship2Delivery)}
+          ${dateField('Shipment 3 Arrive', rec.ship3Arrive)}
+          <div style="margin-bottom:4px;"><span class="data-note" style="margin:0;">Category:</span> <strong>${escapeHtml(rec.category || '-')}</strong></div>
+          <div style="margin-bottom:4px;"><span class="data-note" style="margin:0;">Batch:</span> <strong>${escapeHtml(rec.batch || '-')}</strong></div>
+          <div style="margin-bottom:4px;"><span class="data-note" style="margin:0;">Material:</span> <strong>${escapeHtml(rec.material || '-')}</strong></div>
+          <div style="margin-bottom:4px;"><span class="data-note" style="margin:0;">Color:</span> <strong>${escapeHtml(rec.color || '-')}</strong></div>
+          <div style="margin-bottom:4px;"><span class="data-note" style="margin:0;">PO Number:</span> <strong>${escapeHtml(rec.poNumber || '-')}</strong></div>
+          <div style="margin-bottom:4px;"><span class="data-note" style="margin:0;">Qty Received:</span> <strong>${formatQty(rec.quantityReceived || 0)}</strong></div>
+        </div>
+      </td></tr>`;
+    }
+  });
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('.campaign-timeline-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const id = row.dataset.id;
+      if (campaignTimelineExpandedIds.has(id)) campaignTimelineExpandedIds.delete(id); else campaignTimelineExpandedIds.add(id);
+      renderCampaignTimelineTable();
+    });
+  });
+}
+function renderCampaignTimelineTab() {
+  if (!campaignTimelineInitialSyncDone && isCloudSyncEnabled()) {
+    document.getElementById('campaignTimelineStatusNote').textContent = 'Syncing with cloud…';
+    document.getElementById('campaignTimelineTableWrap').innerHTML = '<div class="empty-state">Syncing with cloud…</div>';
+    return;
+  }
+  renderCampaignTimelineStatusNote();
+  renderCampaignTimelineFilterOptions();
+  renderCampaignTimelineTable();
+}
+document.getElementById('campaignTimelineSearchInput').addEventListener('input', renderCampaignTimelineTable);
+document.getElementById('campaignTimelineSeriesFilter').addEventListener('change', renderCampaignTimelineTable);
+document.getElementById('campaignTimelineSupplierFilter').addEventListener('change', renderCampaignTimelineTable);
+document.getElementById('campaignTimelineStatusFilter').addEventListener('change', renderCampaignTimelineTable);
+
+/* ---- TV Dashboard slide (per Shaila's request, Sep 19, 2026) ----
+   Same "KPI cards + two priority lists" shape as the Outbound slide's Next to Pick / Needs
+   Immediate Attention pair, so it reads consistently with the rest of the rotating TV dashboard
+   instead of introducing a new visual language just for this one slide. "Needs Attention" here
+   means an item whose latest known milestone has already passed with nothing newer scheduled (i.e.
+   nobody's updated its next ETA), OR one with no dates filled in at all — both are cases where
+   someone should go check with the supplier/production, not just "coming up soon". Items Garment
+   Order confirms are already fully received are excluded even if their milestone shows as passed —
+   that's just a stale date, not something that still needs chasing. */
+function campaignTimelineCountUpcomingWithin(days) {
+  const cutoff = addDaysIso(todayStr(), days);
+  return campaignTimelineList.filter(rec => {
+    const m = campaignTimelineNextMilestone(rec);
+    return m && !m.past && m.iso <= cutoff;
+  }).length;
+}
+// An item whose milestone has passed with nothing newer scheduled would normally flag as "Needs
+// Attention" — but if Garment Order confirms it's already fully received, there's nothing left to
+// chase; the milestone just wasn't updated. Excludes those so the list only shows genuine stalls.
+// Uses the exact same rounding AND denominator (planned Qty from the Timeline record, not the matched
+// Garment Order batch's own order quantity) as the "Received" badge in the table, so the two always
+// agree — a row showing green "100%" there is exactly the set excluded here, never a mismatch.
+function campaignTimelineIsFullyReceived(rec) {
+  const acc = campaignTimelineMatchReceiving(rec).acc;
+  if (!acc || !acc.totalOrder) return false;
+  const plannedQty = Number(rec.quantity) || acc.totalOrder;
+  return Math.round((acc.totalReceived / plannedQty) * 100) >= 100;
+}
+// Release Date is only ever entered as a rough text label — "Oct", "Early Nov", "3rd week Nov",
+// "Early & End Dec" — never an exact day, so a literal day-by-day calendar grid isn't possible. This
+// parses each label into one or more { year, month, bucket } slots (bucket 0/1/2/-1 = Early/Mid/End/
+// unspecified) so the dashboard can group items into a month-by-month "which week are they landing"
+// board instead. Year is resolved relative to today so the same label always lands in the next
+// occurrence of that month (e.g. "Jan" said in September means next January, not one 8 months ago).
+const CAMPAIGN_TIMELINE_MONTH_NAMES = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+const CAMPAIGN_TIMELINE_MONTH_LABELS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const CAMPAIGN_TIMELINE_BUCKET_LABELS = { 0: 'Early', 1: 'Mid', 2: 'End', '-1': 'No specific week' };
+function campaignTimelineParseReleaseSlots(raw) {
+  const text = String(raw || '').toLowerCase();
+  if (!text) return [];
+  let monthIdx = -1;
+  CAMPAIGN_TIMELINE_MONTH_NAMES.forEach((m, i) => { if (monthIdx === -1 && text.includes(m)) monthIdx = i; });
+  if (monthIdx === -1) return [];
+  const now = new Date();
+  const year = monthIdx >= now.getMonth() ? now.getFullYear() : now.getFullYear() + 1;
+  const buckets = [];
+  const weekMatch = text.match(/(\d)(?:st|nd|rd|th)\s*week/);
+  if (weekMatch) {
+    const week = parseInt(weekMatch[1], 10);
+    buckets.push(week <= 1 ? 0 : (week >= 4 ? 2 : 1));
+  } else {
+    if (text.includes('early')) buckets.push(0);
+    if (text.includes('mid')) buckets.push(1);
+    if (text.includes('end') || text.includes('late')) buckets.push(2);
+  }
+  if (!buckets.length) buckets.push(-1);
+  return buckets.map(bucket => ({ year, month: monthIdx, bucket }));
+}
+// bucket 0/1/2 (Early/Mid/End) each map to a day-of-month range so we can tint an actual calendar grid,
+// not just list text — this is what makes it read as a real calendar instead of a labeled list.
+const CAMPAIGN_TIMELINE_BUCKET_COLOR = { 0: 'var(--gold)', 1: 'var(--blue)', 2: 'var(--purple)' };
+const CAMPAIGN_TIMELINE_BUCKET_BADGE_CLASS = { 0: 'badge-gold', 1: 'badge-blue', 2: 'badge-purple', '-1': 'badge-gray' };
+function campaignTimelineDayBucket(day) {
+  if (day <= 10) return 0;
+  if (day <= 20) return 1;
+  return 2;
+}
+// Groups records under one bucket by Series, collapsing repeats (same series, several products
+// releasing together) into one "SERIES ×N" pill so the calendar stays scannable — full product list is
+// still one hover away via the tooltip.
+function campaignTimelineBucketSeriesBadges(recs, badgeClass) {
+  const bySeries = new Map();
+  recs.forEach(rec => {
+    const key = rec.series || '-';
+    if (!bySeries.has(key)) bySeries.set(key, []);
+    bySeries.get(key).push(rec);
+  });
+  return [...bySeries.entries()].map(([series, seriesRecs]) => {
+    const tooltip = seriesRecs.map(r => campaignTimelineProductLabel(r)).join(', ');
+    const label = seriesRecs.length > 1 ? `${series} ×${seriesRecs.length}` : series;
+    return `<span class="badge ${badgeClass}" title="${escapeHtml(tooltip)}">${escapeHtml(label)}</span>`;
+  }).join('');
+}
+// Renders one month as a real Sun-Sat day grid, with cells tinted by whichever bucket(s) actually have
+// items this month. Series names used to be interleaved between the week rows they belonged to, but
+// with a busy month (several series across all 3 buckets) that made the grid look broken up and messy
+// — so the grid stays a clean, uninterrupted block, and the series list goes in one place below it
+// (see renderCampaignTimelineDashCalendar), grouped and color-matched to the buckets by dot + badge tint.
+function campaignTimelineMonthDayGridHtml(year, month, buckets) {
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const startWeekday = new Date(year, month, 1).getDay();
+  const cells = [];
+  for (let i = 0; i < startWeekday; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  let html = `<div style="width:100%; box-sizing:border-box; padding:0 10px;">`;
+  html += `<div style="display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:8px;">`;
+  ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach(w => {
+    html += `<div style="font-size:13px; text-align:center; color:var(--text-muted); font-weight:600;">${w}</div>`;
+  });
+  html += `</div>`;
+
+  for (let row = 0; row * 7 < cells.length; row++) {
+    const weekCells = cells.slice(row * 7, row * 7 + 7);
+    html += `<div style="display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:6px;">`;
+    weekCells.forEach(d => {
+      if (d === null) { html += `<div></div>`; return; }
+      const bucket = campaignTimelineDayBucket(d);
+      const active = buckets.has(bucket);
+      const style = active
+        ? `background:${CAMPAIGN_TIMELINE_BUCKET_COLOR[bucket]}; color:#1a1712; font-weight:700;`
+        : `color:var(--text-muted);`;
+      html += `<div style="font-size:15px; text-align:center; padding:10px 0; border-radius:6px; ${style}">${d}</div>`;
+    });
+    html += `</div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+// One month shown at a time (per Shaila's request — 4 squeezed side by side was too cramped to read),
+// with prev/next arrows to browse. Index is clamped on every render, so it stays valid even if the
+// underlying data (and therefore the number of months) changes between renders.
+let campaignTimelineDashCalendarMonthIdx = 0;
+function campaignTimelineDashCalendarNav(delta) {
+  campaignTimelineDashCalendarMonthIdx += delta;
+  renderCampaignTimelineDashCalendar(campaignTimelineList);
+}
+// Ensures today's real calendar month is always in the list (as an empty month if nothing releases
+// then) — so "this month" always genuinely means the real current month, never skips ahead to whatever
+// month happens to have data. Keeps the array sorted after inserting.
+function campaignTimelineEnsureTodayInMonths(sortedMonths) {
+  const now = new Date();
+  const y = now.getFullYear(), mo = now.getMonth();
+  if (sortedMonths.some(m => m.year === y && m.month === mo)) return sortedMonths;
+  const withToday = [...sortedMonths, { year: y, month: mo, buckets: new Map() }];
+  return withToday.sort((a, b) => (a.year - b.year) || (a.month - b.month));
+}
+// Finds which sortedMonths entry matches today's real calendar month, so the view can auto-jump there.
+function campaignTimelineFindMonthIndexForToday(sortedMonths) {
+  const now = new Date();
+  const y = now.getFullYear(), mo = now.getMonth();
+  const idx = sortedMonths.findIndex(mo2 => mo2.year === y && mo2.month === mo);
+  return idx !== -1 ? idx : 0;
+}
+// Tracks the real-world "YYYY-M" we last auto-jumped to. The TV dashboard re-renders this slide every
+// time its rotation comes back around, so comparing against this on each render is enough to catch the
+// moment the real month actually rolls over (e.g. Sep -> Oct at midnight) and jump the view forward —
+// without fighting any manual prev/next browsing done earlier within the same real month.
+let campaignTimelineDashCalendarLastAutoKey = '';
+function renderCampaignTimelineDashCalendar(list) {
+  const wrap = document.getElementById('campaignTimelineDashCalendarWrap');
+  const header = document.getElementById('campaignTimelineDashCalendarHeader');
+  if (!wrap || !header) return;
+  const months = new Map(); // "YYYY-MM" -> { year, month, buckets: Map<bucket, rec[]> }
+  list.forEach(rec => {
+    campaignTimelineParseReleaseSlots(rec.releaseDateRaw).forEach(slot => {
+      const key = `${slot.year}-${slot.month}`;
+      if (!months.has(key)) months.set(key, { year: slot.year, month: slot.month, buckets: new Map() });
+      const m = months.get(key);
+      if (!m.buckets.has(slot.bucket)) m.buckets.set(slot.bucket, []);
+      m.buckets.get(slot.bucket).push(rec);
+    });
+  });
+  if (!months.size) {
+    header.innerHTML = '';
+    wrap.innerHTML = `<div class="empty-state">No Release Dates filled in yet.</div>`;
+    return;
+  }
+  const sortedMonths = campaignTimelineEnsureTodayInMonths(
+    [...months.values()].sort((a, b) => (a.year - b.year) || (a.month - b.month))
+  );
+  const now = new Date();
+  const todayKey = `${now.getFullYear()}-${now.getMonth()}`;
+  if (campaignTimelineDashCalendarLastAutoKey !== todayKey) {
+    campaignTimelineDashCalendarMonthIdx = campaignTimelineFindMonthIndexForToday(sortedMonths);
+    campaignTimelineDashCalendarLastAutoKey = todayKey;
+  }
+  if (campaignTimelineDashCalendarMonthIdx < 0) campaignTimelineDashCalendarMonthIdx = 0;
+  if (campaignTimelineDashCalendarMonthIdx > sortedMonths.length - 1) campaignTimelineDashCalendarMonthIdx = sortedMonths.length - 1;
+  const idx = campaignTimelineDashCalendarMonthIdx;
+  const m = sortedMonths[idx];
+
+  // Rendered into its own element OUTSIDE the scrolling body below — so the month title and prev/next
+  // arrows always stay visible and clickable even when a busy month's series list needs to scroll.
+  header.innerHTML = `<div style="display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:8px;">
+    <button type="button" class="icon-btn" onclick="campaignTimelineDashCalendarNav(-1)" ${idx === 0 ? 'disabled' : ''} title="Previous month">‹</button>
+    <div style="font-weight:700; font-size:16px; letter-spacing:0.04em; color:var(--gold); min-width:150px; text-align:center;">${CAMPAIGN_TIMELINE_MONTH_LABELS[m.month]} ${m.year}</div>
+    <button type="button" class="icon-btn" onclick="campaignTimelineDashCalendarNav(1)" ${idx === sortedMonths.length - 1 ? 'disabled' : ''} title="Next month">›</button>
+  </div>`;
+
+  let html = `${campaignTimelineMonthDayGridHtml(m.year, m.month, m.buckets)}
+  <div style="width:100%; box-sizing:border-box; padding:0 10px;">`;
+  [0, 1, 2, -1].forEach(bucketKey => {
+    const recs = m.buckets.get(bucketKey);
+    if (!recs || !recs.length) return;
+    html += `<div style="margin-top:8px;">
+      <div style="font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); margin:0 0 5px; display:flex; align-items:center; gap:5px;">
+        ${bucketKey === -1 ? '' : `<span style="width:6px; height:6px; border-radius:50%; background:${CAMPAIGN_TIMELINE_BUCKET_COLOR[bucketKey]}; display:inline-block;"></span>`}
+        ${CAMPAIGN_TIMELINE_BUCKET_LABELS[bucketKey]}
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:4px;">
+        ${campaignTimelineBucketSeriesBadges(recs, CAMPAIGN_TIMELINE_BUCKET_BADGE_CLASS[bucketKey])}
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  wrap.innerHTML = html;
+}
+function renderDashCampaignTimelineSlide() {
+  const kpiGrid = document.getElementById('campaignTimelineDashKpiGrid');
+  const comingUpWrap = document.getElementById('campaignTimelineDashComingUpWrap');
+  const calendarWrap = document.getElementById('campaignTimelineDashCalendarWrap');
+  const calendarHeader = document.getElementById('campaignTimelineDashCalendarHeader');
+  if (!kpiGrid || !comingUpWrap || !calendarWrap) return;
+  if (!campaignTimelineList.length) {
+    kpiGrid.innerHTML = '';
+    comingUpWrap.innerHTML = `<div class="empty-state">No Timeline data uploaded yet — upload the campaign tracker file in Production &gt; Timeline.</div>`;
+    calendarWrap.innerHTML = '';
+    if (calendarHeader) calendarHeader.innerHTML = '';
+    return;
+  }
+  const within7 = campaignTimelineCountUpcomingWithin(7);
+  const within30 = campaignTimelineCountUpcomingWithin(30);
+  const sortedRows = campaignTimelineSortedRows(campaignTimelineList);
+  const attentionCount = sortedRows.filter(({ rec, milestone }) => (!milestone || milestone.past) && !campaignTimelineIsFullyReceived(rec)).length;
+  kpiGrid.innerHTML = [
+    { num: formatQty(campaignTimelineList.length), label: 'Total Items Tracked' },
+    { num: formatQty(within7), label: 'Arriving Within 7 Days', cls: within7 ? 'gold' : '' },
+    { num: formatQty(within30), label: 'Arriving Within 30 Days' },
+    { num: formatQty(attentionCount), label: 'Needs Attention', cls: attentionCount ? 'gold' : '' },
+  ].map(c => `<div class="kpi-card ${c.cls || ''}"><div class="kpi-num">${c.num}</div><div class="kpi-label">${c.label}</div></div>`).join('');
+
+  const comingUp = sortedRows.filter(({ milestone }) => milestone && !milestone.past).slice(0, 8);
+  if (!comingUp.length) {
+    comingUpWrap.innerHTML = `<div class="empty-state">Nothing with an upcoming date right now.</div>`;
+  } else {
+    let html = `<table><thead><tr><th>Series</th><th>Product</th><th>Qty</th><th>Date</th></tr></thead><tbody>`;
+    comingUp.forEach(({ rec, milestone }) => {
+      html += `<tr>
+        <td class="mono-name">${escapeHtml(rec.series || '-')}</td>
+        <td>${escapeHtml(campaignTimelineProductLabel(rec))}</td>
+        <td title="${escapeHtml(milestone.label)}">${formatQty(rec.quantity || 0)}</td>
+        <td><span class="badge ${campaignTimelineMilestoneBadgeClass(milestone)}">${formatDateLabel(milestone.iso)}</span></td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+    comingUpWrap.innerHTML = html;
+  }
+
+  renderCampaignTimelineDashCalendar(campaignTimelineList);
 }
 /* ==================== end Production ==================== */
 
@@ -15430,6 +16451,17 @@ async function initialCloudSync() {
         // this computer's copy isn't just silently discarded on its first-ever connection.
         if (localStorage.getItem(k) === null && Object.prototype.hasOwnProperty.call(settingsRemote, k)) {
           localStorage.setItem(k, settingsRemote[k]);
+          return;
+        }
+        // SLA (Boutique list) is the one settings key that legitimately grows independently on
+        // multiple browsers before they've ever synced with each other — merge (union) instead of
+        // "keep local only", so a boutique already added on the server side isn't discarded just
+        // because this browser is connecting to Firebase for the first time.
+        if (k === SLA_KEY && Object.prototype.hasOwnProperty.call(settingsRemote, k) && localStorage.getItem(k) !== null) {
+          let remoteObj = null, localObj = null;
+          try { remoteObj = JSON.parse(settingsRemote[k]); } catch (e) {}
+          try { localObj = JSON.parse(localStorage.getItem(k)); } catch (e) {}
+          localStorage.setItem(k, JSON.stringify(mergeSlaBoutiqueData(localObj, remoteObj)));
         }
       });
       pushSettingsDiff();
@@ -15497,8 +16529,8 @@ function renderCloudSyncStatus() {
   if (sidebarNote) sidebarNote.textContent = shortText;
   updateSidebarSyncBarVisibility();
 }
-document.getElementById('cloudSyncNowBtn').addEventListener('click', () => { initialCloudSync(); initialItemMasterCloudSync(); initialStockAvailableCloudSync(); });
-document.getElementById('sidebarSyncNowBtn').addEventListener('click', () => { initialCloudSync(); initialItemMasterCloudSync(); initialStockAvailableCloudSync(); });
+document.getElementById('cloudSyncNowBtn').addEventListener('click', () => { initialCloudSync(); initialItemMasterCloudSync(); initialStockAvailableCloudSync(); initialCampaignTimelineCloudSync(); });
+document.getElementById('sidebarSyncNowBtn').addEventListener('click', () => { initialCloudSync(); initialItemMasterCloudSync(); initialStockAvailableCloudSync(); initialCampaignTimelineCloudSync(); });
 
 const FLEET_DRIVERS_KEY = 'sto_fleet_drivers_v1';
 const FLEET_VEHICLES_KEY_LEGACY = 'sto_fleet_vehicles_v1'; // pre-simplification key (had plate/vehicle type too)
@@ -20577,6 +21609,7 @@ function updateBulkToolbar() {
   document.getElementById('kanbanSelectedCount').textContent = `${count} selected`;
   document.getElementById('kanbanBulkMoveBtn').disabled = count === 0;
   document.getElementById('kanbanBulkClearBtn').disabled = count === 0;
+  document.getElementById('kanbanBulkDownloadLabelsBtn').disabled = count === 0;
 }
 
 function renderKanban() {
@@ -20883,6 +21916,37 @@ document.getElementById('kanbanBulkMoveBtn').addEventListener('click', () => {
   if (!target || !selectedCartons.size) return;
   const moved = bulkMoveOrderNumbersToStage([...selectedCartons], target);
   if (moved) selectedCartons.clear();
+});
+// Per Shaila's request (Sep 19, 2026): combine the carton label list of every ticked STO into ONE
+// Excel file (same ORDER_NO/BOUTIQUE/QR_DATA columns as the single-STO download in the sticker
+// modal), instead of having to open each STO's Print Label modal and download one at a time. Only
+// STOs that have actually been printed at least once (rec.cartonLock — see applyCartonLockUI's
+// comment) have a real, locked-in Carton No. list to export; any ticked STO without one is skipped
+// with a warning rather than silently left out.
+document.getElementById('kanbanBulkDownloadLabelsBtn').addEventListener('click', () => {
+  if (!selectedCartons.size) return;
+  const selectedIds = [...selectedCartons];
+  const eligible = selectedIds.map(id => records.find(r => r.orderNumber === id)).filter(r => r && r.cartonLock);
+  const skippedCount = selectedIds.length - eligible.length;
+  if (!eligible.length) {
+    alert('None of the selected STO(s) have a printed Carton Label yet — print at least once (via the Label button on each card) before it can be included in a bulk download.');
+    return;
+  }
+  const wsData = [['ORDER_NO', 'BOUTIQUE', 'QR_DATA']];
+  eligible.forEach(rec => {
+    const numbers = getCartonLockNumbers(rec);
+    const totalCarton = numbers.length;
+    const boutique = rec.toWarehouse || '-';
+    for (let i = 1; i <= totalCarton; i++) {
+      wsData.push([rec.orderNumber, boutique, buildQrText(boutique, i, totalCarton, numbers[i - 1])]);
+    }
+  });
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [{ wch: 16 }, { wch: 24 }, { wch: 28 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Carton Labels');
+  XLSX.writeFile(wb, `carton-labels-bulk-${todayStr()}.xlsx`);
+  if (skippedCount) alert(`Downloaded labels for ${eligible.length} STO(s). ${skippedCount} of the selected STO(s) were skipped — no printed Carton Label yet.`);
 });
 
 /* ---------- Shipping Label / Sticker ---------- */
@@ -23536,7 +24600,17 @@ function renderGarmentRecvSummaryKpis() {
   const totalBatches = new Set(lines.map(l => l.batch.batchNo)).size;
   const totalSkuLines = lines.length;
   const qtyOrder = lines.reduce((sum, l) => sum + (Number(l.sku.qtyOrder) || 0), 0);
-  const qtyReceived = garmentRecvSummaryFilteredLogs().reduce((sum, l) => sum + (Number(l.qty) || 0), 0);
+  // All-time (no date range picked): read qtyReceived straight off each SKU line — the same
+  // authoritative total the donut/bar charts and By SKU/By Batch tables already use. garmentReceiveLogs
+  // is only a per-day log of individual "+Log" entries, and plenty of receiving gets recorded straight
+  // onto a SKU's qtyReceived (bulk import, direct edit) without a matching log row — so summing logs
+  // alone undercounts badly (one real case: SKU totals showed 5,032/5,061 received, but logs alone
+  // only added up to 266). Only fall back to summing logs when she's actually picked a date range,
+  // since qtyReceived on the SKU itself isn't date-stamped — logs are the only way to know how much
+  // arrived within a specific window.
+  const qtyReceived = hasRange
+    ? garmentRecvSummaryFilteredLogs().reduce((sum, l) => sum + (Number(l.qty) || 0), 0)
+    : lines.reduce((sum, l) => sum + (Number(l.sku.qtyReceived) || 0), 0);
   const todayQty = (garmentReceiveLogs || []).filter(l => l.date === todayStr() && garmentRecvSummarySkuMatchesAttrFilters(l.sku) && garmentRecvSummaryLogMatchesSearch(l)).reduce((sum, l) => sum + (Number(l.qty) || 0), 0);
   const card = (label, icon, value) => `<div class="kpi-card"><div class="kpi-label">${icon} ${label}</div><div class="kpi-num">${value}</div></div>`;
   wrap.innerHTML = card('Total Batches', '📦', formatQty(totalBatches))
@@ -23774,16 +24848,34 @@ function renderGarmentRecvSummaryCharts() {
     // range, and the bar shows the daily received-qty trend for that same range.
     if (barTitleEl) barTitleEl.textContent = 'Qty Received by Date';
     garmentRecvSummarySetChartLabels('Qty Received Progress', 'Share of the filtered qty ordered that has been received within the selected date range (or all-time, if no range is set).');
+    const hasRange = document.getElementById('garmentRecvSummaryFromInput').value || document.getElementById('garmentRecvSummaryToInput').value;
     const lines = garmentRecvSummaryFilteredSkuLines();
     const totalOrdered = lines.reduce((sum, l) => sum + (Number(l.sku.qtyOrder) || 0), 0);
     const logs = garmentRecvSummaryFilteredLogs();
     const receivedInRange = logs.reduce((sum, l) => sum + (Number(l.qty) || 0), 0);
-    const pct = totalOrdered ? Math.round((receivedInRange / totalOrdered) * 100) : 0;
+    // Same undercounting issue as the KPI card above: garmentReceiveLogs is only a log of individual
+    // "+Log" entries, and plenty of receiving gets recorded straight onto a SKU's qtyReceived (bulk
+    // import, direct edit) without ever creating a matching log row — so all-time, summing logs alone
+    // showed 25,361 "Received" when the SKU records themselves actually total 29,825, inflating
+    // "Remaining" by the difference. All-time (no date range picked), read qtyReceived straight off
+    // each SKU line instead, matching the KPI card and the By SKU/By Batch donut exactly. Only fall
+    // back to summing logs when a date range is actually picked, since qtyReceived on the SKU itself
+    // isn't date-stamped — logs are the only way to know how much arrived within a specific window.
+    const receivedForDonut = hasRange
+      ? receivedInRange
+      : lines.reduce((sum, l) => sum + (Number(l.sku.qtyReceived) || 0), 0);
+    // Shown to 1 decimal place, not rounded to the nearest whole percent — Shaila explicitly wants
+    // to see the real, unrounded % received (rounding up to "100%" hid that a batch wasn't actually
+    // fully in yet). targetBarHex still uses the raw (unrounded) value too, so a batch at 99.7% now
+    // correctly stays amber instead of flipping to green early just because Math.round() nudged it.
+    const pct = totalOrdered ? (receivedForDonut / totalOrdered) * 100 : 0;
     dashSummaryDonut('garmentRecvSummaryStatusChart', 'garmentRecvSummaryStatusPct', 'garmentRecvSummaryStatusLegend', [
-      { label: 'Received', count: receivedInRange, color: KPI_COLOR_HEX.green },
-      { label: 'Remaining', count: Math.max(0, totalOrdered - receivedInRange), color: KPI_COLOR_HEX.amber },
-    ], pct, targetBarHex(pct), 'Received', 'No receiving matches the current filters.');
+      { label: 'Received', count: receivedForDonut, color: KPI_COLOR_HEX.green },
+      { label: 'Remaining', count: Math.max(0, totalOrdered - receivedForDonut), color: KPI_COLOR_HEX.amber },
+    ], pct.toFixed(1), targetBarHex(pct), 'Received', 'No receiving matches the current filters.');
 
+    // The daily trend bar below still needs the log-based per-date breakdown (receivedInRange) —
+    // there's no per-day equivalent of the SKU's own qtyReceived field, so this part is unchanged.
     const byDate = new Map();
     logs.forEach(l => byDate.set(l.date, (byDate.get(l.date) || 0) + (Number(l.qty) || 0)));
     const dates = [...byDate.keys()].sort().slice(-20); // last 20 dates in range, oldest-to-newest
@@ -23796,21 +24888,29 @@ function renderGarmentRecvSummaryCharts() {
   const groups = garmentRecvSummaryView === 'sku' ? garmentRecvSummaryFilteredSkuGroupTotals() : garmentRecvSummaryFilteredBatchTotals();
   const groupLabel = garmentRecvSummaryView === 'sku' ? 'SKU' : 'Batch';
   if (barTitleEl) barTitleEl.textContent = `Order vs Actual Received by ${groupLabel}`;
-  garmentRecvSummarySetChartLabels(`Overall % Received (by ${groupLabel})`, `${groupLabel} status by count — how many ${groupLabel.toLowerCase()}s are fully received (Complete), still coming in (Partial), or not started (Pending). Follows every filter above.`);
+  garmentRecvSummarySetChartLabels(`Overall % Received (by ${groupLabel})`, `${groupLabel} status by count — how many ${groupLabel.toLowerCase()}s are fully received (Complete), still coming in (Partial), or not started (Pending). The % in the middle is by QUANTITY (pcs received / pcs ordered), so a batch that's mostly Partial but close to done still shows a high number — not just the share that's 100% Complete. Follows every filter above.`);
 
-  let pending = 0, partial = 0, complete = 0;
+  let pending = 0, partial = 0, complete = 0, qtyOrderTotal = 0, qtyReceivedTotal = 0;
   groups.forEach(g => {
     if (g.qtyOrder > 0 && g.qtyReceived >= g.qtyOrder) complete++;
     else if (g.qtyReceived > 0) partial++;
     else pending++;
+    qtyOrderTotal += Number(g.qtyOrder) || 0;
+    qtyReceivedTotal += Number(g.qtyReceived) || 0;
   });
-  const total = pending + partial + complete;
-  const completePct = total ? Math.round((complete / total) * 100) : 0;
+  // Percent shown in the middle is by QUANTITY (includes partial progress), not by how many groups
+  // are fully Complete — a count-based % ignores every partly-received SKU entirely, which made a
+  // batch that's actually ~99% received by pcs look like only 72% here.
+  // Shown to 1 decimal place, not rounded to the nearest whole percent — Shaila explicitly wants to
+  // see the real, unrounded % received (rounding up to "100%" hid that some SKUs were still Partial).
+  // targetBarHex uses the same raw (unrounded) value, so e.g. 99.7% correctly stays amber instead of
+  // flipping to green early just because Math.round() nudged it up to 100.
+  const qtyPct = qtyOrderTotal ? (qtyReceivedTotal / qtyOrderTotal) * 100 : 0;
   dashSummaryDonut('garmentRecvSummaryStatusChart', 'garmentRecvSummaryStatusPct', 'garmentRecvSummaryStatusLegend', [
     { label: 'Complete', count: complete, color: KPI_COLOR_HEX.green },
     { label: 'Partial', count: partial, color: KPI_COLOR_HEX.amber },
     { label: 'Pending', count: pending, color: KPI_COLOR_HEX.red },
-  ], completePct, targetBarHex(completePct), 'Complete', 'No match for the current filters.');
+  ], qtyPct.toFixed(1), targetBarHex(qtyPct), 'Received (by qty)', 'No match for the current filters.');
 
   // Sorted by qty ordered (biggest first) and capped at 15 bars so the chart stays readable — the
   // table below still has every row if she needs to check one that's not shown here.
@@ -25270,7 +26370,7 @@ async function syncThenRecheckAuthGate() {
   if (isCloudSyncEnabled()) {
     // Run together (not one-after-another) so the large Item Master sync doesn't add extra wait
     // time on top of the normal (much smaller/faster) collections sync before the login gate re-checks.
-    try { await Promise.all([initialCloudSync(), initialItemMasterCloudSync(), initialStockAvailableCloudSync()]); } catch (e) { /* keep whatever's already showing */ }
+    try { await Promise.all([initialCloudSync(), initialItemMasterCloudSync(), initialStockAvailableCloudSync(), initialCampaignTimelineCloudSync()]); } catch (e) { /* keep whatever's already showing */ }
     initAuthGate();
     renderLoginBoutiqueMarkers();
   }
