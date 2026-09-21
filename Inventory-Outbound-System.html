@@ -6297,12 +6297,32 @@ function renderDeliveredTab() {
   // A group with no DO No. at all hasn't actually been printed yet — nothing to track here until
   // it is. It stays visible on the Progress Board's "DO Issued" column (with its own "Print DO"
   // button) same as before; it just doesn't need a row on this tab too.
-  let list = buildDoGroupsFromShippedRecords(shippedRecords).filter(g => !!g.doNo).map(group => {
+  const groups = buildDoGroupsFromShippedRecords(shippedRecords).filter(g => !!g.doNo);
+  // A DO can outlive its own source STO record(s) in `records` — e.g. the Upload STO File flow
+  // auto-removes an STO from `records` once its status there is no longer Active (see that
+  // section's own note), even though the DO itself is still a live document that may still need a
+  // driver assigned or a Delivery Method correction. Without this, such a DO becomes a dead end:
+  // invisible here AND on the Progress Board, reachable only as a read-only row on the Fleet
+  // Dashboard with no way to ever open or fix it again. Every doRecords entry not already covered
+  // by a real records-based group gets a synthetic one here instead, built from the DO's own stored
+  // data, so it's always reachable and clickable somewhere.
+  const coveredDoNos = new Set(groups.map(g => g.doNo));
+  doRecords.forEach(d => {
+    if (!d.doNo || coveredDoNos.has(d.doNo)) return;
+    coveredDoNos.add(d.doNo);
+    groups.push({ key: d.doNo, doNo: d.doNo, boutique: d.boutique || '-', records: [], orphaned: true });
+  });
+  let list = groups.map(group => {
     const doRec = doRecords.find(d => d.doNo === group.doNo);
     const isCourier = !!(doRec && doRec.deliveryMethod && doRec.deliveryMethod !== 'Own Fleet');
     // No cartonLock yet still counts as 1 carton, matching the DO preview's own fallback (see
     // fleetPendingStoCartonByBoutique) — keeps this tab's Total Carton in agreement with the DO.
-    const totalCarton = group.records.reduce((sum, r) => sum + (r.cartonLock ? r.cartonLock.totalCarton : 1), 0);
+    // An orphaned group (see above) has no real records left to sum cartons from at all — falls
+    // back to 1 carton per STO on the DO, same assumption as everywhere else that's missing a
+    // cartonLock to read from.
+    const totalCarton = group.records.length
+      ? group.records.reduce((sum, r) => sum + (r.cartonLock ? r.cartonLock.totalCarton : 1), 0)
+      : (group.orphaned && doRec ? (doRec.orderNumbers || []).length : 0);
     // Courier DOs (Lalamove/Grab/Other) never have a Fleet trip at all — Outbound's own "Mark
     // Delivered" click (Progress Board DO Issued card) is what flips this to Delivered instead.
     if (isCourier) {
@@ -6367,13 +6387,20 @@ function renderDeliveredTab() {
     const driverCellHtml = isCourier
       ? `📮 ${escapeHtml(doRec.deliveryMethod)}${doRec.courierTrackingNo ? ' <span style="color:var(--text-muted);">(' + escapeHtml(doRec.courierTrackingNo) + ')</span>' : ''}`
       : escapeHtml(trip && trip.driverName ? trip.driverName : '-');
-    html += `<tr>
+    // An orphaned group's own STO record(s) are gone from `records` — the DO's own orderNumbers
+    // list is the only surviving record of how many STOs it covered, and there's nothing left to
+    // pop up in the "Total STO" list modal (openStoListModal reads from records), so it's shown as
+    // a plain number here instead of the usual clickable count.
+    const totalStoDisplay = group.records.length
+      ? `<button type="button" class="delivered-sto-link" data-row-idx="${idx}">${group.records.length}</button>`
+      : (group.orphaned && doRec ? (doRec.orderNumbers || []).length : 0);
+    html += `<tr title="${group.orphaned ? 'This DO\'s original STO record(s) are no longer in the active list, but the DO itself is still here — click its number to edit.' : ''}">
       <td>${escapeHtml(group.boutique)}</td>
       <td class="mono-name">${doLinkHtml}</td>
       <td>${statusBadge(status)}</td>
       <td>${driverCellHtml}</td>
       <td>${escapeHtml(isCourier ? '-' : (assistants.length ? assistants.join(', ') : '-'))}</td>
-      <td>${group.records.length ? `<button type="button" class="delivered-sto-link" data-row-idx="${idx}">${group.records.length}</button>` : group.records.length}</td>
+      <td>${totalStoDisplay}</td>
       <td>${totalCarton}</td>
       <td>${dateVal ? escapeHtml(formatDateLabel(dateVal)) : '-'}</td>
     </tr>`;
@@ -11842,17 +11869,23 @@ function campaignTimelineMonthDayGridHtml(year, month, buckets) {
   for (let i = 0; i < startWeekday; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
   while (cells.length % 7 !== 0) cells.push(null);
+  const numRows = cells.length / 7;
 
-  let html = `<div style="width:100%; box-sizing:border-box; padding:0 10px;">`;
-  html += `<div style="display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:8px;">`;
+  // The day grid grows to fill whatever vertical room is available (flex:1 all the way down to each
+  // day cell, instead of a fixed cell height) — on a big TV/monitor the card is much taller than a
+  // laptop screen, and a fixed-size grid left a large empty gap below it (Shaila: "byk kosong"
+  // viewing this on a TV/monitor). Cell height now simply matches however tall the card actually is.
+  let html = `<div style="width:100%; box-sizing:border-box; padding:0 10px; display:flex; flex-direction:column; flex:1; min-height:0;">`;
+  html += `<div style="display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:8px; flex-shrink:0;">`;
   ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach(w => {
-    html += `<div style="font-size:13px; text-align:center; color:var(--text-muted); font-weight:600;">${w}</div>`;
+    html += `<div style="font-size:15px; text-align:center; color:var(--text-muted); font-weight:600;">${w}</div>`;
   });
   html += `</div>`;
 
-  for (let row = 0; row * 7 < cells.length; row++) {
+  html += `<div style="display:flex; flex-direction:column; gap:6px; flex:1; min-height:0;">`;
+  for (let row = 0; row < numRows; row++) {
     const weekCells = cells.slice(row * 7, row * 7 + 7);
-    html += `<div style="display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:6px;">`;
+    html += `<div style="display:grid; grid-template-columns:repeat(7,1fr); gap:6px; flex:1; min-height:0;">`;
     weekCells.forEach(d => {
       if (d === null) { html += `<div></div>`; return; }
       const bucket = campaignTimelineDayBucket(d);
@@ -11860,10 +11893,11 @@ function campaignTimelineMonthDayGridHtml(year, month, buckets) {
       const style = active
         ? `background:${CAMPAIGN_TIMELINE_BUCKET_COLOR[bucket]}; color:#1a1712; font-weight:700;`
         : `color:var(--text-muted);`;
-      html += `<div style="font-size:15px; text-align:center; padding:10px 0; border-radius:6px; ${style}">${d}</div>`;
+      html += `<div style="font-size:17px; display:flex; align-items:center; justify-content:center; border-radius:6px; ${style}">${d}</div>`;
     });
     html += `</div>`;
   }
+  html += `</div>`;
   html += `</div>`;
   return html;
 }
@@ -11939,7 +11973,7 @@ function renderCampaignTimelineDashCalendar(list) {
   </div>`;
 
   let html = `${campaignTimelineMonthDayGridHtml(m.year, m.month, m.buckets)}
-  <div style="width:100%; box-sizing:border-box; padding:0 10px;">`;
+  <div style="width:100%; box-sizing:border-box; padding:0 10px; flex-shrink:0;">`;
   [0, 1, 2, -1].forEach(bucketKey => {
     const recs = m.buckets.get(bucketKey);
     if (!recs || !recs.length) return;
@@ -22439,10 +22473,38 @@ const DO_PRINT_CSS = `
 
 const DO_RECORDS_KEY = 'sto_do_records_v1';
 let doRecords = []; // [{ doNo, boutique, orderNumbers:[...], deliveryDate, createdDate }]
+// Two devices can each compute the same "next" DO Counter value before they've synced with each
+// other (DO_COUNTER_KEY is a settings key, only reconciled every couple seconds) and each push a
+// brand-new doRecords entry for that same DO No. — every entry gets its OWN random sync id (see
+// syncKeyOf), not one keyed by doNo itself, so the sync layer has no way to know they're really the
+// same DO and both survive as separate array entries after merging. Everywhere else in the app finds
+// a DO via `doRecords.find(d => d.doNo === ...)`, which silently returns only the FIRST match — so
+// the duplicate becomes invisible and unfixable through the UI, while fleetPendingStoCartonByBoutique
+// (which iterates every entry, not just the first match per doNo) kept counting its own possibly
+// stale STO count/Delivery Method forever, e.g. a boutique stuck showing "DO Issued" on the Fleet
+// Dashboard no matter what its real, editable copy said. Keeps whichever copy has progressed further
+// (more STOs folded in, or already handed to a courier) so this always agrees with which copy the
+// rest of the app's own .find()-based lookups would treat as "further along".
+function dedupeDoRecordsByDoNo(list) {
+  const byDoNo = new Map();
+  const noDoNo = [];
+  list.forEach(d => {
+    if (!d.doNo) { noDoNo.push(d); return; }
+    const prev = byDoNo.get(d.doNo);
+    if (!prev) { byDoNo.set(d.doNo, d); return; }
+    const score = x => (x.orderNumbers || []).length + (x.courierDeliveredDate ? 1000 : 0);
+    if (score(d) >= score(prev)) byDoNo.set(d.doNo, d);
+  });
+  return [...byDoNo.values(), ...noDoNo];
+}
 function loadDoRecords() {
   try { doRecords = JSON.parse(localStorage.getItem(DO_RECORDS_KEY)) || []; } catch (e) { doRecords = []; }
+  doRecords = dedupeDoRecordsByDoNo(doRecords);
 }
-function saveDoRecords() { localStorage.setItem(DO_RECORDS_KEY, JSON.stringify(doRecords)); }
+function saveDoRecords() {
+  doRecords = dedupeDoRecordsByDoNo(doRecords);
+  localStorage.setItem(DO_RECORDS_KEY, JSON.stringify(doRecords));
+}
 
 // The batch of STO(s) currently shown in the DO modal, plus a queue of further batches
 // (grouped by boutique) still waiting to be reviewed — used when several STOs for different
@@ -22523,20 +22585,33 @@ function openDoBatchOrderNumbersForBoutique(boutique, mustInclude) {
 // fresh DO No. get created.
 function openDOModalForBatch(orderNumbers) {
   const recs = orderNumbers.map(on => records.find(r => r.orderNumber === on)).filter(Boolean);
-  if (!recs.length) return;
-  const boutique = recs[0].toWarehouse || '-';
-
-  const allOrderNumbers = openDoBatchOrderNumbersForBoutique(boutique, orderNumbers);
-
-  let existing = null;
-  for (const on of allOrderNumbers) {
-    const rec = records.find(r => r.orderNumber === on);
-    if (rec && rec.doNo) {
-      existing = doRecords.find(d => d.doNo === rec.doNo);
-      if (existing) break;
+  let boutique, allOrderNumbers, existing;
+  if (recs.length) {
+    boutique = recs[0].toWarehouse || '-';
+    allOrderNumbers = openDoBatchOrderNumbersForBoutique(boutique, orderNumbers);
+    existing = null;
+    for (const on of allOrderNumbers) {
+      const rec = records.find(r => r.orderNumber === on);
+      if (rec && rec.doNo) {
+        existing = doRecords.find(d => d.doNo === rec.doNo);
+        if (existing) break;
+      }
     }
+    if (!existing) existing = findOpenDoForBoutique(boutique);
+  } else {
+    // Every underlying STO record behind this DO has since been removed from the active list (e.g.
+    // a fresh STO upload marked them no longer Active, per the Upload STO File rule) — but the DO
+    // itself still lives on in doRecords, and the Delivery Status tab's "reopen this DO" link still
+    // needs to work on it, e.g. to fix a Delivery Method picked wrong at print time (an "Own Fleet"
+    // DO that was actually hand-delivered/couriered, so it was never going to get a Fleet driver and
+    // sat stuck showing "DO Issued" forever). Fall back to the DO's own stored boutique/orderNumbers
+    // so its metadata (Delivery Method / Courier Tracking No. / Delivery Date) stays editable, even
+    // though there's nothing left to recompute a fresh STO/carton preview from.
+    existing = doRecords.find(d => (d.orderNumbers || []).some(on => orderNumbers.includes(on)));
+    if (!existing) return;
+    boutique = existing.boutique || '-';
+    allOrderNumbers = existing.orderNumbers.slice();
   }
-  if (!existing) existing = findOpenDoForBoutique(boutique);
 
   if (existing) {
     const mergedOrderNumbers = Array.from(new Set([...existing.orderNumbers, ...allOrderNumbers]));
