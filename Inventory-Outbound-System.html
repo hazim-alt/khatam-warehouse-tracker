@@ -4530,6 +4530,7 @@ function loadData() {
   if (!sla.addressByButik) sla.addressByButik = {};
   if (!sla.zoneByButik) sla.zoneByButik = {};
   if (!sla.emailByButik) sla.emailByButik = {};
+  if (!sla.butikLog) sla.butikLog = {}; // migration: older saved sla blobs won't have this key yet
   sla.default = Math.max(0, Number(sla.default) || 0);
   Object.keys(sla.byButik).forEach(k => { sla.byButik[k] = Math.max(0, Number(sla.byButik[k]) || 0); });
   const progressMigration = {
@@ -4634,10 +4635,26 @@ function mergeSlaBoutiqueData(localSla, remoteSla) {
   if (!localSla || typeof localSla !== 'object') return remoteSla;
   if (!remoteSla || typeof remoteSla !== 'object') return localSla;
   const merged = { ...remoteSla, ...localSla };
+  // butikLog[nameLower] = { action: 'added'|'deleted', at: timestamp } (see the add/delete handlers
+  // that write it) — merge keeps whichever side's entry is NEWER per name, so whichever action
+  // actually happened last (add or delete) wins. A plain union of extraButiks can only ever add a
+  // name back, never truly remove one just because it's missing from one side (a deletion made on
+  // one browser would get silently undone by another browser's still-unsynced stale copy — Shaila:
+  // "location ni saya dah delete kenapa naik semula?"); a delete-only tombstone fixes that but then
+  // permanently blocks a legitimate later re-add once a stale delete record survives somewhere. Only
+  // comparing timestamps and letting the latest action win handles both directions correctly.
+  const mergedLog = { ...(remoteSla.butikLog || {}) };
+  Object.entries(localSla.butikLog || {}).forEach(([k, entry]) => {
+    if (entry && (!mergedLog[k] || entry.at > (mergedLog[k].at || 0))) mergedLog[k] = entry;
+  });
+  merged.butikLog = mergedLog;
   const seen = new Map(); // lowercased name -> original-cased name actually kept
   [...(remoteSla.extraButiks || []), ...(localSla.extraButiks || [])].forEach(name => {
     const key = String(name || '').trim().toLowerCase();
-    if (key && !seen.has(key)) seen.set(key, name);
+    if (!key || seen.has(key)) return;
+    const logEntry = mergedLog[key];
+    if (logEntry && logEntry.action === 'deleted') return; // most recent known action for this name was a delete
+    seen.set(key, name);
   });
   merged.extraButiks = [...seen.values()];
   ['byButik', 'scheduleByButik', 'codeByButik', 'addressByButik', 'zoneByButik', 'emailByButik', 'cityByButik'].forEach(mapKey => {
@@ -4984,7 +5001,11 @@ document.getElementById('inputManualStoBoutique').addEventListener('change', (e)
   if (!name) { e.target.value = ''; return; }
   const existing = [...new Set(records.map(r => r.toWarehouse).filter(Boolean))].concat(sla.extraButiks);
   const alreadyThere = existing.some(b => b.toLowerCase() === name.toLowerCase());
-  if (!alreadyThere) { sla.extraButiks.push(name); saveSla(); }
+  if (!alreadyThere) {
+    sla.extraButiks.push(name);
+    sla.butikLog[name.trim().toLowerCase()] = { action: 'added', at: Date.now() };
+    saveSla();
+  }
   populateFilterOptions();
   e.target.value = alreadyThere ? existing.find(b => b.toLowerCase() === name.toLowerCase()) : name;
 });
@@ -6821,6 +6842,11 @@ function renderSlaTab() {
       delete sla.zoneByButik[b];
       delete sla.cityByButik[b];
       delete sla.emailByButik[b];
+      // Log the deletion with a timestamp (see mergeSlaBoutiqueData) — without this, another browser
+      // that hasn't synced this deletion yet would push its own stale copy of this boutique back up,
+      // and the next settings merge would silently resurrect it (a plain union can only ever ADD
+      // names, never remove one just because it vanished from one side).
+      sla.butikLog[b.trim().toLowerCase()] = { action: 'deleted', at: Date.now() };
       saveSla();
       renderAll();
     });
@@ -6858,6 +6884,7 @@ document.getElementById('addButikBtn').addEventListener('click', () => {
   const existing = [...new Set(records.map(r => r.toWarehouse).filter(Boolean))].concat(sla.extraButiks);
   const alreadyThere = existing.some(b => b.toLowerCase() === name.toLowerCase());
   if (!alreadyThere) sla.extraButiks.push(name);
+  sla.butikLog[name.trim().toLowerCase()] = { action: 'added', at: Date.now() };
   if (codeInput.value.trim() !== '') sla.codeByButik[name] = codeInput.value.trim();
   if (zoneInput.value !== '') sla.zoneByButik[name] = zoneInput.value;
   if (addressInput.value.trim() !== '') sla.addressByButik[name] = addressInput.value.trim();
@@ -11640,7 +11667,7 @@ function campaignTimelineSumAcc(map) {
 // 100% leaking onto unrelated, still-in-production "Cathaya" rows that have no Garment Order entry at
 // all yet). That's actively misleading, so now a row with no confirmed product match shows "no data"
 // instead of borrowing an unrelated batch's numbers.
-function campaignTimelineMatchReceiving(rec) {
+function campaignTimelineMatchReceivingRaw(rec) {
   // Series doesn't always match Brand exactly either — e.g. Series "OG 26 (restocks)" vs Brand
   // "OG Series" in Item Master — so this matches on the shared leading brand code, not an exact string.
   const brandMatch = campaignTimelineBestBrandMatch(campaignTimelineReceivingIndex(), rec.series || '');
@@ -11663,6 +11690,49 @@ function campaignTimelineMatchReceiving(rec) {
   // combined under this brand.
   const groupMatchAny = campaignTimelineBestWordMatch(campaignTimelineMergeGroupMaps(nameMap), productText);
   return groupMatchAny ? { acc: groupMatchAny.value, groupLabel: groupMatchAny.key } : { acc: null, groupLabel: '' };
+}
+// Two (or more) different Timeline rows can legitimately share the exact same Series/Supplier/Product
+// text — e.g. a brand's regular "OG" line plus a later "OG 26 (restocks)" campaign for the same product
+// from the same supplier — which all resolve to the identical Garment Order group above, and would
+// otherwise all show that ONE batch's received total, even for rows that don't have their own PO placed
+// at all yet (a still-planned 3,000-unit or 7,000-unit run showing the same "927 received" as a
+// completely separate, already-placed 1,000-unit batch). Only the row whose own planned Qty is closest
+// to the batch's actual order Qty is treated as that batch's real "owner"; every other row sharing the
+// same resolved group instead shows "Not Received Yet", since it has no batch of its own in Garment
+// Order yet. A group matched by only ONE row is never affected by this — it keeps working exactly as
+// before, mismatched quantities and all (see campaignTimelineReceivedBadgeHtml's own note on that).
+let _campaignTimelineMatchOwnerCacheSrc = null;
+let _campaignTimelineMatchOwnerCache = null;
+function campaignTimelineComputeMatchOwners(list) {
+  if (_campaignTimelineMatchOwnerCacheSrc === list) return _campaignTimelineMatchOwnerCache;
+  const byAcc = new Map(); // matched acc object (identity) -> [recs that resolved to it]
+  list.forEach(rec => {
+    const { acc } = campaignTimelineMatchReceivingRaw(rec);
+    if (!acc) return;
+    if (!byAcc.has(acc)) byAcc.set(acc, []);
+    byAcc.get(acc).push(rec);
+  });
+  const owners = new Set();
+  byAcc.forEach(recsForAcc => {
+    if (recsForAcc.length === 1) { owners.add(recsForAcc[0]); return; }
+    const acc = campaignTimelineMatchReceivingRaw(recsForAcc[0]).acc;
+    let best = recsForAcc[0], bestDiff = Math.abs((Number(best.quantity) || 0) - acc.totalOrder);
+    recsForAcc.forEach(r => {
+      const diff = Math.abs((Number(r.quantity) || 0) - acc.totalOrder);
+      if (diff < bestDiff) { best = r; bestDiff = diff; }
+    });
+    owners.add(best);
+  });
+  _campaignTimelineMatchOwnerCacheSrc = list;
+  _campaignTimelineMatchOwnerCache = owners;
+  return owners;
+}
+function campaignTimelineMatchReceiving(rec) {
+  const raw = campaignTimelineMatchReceivingRaw(rec);
+  if (!raw.acc) return raw;
+  const owners = campaignTimelineComputeMatchOwners(campaignTimelineList);
+  if (!owners.has(rec)) return { acc: null, groupLabel: raw.groupLabel };
+  return raw;
 }
 // Shows the Item Master Group name in place of the Timeline's raw product text when we found a
 // confident match — same product, just written consistently with the rest of the app.
