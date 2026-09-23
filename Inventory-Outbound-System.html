@@ -1542,12 +1542,15 @@
 
       <div class="dash-slide" data-slide="campaign-timeline">
         <p class="section-title" id="campaignTimelineDashTitle">Campaign Timeline</p>
-        <div class="kpi-grid" id="campaignTimelineDashKpiGrid"></div>
 
-        <div class="charts-row dash-tables-row" style="margin-bottom:0;">
+        <div class="charts-row dash-tables-row" style="margin-bottom:0; grid-template-columns: 1fr 1fr 1.3fr;">
           <div>
-            <p class="section-title">Coming Up Next</p>
-            <div class="card"><div id="campaignTimelineDashComingUpWrap" class="scroll-table"></div></div>
+            <p class="section-title">Fabric Arriving Soon</p>
+            <div class="card"><div id="campaignTimelineDashFabricWrap" class="scroll-table"></div></div>
+          </div>
+          <div>
+            <p class="section-title">FG Arriving Soon</p>
+            <div class="card"><div id="campaignTimelineDashFgWrap" class="scroll-table"></div></div>
           </div>
           <div>
             <p class="section-title">Release Calendar</p>
@@ -1846,7 +1849,10 @@
       <div class="upload-status" id="rmStoQtyUploadStatus"></div>
     </div>
     <div class="card" style="margin-top:16px;">
-      <p class="section-title" style="margin-top:0; font-size:13px;">Fabric STO List</p>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+        <p class="section-title" style="margin:0; font-size:13px;">Fabric STO List</p>
+        <button type="button" class="btn-ghost" id="rmManualAddStoBtn" title="Recreate an STO/DO from a printed copy — e.g. if one was accidentally deleted">➕ Manually Add STO/DO</button>
+      </div>
       <input type="text" id="rmStoSearchInput" placeholder="Search STO No. / Fabric / Destination...">
       <div id="rmStoTableWrap" class="scroll-table" style="margin-top:10px;"></div>
     </div>
@@ -2755,6 +2761,18 @@
           <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx / .xls file here</span>
         </div>
       </div>
+      <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--border);">
+        <p style="margin:0 0 8px; font-weight:600; font-size:13px;">Or link directly to Google Sheets</p>
+        <span class="data-note" style="margin:0;">Edit the tracker in Google Sheets itself — nothing to upload here anymore. In each sheet: File &gt; Share &gt; Publish to web &gt; pick that sheet &gt; format "Comma-separated values (.csv)" &gt; Publish, then paste the link Google gives you below. "Summary all series" and "Patawali" are combined into one Timeline (they're separate, non-overlapping data, not one containing the other). Refreshing here FULLY REPLACES the current Timeline, same as a file upload.</span>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px; max-width:640px;">
+          <input type="text" id="campaignTimelineGsheetSummaryInput" placeholder="Published CSV link — Summary all series">
+          <input type="text" id="campaignTimelineGsheetPatawaliInput" placeholder="Published CSV link — Patawali">
+        </div>
+        <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+          <button type="button" class="btn-ghost" id="campaignTimelineGsheetSaveBtn">Save Links</button>
+          <button type="button" class="btn-primary" id="campaignTimelineGsheetFetchBtn">Refresh from Google Sheets</button>
+        </div>
+      </div>
       <div class="upload-status" id="campaignTimelineUploadStatus"></div>
     </div>
 
@@ -2767,7 +2785,13 @@
         <select id="campaignTimelineSupplierFilter"><option value="">All Suppliers</option></select>
         <select id="campaignTimelineStatusFilter"><option value="">All Status</option></select>
       </div>
-      <div id="campaignTimelineTableWrap" class="scroll-table scroll-table-flat" style="margin-top:10px;"></div>
+      <!-- Not scroll-table-flat like most other tables here — this one's 22 columns wide (see
+           renderCampaignTimelineTable), so it needs its own bounded height + sticky header (the
+           plain .scroll-table behavior) instead of growing with the whole page. Flat would push its
+           horizontal scrollbar down to the bottom of the entire (possibly very long) page, out of
+           reach without scrolling all the way down first — Shaila: "susah la bende ni kalau kat
+           bawah sekali". Contained here, the scrollbar always stays right under the visible rows. -->
+      <div id="campaignTimelineTableWrap" class="scroll-table" style="margin-top:10px; max-height:65vh;"></div>
     </div>
 
     <div class="card" style="margin-top:16px; border-color:#e0685c;">
@@ -3406,6 +3430,38 @@
   </div>
 </div>
 
+<div class="modal-overlay hidden" id="rmManualAddStoModal">
+  <div class="modal-box" style="max-width:760px;">
+    <div class="modal-header">
+      <h2>Manually Add STO / DO</h2>
+      <button class="modal-close" id="rmManualAddStoCloseBtn">&times;</button>
+    </div>
+    <p class="data-note" style="margin-top:0;">For recreating a record from a printed copy — e.g. an STO/DO that got accidentally deleted (deleting is permanent, there's no undo). This bypasses the normal roll-scanning workflow and creates every line already marked Completed/sent. Fill this in from the printed slip.</p>
+    <div class="rm-form-grid rm-form-grid-4">
+      <div class="field"><label>STO No.</label><input type="text" id="rmManualStoNo"></div>
+      <div class="field"><label>DO No. (optional)</label><input type="text" id="rmManualDoNo"></div>
+      <div class="field"><label>Date</label><input type="date" id="rmManualDate"></div>
+      <div class="field"><label>Destination</label><input type="text" id="rmManualDestination"></div>
+      <div class="field full-2"><label>Notes</label><input type="text" id="rmManualNotes"></div>
+    </div>
+    <p style="margin:16px 0 6px; font-weight:600; font-size:13px;">Fabric Lines (one per Fabric + GSM + Colour group, matching the printed slip's rows)</p>
+    <div style="display:grid; grid-template-columns: 1.3fr 1fr 0.6fr 1.1fr 0.8fr 0.6fr 0.9fr auto; gap:6px; margin-bottom:4px; font-size:11px; color:var(--text-muted);">
+      <span>Fabric Name</span><span>Fabric Code</span><span>GSM</span><span>Color Name</span><span>Color Code</span><span>Rolls</span><span>Total Meters</span><span></span>
+    </div>
+    <div id="rmManualLinesWrap"></div>
+    <button type="button" class="btn-ghost" id="rmManualAddLineBtn" style="margin-top:8px;">+ Add Line</button>
+    <label style="display:flex; align-items:flex-start; gap:8px; margin-top:16px; font-size:12px; color:var(--text-muted);">
+      <input type="checkbox" id="rmManualDeductStock" style="margin-top:2px;">
+      <span>Also deduct this meterage from current matching rolls (same Fabric + Colour) to correct stock. Only tick this if this record was deleted before (deleting an STO auto-restores its meterage back to stock — tick this to undo that wrong restoration). Leave unticked if this fabric was never actually deducted from current stock.</span>
+    </label>
+    <div class="data-note" id="rmManualAddStoError" style="color:#e05c5c; display:none; margin-top:10px;"></div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn-ghost" id="rmManualAddStoCancelBtn">Cancel</button>
+      <button class="btn-primary" id="rmManualAddStoSaveBtn">Create STO/DO</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay hidden" id="priceTagEditLineModal">
   <div class="modal-box" style="max-width:480px;">
     <div class="modal-header">
@@ -3587,6 +3643,7 @@
       <h2 id="fleetTripModalTitle">Schedule Trip</h2>
       <div style="display:flex; align-items:center; gap:10px;">
         <button type="button" class="icon-btn" id="fleetTripEditDateBtn" title="Edit trip date (Admin)" style="display:none;">📅</button>
+        <button type="button" class="icon-btn" id="fleetTripEditDeliveryDateBtn" title="Edit delivered date (Admin)" style="display:none;">✓📅</button>
         <button type="button" class="icon-btn" id="fleetTripModalDeleteBtn" title="Delete trip" style="display:none;">🗑</button>
         <button class="modal-close" id="fleetTripModalCloseBtn">&times;</button>
       </div>
@@ -3599,6 +3656,12 @@
       <input type="date" id="fleetTripDateEditInput" style="flex:1;">
       <button type="button" class="btn-primary" id="fleetTripDateEditSaveBtn" style="white-space:nowrap; padding:6px 12px; font-size:12px;">Save</button>
       <button type="button" class="btn-ghost" id="fleetTripDateEditCancelBtn" style="white-space:nowrap; padding:6px 12px; font-size:12px;">Cancel</button>
+    </div>
+    <div class="data-note" id="fleetTripDeliveryDateEditRow" style="display:none; align-items:center; gap:8px; margin-bottom:14px;">
+      <span style="white-space:nowrap;">Delivered:</span>
+      <input type="date" id="fleetTripDeliveryDateEditInput" style="flex:1;">
+      <button type="button" class="btn-primary" id="fleetTripDeliveryDateEditSaveBtn" style="white-space:nowrap; padding:6px 12px; font-size:12px;">Save</button>
+      <button type="button" class="btn-ghost" id="fleetTripDeliveryDateEditCancelBtn" style="white-space:nowrap; padding:6px 12px; font-size:12px;">Cancel</button>
     </div>
     <div class="field">
       <label>Driver</label>
@@ -4567,6 +4630,7 @@ function loadData() {
   loadEmailjsSettings();
   loadStationPresence();
   loadRawMaterialData();
+  migrateFixDuplicateRmReconRollNos();
   loadAccessoriesReceipts();
   loadPriceTagStickers();
   loadPriceTagPrinters();
@@ -4579,6 +4643,7 @@ function loadData() {
   loadProductionDecisions();
   loadProductionRmDecisions();
   loadCampaignTimelineList();
+  loadCampaignTimelineGsheetUrls();
   // Cleans up any STO No. duplicates already sitting in storage (e.g. from two devices each adding
   // the same STO No. before they'd ever synced with each other — see backfillNaturalSyncIds above)
   // and makes sure every record has a stable id going forward, right from the moment data loads —
@@ -8967,7 +9032,7 @@ function attachPostponedDoNosListener() {
 // in the file would throw "Cannot access before initialization". Calling this only from inside the
 // functions below (which only ever run after the whole script has finished loading) avoids that.
 function syncSettingsKeys() {
-  return [SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, STICKER_KEY, DAILY_TARGETS_KEY, CAMPAIGN_MODE_KEY, DAILY_TARGETS_CAMPAIGN_SNAPSHOT_KEY, INBOUND_ALERT_SETTINGS_KEY, EMAILJS_SETTINGS_KEY, ADMIN_PASSWORD_KEY, PACKING_STATION_RR_KEY, STAFF_SCHEDULE_KEY, STATION_PRESENCE_KEY, REQ_STOCK_TEMPLATE_KEY, ITEM_MASTER_IMPORTED_AT_KEY];
+  return [SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, STICKER_KEY, DAILY_TARGETS_KEY, CAMPAIGN_MODE_KEY, DAILY_TARGETS_CAMPAIGN_SNAPSHOT_KEY, INBOUND_ALERT_SETTINGS_KEY, EMAILJS_SETTINGS_KEY, ADMIN_PASSWORD_KEY, PACKING_STATION_RR_KEY, STAFF_SCHEDULE_KEY, STATION_PRESENCE_KEY, REQ_STOCK_TEMPLATE_KEY, ITEM_MASTER_IMPORTED_AT_KEY, CAMPAIGN_TIMELINE_GSHEET_URLS_KEY];
 }
 const FB_SETTINGS_TABLE = 'AppSettings';
 function pushSettingsDiff() {
@@ -9036,6 +9101,8 @@ function applySettingsSnapshot() {
     renderReqStockTemplateStatus();
     itemMasterImportedAt = localStorage.getItem(ITEM_MASTER_IMPORTED_AT_KEY) || '';
     renderItemMasterStatusNote();
+    loadCampaignTimelineGsheetUrls();
+    renderCampaignTimelineGsheetInputs();
     // Daily Targets' inputs are a static section (not tied to any tab-switch re-render), so unlike
     // everything else here, refreshing the underlying variable above isn't enough on its own — the
     // visible fields need their own explicit repaint or they'd keep showing stale numbers until a
@@ -9098,6 +9165,30 @@ function saveRawMaterialRolls() { localStorage.setItem(RM_ROLLS_KEY, JSON.string
 function saveRawMaterialPicks() { localStorage.setItem(RM_PICKS_KEY, JSON.stringify(rawMaterialPicks)); }
 function saveRawMaterialStos() { localStorage.setItem(RM_STOS_KEY, JSON.stringify(rawMaterialStos)); }
 function saveRawMaterialDos() { localStorage.setItem(RM_DOS_KEY, JSON.stringify(rawMaterialDos)); }
+// One-time self-healing migration (per Shaila's request, Sep 23, 2026): "Manually Add STO/DO" used to
+// label reconstructed lines "RECON-1".."RECON-N" starting over at 1 for EVERY colour line, so two
+// different colours in the same STO landed on the identical roll-no. string. The Finance tab's
+// "Rolls" count (financeGroupRows) counts DISTINCT roll-no. strings pooled across all colours of a
+// fabric, so those collisions silently underccounted real rolls as duplicates of each other (Shaila's
+// first reconstructed STO: 66 real rolls, only 11 distinct labels, threw her Finance Balance "Rolls"
+// figure off by 55). The tool itself now generates a label unique across the whole STO from the
+// start (see the Manually Add STO/DO save handler) — this just repairs any records already saved
+// under the old, colliding scheme, on every load, so nothing has to be manually redone.
+function migrateFixDuplicateRmReconRollNos() {
+  const reconItems = rawMaterialStos.filter(isRmStoManualReconLine);
+  if (!reconItems.length) return;
+  const countByRollNo = new Map();
+  reconItems.forEach(s => countByRollNo.set(s.rollNo, (countByRollNo.get(s.rollNo) || 0) + 1));
+  const dupedRollNos = new Set([...countByRollNo.entries()].filter(([, c]) => c > 1).map(([k]) => k));
+  if (!dupedRollNos.size) return;
+  let counter = 0;
+  reconItems.forEach(s => {
+    if (!dupedRollNos.has(s.rollNo)) return;
+    counter++;
+    s.rollNo = `RECON-${s.stoNo}-${counter}`;
+  });
+  saveRawMaterialStos();
+}
 
 // Garment Accessories — Receive log (separate data set from Raw Material fabric rolls; lives inside
 // the same "Receive & Pick" tab, switched via the Fabric Roll / Accessories toggle).
@@ -11240,6 +11331,24 @@ function renderProductionRestockTab() {
    line items, nowhere near Available Stock's 10k-SKU scale that actually needed that machinery. */
 const CAMPAIGN_TIMELINE_KEY = 'sto_campaign_timeline_v1';
 const CAMPAIGN_TIMELINE_IMPORTED_AT_KEY = 'sto_campaign_timeline_imported_at_v1';
+const CAMPAIGN_TIMELINE_GSHEET_URLS_KEY = 'sto_campaign_timeline_gsheet_urls_v1';
+// The two Google Sheet "Publish to web" CSV links (see fetchCampaignTimelineFromGoogleSheets below)
+// — synced as a plain settings key (syncSettingsKeys) so every device/account shares the same saved
+// links without re-pasting them.
+let campaignTimelineGsheetUrls = { summary: '', patawali: '' };
+function loadCampaignTimelineGsheetUrls() {
+  try { campaignTimelineGsheetUrls = JSON.parse(localStorage.getItem(CAMPAIGN_TIMELINE_GSHEET_URLS_KEY)) || { summary: '', patawali: '' }; }
+  catch (e) { campaignTimelineGsheetUrls = { summary: '', patawali: '' }; }
+}
+function saveCampaignTimelineGsheetUrls() {
+  localStorage.setItem(CAMPAIGN_TIMELINE_GSHEET_URLS_KEY, JSON.stringify(campaignTimelineGsheetUrls));
+}
+function renderCampaignTimelineGsheetInputs() {
+  const s = document.getElementById('campaignTimelineGsheetSummaryInput');
+  const p = document.getElementById('campaignTimelineGsheetPatawaliInput');
+  if (s) s.value = campaignTimelineGsheetUrls.summary || '';
+  if (p) p.value = campaignTimelineGsheetUrls.patawali || '';
+}
 let campaignTimelineList = [];
 let campaignTimelineImportedAt = '';
 let campaignTimelineInitialSyncDone = false;
@@ -11346,15 +11455,43 @@ function campaignTimelineFindColContains(headerRow, parts) {
   return -1;
 }
 function campaignTimelineCellDateIso(v) {
-  if (v instanceof Date && !isNaN(v)) return v.getFullYear() + '-' + String(v.getMonth() + 1).padStart(2, '0') + '-' + String(v.getDate()).padStart(2, '0');
-  return '';
+  if (v instanceof Date && !isNaN(v)) {
+    // XLSX's own Excel-serial-to-JS-Date conversion (real .xlsx uploads) can land a few hours off
+    // true midnight (floating-point precision in the serial's day-fraction — seen landing at
+    // 15:59:35 UTC instead of the next day's 00:00:00, which then read as one calendar day EARLY,
+    // e.g. Sep 1 showing as Aug 31). These cells only ever represent a calendar day, never a real
+    // time-of-day, so rounding to the nearest whole day (in UTC ms) before reading it back out
+    // corrects that drift — and reading it back via UTC getters (not local) keeps that same
+    // corrected day regardless of which timezone the browser viewing this happens to be in, rather
+    // than risking a NEW one-day shift from local-time rounding.
+    const rounded = new Date(Math.round(v.getTime() / 86400000) * 86400000);
+    return rounded.getUTCFullYear() + '-' + String(rounded.getUTCMonth() + 1).padStart(2, '0') + '-' + String(rounded.getUTCDate()).padStart(2, '0');
+  }
+  // CSV / Google Sheets text values (read with {raw:true} — see the two XLSX.read call sites) arrive
+  // as literal "D/M/YYYY" strings, her tracker's own display format, rather than real Excel date
+  // cells. {raw:true} is deliberate: WITHOUT it, SheetJS's own CSV auto-type-detection tries to guess
+  // ambiguous slash dates as US M/D/Y and silently swaps day and month for any day <= 12 (e.g.
+  // "1/9/2026" = 1 Sept was coming back as 9 Jan) — confirmed against Shaila's real published Google
+  // Sheet CSV link, Sep 23, 2026. Parsed here explicitly as day-first, the only format anywhere in
+  // her real tracker, so there's no ambiguity left to guess at.
+  const str = String(v == null ? '' : v).trim();
+  const m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (!m) return '';
+  const day = parseInt(m[1], 10), month = parseInt(m[2], 10);
+  let year = parseInt(m[3], 10);
+  if (year < 100) year += 2000;
+  if (month < 1 || month > 12 || day < 1 || day > 31) return '';
+  return year + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0');
 }
 function campaignTimelineCellText(v) {
   if (v instanceof Date && !isNaN(v)) return formatDateLabel(campaignTimelineCellDateIso(v));
   return String(v == null ? '' : v).trim();
 }
 function campaignTimelineCellNum(v) {
-  const n = Number(v);
+  // {raw:true} (see above) also stops SheetJS from auto-converting "13,300"-style thousands-comma
+  // numbers into real numbers for the CSV path — they arrive as literal text instead, so the comma
+  // needs stripping here before Number() can read it.
+  const n = Number(String(v == null ? '' : v).replace(/,/g, '').trim());
   return isNaN(n) ? 0 : n;
 }
 function parseCampaignTimelineWorkbook(wb) {
@@ -11365,10 +11502,10 @@ function parseCampaignTimelineWorkbook(wb) {
   const col = (name, occurrence) => campaignTimelineFindColOccurrence(headerRow, name, occurrence || 1);
   const idx = {
     item: col('item'), series: col('series'), category: col('category'), supplier: col('supplier'),
-    projectDescription: col('project description'), officialProductName: col('official product name'),
-    batch: col('batch'), material: col('material'), color: col('color'),
-    quantity: col('quantity'), quantityReceived: col('quantity received'),
-    poNumber: col('po number'), poDate: col('po date'), productionStatus: col('production status'),
+    officialProductName: col('official product name'),
+    batch: col('batch'), material: col('material'), fabricSupplier: col('fabric supplier'), color: col('color'),
+    quantity: col('quantity'),
+    productionInstruction: col('production instruction to supplier'), productionStatus: col('production status'),
     fabricDelivery: col('estimate date delivery', 1), fabricArrive: col('estimate date arrive', 1),
     fgDelivery: col('estimate date delivery', 2), fgArrive: col('estimate date arrive', 2),
     releaseDate: campaignTimelineFindColContains(headerRow, ['release date']),
@@ -11384,21 +11521,19 @@ function parseCampaignTimelineWorkbook(wb) {
     if (!row || !row.length) continue;
     const series = idx.series !== -1 ? campaignTimelineCellText(row[idx.series]) : '';
     const officialName = idx.officialProductName !== -1 ? campaignTimelineCellText(row[idx.officialProductName]) : '';
-    const projectDesc = idx.projectDescription !== -1 ? campaignTimelineCellText(row[idx.projectDescription]) : '';
-    if (!series && !officialName && !projectDesc) continue; // skip blank padding rows
+    if (!series && !officialName) continue; // skip blank padding rows
     const releaseRaw = idx.releaseDate !== -1 ? row[idx.releaseDate] : '';
     mapped.push({
       id: genCampaignTimelineId(),
       series, category: idx.category !== -1 ? campaignTimelineCellText(row[idx.category]) : '',
       supplier: idx.supplier !== -1 ? campaignTimelineCellText(row[idx.supplier]) : '',
-      projectDescription: projectDesc, officialProductName: officialName,
+      officialProductName: officialName,
       batch: idx.batch !== -1 ? campaignTimelineCellText(row[idx.batch]) : '',
       material: idx.material !== -1 ? campaignTimelineCellText(row[idx.material]) : '',
+      fabricSupplier: idx.fabricSupplier !== -1 ? campaignTimelineCellText(row[idx.fabricSupplier]) : '',
       color: idx.color !== -1 ? campaignTimelineCellText(row[idx.color]) : '',
       quantity: idx.quantity !== -1 ? campaignTimelineCellNum(row[idx.quantity]) : 0,
-      quantityReceived: idx.quantityReceived !== -1 ? campaignTimelineCellNum(row[idx.quantityReceived]) : 0,
-      poNumber: idx.poNumber !== -1 ? campaignTimelineCellText(row[idx.poNumber]) : '',
-      poDate: idx.poDate !== -1 ? campaignTimelineCellDateIso(row[idx.poDate]) : '',
+      productionInstruction: idx.productionInstruction !== -1 ? campaignTimelineCellText(row[idx.productionInstruction]) : '',
       productionStatus: idx.productionStatus !== -1 ? campaignTimelineCellText(row[idx.productionStatus]) : '',
       fabricDelivery: idx.fabricDelivery !== -1 ? campaignTimelineCellDateIso(row[idx.fabricDelivery]) : '',
       fabricArrive: idx.fabricArrive !== -1 ? campaignTimelineCellDateIso(row[idx.fabricArrive]) : '',
@@ -11434,7 +11569,9 @@ function processUploadedCampaignTimelineFile(file) {
     try {
       let mapped;
       if (ext === 'csv') {
-        const wb = XLSX.read(String(evt.target.result), { type: 'string', cellDates: true });
+        // raw:true (not cellDates) — see campaignTimelineCellDateIso's comment for why: it stops
+        // SheetJS's own ambiguous-date auto-guessing from silently mis-parsing D/M/Y text.
+        const wb = XLSX.read(String(evt.target.result), { type: 'string', raw: true });
         mapped = parseCampaignTimelineWorkbook(wb);
       } else {
         const wb = XLSX.read(evt.target.result, { type: 'array', cellDates: true });
@@ -11459,6 +11596,83 @@ function processUploadedCampaignTimelineFile(file) {
   if (ext === 'csv') reader.readAsText(file);
   else reader.readAsArrayBuffer(file);
 }
+/* ---- Google Sheets live-source (per Shaila's request, Sep 23, 2026) ----
+   Lets her edit the tracker directly in Google Sheets instead of re-exporting/uploading an Excel
+   file every time. Reads two separately-published CSV links (Google's own File > Share > Publish to
+   the web > CSV export — NOT a normal "share" link; only the published-to-web export is servable
+   cross-origin to a static GitHub Pages site with no backend of our own to proxy the request) and
+   merges both into one Timeline list, same as if both sheets had been in one uploaded file. Two
+   sources because she confirmed "Summary all series" and "Patawali" are genuinely separate,
+   non-overlapping data in her real tracker (not one containing the other) — so this is additive, not
+   deduped. Patawali's sheet only has ONE Estimate-date-delivery/arrive pair (vs Summary's two, one
+   for Fabric and one for FG) — parseCampaignTimelineWorkbook's existing occurrence-based column
+   matching already handles that gracefully: Patawali rows land in fabricDelivery/fabricArrive and
+   simply have no fgDelivery/fgArrive (idx === -1 short-circuits to ''), so they just don't show up
+   in the FG Arriving Soon dashboard list, which is correct — that sheet doesn't track FG ETAs. */
+function campaignTimelineFetchCsvAsWorkbook(url) {
+  return fetch(url).then(res => {
+    if (!res.ok) throw new Error(`HTTP ${res.status} — check the link is still valid and still published.`);
+    return res.text();
+  }).then(text => {
+    if (/^\s*<(!doctype|html)/i.test(text)) throw new Error('That link returned a webpage, not CSV data — make sure it\'s the "Publish to web" CSV link (File > Share > Publish to web), not a normal Share/copy-link URL.');
+    return XLSX.read(text, { type: 'string', raw: true }); // see campaignTimelineCellDateIso's comment
+  });
+}
+async function fetchCampaignTimelineFromGoogleSheets() {
+  const statusEl = document.getElementById('campaignTimelineUploadStatus');
+  const { summary, patawali } = campaignTimelineGsheetUrls;
+  if (!summary && !patawali) {
+    statusEl.textContent = 'No Google Sheet link saved yet — paste at least one link above and click "Save Links" first.';
+    statusEl.className = 'upload-status err';
+    return;
+  }
+  if (campaignTimelineUploadInFlight) {
+    statusEl.textContent = 'Still finishing the previous refresh — please wait for it to complete.';
+    statusEl.className = 'upload-status err';
+    return;
+  }
+  campaignTimelineUploadInFlight = true;
+  statusEl.textContent = 'Fetching from Google Sheets...';
+  statusEl.className = 'upload-status';
+  try {
+    let mapped = [];
+    const errors = [];
+    if (summary) {
+      try { mapped = mapped.concat(parseCampaignTimelineWorkbook(await campaignTimelineFetchCsvAsWorkbook(summary))); }
+      catch (e) { errors.push(`"Summary all series" link — ${e.message}`); }
+    }
+    if (patawali) {
+      try { mapped = mapped.concat(parseCampaignTimelineWorkbook(await campaignTimelineFetchCsvAsWorkbook(patawali))); }
+      catch (e) { errors.push(`"Patawali" link — ${e.message}`); }
+    }
+    if (!mapped.length) throw new Error(errors.length ? errors.join(' | ') : 'No valid rows found from either link.');
+    campaignTimelineList = mapped;
+    campaignTimelineImportedAt = new Date().toISOString();
+    saveCampaignTimelineListLocal();
+    pushCampaignTimelineDiffToFirebase({ skipEmptyGuard: true });
+    statusEl.textContent = `Success: ${formatQty(mapped.length)} item(s) loaded from Google Sheets and synced.${errors.length ? ` (Warning — ${errors.join(' | ')})` : ''}`;
+    statusEl.className = errors.length ? 'upload-status err' : 'upload-status ok';
+    renderCampaignTimelineTab();
+  } catch (err) {
+    statusEl.textContent = 'Failed to fetch from Google Sheets: ' + err.message;
+    statusEl.className = 'upload-status err';
+  } finally {
+    campaignTimelineUploadInFlight = false;
+  }
+}
+document.getElementById('campaignTimelineGsheetSaveBtn').addEventListener('click', () => {
+  campaignTimelineGsheetUrls = {
+    summary: document.getElementById('campaignTimelineGsheetSummaryInput').value.trim(),
+    patawali: document.getElementById('campaignTimelineGsheetPatawaliInput').value.trim(),
+  };
+  saveCampaignTimelineGsheetUrls();
+  pushSettingsDiff();
+  const statusEl = document.getElementById('campaignTimelineUploadStatus');
+  statusEl.textContent = 'Google Sheet link(s) saved — click "Refresh from Google Sheets" to load data now.';
+  statusEl.className = 'upload-status ok';
+});
+document.getElementById('campaignTimelineGsheetFetchBtn').addEventListener('click', fetchCampaignTimelineFromGoogleSheets);
+renderCampaignTimelineGsheetInputs();
 document.getElementById('campaignTimelineFileInput').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -11510,7 +11724,7 @@ function campaignTimelineFilteredList() {
   const supplierFilter = document.getElementById('campaignTimelineSupplierFilter').value;
   const statusFilter = document.getElementById('campaignTimelineStatusFilter').value;
   return campaignTimelineList.filter(it => {
-    if (search && ![it.series, it.officialProductName, it.projectDescription, it.supplier, it.category].filter(Boolean).join(' ').toLowerCase().includes(search)) return false;
+    if (search && ![it.series, it.officialProductName, it.supplier, it.category].filter(Boolean).join(' ').toLowerCase().includes(search)) return false;
     if (seriesFilter && it.series !== seriesFilter) return false;
     if (supplierFilter && it.supplier !== supplierFilter) return false;
     if (statusFilter && it.productionStatus !== statusFilter) return false;
@@ -11520,7 +11734,6 @@ function campaignTimelineFilteredList() {
 // Chronological order the milestones would naturally happen in — used both to pick the "next"
 // upcoming one and, for an item with nothing upcoming, the most recently-passed one.
 const CAMPAIGN_TIMELINE_MILESTONE_FIELDS = [
-  { key: 'poDate', label: 'PO Date' },
   { key: 'fabricDelivery', label: 'Fabric Delivery' },
   { key: 'fabricArrive', label: 'Fabric Arrive' },
   { key: 'fgDelivery', label: 'FG Delivery' },
@@ -11541,15 +11754,6 @@ function campaignTimelineNextMilestone(rec) {
     else { if (!latestPast || iso > latestPast.iso) latestPast = { label: f.label, iso, past: true }; }
   });
   return upcoming || latestPast || null;
-}
-function campaignTimelineMilestoneBadgeClass(m) {
-  if (!m) return 'badge-gray';
-  if (m.past) return 'badge-gray';
-  const days = daysDiffFromToday(m.iso);
-  if (days <= 3) return 'badge-red';
-  if (days <= 7) return 'badge-amber';
-  if (days <= 30) return 'badge-green';
-  return 'badge-blue';
 }
 // Links Campaign Timeline rows to real receiving progress already tracked in the Garment Order tab.
 // The two modules have no shared SKU/ID — but three pairs of fields turn out to be the same underlying
@@ -11674,7 +11878,7 @@ function campaignTimelineMatchReceivingRaw(rec) {
   if (!brandMatch) return { acc: null, groupLabel: '' };
   const nameMap = brandMatch.value;
   if (!nameMap || !nameMap.size) return { acc: null, groupLabel: '' };
-  const productText = rec.officialProductName || rec.projectDescription || '';
+  const productText = rec.officialProductName || '';
   if (rec.supplier) {
     // A supplier IS specified on this row — only trust a match within that exact supplier's own
     // batches. If nothing has been entered into Garment Order under a matching Garment Name, that
@@ -11737,7 +11941,7 @@ function campaignTimelineMatchReceiving(rec) {
 // Shows the Item Master Group name in place of the Timeline's raw product text when we found a
 // confident match — same product, just written consistently with the rest of the app.
 function campaignTimelineProductLabel(rec) {
-  const raw = rec.officialProductName || rec.projectDescription || '-';
+  const raw = rec.officialProductName || '-';
   const match = campaignTimelineMatchReceiving(rec);
   return match.groupLabel || raw;
 }
@@ -11754,7 +11958,6 @@ function campaignTimelineReceivedBadgeHtml(rec) {
   const cls = pct >= 100 ? 'badge-green' : (pct > 0 ? 'badge-amber' : 'badge-gray');
   return `<span class="badge ${cls}">${formatQty(p.totalReceived)} / ${formatQty(plannedQty)} (${pct}%)</span>`;
 }
-let campaignTimelineExpandedIds = new Set();
 // Shared by the Timeline tab's table and the TV Dashboard slide — soonest upcoming milestone first,
 // then anything with only a past milestone (most recently passed first), then anything with no
 // dates at all, last.
@@ -11779,55 +11982,50 @@ function renderCampaignTimelineTable() {
     return;
   }
   const rows = campaignTimelineSortedRows(list);
-  let html = `<table><thead><tr><th></th><th>Next Milestone</th><th>Series</th><th>Product</th><th>Supplier</th><th>Qty</th><th>Production Status</th><th>Release Date</th><th>Received (Garment Order)</th></tr></thead><tbody>`;
-  rows.forEach(({ rec, milestone }) => {
-    const expanded = campaignTimelineExpandedIds.has(rec.id);
-    const milestoneHtml = milestone
-      ? `<span class="badge ${campaignTimelineMilestoneBadgeClass(milestone)}">${escapeHtml(milestone.label)}${milestone.past ? ' (passed)' : ''}: ${formatDateLabel(milestone.iso)}</span>`
-      : `<span class="badge badge-gray">No dates yet</span>`;
-    html += `<tr class="campaign-timeline-row" data-id="${escapeHtml(rec.id)}" style="cursor:pointer;">
-      <td class="rm-sto-toggle-icon" style="width:20px;">${expanded ? '▾' : '▸'}</td>
-      <td>${milestoneHtml}</td>
+  // Every column from her Excel tracker shown directly, flat, in one row — plus the one computed
+  // column (Received (Garment Order)) that doesn't come from the file at all — per Shaila's
+  // explicit request to mirror the tracker's own columns instead of tucking most of them away
+  // behind a click-to-expand detail row (the old design). The "Next Milestone" badge column was
+  // dropped per her request (Sep 22, 2026) — row order still uses the same soonest-upcoming-first
+  // logic via campaignTimelineSortedRows, it's just no longer shown as its own column. Wrap this
+  // table's container in overflow-x:auto if it isn't already — 21 columns is wide by design here.
+  const dateCell = (iso) => `<td>${iso ? formatDateLabel(iso) : '-'}</td>`;
+  let html = `<table><thead><tr>
+    <th>Series</th><th>Category</th><th>Supplier</th><th>Official Product Name</th>
+    <th>Batch</th><th>Material</th><th>Fabric Supplier</th><th>Quantity</th><th>Color</th>
+    <th>Production instruction to supplier</th><th>Production status</th>
+    <th>Fabric Delivery</th><th>Fabric Arrive</th><th>FG Delivery</th><th>FG Arrive</th><th>Release Date</th>
+    <th>Shipment 1 Delivery</th><th>Shipment 2 Arrive</th><th>Shipment 2 Delivery</th><th>Shipment 3 Arrive</th>
+    <th>Received (Garment Order)</th>
+  </tr></thead><tbody>`;
+  rows.forEach(({ rec }) => {
+    html += `<tr data-id="${escapeHtml(rec.id)}">
       <td>${escapeHtml(rec.series || '-')}</td>
-      <td>${escapeHtml(campaignTimelineProductLabel(rec))}</td>
+      <td>${escapeHtml(rec.category || '-')}</td>
       <td>${escapeHtml(rec.supplier || '-')}</td>
+      <td>${escapeHtml(campaignTimelineProductLabel(rec))}</td>
+      <td>${escapeHtml(rec.batch || '-')}</td>
+      <td>${escapeHtml(rec.material || '-')}</td>
+      <td>${escapeHtml(rec.fabricSupplier || '-')}</td>
       <td>${formatQty(rec.quantity || 0)}</td>
+      <td>${escapeHtml(rec.color || '-')}</td>
+      <td>${escapeHtml(rec.productionInstruction || '-')}</td>
       <td>${rec.productionStatus ? `<span class="badge badge-gray">${escapeHtml(rec.productionStatus)}</span>` : '-'}</td>
+      ${dateCell(rec.fabricDelivery)}
+      ${dateCell(rec.fabricArrive)}
+      ${dateCell(rec.fgDelivery)}
+      ${dateCell(rec.fgArrive)}
       <td><strong>${escapeHtml(rec.releaseDateRaw || '-')}</strong></td>
+      ${dateCell(rec.ship1Delivery)}
+      ${dateCell(rec.ship2Arrive)}
+      ${dateCell(rec.ship2Delivery)}
+      ${dateCell(rec.ship3Arrive)}
       <td>${campaignTimelineReceivedBadgeHtml(rec)}</td>
     </tr>`;
-    if (expanded) {
-      const dateField = (label, iso) => `<div style="margin-bottom:4px;"><span class="data-note" style="margin:0;">${label}:</span> <strong>${iso ? formatDateLabel(iso) : '-'}</strong></div>`;
-      html += `<tr class="campaign-timeline-detail-row"><td></td><td colspan="8" style="padding:10px 14px; background:rgba(255,255,255,0.03);">
-        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap:4px 16px; font-size:12px;">
-          ${dateField('PO Date', rec.poDate)}
-          ${dateField('Fabric Delivery', rec.fabricDelivery)}
-          ${dateField('Fabric Arrive', rec.fabricArrive)}
-          ${dateField('FG Delivery', rec.fgDelivery)}
-          ${dateField('FG Arrive', rec.fgArrive)}
-          ${dateField('Shipment 1 Delivery', rec.ship1Delivery)}
-          ${dateField('Shipment 2 Arrive', rec.ship2Arrive)}
-          ${dateField('Shipment 2 Delivery', rec.ship2Delivery)}
-          ${dateField('Shipment 3 Arrive', rec.ship3Arrive)}
-          <div style="margin-bottom:4px;"><span class="data-note" style="margin:0;">Category:</span> <strong>${escapeHtml(rec.category || '-')}</strong></div>
-          <div style="margin-bottom:4px;"><span class="data-note" style="margin:0;">Batch:</span> <strong>${escapeHtml(rec.batch || '-')}</strong></div>
-          <div style="margin-bottom:4px;"><span class="data-note" style="margin:0;">Material:</span> <strong>${escapeHtml(rec.material || '-')}</strong></div>
-          <div style="margin-bottom:4px;"><span class="data-note" style="margin:0;">Color:</span> <strong>${escapeHtml(rec.color || '-')}</strong></div>
-          <div style="margin-bottom:4px;"><span class="data-note" style="margin:0;">PO Number:</span> <strong>${escapeHtml(rec.poNumber || '-')}</strong></div>
-          <div style="margin-bottom:4px;"><span class="data-note" style="margin:0;">Qty Received:</span> <strong>${formatQty(rec.quantityReceived || 0)}</strong></div>
-        </div>
-      </td></tr>`;
-    }
   });
   html += `</tbody></table>`;
   wrap.innerHTML = html;
-  wrap.querySelectorAll('.campaign-timeline-row').forEach(row => {
-    row.addEventListener('click', () => {
-      const id = row.dataset.id;
-      if (campaignTimelineExpandedIds.has(id)) campaignTimelineExpandedIds.delete(id); else campaignTimelineExpandedIds.add(id);
-      renderCampaignTimelineTable();
-    });
-  });
+  wrap.style.overflowX = 'auto';
 }
 function renderCampaignTimelineTab() {
   if (!campaignTimelineInitialSyncDone && isCloudSyncEnabled()) {
@@ -11844,33 +12042,81 @@ document.getElementById('campaignTimelineSeriesFilter').addEventListener('change
 document.getElementById('campaignTimelineSupplierFilter').addEventListener('change', renderCampaignTimelineTable);
 document.getElementById('campaignTimelineStatusFilter').addEventListener('change', renderCampaignTimelineTable);
 
-/* ---- TV Dashboard slide (per Shaila's request, Sep 19, 2026) ----
-   Same "KPI cards + two priority lists" shape as the Outbound slide's Next to Pick / Needs
-   Immediate Attention pair, so it reads consistently with the rest of the rotating TV dashboard
-   instead of introducing a new visual language just for this one slide. "Needs Attention" here
-   means an item whose latest known milestone has already passed with nothing newer scheduled (i.e.
-   nobody's updated its next ETA), OR one with no dates filled in at all — both are cases where
-   someone should go check with the supplier/production, not just "coming up soon". Items Garment
-   Order confirms are already fully received are excluded even if their milestone shows as passed —
-   that's just a stale date, not something that still needs chasing. */
-function campaignTimelineCountUpcomingWithin(days) {
-  const cutoff = addDaysIso(todayStr(), days);
-  return campaignTimelineList.filter(rec => {
-    const m = campaignTimelineNextMilestone(rec);
-    return m && !m.past && m.iso <= cutoff;
-  }).length;
+/* ---- TV Dashboard slide (rebuilt per Shaila's request, Sep 22, 2026) ----
+   Replaced the old "KPI totals + one mixed Coming Up list" with what she actually asked for: what's
+   arriving soon for Fabric and Finished Goods SEPARATELY (each its own priority list — a fabric
+   delay and an FG delay need different people chasing them, so mixing them together like the old
+   list did made it harder to scan at a glance), plus the Release Date calendar kept as-is since she
+   specifically asked to keep that. "Arriving" = the Arrive date columns (fabricArrive / fgArrive),
+   not the Delivery ones — "sampai" is specifically about the goods physically landing, which is what
+   Arrive represents; Delivery is the supplier/courier handing it off a step earlier.
+   Grouped by WEEK (not month) — chose week because this is a TV dashboard meant for "what do I need
+   to watch this week / next week" at-a-glance production planning, not a long-range overview (that's
+   what the Release Calendar to the side already covers on a month basis). Capped to the next
+   CAMPAIGN_TIMELINE_DASH_WEEKS_AHEAD weeks so the list stays a near-term watch list, not a full
+   archive — the complete data is always in the Timeline tab's own table. */
+const CAMPAIGN_TIMELINE_DASH_WEEKS_AHEAD = 8;
+function campaignTimelineWeekStartIso(iso) {
+  const d = new Date(iso + 'T00:00:00Z');
+  const day = d.getUTCDay(); // 0=Sun..6=Sat
+  d.setUTCDate(d.getUTCDate() + ((day === 0 ? -6 : 1) - day)); // back up to that week's Monday
+  return d.toISOString().slice(0, 10);
 }
-// An item whose milestone has passed with nothing newer scheduled would normally flag as "Needs
-// Attention" — but if Garment Order confirms it's already fully received, there's nothing left to
-// chase; the milestone just wasn't updated. Excludes those so the list only shows genuine stalls.
-// Uses the exact same rounding AND denominator (planned Qty from the Timeline record, not the matched
-// Garment Order batch's own order quantity) as the "Received" badge in the table, so the two always
-// agree — a row showing green "100%" there is exactly the set excluded here, never a mismatch.
-function campaignTimelineIsFullyReceived(rec) {
-  const acc = campaignTimelineMatchReceiving(rec).acc;
-  if (!acc || !acc.totalOrder) return false;
-  const plannedQty = Number(rec.quantity) || acc.totalOrder;
-  return Math.round((acc.totalReceived / plannedQty) * 100) >= 100;
+function campaignTimelineWeekLabel(weekStartIso, todayWeekStartIso) {
+  const start = new Date(weekStartIso + 'T00:00:00Z');
+  const end = new Date(start.getTime() + 6 * 86400000);
+  const fmt = (d) => `${d.getUTCDate()} ${CAMPAIGN_TIMELINE_MONTH_LABELS[d.getUTCMonth()].slice(0, 3)}`;
+  const range = `${fmt(start)}–${fmt(end)}`;
+  if (weekStartIso === todayWeekStartIso) return `This Week (${range})`;
+  if (weekStartIso === addDaysIso(todayWeekStartIso, 7)) return `Next Week (${range})`;
+  return range;
+}
+// Buckets every record with a set date in `field` into its week, soonest week first; drops anything
+// already past or further out than the cap. Within a week, soonest exact date first.
+function campaignTimelineArrivingSoonGroups(list, field) {
+  const todayWeekStart = campaignTimelineWeekStartIso(todayStr());
+  const cutoffWeekStart = addDaysIso(todayWeekStart, CAMPAIGN_TIMELINE_DASH_WEEKS_AHEAD * 7);
+  const byWeek = new Map();
+  list.forEach(rec => {
+    const iso = rec[field];
+    if (!iso) return;
+    const weekStart = campaignTimelineWeekStartIso(iso);
+    if (weekStart < todayWeekStart || weekStart >= cutoffWeekStart) return;
+    if (!byWeek.has(weekStart)) byWeek.set(weekStart, []);
+    byWeek.get(weekStart).push(rec);
+  });
+  return [...byWeek.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([weekStart, recs]) => ({
+    label: campaignTimelineWeekLabel(weekStart, todayWeekStart),
+    recs: recs.slice().sort((a, b) => a[field].localeCompare(b[field])),
+  }));
+}
+// opts.product drops/shows the Product column (off for Fabric — fabric rows come from the "PROD
+// DEPT ETA FABRIC" columns in her tracker, which aren't tied to a specific "Official Product Name"
+// the way Finished Goods rows are, so that column was showing mostly blank "-" for fabric).
+// opts.qty drops/shows Qty (off for Fabric per Shaila's request, Sep 22, 2026 — replaced by Supplier
+// there, which is the more useful "who to chase" info for a fabric delay).
+// opts.supplierField, when set, adds a Supplier column reading that record field — 'fabricSupplier'
+// for Fabric, 'supplier' (the garment supplier) for FG.
+function campaignTimelineArrivingSoonHtml(list, field, opts) {
+  const { product = true, qty = true, supplierField = null } = opts || {};
+  const groups = campaignTimelineArrivingSoonGroups(list, field);
+  const colCount = 2 + (product ? 1 : 0) + (qty ? 1 : 0) + (supplierField ? 1 : 0);
+  if (!groups.length) return `<div class="empty-state">Nothing arriving in the next ${CAMPAIGN_TIMELINE_DASH_WEEKS_AHEAD} weeks.</div>`;
+  let html = `<table><thead><tr><th>Series</th>${product ? '<th>Product</th>' : ''}${supplierField ? '<th>Supplier</th>' : ''}${qty ? '<th>Qty</th>' : ''}<th>Date</th></tr></thead><tbody>`;
+  groups.forEach(g => {
+    html += `<tr class="table-group-header"><td colspan="${colCount}" style="background:rgba(255,255,255,0.04); font-weight:700; color:var(--gold); text-transform:uppercase; letter-spacing:0.04em; font-size:11px; padding-top:8px; padding-bottom:8px;">${escapeHtml(g.label)} (${g.recs.length})</td></tr>`;
+    g.recs.forEach(rec => {
+      html += `<tr>
+        <td class="mono-name">${escapeHtml(rec.series || '-')}</td>
+        ${product ? `<td>${escapeHtml(campaignTimelineProductLabel(rec))}</td>` : ''}
+        ${supplierField ? `<td>${escapeHtml(rec[supplierField] || '-')}</td>` : ''}
+        ${qty ? `<td>${formatQty(rec.quantity || 0)}</td>` : ''}
+        <td>${formatDateLabel(rec[field])}</td>
+      </tr>`;
+    });
+  });
+  html += `</tbody></table>`;
+  return html;
 }
 // Release Date is only ever entered as a rough text label — "Oct", "Early Nov", "3rd week Nov",
 // "Early & End Dec" — never an exact day, so a literal day-by-day calendar grid isn't possible. This
@@ -12061,46 +12307,20 @@ function renderCampaignTimelineDashCalendar(list) {
   wrap.innerHTML = html;
 }
 function renderDashCampaignTimelineSlide() {
-  const kpiGrid = document.getElementById('campaignTimelineDashKpiGrid');
-  const comingUpWrap = document.getElementById('campaignTimelineDashComingUpWrap');
+  const fabricWrap = document.getElementById('campaignTimelineDashFabricWrap');
+  const fgWrap = document.getElementById('campaignTimelineDashFgWrap');
   const calendarWrap = document.getElementById('campaignTimelineDashCalendarWrap');
   const calendarHeader = document.getElementById('campaignTimelineDashCalendarHeader');
-  if (!kpiGrid || !comingUpWrap || !calendarWrap) return;
+  if (!fabricWrap || !fgWrap || !calendarWrap) return;
   if (!campaignTimelineList.length) {
-    kpiGrid.innerHTML = '';
-    comingUpWrap.innerHTML = `<div class="empty-state">No Timeline data uploaded yet — upload the campaign tracker file in Production &gt; Timeline.</div>`;
+    fabricWrap.innerHTML = `<div class="empty-state">No Timeline data uploaded yet — upload the campaign tracker file in Production &gt; Timeline.</div>`;
+    fgWrap.innerHTML = '';
     calendarWrap.innerHTML = '';
     if (calendarHeader) calendarHeader.innerHTML = '';
     return;
   }
-  const within7 = campaignTimelineCountUpcomingWithin(7);
-  const within30 = campaignTimelineCountUpcomingWithin(30);
-  const sortedRows = campaignTimelineSortedRows(campaignTimelineList);
-  const attentionCount = sortedRows.filter(({ rec, milestone }) => (!milestone || milestone.past) && !campaignTimelineIsFullyReceived(rec)).length;
-  kpiGrid.innerHTML = [
-    { num: formatQty(campaignTimelineList.length), label: 'Total Items Tracked' },
-    { num: formatQty(within7), label: 'Arriving Within 7 Days', cls: within7 ? 'gold' : '' },
-    { num: formatQty(within30), label: 'Arriving Within 30 Days' },
-    { num: formatQty(attentionCount), label: 'Needs Attention', cls: attentionCount ? 'gold' : '' },
-  ].map(c => `<div class="kpi-card ${c.cls || ''}"><div class="kpi-num">${c.num}</div><div class="kpi-label">${c.label}</div></div>`).join('');
-
-  const comingUp = sortedRows.filter(({ milestone }) => milestone && !milestone.past).slice(0, 8);
-  if (!comingUp.length) {
-    comingUpWrap.innerHTML = `<div class="empty-state">Nothing with an upcoming date right now.</div>`;
-  } else {
-    let html = `<table><thead><tr><th>Series</th><th>Product</th><th>Qty</th><th>Date</th></tr></thead><tbody>`;
-    comingUp.forEach(({ rec, milestone }) => {
-      html += `<tr>
-        <td class="mono-name">${escapeHtml(rec.series || '-')}</td>
-        <td>${escapeHtml(campaignTimelineProductLabel(rec))}</td>
-        <td title="${escapeHtml(milestone.label)}">${formatQty(rec.quantity || 0)}</td>
-        <td><span class="badge ${campaignTimelineMilestoneBadgeClass(milestone)}">${formatDateLabel(milestone.iso)}</span></td>
-      </tr>`;
-    });
-    html += `</tbody></table>`;
-    comingUpWrap.innerHTML = html;
-  }
-
+  fabricWrap.innerHTML = campaignTimelineArrivingSoonHtml(campaignTimelineList, 'fabricArrive', { product: false, qty: false, supplierField: 'fabricSupplier' });
+  fgWrap.innerHTML = campaignTimelineArrivingSoonHtml(campaignTimelineList, 'fgArrive', { product: true, qty: true, supplierField: 'supplier' });
   renderCampaignTimelineDashCalendar(campaignTimelineList);
 }
 /* ==================== end Production ==================== */
@@ -14360,6 +14580,12 @@ document.getElementById('downloadRmStoQtyTemplateBtn').addEventListener('click',
   XLSX.utils.book_append_sheet(wb, ws, 'STO Items');
   XLSX.writeFile(wb, 'raw_material_sto_items_template.xlsx');
 });
+// Detects a line created by "Manually Add STO/DO" (see below) by its rollNo pattern rather than the
+// source/stockDeducted tags alone — a record created before those tags existed (like Shaila's very
+// first recreated STO, WH-SAMIM-PANGKU-170926) has rollId:null and rollNo like "RECON-3" but no
+// `source` field at all, so relying only on `source === 'manual-recon'` would silently hide the
+// "Deduct Stock Now" retrofit button for exactly the records that need it most.
+function isRmStoManualReconLine(s) { return s.rollId == null && /^RECON-/.test(s.rollNo || ''); }
 // Groups the flat rawMaterialStos records (one per roll) by STO No. into a single card per STO —
 // she doesn't want to see the same STO No. repeated once per roll it contains.
 function rmStoGroupsByStoNo() {
@@ -14414,7 +14640,8 @@ function renderRmStoListTable() {
       <div class="rm-card-row"><span>→ ${escapeHtml(g.destination || '-')}</span><span class="rm-card-sub">${formatDateLabel(g.date)}${g.pickedBy ? ` · ${escapeHtml(g.pickedBy)}` : ''}</span></div>
       <div class="rm-card-row">
         <span class="badge ${badgeClass}">${allCompleted ? 'Completed' : 'Open'}</span>
-        <div style="display:flex; gap:6px;">
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          ${fabricItems.some(s => isRmStoManualReconLine(s) && !s.stockDeducted) ? `<button type="button" class="btn-ghost rm-sto-deduct-now-btn" data-sto="${escapeHtml(g.stoNo)}" style="color:#e0a63c;" title="This was manually added without deducting stock — deduct it now">⚠ Deduct Stock Now</button>` : ''}
           ${allCompleted && rmDoAlreadyExistsFor(g.stoNo) ? `<button type="button" class="btn-ghost rm-sto-print-do-btn" data-sto="${escapeHtml(g.stoNo)}" title="Reprint DO for this STO">🖨 Print DO</button>` : ''}
           <button type="button" class="btn-ghost rm-sto-delete-btn" data-sto="${escapeHtml(g.stoNo)}" style="color:#e0685c;" title="Delete this STO">🗑 Delete STO</button>
         </div>
@@ -14437,6 +14664,44 @@ function renderRmStoListTable() {
     btn.addEventListener('click', () => {
       const doRec = rawMaterialDos.find(d => d.stoNo === btn.dataset.sto);
       if (doRec) printRmDo(doRec);
+    });
+  });
+  // Retrofit for a "Manually Add STO/DO" record created without the deduct-stock checkbox ticked —
+  // deducts by re-grouping THIS STO's own already-stored lines (Fabric+Code+Colour, summed), the same
+  // matching logic as the create-time deduction, then flags every line stockDeducted so the button
+  // disappears and clicking it again later can't double-deduct.
+  wrap.querySelectorAll('.rm-sto-deduct-now-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const stoNo = btn.dataset.sto;
+      requireAdminPassword(() => {
+        const items = rawMaterialStos.filter(s => s.stoNo === stoNo && s.itemType === 'fabric' && isRmStoManualReconLine(s) && !s.stockDeducted);
+        if (!items.length) return;
+        const groups = new Map();
+        items.forEach(s => {
+          const key = [s.fabricName || '', s.fabricCode || '', s.colorCode || ''].join('|||');
+          groups.set(key, (groups.get(key) || 0) + (Number(s.meter) || 0));
+        });
+        if (!confirm(`Deduct a total of ${formatQty([...groups.values()].reduce((a, b) => a + b, 0))} m from current matching rolls for STO ${stoNo}? This cannot be undone.`)) return;
+        groups.forEach((totalMeter, key) => {
+          const [fabricName, fabricCode, colorCode] = key.split('|||');
+          let remaining = totalMeter;
+          rawMaterialRolls
+            .filter(r => (r.fabricName || '') === fabricName && (r.fabricCode || '') === fabricCode && (r.colorCode || '') === colorCode && Number(r.meterRemaining) > 0)
+            .sort((a, b) => Number(b.meterRemaining) - Number(a.meterRemaining))
+            .forEach(r => {
+              if (remaining <= 0) return;
+              const take = Math.min(Number(r.meterRemaining) || 0, remaining);
+              r.meterRemaining = Math.round((Number(r.meterRemaining) - take) * 100) / 100;
+              remaining = Math.round((remaining - take) * 100) / 100;
+            });
+        });
+        items.forEach(s => { s.stockDeducted = true; });
+        saveRawMaterialRolls();
+        saveRawMaterialStos();
+        renderRmStoListTable();
+        if (typeof renderRmStockTab === 'function' && document.getElementById('tab-rm-stock')) renderRmStockTab();
+        if (typeof renderRmPrintTab === 'function' && document.getElementById('tab-rm-print')) renderRmPrintTab();
+      });
     });
   });
   // "Mark All Sent" (bypass-without-scanning) was removed since picking is now random-by-fabric —
@@ -14473,6 +14738,140 @@ function renderRmStoListTable() {
 function renderRmStoTab() { renderRmStoForm(); renderRmStoListTable(); }
 document.getElementById('rmStoSearchInput').addEventListener('input', renderRmStoListTable);
 document.getElementById('rmStoAddItemBtn').addEventListener('click', addRmStoItem);
+
+/* ---- Manually Add STO/DO (per Shaila's request, Sep 23, 2026) ----
+   A recovery tool for when an STO/DO is gone (accidentally deleted via "Delete STO", or lost before
+   it ever synced) but she still has the printed copy — lets her retype it from the paper slip rather
+   than being stuck with no way to get the record back. Skips the normal roll-scanning workflow
+   entirely and writes every line straight in as already Completed/sent, since by definition the
+   fabric already physically left (that's why there's a printed DO for it).
+   There's no way to recover the ORIGINAL individual roll numbers/meters once the record's gone — this
+   only asks for what's actually printed on the slip (one row per Fabric+GSM+Colour group, with a
+   Rolls count and a Total Meters), then splits that total evenly across that many reconstructed roll
+   lines (last one absorbs the rounding remainder so the sum always matches the slip exactly). Each
+   reconstructed line's rollNo is labelled "RECON-n", never a real-looking roll number, so it's never
+   mistaken for an actual physical roll later. */
+function rmManualLineRowHtml() {
+  return `<div class="rm-manual-line-row" style="display:grid; grid-template-columns: 1.3fr 1fr 0.6fr 1.1fr 0.8fr 0.6fr 0.9fr auto; gap:6px; align-items:center; margin-bottom:6px;">
+    <input type="text" class="rm-manual-fabric-name" placeholder="e.g. PANGKU PLAIN">
+    <input type="text" class="rm-manual-fabric-code" placeholder="e.g. 26Y01">
+    <input type="text" class="rm-manual-gsm" placeholder="-">
+    <input type="text" class="rm-manual-color-name" placeholder="e.g. Dark Blue">
+    <input type="text" class="rm-manual-color-code" placeholder="e.g. 40">
+    <input type="number" min="1" class="rm-manual-rolls" placeholder="Rolls">
+    <input type="number" min="0" step="0.1" class="rm-manual-meters" placeholder="Total m">
+    <button type="button" class="icon-btn rm-manual-line-remove" title="Remove line">🗑</button>
+  </div>`;
+}
+function rmManualAddLine() {
+  const wrap = document.getElementById('rmManualLinesWrap');
+  const holder = document.createElement('div');
+  holder.innerHTML = rmManualLineRowHtml();
+  const row = holder.firstElementChild;
+  wrap.appendChild(row);
+  row.querySelector('.rm-manual-line-remove').addEventListener('click', () => row.remove());
+}
+document.getElementById('rmManualAddLineBtn').addEventListener('click', rmManualAddLine);
+function closeRmManualAddStoModal() { document.getElementById('rmManualAddStoModal').classList.add('hidden'); }
+document.getElementById('rmManualAddStoCloseBtn').addEventListener('click', closeRmManualAddStoModal);
+document.getElementById('rmManualAddStoCancelBtn').addEventListener('click', closeRmManualAddStoModal);
+document.getElementById('rmManualAddStoBtn').addEventListener('click', () => {
+  requireAdminPassword(() => {
+    document.getElementById('rmManualStoNo').value = '';
+    document.getElementById('rmManualDoNo').value = '';
+    document.getElementById('rmManualDate').value = todayStr();
+    document.getElementById('rmManualDestination').value = '';
+    document.getElementById('rmManualNotes').value = '';
+    document.getElementById('rmManualDeductStock').checked = false;
+    document.getElementById('rmManualAddStoError').style.display = 'none';
+    document.getElementById('rmManualLinesWrap').innerHTML = '';
+    rmManualAddLine();
+    document.getElementById('rmManualAddStoModal').classList.remove('hidden');
+  });
+});
+document.getElementById('rmManualAddStoSaveBtn').addEventListener('click', () => {
+  const errEl = document.getElementById('rmManualAddStoError');
+  errEl.style.display = 'none';
+  const stoNo = document.getElementById('rmManualStoNo').value.trim();
+  const doNo = document.getElementById('rmManualDoNo').value.trim();
+  const date = document.getElementById('rmManualDate').value || todayStr();
+  const destination = document.getElementById('rmManualDestination').value.trim();
+  const notes = document.getElementById('rmManualNotes').value.trim();
+  const deductStock = document.getElementById('rmManualDeductStock').checked;
+  if (!stoNo) { errEl.textContent = 'STO No. is required.'; errEl.style.display = 'block'; return; }
+  if (rawMaterialStos.some(s => s.stoNo === stoNo)) { errEl.textContent = `STO "${stoNo}" already exists — delete it first if you want to replace it.`; errEl.style.display = 'block'; return; }
+  if (doNo && rawMaterialDos.some(d => d.doNo === doNo)) { errEl.textContent = `DO "${doNo}" already exists.`; errEl.style.display = 'block'; return; }
+  const lines = [];
+  document.querySelectorAll('#rmManualLinesWrap .rm-manual-line-row').forEach(row => {
+    const fabricName = row.querySelector('.rm-manual-fabric-name').value.trim();
+    const fabricCode = row.querySelector('.rm-manual-fabric-code').value.trim();
+    const gsm = row.querySelector('.rm-manual-gsm').value.trim();
+    const colorName = row.querySelector('.rm-manual-color-name').value.trim();
+    const colorCode = row.querySelector('.rm-manual-color-code').value.trim();
+    const rolls = parseInt(row.querySelector('.rm-manual-rolls').value, 10) || 0;
+    const meters = Number(row.querySelector('.rm-manual-meters').value) || 0;
+    if (!fabricName || rolls <= 0 || meters <= 0) return;
+    lines.push({ fabricName, fabricCode, gsm, colorName, colorCode, rolls, meters });
+  });
+  if (!lines.length) { errEl.textContent = 'Add at least one complete fabric line (Fabric Name, Rolls, Total Meters).'; errEl.style.display = 'block'; return; }
+
+  const doItems = [];
+  // One counter shared across every line/colour in this whole STO (not reset back to 1 per line) —
+  // the Finance tab's "Rolls" count is a DISTINCT-Roll-No. count (see financeGroupRows), and it groups
+  // by Fabric+Code only, pooling every colour together. A per-line counter that restarts at "RECON-1"
+  // for each colour produces the SAME roll-no. string across different colours, which Finance's Set
+  // then silently collapses as if they were one physical roll — undercounting badly (this is exactly
+  // what happened with Shaila's first reconstructed STO: 66 real rolls counted as only 11, throwing
+  // the Finance Balance "Rolls" figure off by 55). A single running counter across the whole STO
+  // guarantees every reconstructed line gets its own unique tag.
+  let globalRollCounter = 0;
+  lines.forEach(line => {
+    const perRoll = Math.round((line.meters / line.rolls) * 10) / 10;
+    let assigned = 0;
+    for (let i = 1; i <= line.rolls; i++) {
+      const isLast = i === line.rolls;
+      const meter = isLast ? Math.round((line.meters - assigned) * 10) / 10 : perRoll;
+      assigned = Math.round((assigned + meter) * 10) / 10;
+      globalRollCounter++;
+      const rollNo = `RECON-${stoNo}-${globalRollCounter}`;
+      rawMaterialStos.push({
+        id: genRmId(), stoNo, itemType: 'fabric', rollId: null, rollNo,
+        fabricName: line.fabricName, fabricCode: line.fabricCode, colorCode: line.colorCode, colorName: line.colorName,
+        meter, destination, date, status: 'Completed', notes,
+        // Tags this as a reconstructed line (not a real scanned pick) and records whether the stock
+        // deduction actually happened at creation time — lets the STO card offer a one-time "Deduct
+        // Stock Now" retrofit button (see renderRmStoListTable) if she forgot to tick the checkbox
+        // above, without needing to delete and redo the whole record from scratch.
+        source: 'manual-recon', stockDeducted: !!deductStock,
+      });
+      doItems.push({ itemType: 'fabric', rollNo, fabricName: line.fabricName, fabricCode: line.fabricCode, gsm: line.gsm, colorCode: line.colorCode, colorName: line.colorName, meter });
+    }
+    if (deductStock) {
+      let remaining = line.meters;
+      rawMaterialRolls
+        .filter(r => (r.fabricName || '') === line.fabricName && (r.fabricCode || '') === line.fabricCode && (r.colorCode || '') === line.colorCode && Number(r.meterRemaining) > 0)
+        .sort((a, b) => Number(b.meterRemaining) - Number(a.meterRemaining))
+        .forEach(r => {
+          if (remaining <= 0) return;
+          const take = Math.min(Number(r.meterRemaining) || 0, remaining);
+          r.meterRemaining = Math.round((Number(r.meterRemaining) - take) * 100) / 100;
+          remaining = Math.round((remaining - take) * 100) / 100;
+        });
+    }
+  });
+  saveRawMaterialStos();
+  if (deductStock) saveRawMaterialRolls();
+  if (doNo) {
+    rawMaterialDos.push({ doNo, stoNo, destination, date, notes, items: doItems, createdDate: date });
+    saveRawMaterialDos();
+  }
+
+  closeRmManualAddStoModal();
+  renderRmStoListTable();
+  if (typeof renderRmStockTab === 'function' && document.getElementById('tab-rm-stock')) renderRmStockTab();
+  if (typeof renderRmPrintTab === 'function' && document.getElementById('tab-rm-print')) renderRmPrintTab();
+  alert(`STO "${stoNo}" recreated${doNo ? ` with DO "${doNo}"` : ''}.\n\n${deductStock ? 'Matching roll stock (same Fabric + Colour) was also deducted by the total meterage entered.' : 'Roll stock was NOT changed by this — tick the checkbox next time if this fabric had already been wrongly restored to stock (e.g. from an earlier accidental delete).'}`);
+});
 document.getElementById('rmStoAddAccItemBtn').addEventListener('click', addRmStoAccessoriesItem);
 document.getElementById('rmStoCreateBtn').addEventListener('click', createRmStoFromForm);
 document.getElementById('rmStoItemFabricSelect').addEventListener('change', renderRmStoColorOptions);
@@ -17307,6 +17706,8 @@ function openFleetTripModal(dateIso) {
   document.getElementById('fleetTripModalDeleteBtn').style.display = 'none';
   document.getElementById('fleetTripEditDateBtn').style.display = 'none';
   document.getElementById('fleetTripDateEditRow').style.display = 'none';
+  document.getElementById('fleetTripEditDeliveryDateBtn').style.display = 'none';
+  document.getElementById('fleetTripDeliveryDateEditRow').style.display = 'none';
   fleetTripModalViewOnly = false;
   document.getElementById('fleetTripModalCancelBtn').textContent = 'Cancel';
   document.getElementById('tripDestinationField').style.display = '';
@@ -17380,6 +17781,14 @@ function openFleetTripEditModal(tripId, fromCreateTab) {
   // handler below), regardless of whether the trip is otherwise past-locked.
   document.getElementById('fleetTripEditDateBtn').style.display = '';
   document.getElementById('fleetTripDateEditRow').style.display = 'none';
+  // Edit Delivered Date: only meaningful once a trip actually HAS a delivered date (status
+  // Completed) — this is a separate field from the trip's own scheduling date above (trip.date),
+  // and the only way to correct it after the fact, since re-opening the original "Confirm Delivery"
+  // popup would also re-run its postpone/detach-DO/email side effects, which is wrong for a trip
+  // that's already closed out (see fleetTripEditDeliveryDateBtn's click handler for the plain,
+  // side-effect-free date correction that goes here instead).
+  document.getElementById('fleetTripEditDeliveryDateBtn').style.display = trip.status === 'Completed' ? '' : 'none';
+  document.getElementById('fleetTripDeliveryDateEditRow').style.display = 'none';
   // Past-lock banner + unlock affordance: only shown when the trip is actually locked right now
   // (i.e. would otherwise have been editable/dispatchable from this tab, but its date has passed).
   const lockNote = document.getElementById('fleetTripPastLockNote');
@@ -17453,6 +17862,36 @@ document.getElementById('fleetTripDateEditSaveBtn').addEventListener('click', ()
   document.getElementById('fleetTripDateEditRow').style.display = 'none';
   document.getElementById('fleetTripModalTitle').textContent = `Trip Details — ${formatDateLabel(trip.date)}`;
   fleetTripModalDate = trip.date;
+  renderFleetTab();
+});
+// Edit Delivered Date — a plain, side-effect-free correction to trip.deliveryDate (the date shown
+// as "Delivered: ..." on the Kanban card and used as the Date column for a Delivered row on the
+// Delivery Status tab — see its dateVal logic). Deliberately separate from trip.date above (that's
+// when the trip was scheduled to run, not when it was actually confirmed delivered) and from
+// re-opening the original Confirm Delivery popup (which would also re-run its postpone/detach-DO/
+// reschedule-email logic for whatever's ticked/unticked right now — wrong for a trip that's already
+// closed out; this only ever touches the one date field).
+document.getElementById('fleetTripEditDeliveryDateBtn').addEventListener('click', () => {
+  if (!fleetTripEditId) return;
+  const trip = fleetTrips.find(t => t.id === fleetTripEditId);
+  if (!trip) return;
+  requireAdminPassword(() => {
+    document.getElementById('fleetTripDeliveryDateEditInput').value = trip.deliveryDate || trip.date || '';
+    document.getElementById('fleetTripDeliveryDateEditRow').style.display = 'flex';
+  });
+});
+document.getElementById('fleetTripDeliveryDateEditCancelBtn').addEventListener('click', () => {
+  document.getElementById('fleetTripDeliveryDateEditRow').style.display = 'none';
+});
+document.getElementById('fleetTripDeliveryDateEditSaveBtn').addEventListener('click', () => {
+  if (!fleetTripEditId) return;
+  const trip = fleetTrips.find(t => t.id === fleetTripEditId);
+  if (!trip) return;
+  const newDate = document.getElementById('fleetTripDeliveryDateEditInput').value;
+  if (!newDate) { alert('Pick a date first.'); return; }
+  trip.deliveryDate = newDate;
+  saveFleetTrips();
+  document.getElementById('fleetTripDeliveryDateEditRow').style.display = 'none';
   renderFleetTab();
 });
 // Re-opens this same trip in edit mode once the Admin password is confirmed — stays unlocked for
