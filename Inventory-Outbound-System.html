@@ -2763,10 +2763,10 @@
       </div>
       <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--border);">
         <p style="margin:0 0 8px; font-weight:600; font-size:13px;">Or link directly to Google Sheets</p>
-        <span class="data-note" style="margin:0;">Edit the tracker in Google Sheets itself — nothing to upload here anymore. In each sheet: File &gt; Share &gt; Publish to web &gt; pick that sheet &gt; format "Comma-separated values (.csv)" &gt; Publish, then paste the link Google gives you below. "Summary all series" and "Patawali" are combined into one Timeline (they're separate, non-overlapping data, not one containing the other). Refreshing here FULLY REPLACES the current Timeline, same as a file upload.</span>
+        <span class="data-note" style="margin:0;">Edit the tracker in Google Sheets itself — nothing to upload here anymore. Just use the NORMAL Share link (File &gt; Share, make sure it's set to "Anyone with the link" - Viewer) — open the exact tab first (Summary all series / Patawali) so the link includes that tab's gid, then paste it below. Works straight from this file even before it's deployed — no "Publish to web" step needed. "Summary all series" and "Patawali" are combined into one Timeline (they're separate, non-overlapping data, not one containing the other). Refreshing here FULLY REPLACES the current Timeline, same as a file upload.</span>
         <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px; max-width:640px;">
-          <input type="text" id="campaignTimelineGsheetSummaryInput" placeholder="Published CSV link — Summary all series">
-          <input type="text" id="campaignTimelineGsheetPatawaliInput" placeholder="Published CSV link — Patawali">
+          <input type="text" id="campaignTimelineGsheetSummaryInput" placeholder="Share link — Summary all series tab">
+          <input type="text" id="campaignTimelineGsheetPatawaliInput" placeholder="Share link — Patawali tab">
         </div>
         <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
           <button type="button" class="btn-ghost" id="campaignTimelineGsheetSaveBtn">Save Links</button>
@@ -3040,6 +3040,15 @@
       <div class="field" id="newGarmentSizeGridWrap" style="display:none; margin-bottom:10px;">
         <label id="newGarmentSizeGridLabel">Qty per size (fill in whichever apply)</label>
         <div id="newGarmentSizeGrid" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+      </div>
+      <div class="field" style="margin-bottom:10px;">
+        <label>Link to Timeline Item (optional)</label>
+        <div class="form-grid" style="grid-template-columns: 1fr 1.4fr 1fr; align-items:start;">
+          <select id="inputNewGarmentTimelineSeries"><option value="">-- Select Series --</option></select>
+          <div id="inputNewGarmentTimelineLink"></div>
+          <select id="inputNewGarmentShipmentLeg" disabled><option value="">-- Overall (not split) --</option><option value="shipment1">Shipment 1</option><option value="shipment2">Shipment 2</option></select>
+        </div>
+        <span class="data-note" style="margin:4px 0 0;">Pick a Series first to narrow the list down to just that series' items, then tick as many as apply if this batch covers several colours/variants. Linking here means this batch's "Received (Garment Order)" number comes straight from it in Campaign Timeline instead of trying to guess a match by name. If this item ships in two separate shipments tracked separately, pick which shipment this batch is for — otherwise leave "Overall".</span>
       </div>
       <button class="btn-primary" id="addGarmentOrderBtn" style="margin-bottom:16px;">+ Add Batch</button>
       <div class="data-note" id="garmentOrderNote" style="margin-bottom:14px;">Order No. is auto-generated ("Batch No.-Garment Name-YYYYMMDD"). Pick a Category to open its size boxes, fill in whichever apply — you can reopen the card later to add more SKUs/sizes.</div>
@@ -3458,6 +3467,43 @@
     <div class="modal-actions" style="margin-top:16px;">
       <button class="btn-ghost" id="rmManualAddStoCancelBtn">Cancel</button>
       <button class="btn-primary" id="rmManualAddStoSaveBtn">Create STO/DO</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="rmStoEditModal">
+  <div class="modal-box" style="max-width:640px;">
+    <div class="modal-header">
+      <h2 id="rmStoEditModalTitle">Edit STO</h2>
+      <button class="modal-close" id="rmStoEditCloseBtn">&times;</button>
+    </div>
+    <p class="data-note" style="margin-top:0;">Add more rolls, or remove ones not yet sent. Rolls already scanned/sent (Completed) can't be removed here — use Delete STO to cancel the whole thing instead.</p>
+    <div id="rmStoEditLinesWrap" style="margin-bottom:14px;"></div>
+    <p style="margin:0 0 6px; font-weight:600; font-size:13px;">Add rolls</p>
+    <div class="form-grid" style="grid-template-columns: 1.6fr 1.3fr 0.8fr auto;">
+      <select id="rmStoEditFabricSelect"><option value="">Select fabric…</option></select>
+      <select id="rmStoEditColorSelect" disabled><option value="">Select colour…</option></select>
+      <input type="number" id="rmStoEditQtyInput" placeholder="Qty (rolls)" min="1">
+      <button type="button" class="btn-ghost" id="rmStoEditAddBtn">+ Add</button>
+    </div>
+    <div class="data-note" id="rmStoEditError" style="color:#e05c5c; display:none; margin-top:10px;"></div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn-primary" id="rmStoEditDoneBtn">Done</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="garmentImportLinkModal">
+  <div class="modal-box" style="max-width:640px;">
+    <div class="modal-header">
+      <h2>Link Batches to Campaign Timeline (optional)</h2>
+      <button class="modal-close" id="garmentImportLinkCloseBtn">&times;</button>
+    </div>
+    <p class="data-note" style="margin-top:0;">Picking an item for a batch links it directly to that row in Campaign Timeline, so its "Received (Garment Order)" number comes straight from this batch instead of trying to guess a match by name. Leave any as "-- Not linked --" to skip — you can always link it later from the batch card.</p>
+    <div id="garmentImportLinkListWrap" style="max-height:50vh; overflow-y:auto;"></div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn-ghost" id="garmentImportLinkCancelBtn">Cancel Upload</button>
+      <button class="btn-primary" id="garmentImportLinkConfirmBtn">Confirm Upload</button>
     </div>
   </div>
 </div>
@@ -11454,6 +11500,29 @@ function campaignTimelineFindColContains(headerRow, parts) {
   }
   return -1;
 }
+// Like campaignTimelineFindColContains, but returns the Nth matching column instead of always the
+// first — needed for "Estimate date delivery"/"Estimate date arrive", which appear TWICE per sheet
+// (once for Fabric, once for FG). Contains-based (not exact-match like campaignTimelineFindColOccurrence)
+// because her live Google Sheet's header cells for these columns come back from gviz with a banner
+// prefix glued on (e.g. "PRODUCTION DEPT ESTIMATION Estimate date delivery") — Google's own multi-row
+// header merge (see campaignTimelineFetchGvizRows) concatenates a section banner sitting in the row(s)
+// above into the same cell text, which an exact match would never match again. excludeParts skips a
+// column that would otherwise match — needed because "Estimate date Delivery Shipment 1"'s merged
+// label also contains "estimate date delivery" as a substring, so without excluding "shipment" here
+// it gets miscounted as a 2nd Fabric/FG occurrence instead of being left for the dedicated
+// ship1Delivery/etc. lookups.
+function campaignTimelineFindColContainsOccurrence(headerRow, parts, occurrence, excludeParts) {
+  let count = 0;
+  for (let i = 0; i < headerRow.length; i++) {
+    const h = campaignTimelineNormHeader(headerRow[i]);
+    if (excludeParts && excludeParts.some(p => h.includes(p))) continue;
+    if (parts.every(p => h.includes(p))) {
+      count++;
+      if (count === occurrence) return i;
+    }
+  }
+  return -1;
+}
 function campaignTimelineCellDateIso(v) {
   if (v instanceof Date && !isNaN(v)) {
     // XLSX's own Excel-serial-to-JS-Date conversion (real .xlsx uploads) can land a few hours off
@@ -11494,29 +11563,68 @@ function campaignTimelineCellNum(v) {
   const n = Number(String(v == null ? '' : v).replace(/,/g, '').trim());
   return isNaN(n) ? 0 : n;
 }
-function parseCampaignTimelineWorkbook(wb) {
-  const sheetName = wb.SheetNames.find(n => campaignTimelineNormHeader(n) === 'summary all series') || wb.SheetNames[0];
-  const sheet = wb.Sheets[sheetName];
-  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-  const headerRow = rows[2] || []; // row 3 — see module comment above
+// Row-processing core, shared by both data sources: an uploaded .xlsx/.csv file (parseCampaignTimelineWorkbook,
+// which gets `rows` via XLSX's sheet_to_json) and the JSONP Google Sheets live-link (campaignTimelineFetchGvizRows,
+// which builds an equivalent `rows` array straight from Google's own gviz response — see below). Both
+// converge here so column-matching/date-parsing behaves identically regardless of source.
+function parseCampaignTimelineRows(rows, sheetLabel) {
+  // Find the header row by CONTENT (first row in the first 10 that has a "Series" column) instead of
+  // assuming a fixed row index. The uploaded-Excel-file path has 2 title rows above the real header
+  // (so header lands on row 3), but her live Google Sheet doesn't share that layout, so a hardcoded
+  // "row 3" broke for Google Sheets links even once the fetch itself succeeded. Scanning for the row
+  // that actually contains the column names works regardless of source or how many title/blank rows
+  // sit above it. Matched on "Series" alone (not "Item" too) — checked her real sheet directly and it
+  // has no column literally named "Item" at all (her Excel export apparently added that column, or
+  // named it differently); Series is what's actually used as each row's identity below anyway.
+  let headerRowIdx = 2; // fallback: old fixed assumption, in case nothing in the scan matches
+  for (let r = 0; r < Math.min(10, rows.length); r++) {
+    const candidate = rows[r] || [];
+    if (campaignTimelineFindColOccurrence(candidate, 'series', 1) !== -1) {
+      headerRowIdx = r;
+      break;
+    }
+  }
+  const headerRow = rows[headerRowIdx] || [];
   const col = (name, occurrence) => campaignTimelineFindColOccurrence(headerRow, name, occurrence || 1);
+  // Her sheet's real header is "Tailor Supplier", not a bare "Supplier" (per her screenshot, Sep 24,
+  // 2026) — that exact-match `col('supplier')` was returning -1 and leaving every row's Supplier blank.
+  // Contains-match on "tailor supplier" first, falling back to the old exact "supplier" match in case
+  // some other sheet genuinely just has a plain "Supplier" column.
+  const tailorSupplierIdx = campaignTimelineFindColContains(headerRow, ['tailor', 'supplier']);
+  // She renamed the FG Quantity column in her sheet to "Quantity FG Order pcs" (Sep 24, 2026) — same
+  // reasoning as the Tailor Supplier fix above: contains-match on ['quantity','fg'] first (specific
+  // enough to skip over the separate "Quantity fabrics Ctn/Meter" columns, which also start with the
+  // word "Quantity" but don't contain "fg"), falling back to the old plain "quantity" exact match for
+  // any sheet that hasn't been renamed.
+  const quantityFgIdx = campaignTimelineFindColContains(headerRow, ['quantity', 'fg']);
   const idx = {
-    item: col('item'), series: col('series'), category: col('category'), supplier: col('supplier'),
+    item: col('item'), series: col('series'), category: col('category'),
+    supplier: tailorSupplierIdx !== -1 ? tailorSupplierIdx : col('supplier'),
     officialProductName: col('official product name'),
     batch: col('batch'), material: col('material'), fabricSupplier: col('fabric supplier'), color: col('color'),
-    quantity: col('quantity'),
+    quantity: quantityFgIdx !== -1 ? quantityFgIdx : col('quantity'),
     productionInstruction: col('production instruction to supplier'), productionStatus: col('production status'),
-    fabricDelivery: col('estimate date delivery', 1), fabricArrive: col('estimate date arrive', 1),
-    fgDelivery: col('estimate date delivery', 2), fgArrive: col('estimate date arrive', 2),
+    fabricDelivery: campaignTimelineFindColContainsOccurrence(headerRow, ['estimate date delivery'], 1, ['shipment']),
+    fabricArrive: campaignTimelineFindColContainsOccurrence(headerRow, ['estimate date arrive'], 1, ['shipment']),
+    fgDelivery: campaignTimelineFindColContainsOccurrence(headerRow, ['estimate date delivery'], 2, ['shipment']),
+    fgArrive: campaignTimelineFindColContainsOccurrence(headerRow, ['estimate date arrive'], 2, ['shipment']),
     releaseDate: campaignTimelineFindColContains(headerRow, ['release date']),
+    // She rebuilt the Shipment columns in her sheet to a clean symmetric layout — "Estimate date
+    // Delivery Shipment N" / "Estimate date Arrive M'sia Shipment N" for each shipment — replacing
+    // the old asymmetric Ship1-Delivery/Ship2-Arrive/Ship2-Delivery/Ship3-Arrive scheme this was
+    // originally built for (that mismatch was deliberately left unfixed per her "tunggu final
+    // adjustment dulu" — this is that fix, now that she's confirmed the sheet's settled).
     ship1Delivery: campaignTimelineFindColContains(headerRow, ['shipment 1', 'delivery']),
-    ship2Arrive: campaignTimelineFindColContains(headerRow, ['shipment 2', 'arrive']),
+    ship1Arrive: campaignTimelineFindColContains(headerRow, ['shipment 1', 'arrive']),
     ship2Delivery: campaignTimelineFindColContains(headerRow, ['shipment 2', 'delivery']),
-    ship3Arrive: campaignTimelineFindColContains(headerRow, ['shipment 3', 'arrive']),
+    ship2Arrive: campaignTimelineFindColContains(headerRow, ['shipment 2', 'arrive']),
+    // Added per Shaila's column list (Sep 24, 2026) for the redesigned Timeline table.
+    quantityFabricsCtn: campaignTimelineFindColContains(headerRow, ['quantity', 'fabrics', 'ctn']),
+    quantityFabricsMeter: campaignTimelineFindColContains(headerRow, ['quantity', 'fabrics', 'meter']),
   };
-  if (idx.item === -1 || idx.series === -1) throw new Error(`This file needs an "Item" and "Series" column (checked sheet "${sheetName}").`);
+  if (idx.series === -1) throw new Error(`This file needs a "Series" column (checked sheet "${sheetLabel}").`);
   const mapped = [];
-  for (let r = 3; r < rows.length; r++) {
+  for (let r = headerRowIdx + 1; r < rows.length; r++) {
     const row = rows[r];
     if (!row || !row.length) continue;
     const series = idx.series !== -1 ? campaignTimelineCellText(row[idx.series]) : '';
@@ -11545,12 +11653,20 @@ function parseCampaignTimelineWorkbook(wb) {
       releaseDateRaw: campaignTimelineCellText(releaseRaw),
       releaseDateIso: campaignTimelineCellDateIso(releaseRaw),
       ship1Delivery: idx.ship1Delivery !== -1 ? campaignTimelineCellDateIso(row[idx.ship1Delivery]) : '',
-      ship2Arrive: idx.ship2Arrive !== -1 ? campaignTimelineCellDateIso(row[idx.ship2Arrive]) : '',
+      ship1Arrive: idx.ship1Arrive !== -1 ? campaignTimelineCellDateIso(row[idx.ship1Arrive]) : '',
       ship2Delivery: idx.ship2Delivery !== -1 ? campaignTimelineCellDateIso(row[idx.ship2Delivery]) : '',
-      ship3Arrive: idx.ship3Arrive !== -1 ? campaignTimelineCellDateIso(row[idx.ship3Arrive]) : '',
+      ship2Arrive: idx.ship2Arrive !== -1 ? campaignTimelineCellDateIso(row[idx.ship2Arrive]) : '',
+      quantityFabricsCtn: idx.quantityFabricsCtn !== -1 ? campaignTimelineCellNum(row[idx.quantityFabricsCtn]) : 0,
+      quantityFabricsMeter: idx.quantityFabricsMeter !== -1 ? campaignTimelineCellNum(row[idx.quantityFabricsMeter]) : 0,
     });
   }
   return mapped;
+}
+function parseCampaignTimelineWorkbook(wb) {
+  const sheetName = wb.SheetNames.find(n => campaignTimelineNormHeader(n) === 'summary all series') || wb.SheetNames[0];
+  const sheet = wb.Sheets[sheetName];
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+  return parseCampaignTimelineRows(rows, sheetName);
 }
 let campaignTimelineUploadInFlight = false;
 function processUploadedCampaignTimelineFile(file) {
@@ -11598,24 +11714,102 @@ function processUploadedCampaignTimelineFile(file) {
 }
 /* ---- Google Sheets live-source (per Shaila's request, Sep 23, 2026) ----
    Lets her edit the tracker directly in Google Sheets instead of re-exporting/uploading an Excel
-   file every time. Reads two separately-published CSV links (Google's own File > Share > Publish to
-   the web > CSV export — NOT a normal "share" link; only the published-to-web export is servable
-   cross-origin to a static GitHub Pages site with no backend of our own to proxy the request) and
-   merges both into one Timeline list, same as if both sheets had been in one uploaded file. Two
-   sources because she confirmed "Summary all series" and "Patawali" are genuinely separate,
-   non-overlapping data in her real tracker (not one containing the other) — so this is additive, not
-   deduped. Patawali's sheet only has ONE Estimate-date-delivery/arrive pair (vs Summary's two, one
-   for Fabric and one for FG) — parseCampaignTimelineWorkbook's existing occurrence-based column
-   matching already handles that gracefully: Patawali rows land in fabricDelivery/fabricArrive and
-   simply have no fgDelivery/fgArrive (idx === -1 short-circuits to ''), so they just don't show up
-   in the FG Arriving Soon dashboard list, which is correct — that sheet doesn't track FG ETAs. */
-function campaignTimelineFetchCsvAsWorkbook(url) {
-  return fetch(url).then(res => {
-    if (!res.ok) throw new Error(`HTTP ${res.status} — check the link is still valid and still published.`);
-    return res.text();
-  }).then(text => {
-    if (/^\s*<(!doctype|html)/i.test(text)) throw new Error('That link returned a webpage, not CSV data — make sure it\'s the "Publish to web" CSV link (File > Share > Publish to web), not a normal Share/copy-link URL.');
-    return XLSX.read(text, { type: 'string', raw: true }); // see campaignTimelineCellDateIso's comment
+   file every time. Merges two sheets ("Summary all series" + "Patawali") into one Timeline list, same
+   as if both sheets had been in one uploaded file — two sources because she confirmed they're
+   genuinely separate, non-overlapping data in her real tracker (not one containing the other), so
+   this is additive, not deduped. Patawali's sheet only has ONE Estimate-date-delivery/arrive pair (vs
+   Summary's two, one for Fabric and one for FG) — parseCampaignTimelineRows' existing occurrence-
+   based column matching already handles that gracefully: Patawali rows land in
+   fabricDelivery/fabricArrive and simply have no fgDelivery/fgArrive (idx === -1 short-circuits to
+   ''), so they just don't show up in the FG Arriving Soon dashboard list, which is correct — that
+   sheet doesn't track FG ETAs.
+
+   FETCH MECHANISM — this went through two versions, worth recording why:
+   v1 used fetch() against a "Publish to web" CSV export link. That only ever works once the page is
+   actually served over http(s) from a real origin — Shaila's workflow is to test the raw .html file
+   locally (double-click it, no server) before every deploy, and a file:// page's origin is `null`,
+   which Google's CORS rejects outright regardless of the sheet's own sharing settings. No amount of
+   "Publish to web" configuration fixes that; it's a browser rule, not a Google Sheets setting.
+   v2 (current) instead loads Google's `gviz/tq` endpoint via a dynamically-inserted <script> tag with
+   a JSONP callback, exactly like Google Charts' own "Query" data source does — script-tag loading is
+   NOT subject to CORS at all (only fetch/XHR are), so this works identically from file://, localhost,
+   and the real GitHub Pages deployment, with no server and no "Publish to web" step. The sheet just
+   needs normal "Anyone with the link" (Viewer) sharing — the default when File > Share is used. */
+let _campaignTimelineGvizCallbackSeq = 0;
+// Accepts any normal Google Sheets URL (the one the Share button gives you) — e.g.
+// https://docs.google.com/spreadsheets/d/SHEET_ID/edit#gid=GID — NOT the "Publish to web" link (that
+// uses a different, unrelated ID scheme this can't parse). GID defaults to the first tab (0) if
+// missing from the URL, so she should have the exact tab open before copying the link.
+function campaignTimelineParseSheetUrl(url) {
+  const str = String(url || '');
+  // A "Publish to web" link (from the old v1 approach — see module header) looks like
+  // .../spreadsheets/d/e/2PACX-.../pub?... — the "/d/e/" segment is the tell. That ID scheme is
+  // unrelated to the real spreadsheet ID gviz/tq needs, so this is called out specifically rather
+  // than left to fail as a generic "Google rejected the request" further down.
+  if (/\/spreadsheets\/d\/e\//.test(str)) return { publishedLinkError: true };
+  const idMatch = str.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  if (!idMatch) return null;
+  const gidMatch = str.match(/[?#&]gid=(\d+)/);
+  return { sheetId: idMatch[1], gid: gidMatch ? gidMatch[1] : '0' };
+}
+function campaignTimelineFetchGvizRows(url) {
+  return new Promise((resolve, reject) => {
+    const parsed = campaignTimelineParseSheetUrl(url);
+    if (parsed && parsed.publishedLinkError) {
+      reject(new Error('That\'s an old "Publish to web" link — paste the normal Share link instead (File > Share, "Anyone with the link" - Viewer, copy link).'));
+      return;
+    }
+    if (!parsed) {
+      reject(new Error('Not a recognizable Google Sheets link — paste the normal link from the Share button (contains "docs.google.com/spreadsheets/d/..."), not the "Publish to web" link.'));
+      return;
+    }
+    const cbName = `_campaignTimelineGvizCb${_campaignTimelineGvizCallbackSeq++}`;
+    const script = document.createElement('script');
+    const timer = setTimeout(() => { cleanup(); reject(new Error('Timed out — check your internet connection and that the sheet is shared as "Anyone with the link" (Viewer).')); }, 15000);
+    function cleanup() { delete window[cbName]; if (script.parentNode) script.parentNode.removeChild(script); clearTimeout(timer); }
+    window[cbName] = (gvizResponse) => {
+      cleanup();
+      try {
+        if (!gvizResponse || gvizResponse.status === 'error') {
+          const detail = gvizResponse && gvizResponse.errors && gvizResponse.errors[0] && gvizResponse.errors[0].detailed_message;
+          reject(new Error((detail || 'Google rejected the request.') + ' Make sure the sheet is shared as "Anyone with the link" (Viewer) and the tab/gid is correct.'));
+          return;
+        }
+        const table = gvizResponse.table;
+        const numCols = table.cols.length;
+        // Her sheet's real header spans MULTIPLE rows (a title row, a section-banner row like
+        // "PRODUCTION DEPT ESTIMATION", then the actual per-column names) — with a bounded `range`
+        // in the request (see script.src below), gviz auto-detects that whole block and merges it
+        // into table.cols[].label for us (space-joined per column), rather than us having to guess
+        // which row is "the" header. That label row is put back as the first row of the plain
+        // rows-of-cells array below, so parseCampaignTimelineRows' own header-row scan (which just
+        // looks for "Series") still finds it immediately, unchanged. Data rows use each cell's
+        // FORMATTED text (.f), not its typed value (.v) — that preserves her sheet's own D/M/YYYY
+        // date display, matching the day-first text parsing already built for the CSV path in
+        // campaignTimelineCellDateIso, rather than a locale-ambiguous raw serial/number.
+        const headerLabelRow = table.cols.map(c => c.label || '');
+        const dataRows = table.rows.map(r => {
+          const out = new Array(numCols).fill('');
+          (r.c || []).forEach((cell, i) => { if (cell) out[i] = (cell.f != null ? cell.f : (cell.v != null ? cell.v : '')); });
+          return out;
+        });
+        resolve([headerLabelRow, ...dataRows]);
+      } catch (e) {
+        reject(new Error('Unexpected response from Google Sheets: ' + e.message));
+      }
+    };
+    script.onerror = () => { cleanup(); reject(new Error('Could not reach Google Sheets — check your internet connection and the link.')); };
+    // range=A1:BZ5000 (comfortably covering more columns/rows than her tracker will ever use) is what
+    // makes gviz reliably auto-detect and merge her multi-row header block into table.cols[].label —
+    // confirmed directly against her real sheet: WITHOUT a bounded range, gviz's own header-guessing
+    // gets inconsistent (some header cells silently come back blank, seemingly whenever the guess
+    // samples too many rows at once), which is what caused "needs Item/Series" and "why isn't
+    // Fabric/FG ETA showing" errors even once the request itself was succeeding. WITH the bounded
+    // range, no headers= param is needed at all — Google's own guess works and gives clean per-column
+    // labels (see campaignTimelineFindColContainsOccurrence above for why the ETA-date columns still
+    // need contains-matching even so — the banner text above them rides along in the merged label).
+    script.src = `https://docs.google.com/spreadsheets/d/${parsed.sheetId}/gviz/tq?gid=${parsed.gid}&range=A1:BZ5000&tqx=out:json;responseHandler:${cbName}`;
+    document.head.appendChild(script);
   });
 }
 async function fetchCampaignTimelineFromGoogleSheets() {
@@ -11638,11 +11832,20 @@ async function fetchCampaignTimelineFromGoogleSheets() {
     let mapped = [];
     const errors = [];
     if (summary) {
-      try { mapped = mapped.concat(parseCampaignTimelineWorkbook(await campaignTimelineFetchCsvAsWorkbook(summary))); }
+      try {
+        let summaryRows = parseCampaignTimelineRows(await campaignTimelineFetchGvizRows(summary), 'Summary all series');
+        // Her "Summary all series" tab also lists PATAWALI rows, but they're sparse there (most
+        // fields blank) — the dedicated "Patawali" sheet below has the fuller version of the same
+        // rows. Per her request, when that link is filled in, skip PATAWALI here so it doesn't show
+        // duplicate/incomplete rows alongside the real ones. If she hasn't pasted a Patawali link,
+        // keep these as a fallback so PATAWALI data doesn't just disappear.
+        if (patawali) summaryRows = summaryRows.filter(row => campaignTimelineNormHeader(row.series) !== 'patawali');
+        mapped = mapped.concat(summaryRows);
+      }
       catch (e) { errors.push(`"Summary all series" link — ${e.message}`); }
     }
     if (patawali) {
-      try { mapped = mapped.concat(parseCampaignTimelineWorkbook(await campaignTimelineFetchCsvAsWorkbook(patawali))); }
+      try { mapped = mapped.concat(parseCampaignTimelineRows(await campaignTimelineFetchGvizRows(patawali), 'Patawali')); }
       catch (e) { errors.push(`"Patawali" link — ${e.message}`); }
     }
     if (!mapped.length) throw new Error(errors.length ? errors.join(' | ') : 'No valid rows found from either link.');
@@ -11739,9 +11942,9 @@ const CAMPAIGN_TIMELINE_MILESTONE_FIELDS = [
   { key: 'fgDelivery', label: 'FG Delivery' },
   { key: 'fgArrive', label: 'FG Arrive' },
   { key: 'ship1Delivery', label: 'Shipment 1 Delivery' },
-  { key: 'ship2Arrive', label: 'Shipment 2 Arrive' },
+  { key: 'ship1Arrive', label: 'Shipment 1 Arrive' },
   { key: 'ship2Delivery', label: 'Shipment 2 Delivery' },
-  { key: 'ship3Arrive', label: 'Shipment 3 Arrive' },
+  { key: 'ship2Arrive', label: 'Shipment 2 Arrive' },
   { key: 'releaseDateIso', label: 'Release' },
 ];
 function campaignTimelineNextMilestone(rec) {
@@ -11861,8 +12064,36 @@ function campaignTimelineSumAcc(map) {
   map.forEach(acc => { total.totalOrder += acc.totalOrder; total.totalReceived += acc.totalReceived; });
   return total;
 }
+// Batches explicitly linked (garmentOrderLinkBatchBtn / the "Link to Timeline Item" field on the Add
+// Batch form — see garmentBatchTimelineLinkFieldHtml) to a specific Timeline row, keyed by the
+// Timeline row's id. Built once per garmentOrders reference, same caching pattern as
+// campaignTimelineReceivingIndex above.
+let _campaignTimelineLinkedCache = null;
+let _campaignTimelineLinkedCacheSrc = null;
+function campaignTimelineLinkedBatchesIndex() {
+  if (_campaignTimelineLinkedCacheSrc !== garmentOrders) {
+    const map = new Map(); // timelineId -> [batch, ...]
+    garmentOrders.forEach(b => {
+      // A batch can be linked to several Timeline rows at once (per Shaila's request, Sep 24, 2026 —
+      // one batch commonly covers several colour/product variants, each its own Timeline row) — it's
+      // pushed under EVERY id it's linked to, so each of those rows independently sees this batch's
+      // full totals (same "show the whole batch's figure on every row it covers" logic that already
+      // applied the other way around, when several DIFFERENT batches link to the SAME Timeline row).
+      const ids = b.timelineIds || (b.timelineId ? [b.timelineId] : []);
+      ids.forEach(id => {
+        if (!id) return;
+        if (!map.has(id)) map.set(id, []);
+        map.get(id).push(b);
+      });
+    });
+    _campaignTimelineLinkedCache = map;
+    _campaignTimelineLinkedCacheSrc = garmentOrders;
+  }
+  return _campaignTimelineLinkedCache;
+}
 // Resolves one Timeline record down to its most specific matching Garment Order bucket. Returns
-// { acc: {totalOrder,totalReceived}|null, groupLabel: string (the matched Group text, '' if none) }.
+// { acc: {totalOrder,totalReceived}|null, groupLabel: string (the matched Group text, '' if none),
+// direct: true if this came from an explicit link rather than the fuzzy match below }.
 //
 // Important: we only ever return numbers once the specific PRODUCT (Group) is confidently identified.
 // Earlier this fell back to "whatever total exists for this brand/supplier" when no Group matched —
@@ -11871,13 +12102,153 @@ function campaignTimelineSumAcc(map) {
 // 100% leaking onto unrelated, still-in-production "Cathaya" rows that have no Garment Order entry at
 // all yet). That's actively misleading, so now a row with no confirmed product match shows "no data"
 // instead of borrowing an unrelated batch's numbers.
+//
+// Per Shaila's request (Sep 24, 2026), a batch can instead be EXPLICITLY linked to a Timeline row
+// (picked from the Timeline tab's own data when adding/editing the batch) instead of relying on this
+// guesswork — an explicit link always wins outright when one exists, no fuzzy matching involved at
+// all, and isn't subject to the multi-row "owner" tie-breaking below (that's only needed to resolve
+// ambiguity in the guesswork; a direct link has none).
+// Per Shaila's request (Sep 24, 2026 — "terbalik tu,,patut kat tab garment order yg kene ade alert
+// salah garment name"): the mismatch alert belongs on the Garment Order batch card itself (where
+// batch.garmentName actually lives and where she'd go to fix a typo), not just as a Timeline-table
+// tooltip. This walks the same brand -> supplier-vs-garmentName -> group-vs-product chain as
+// campaignTimelineMatchReceivingRaw, but from the batch's side: for each distinct (brand, group) this
+// batch's SKUs belong to (via Item Master), it looks for a Timeline row that confidently matches on
+// brand + product (Group vs Official Product Name) but whose Tailor Supplier does NOT word-match this
+// batch's garmentName — i.e. the product clearly lines up, only the name text differs, which is exactly
+// the typo/spelling-mismatch case (e.g. "CHATAYA CHINA" vs "Cathaya") that silently breaks direct
+// matching. Returns a warning string to show on the card, or null if nothing suspicious is found.
+// Distinct, sorted Tailor Supplier values from the Campaign Timeline sheet — used to turn the
+// Garment Name edit into a pick-from-list dropdown (per Shaila's request, Sep 24, 2026 — "buat
+// dropdown senang") instead of free-typing, so she can't introduce a NEW spelling typo while fixing
+// an old one.
+function campaignTimelineDistinctSuppliers() {
+  const set = new Set();
+  (campaignTimelineList || []).forEach(r => { if (r.supplier && r.supplier.trim()) set.add(r.supplier.trim()); });
+  return Array.from(set).sort((a, b) => a.localeCompare(b));
+}
+// Collects this batch's distinct (brand, group) pairs from Item Master — shared by the diagnostics
+// and auto-link functions below.
+function garmentBatchBrandGroupPairs(batch) {
+  const pairs = new Map(); // brand -> Set(group)
+  (batch.skus || []).forEach(s => {
+    const im = itemMasterLookupBySku(s.sku);
+    if (!im || !im.itemBrand || !im.itemGroup) return;
+    if (!pairs.has(im.itemBrand)) pairs.set(im.itemBrand, new Set());
+    pairs.get(im.itemBrand).add(im.itemGroup);
+  });
+  return pairs;
+}
+// Per-group diagnosis of a batch's Timeline linking (per Shaila's report, Sep 24, 2026 — a TASOR
+// batch with 2 different Groups only auto-linked 1 of them, silently, because the OLD version of this
+// logic bailed out entirely the moment a batch had ANY explicit link at all, so the second group's
+// problem was never even looked at, let alone shown). This checks EVERY distinct (brand, group) pair
+// in the batch independently — including ones already covered by an existing explicit link — and
+// returns one diagnosis per group: 'ok' (already linked or an unambiguous match exists), or one of the
+// reasons it isn't: no Timeline row for that brand/group at all, more than one equally-plausible
+// candidate (needs a manual pick), or a single matching product whose Supplier text disagrees with
+// this batch's Garment Name (the typo/mismatch case).
+function garmentBatchGroupDiagnostics(batch) {
+  const out = [];
+  if (!batch || !batch.garmentName || !batch.garmentName.trim()) return out;
+  if (!campaignTimelineList || !campaignTimelineList.length) return out;
+  const pairs = garmentBatchBrandGroupPairs(batch);
+  if (!pairs.size) return out;
+  const linkedRecs = (batch.timelineIds || []).map(id => campaignTimelineList.find(r => r.id === id)).filter(Boolean);
+  pairs.forEach((groups, brand) => {
+    const brandFirst = campaignTimelineFirstWord(brand);
+    const brandRows = campaignTimelineList.filter(r => {
+      const seriesFirst = campaignTimelineFirstWord(r.series);
+      return seriesFirst && brandFirst && seriesFirst === brandFirst;
+    });
+    groups.forEach(group => {
+      // Already covered by an existing explicit link on this batch? Then this group's fine regardless
+      // of anything else — no need to re-diagnose it.
+      const alreadyLinked = linkedRecs.some(r => r.officialProductName && campaignTimelineBestWordMatch(new Map([[r.officialProductName, true]]), group));
+      if (alreadyLinked) { out.push({ brand, group, status: 'ok' }); return; }
+      if (!brandRows.length) { out.push({ brand, group, status: 'no-match', detail: `No Timeline row found under brand '${brand}'.` }); return; }
+      const matchingRows = brandRows.filter(r => r.officialProductName && campaignTimelineBestWordMatch(new Map([[r.officialProductName, r]]), group));
+      if (!matchingRows.length) { out.push({ brand, group, status: 'no-match', detail: `No Timeline row's Official Product Name matches Group '${group}' under brand '${brand}'.` }); return; }
+      const supplierRows = matchingRows.filter(r => r.supplier && campaignTimelineBestWordMatch(new Map([[r.supplier, true]]), batch.garmentName));
+      if (supplierRows.length === 1) { out.push({ brand, group, status: 'ok' }); return; }
+      if (supplierRows.length > 1) { out.push({ brand, group, status: 'ambiguous', detail: `${supplierRows.length} Timeline rows match Group '${group}' and Garment Name '${batch.garmentName}' — pick the right one manually via the Timeline ✎.` }); return; }
+      const rep = matchingRows[0];
+      out.push({ brand, group, status: 'mismatch', detail: `Group '${group}' matches Timeline row '${rep.officialProductName}', but its Tailor Supplier '${rep.supplier || '-'}' doesn't match Garment Name '${batch.garmentName}' — check for a typo.` });
+    });
+  });
+  return out;
+}
+// Builds the visible warning text for the batch card from garmentBatchGroupDiagnostics — one line per
+// group that isn't 'ok', so a partially-linked batch (some groups fine, others not) still surfaces
+// every remaining problem instead of going silent once the first group links.
+function garmentBatchGroupWarningLines(batch) {
+  return garmentBatchGroupDiagnostics(batch).filter(d => d.status !== 'ok').map(d => d.detail);
+}
+// Per Shaila's request (Sep 24, 2026 — "so this batch links automatically"): once a batch's Garment
+// Name confidently agrees with a Timeline row's Tailor Supplier (and the product/Group also lines up),
+// that row's id is written into batch.timelineIds for real, turning the fuzzy match into a proper
+// explicit link — per GROUP, not per batch, so a batch that already has one group linked still picks
+// up its other groups as they each independently become unambiguous (the bug behind Shaila's "ade 2
+// group,,tapi dia link 1 je" report: the old version stopped looking entirely the moment ANY link
+// existed). Only auto-links a group when its match is UNAMBIGUOUS (exactly one candidate row) — zero
+// or multiple candidates are left for her to resolve manually, same caution as the diagnostics above.
+// Returns true if it changed anything (caller is responsible for saveGarmentOrders()).
+function garmentBatchAutoLinkTimelineIds(batch) {
+  if (!batch || !batch.garmentName || !batch.garmentName.trim()) return false;
+  if (!campaignTimelineList || !campaignTimelineList.length) return false;
+  const pairs = garmentBatchBrandGroupPairs(batch);
+  if (!pairs.size) return false;
+
+  const existingIds = new Set(batch.timelineIds || []);
+  const linkedRecs = Array.from(existingIds).map(id => campaignTimelineList.find(r => r.id === id)).filter(Boolean);
+  const newIds = new Set();
+  pairs.forEach((groups, brand) => {
+    const brandFirst = campaignTimelineFirstWord(brand);
+    const brandRows = campaignTimelineList.filter(r => {
+      const seriesFirst = campaignTimelineFirstWord(r.series);
+      return seriesFirst && brandFirst && seriesFirst === brandFirst;
+    });
+    if (!brandRows.length) return;
+    groups.forEach(group => {
+      const alreadyLinked = linkedRecs.some(r => r.officialProductName && campaignTimelineBestWordMatch(new Map([[r.officialProductName, true]]), group));
+      if (alreadyLinked) return; // this group's already covered by an existing explicit link
+      const matchingRows = brandRows.filter(r => r.officialProductName && campaignTimelineBestWordMatch(new Map([[r.officialProductName, r]]), group));
+      const supplierRows = matchingRows.filter(r => r.supplier && campaignTimelineBestWordMatch(new Map([[r.supplier, true]]), batch.garmentName));
+      if (supplierRows.length === 1) newIds.add(supplierRows[0].id); // exactly one confident candidate — anything else (0 or 2+) is left for her to link manually
+    });
+  });
+  if (!newIds.size) return false;
+  batch.timelineIds = Array.from(new Set([...existingIds, ...newIds]));
+  return true;
+}
 function campaignTimelineMatchReceivingRaw(rec) {
+  const linked = campaignTimelineLinkedBatchesIndex().get(rec.id);
+  if (linked && linked.length) {
+    const acc = { totalOrder: 0, totalReceived: 0 };
+    let groupLabel = '';
+    linked.forEach(b => {
+      groupLabel = groupLabel || b.garmentName || b.batchNo;
+      (b.skus || []).forEach(s => {
+        acc.totalOrder += Number(s.qtyOrder) || 0;
+        acc.totalReceived += Number(s.qtyReceived) || 0;
+      });
+    });
+    return { acc, groupLabel, direct: true };
+  }
   // Series doesn't always match Brand exactly either — e.g. Series "OG 26 (restocks)" vs Brand
   // "OG Series" in Item Master — so this matches on the shared leading brand code, not an exact string.
   const brandMatch = campaignTimelineBestBrandMatch(campaignTimelineReceivingIndex(), rec.series || '');
-  if (!brandMatch) return { acc: null, groupLabel: '' };
+  // Per Shaila's request (Sep 24, 2026) — she'd rather fix a typo in her own data than have the
+  // matching logic made typo-tolerant, but wants a visible hint pointing at WHERE it broke ("kalau
+  // salah boleh awak bagi tanda2 apa yg mengatakan salah"). Every failing branch below now returns a
+  // `reason` string explaining exactly which comparison came up empty, surfaced as a tooltip on the
+  // "Not Received Yet" badge by campaignTimelineReceivedBadgeHtml. Quoted values inside these messages
+  // use single quotes, not double — escapeHtml (see its own definition) only escapes <, >, & the way
+  // textContent/innerHTML naturally do, NOT double quotes, so a literal " here would prematurely close
+  // the title="..." attribute it gets embedded into.
+  if (!brandMatch) return { acc: null, groupLabel: '', reason: `No brand in Item Master starts with the same first word as Series '${rec.series || '-'}'.` };
   const nameMap = brandMatch.value;
-  if (!nameMap || !nameMap.size) return { acc: null, groupLabel: '' };
+  if (!nameMap || !nameMap.size) return { acc: null, groupLabel: '', reason: `Brand '${brandMatch.key}' matched, but no Garment Order batch has any SKU under that brand yet.` };
   const productText = rec.officialProductName || '';
   if (rec.supplier) {
     // A supplier IS specified on this row — only trust a match within that exact supplier's own
@@ -11886,14 +12257,14 @@ function campaignTimelineMatchReceivingRaw(rec) {
     // to have a batch with the same product name — showing that other supplier's numbers here would
     // wrongly attribute their receiving progress to this row.
     const nameMatch = campaignTimelineBestWordMatch(nameMap, rec.supplier);
-    if (!nameMatch) return { acc: null, groupLabel: '' };
+    if (!nameMatch) return { acc: null, groupLabel: '', reason: `No Garment Order batch name matches Tailor Supplier '${rec.supplier}' under brand '${brandMatch.key}' — check for a spelling difference (e.g. 'Chataya' vs 'Cathaya').` };
     const groupMatch = campaignTimelineBestWordMatch(nameMatch.value, productText);
-    return groupMatch ? { acc: groupMatch.value, groupLabel: groupMatch.key } : { acc: null, groupLabel: '' };
+    return groupMatch ? { acc: groupMatch.value, groupLabel: groupMatch.key } : { acc: null, groupLabel: '', reason: `Supplier '${rec.supplier}' matched Garment Order batch '${nameMatch.key}', but no SKU Group there matches Official Product Name '${productText || '-'}' — check for a spelling/wording difference.` };
   }
   // No supplier on this row at all — the best we can do is match the product across all suppliers
   // combined under this brand.
   const groupMatchAny = campaignTimelineBestWordMatch(campaignTimelineMergeGroupMaps(nameMap), productText);
-  return groupMatchAny ? { acc: groupMatchAny.value, groupLabel: groupMatchAny.key } : { acc: null, groupLabel: '' };
+  return groupMatchAny ? { acc: groupMatchAny.value, groupLabel: groupMatchAny.key } : { acc: null, groupLabel: '', reason: `No SKU Group under brand '${brandMatch.key}' (any supplier) matches Official Product Name '${productText || '-'}'.` };
 }
 // Two (or more) different Timeline rows can legitimately share the exact same Series/Supplier/Product
 // text — e.g. a brand's regular "OG" line plus a later "OG 26 (restocks)" campaign for the same product
@@ -11911,8 +12282,8 @@ function campaignTimelineComputeMatchOwners(list) {
   if (_campaignTimelineMatchOwnerCacheSrc === list) return _campaignTimelineMatchOwnerCache;
   const byAcc = new Map(); // matched acc object (identity) -> [recs that resolved to it]
   list.forEach(rec => {
-    const { acc } = campaignTimelineMatchReceivingRaw(rec);
-    if (!acc) return;
+    const { acc, direct } = campaignTimelineMatchReceivingRaw(rec);
+    if (!acc || direct) return; // direct links are unambiguous — no tie-breaking needed, see below
     if (!byAcc.has(acc)) byAcc.set(acc, []);
     byAcc.get(acc).push(rec);
   });
@@ -11933,10 +12304,258 @@ function campaignTimelineComputeMatchOwners(list) {
 }
 function campaignTimelineMatchReceiving(rec) {
   const raw = campaignTimelineMatchReceivingRaw(rec);
-  if (!raw.acc) return raw;
+  if (!raw.acc || raw.direct) return raw;
   const owners = campaignTimelineComputeMatchOwners(campaignTimelineList);
-  if (!owners.has(rec)) return { acc: null, groupLabel: raw.groupLabel };
+  if (!owners.has(rec)) return { acc: null, groupLabel: raw.groupLabel, reason: `Matches Garment Order batch '${raw.groupLabel}', but that batch's quantity is a closer fit for another Timeline row sharing the same match — this row has no Garment Order entry of its own yet.` };
   return raw;
+}
+// Two-step Series → Product picker for linking a Garment Order batch to a Campaign Timeline row —
+// replaced the single "everything in one dropdown" picker (then a type-to-filter search box on top
+// of that) per Shaila's requests, Sep 24, 2026: pick Series first, which narrows the second dropdown
+// down to just that series' rows, since Series/Product/Supplier alone often isn't enough to tell rows
+// apart on their own (e.g. several Patawali rows share the same product name and only differ by
+// Batch/Qty/Color) and a single flat list of ~150 rows was "pening" (dizzying) to scan.
+function campaignTimelineSeriesList() {
+  const set = new Set();
+  campaignTimelineList.forEach(rec => set.add(rec.series || '(no series)'));
+  return [...set].sort();
+}
+function campaignTimelineSeriesOptionsHtml(selectedSeries) {
+  return campaignTimelineSeriesList().map(s => `<option value="${escapeHtml(s)}"${s === selectedSeries ? ' selected' : ''}>${escapeHtml(s)}</option>`).join('');
+}
+// Batch/Qty/Color folded into the label to disambiguate same-product rows within a series (e.g. two
+// different colour runs of "PATAWALI Modern fit Quarter Sleeves Top") — Series itself is left out
+// here since the picker's first dropdown already scopes to one series before this list is even shown.
+function campaignTimelineItemLabel(rec) {
+  const parts = [rec.officialProductName || '(no product name)'];
+  if (rec.batch) parts.push(`Batch ${rec.batch}`);
+  if (rec.quantity) parts.push(`Qty ${formatQty(rec.quantity)}`);
+  if (rec.color) parts.push(`Color ${rec.color}`);
+  return parts.filter(Boolean).join(' — ');
+}
+// selectedIds: array of Timeline row ids to mark checked — the Product picker is a checkbox list
+// (per Shaila's requests, Sep 24, 2026 — first "boleh tak buat boleh pilih more than 1", then
+// "susah pulak macam tu,,,kalau dalam dropdown tu buat check box tkleh ke?" once she saw that a native
+// multi-select <select> needs an awkward Ctrl/Cmd-click to pick more than one), since one physical
+// Garment Order batch can cover several colour/product variants that each have their own row in her
+// Timeline sheet (e.g. Batch 1 of "PATAWALI Girls Kebaya" logged once per colour).
+function campaignTimelineItemCheckboxesHtml(series, selectedIds) {
+  const selSet = new Set(Array.isArray(selectedIds) ? selectedIds : (selectedIds ? [selectedIds] : []));
+  const items = campaignTimelineList.filter(rec => (rec.series || '(no series)') === series)
+    .sort((a, b) => (a.officialProductName || '').localeCompare(b.officialProductName || ''));
+  if (!items.length) return `<div class="data-note" style="margin:0; padding:4px;">No items under this series.</div>`;
+  const labelCounts = new Map();
+  items.forEach(rec => { const l = campaignTimelineItemLabel(rec); labelCounts.set(l, (labelCounts.get(l) || 0) + 1); });
+  return items.map(rec => {
+    let label = campaignTimelineItemLabel(rec);
+    if ((labelCounts.get(label) || 0) > 1) label += ` (#${rec.id.slice(-5)})`;
+    // The checkbox's padding/border/background/border-radius are all explicitly reset here — the
+    // app's global `input, select, textarea { padding:8px 10px; border:...; background:... }` rule
+    // (meant for text inputs and <select>s) also matches <input type="checkbox">, inflating each one
+    // into a large dark padded box that visually swallowed the row (this, not a layout/stretch issue,
+    // was the actual cause of "kenapa dropdown nya macam tu" — rows that looked blank/oversized).
+    return `<label class="tl-ms-option" style="display:flex; align-items:flex-start; gap:8px; padding:7px 10px; cursor:pointer; font-size:13px; line-height:1.35; box-sizing:border-box; width:100%;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">
+      <input type="checkbox" value="${escapeHtml(rec.id)}"${selSet.has(rec.id) ? ' checked' : ''} style="margin:2px 0 0; flex-shrink:0; width:15px; height:15px; min-width:15px; min-height:15px; padding:0; border:1px solid #8a7d6d; border-radius:2px; background:transparent;">
+      <span style="min-width:0; flex:1; overflow-wrap:anywhere; word-break:break-word; color:var(--text);">${escapeHtml(label)}</span>
+    </label>`;
+  }).join('');
+}
+// Reads which Timeline row ids are checked inside a checklist dropdown built by
+// campaignTimelineWireCascadingLink below — used everywhere a caller needs to save the current
+// selection (Add Batch submit, batch-card save, bulk-import confirm).
+function campaignTimelineReadCheckedIds(container) {
+  if (!container) return [];
+  return Array.from(container.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value).filter(Boolean);
+}
+// Short text shown on the closed dropdown's toggle button, summarizing the current pick — a plain
+// count reads better than trying to cram several item names onto one line once more than one is ticked.
+function campaignTimelineMultiselectSummary(ids) {
+  if (!ids.length) return '-- Not linked --';
+  if (ids.length === 1) {
+    const rec = campaignTimelineList.find(r => r.id === ids[0]);
+    return rec ? campaignTimelineItemLabel(rec) : '1 item selected';
+  }
+  return `${ids.length} items selected`;
+}
+// Closes every open checklist dropdown panel except (optionally) one — used both by the
+// document-level "click outside closes it" handler and by a toggle opening its own panel (so opening
+// one always closes any other that was left open).
+function campaignTimelineCloseAllMultiselects(exceptPanel) {
+  document.querySelectorAll('.tl-ms-panel').forEach(p => { if (p !== exceptPanel) p.style.display = 'none'; });
+}
+let _campaignTimelineMultiselectOutsideClickWired = false;
+// A Timeline row only has a real "which shipment" question if her tracker actually shows two
+// shipments for it (Shipment 2 Delivery/Arrive filled in) — most rows only ever have one shipment, and
+// asking her to pick "Overall (not split)" every single time for those is pointless busywork. So: a
+// row with no Shipment 2 date at all is treated as single-shipment and the leg picker is force-disabled
+// on "Overall" for it, no choice offered at all.
+function campaignTimelineShipmentCountForRec(rec) {
+  return (rec && (rec.ship2Delivery || rec.ship2Arrive)) ? 2 : 1;
+}
+// Wires a Series <select> + Product checkbox-list <div> (+ optional Shipment-leg <select>) into a
+// working cascade: picking a Series populates the Product checklist with just that series' rows; which
+// checkboxes are checked (an array of Timeline row ids, [] for "Not linked") is what callers actually
+// read to save the link — the Series select is only ever a filter, never saved anywhere itself. The
+// Product picker allows checking MULTIPLE items (per Shaila's requests, Sep 24, 2026 — first "boleh tak
+// buat boleh pilih more than 1", then switched from a native multi-select to checkboxes after
+// "susah pulak macam tu,,,kalau dalam dropdown tu buat check box tkleh ke?") since one Garment Order
+// batch commonly covers several colour/product variants that each have their own Timeline row — she
+// ticks as many as apply, all within the one Series she picked first.
+//
+// legSelect behavior (per Shaila's request, Sep 24, 2026 — "boleh tak buat auto je tak perlu pilih"):
+//   - Disabled/reset to blank ("Overall") whenever no Product is picked — a leg means nothing without
+//     an item to attach it to.
+//   - Once at least one Product IS picked, if NONE of the selected rows has a second shipment (see
+//     campaignTimelineShipmentCountForRec), the leg picker stays force-disabled on "Overall" — nothing
+//     to choose, so nothing is asked. If ANY selected row does have two shipments, the picker enables.
+//   - Only auto-SUGGESTS a value (rather than leaving whatever it already had) when the Product
+//     selection was just changed by an actual user click, not when this function runs on initial render
+//     to restore an already-saved link (that always keeps legSelect's own pre-rendered value, set by the
+//     caller's HTML from batch.shipmentLeg). The suggestion: if some OTHER batch is already linked to
+//     Shipment 1 for any of the selected rows (and none yet for Shipment 2), assume this new one is for
+//     Shipment 2 — "shipment 1 dah settle, so next garment order akan auto ade shipment 2" — and
+//     vice-versa; if neither leg has a batch yet, suggest Shipment 1 as the natural first pick. She can
+//     always override the suggestion manually.
+//   excludeBatchNo (if given) leaves out that batch itself when checking what's "already linked" —
+//   otherwise editing/re-saving an existing batch already on Shipment 1 would see itself and wrongly
+//   suggest flipping to Shipment 2.
+//
+// selectedIds (array, or a single id string for convenience — both normalized below) pre-selects both
+// the right series and the right item(s) on first render, for editing an existing link.
+// Clones+replaces the series select before attaching its 'change' listener so this is safe to call
+// again on every re-render without stacking duplicate listeners (same reasoning as the old
+// campaignTimelineWireLinkSearch had).
+// itemContainerOrig is a plain <div> that gets built out as a closed-by-default DROPDOWN: a button
+// styled like a normal <select> showing a short summary ("-- Not linked --", the one item's name, or
+// "N items selected"), which opens a small floating panel of checkboxes on click — closed again by
+// clicking elsewhere or clicking the toggle again. This replaces both the earlier native multi-select
+// <select> (needed an awkward Ctrl/Cmd-click) AND the always-open checkbox list that came after it
+// (Shaila: "nampak buruk macam ni,,,buat macam dropdown tkleh ke" — it took up a lot of space sitting
+// open all the time and didn't look like the rest of the form's dropdowns).
+function campaignTimelineWireCascadingLink(seriesSelectOrig, itemContainerOrig, selectedIds, legSelect, excludeBatchNo) {
+  if (!seriesSelectOrig || !itemContainerOrig) return;
+  const initialIds = Array.isArray(selectedIds) ? selectedIds.filter(Boolean) : (selectedIds ? [selectedIds] : []);
+  const seriesSelect = seriesSelectOrig.cloneNode(false);
+  seriesSelectOrig.replaceWith(seriesSelect);
+  // itemContainer is cloned+replaced too, same reason as seriesSelect — some call sites (the Add Batch
+  // form) keep this exact node across re-renders rather than rebuilding it from a parent's innerHTML,
+  // so without this its listeners (added below) would stack a fresh copy every time this runs again.
+  const itemContainer = itemContainerOrig.cloneNode(false);
+  itemContainerOrig.replaceWith(itemContainer);
+  itemContainer.style.position = 'relative';
+  itemContainer.style.display = 'block';
+  // Same look-and-feel as every other <select> in the app (see the global `input, select, textarea`
+  // rule) so this reads as "just another dropdown" rather than a bespoke widget.
+  itemContainer.innerHTML = `
+    <button type="button" class="tl-ms-toggle" style="width:100%; text-align:left; padding:8px 10px; border:1px solid #4a4038; border-radius:4px; font-size:13px; background:#1e1a17; color:var(--text); font-family:inherit; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:6px;">
+      <span class="tl-ms-toggle-label" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">-- Not linked --</span>
+      <span style="flex-shrink:0; opacity:0.7;">▾</span>
+    </button>
+    <div class="tl-ms-panel" style="display:none; position:fixed; z-index:9999; max-height:260px; overflow-y:auto; overflow-x:hidden; box-sizing:border-box; background:#1e1a17; border:1px solid #4a4038; border-radius:4px; box-shadow:0 6px 16px rgba(0,0,0,0.5);"></div>
+  `;
+  const toggle = itemContainer.querySelector('.tl-ms-toggle');
+  const toggleLabel = itemContainer.querySelector('.tl-ms-toggle-label');
+  const panel = itemContainer.querySelector('.tl-ms-panel');
+  const firstSelectedRec = initialIds.length ? campaignTimelineList.find(r => r.id === initialIds[0]) : null;
+  const initialSeries = firstSelectedRec ? (firstSelectedRec.series || '(no series)') : '';
+  seriesSelect.innerHTML = '<option value="">-- Select Series --</option>' + campaignTimelineSeriesOptionsHtml(initialSeries);
+  seriesSelect.value = initialSeries;
+  function setToggleEnabled(enabled) {
+    toggle.disabled = !enabled;
+    toggle.style.opacity = enabled ? '1' : '0.5';
+    toggle.style.cursor = enabled ? 'pointer' : 'not-allowed';
+  }
+  function updateToggleLabel() {
+    toggleLabel.textContent = campaignTimelineMultiselectSummary(campaignTimelineReadCheckedIds(itemContainer));
+  }
+  function syncLegEnabled(isUserPick) {
+    if (!legSelect) return;
+    const ids = campaignTimelineReadCheckedIds(itemContainer);
+    if (!ids.length) { legSelect.disabled = true; legSelect.value = ''; return; }
+    const recs = ids.map(id => campaignTimelineList.find(r => r.id === id)).filter(Boolean);
+    const needsLeg = recs.some(r => campaignTimelineShipmentCountForRec(r) >= 2);
+    if (!needsLeg) { legSelect.disabled = true; legSelect.value = ''; return; }
+    legSelect.disabled = false;
+    if (!isUserPick) return; // restoring an existing saved link — leave legSelect's own pre-set value alone
+    const idSet = new Set(ids);
+    const others = (garmentOrders || []).filter(b => b.batchNo !== excludeBatchNo && (b.timelineIds || []).some(id => idSet.has(id)));
+    const hasShipment1 = others.some(b => b.shipmentLeg === 'shipment1');
+    const hasShipment2 = others.some(b => b.shipmentLeg === 'shipment2');
+    if (hasShipment1 && !hasShipment2) legSelect.value = 'shipment2';
+    else if (hasShipment2 && !hasShipment1) legSelect.value = 'shipment1';
+    else if (!hasShipment1 && !hasShipment2) legSelect.value = 'shipment1';
+    // both legs already have a batch — genuinely ambiguous, leave as-is for her to pick deliberately
+  }
+  function refreshItems(preselectIds, isUserPick) {
+    const series = seriesSelect.value;
+    if (!series) {
+      panel.innerHTML = '';
+      panel.style.display = 'none';
+      setToggleEnabled(false);
+      toggleLabel.textContent = '-- Pick a series first --';
+      syncLegEnabled(isUserPick);
+      return;
+    }
+    setToggleEnabled(true);
+    panel.innerHTML = campaignTimelineItemCheckboxesHtml(series, preselectIds || []);
+    updateToggleLabel();
+    syncLegEnabled(isUserPick);
+  }
+  // Positioned with fixed coordinates computed fresh on every open (rather than position:absolute
+  // anchored to this narrow container) — per Shaila's report that the panel was overflowing off the
+  // side of the modal/page ("apa ni,,buat betul2 la") when the container it hung off sat close to the
+  // modal's edge. Fixed + computed geometry keeps it fully on-screen and never widens any ancestor's
+  // scrollable area, regardless of where this particular dropdown happens to sit.
+  // Always anchored below the toggle (no "flip above" branch) and EVERY offset (top/bottom/left/right)
+  // is explicitly reset before setting only the ones actually used — a stray leftover "bottom" from an
+  // earlier open combined with a freshly-set "top" would make a position:fixed element stretch to fill
+  // the whole gap between them (that's what produced the tall near-empty panel Shaila saw: "kenapa
+  // dropdown nya macam tu" — one real checkbox row up top, then a huge blank stretched box below it).
+  // max-height is also computed per-open from actual remaining space, capped at 260px, so it can never
+  // ask for more room than genuinely exists below the toggle.
+  function positionPanel() {
+    const rect = toggle.getBoundingClientRect();
+    const width = Math.max(rect.width, 300);
+    let left = rect.left;
+    if (left + width > window.innerWidth - 8) left = Math.max(8, window.innerWidth - width - 8);
+    const top = rect.bottom + 2;
+    const spaceBelow = Math.max(120, window.innerHeight - top - 8);
+    panel.style.top = top + 'px';
+    panel.style.bottom = '';
+    panel.style.left = left + 'px';
+    panel.style.right = '';
+    panel.style.width = width + 'px';
+    panel.style.height = 'auto';
+    panel.style.maxHeight = Math.min(260, spaceBelow) + 'px';
+  }
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const willOpen = panel.style.display === 'none';
+    campaignTimelineCloseAllMultiselects(willOpen ? panel : null);
+    if (willOpen) positionPanel();
+    panel.style.display = willOpen ? 'block' : 'none';
+  });
+  panel.addEventListener('click', (e) => e.stopPropagation()); // clicking inside the panel shouldn't close it
+  panel.addEventListener('change', (e) => {
+    if (!(e.target && e.target.matches('input[type="checkbox"]'))) return;
+    updateToggleLabel();
+    syncLegEnabled(true);
+  });
+  if (!_campaignTimelineMultiselectOutsideClickWired) {
+    document.addEventListener('click', () => campaignTimelineCloseAllMultiselects());
+    // capture:true so this also sees scrolling inside nested scrollable areas (like the modal body) —
+    // but that means scrolling the checklist panel ITSELF (also a scrollable area) fires this too, which
+    // was closing the dropdown the instant she tried to scroll down the list ("asyik hilang je dropdown
+    // nya"). Skip closing when the scroll happened inside a .tl-ms-panel — only an outside scroll should
+    // dismiss it.
+    document.addEventListener('scroll', (e) => {
+      if (e.target && e.target.closest && e.target.closest('.tl-ms-panel')) return;
+      campaignTimelineCloseAllMultiselects();
+    }, true);
+    _campaignTimelineMultiselectOutsideClickWired = true;
+  }
+  refreshItems(initialIds, false);
+  seriesSelect.addEventListener('change', () => refreshItems(null, true));
 }
 // Shows the Item Master Group name in place of the Timeline's raw product text when we found a
 // confident match — same product, just written consistently with the rest of the app.
@@ -11945,9 +12564,55 @@ function campaignTimelineProductLabel(rec) {
   const match = campaignTimelineMatchReceiving(rec);
   return match.groupLabel || raw;
 }
+// Sums qtyOrder/qtyReceived across only the directly-linked batches whose shipmentLeg matches `leg`
+// ('shipment1', 'shipment2', or '' for batches linked without picking a leg at all). Returns null
+// when there's nothing in that bucket, so callers can tell "no batch for this leg yet" apart from
+// "a batch exists but nothing's been received" (the latter still returns an acc with totalReceived 0).
+function campaignTimelineLinkedShipmentAcc(rec, leg) {
+  const linked = campaignTimelineLinkedBatchesIndex().get(rec.id);
+  if (!linked) return null;
+  const filtered = linked.filter(b => (b.shipmentLeg || '') === leg);
+  if (!filtered.length) return null;
+  const acc = { totalOrder: 0, totalReceived: 0 };
+  filtered.forEach(b => (b.skus || []).forEach(s => {
+    acc.totalOrder += Number(s.qtyOrder) || 0;
+    acc.totalReceived += Number(s.qtyReceived) || 0;
+  }));
+  return acc;
+}
+function campaignTimelineOneBadgeHtml(label, acc) {
+  if (!acc || !acc.totalOrder) return `<span class="badge badge-gray">${escapeHtml(label)}: -</span>`;
+  const pct = Math.round((acc.totalReceived / acc.totalOrder) * 100);
+  const cls = pct >= 100 ? 'badge-green' : (pct > 0 ? 'badge-amber' : 'badge-gray');
+  return `<span class="badge ${cls}">${escapeHtml(label)}: ${formatQty(acc.totalReceived)} / ${formatQty(acc.totalOrder)} (${pct}%)</span>`;
+}
 function campaignTimelineReceivedBadgeHtml(rec) {
-  const p = campaignTimelineMatchReceiving(rec).acc;
-  if (!p || !p.totalOrder) return `<span class="badge badge-red">Not Received Yet</span>`;
+  // Per Shaila's request (Sep 24, 2026) — "saya nak buat berasingan" — when at least one batch linked
+  // to this row has an actual Shipment 1/2 leg picked, show separate badges per leg instead of one
+  // combined figure, since two physical shipments of the same order can arrive (and get received) on
+  // very different timelines. A row with no leg-tagged links at all keeps the old single-badge behavior
+  // completely unchanged (including the fuzzy-match fallback), so this only affects rows using the
+  // new feature.
+  const linked = campaignTimelineLinkedBatchesIndex().get(rec.id);
+  const hasLegSplit = linked && linked.some(b => b.shipmentLeg === 'shipment1' || b.shipmentLeg === 'shipment2');
+  if (hasLegSplit) {
+    const parts = [];
+    const acc1 = campaignTimelineLinkedShipmentAcc(rec, 'shipment1');
+    const acc2 = campaignTimelineLinkedShipmentAcc(rec, 'shipment2');
+    const accOverall = campaignTimelineLinkedShipmentAcc(rec, '');
+    if (acc1) parts.push(campaignTimelineOneBadgeHtml('Shipment 1', acc1));
+    if (acc2) parts.push(campaignTimelineOneBadgeHtml('Shipment 2', acc2));
+    if (accOverall) parts.push(campaignTimelineOneBadgeHtml('Other', accOverall));
+    return parts.join(' ') || `<span class="badge badge-red">Not Received Yet</span>`;
+  }
+  const match = campaignTimelineMatchReceiving(rec);
+  const p = match.acc;
+  // Per Shaila's request (Sep 24, 2026) — "kalau salah boleh awak buat bagi tanda2 apa yg mengatakan
+  // salah": she'd rather fix a typo in her own data (e.g. "Chataya" vs "Cathaya") than have the fuzzy
+  // match itself made typo-tolerant, but wants a visible hint pointing at exactly which comparison
+  // failed so she can spot and correct it herself. Shown as a hover tooltip (title) on the badge —
+  // see campaignTimelineMatchReceivingRaw for where each reason string comes from.
+  if (!p || !p.totalOrder) return `<span class="badge badge-red"${match.reason ? ` title="${escapeHtml(match.reason)}"` : ''}>Not Received Yet</span>`;
   // Percent against the Timeline's own planned Qty (rec.quantity, from the campaign tracker Excel) —
   // not the matched Garment Order batch's own order quantity. Those two can genuinely differ (e.g. a
   // campaign projected 1,500 units, but the PO actually placed in Garment Order so far only covers
@@ -11957,6 +12622,27 @@ function campaignTimelineReceivedBadgeHtml(rec) {
   const pct = Math.round((p.totalReceived / plannedQty) * 100);
   const cls = pct >= 100 ? 'badge-green' : (pct > 0 ? 'badge-amber' : 'badge-gray');
   return `<span class="badge ${cls}">${formatQty(p.totalReceived)} / ${formatQty(plannedQty)} (${pct}%)</span>`;
+}
+// Fabric Status column, added per Shaila's column list (Sep 24, 2026) — links a Timeline row to the
+// Raw Material module rather than to Garment Order/Google Sheets: a fabric roll only ever gets entered
+// into `rawMaterialRolls` at the moment it's physically received in (there's no separate "PO placed but
+// not arrived yet" state there — see rawMaterialRolls' own shape comment), so "does at least one roll
+// with this fabric code exist" is a direct, reliable "has this fabric actually arrived" signal. Matched
+// on `rec.material` (the Timeline row's fabric/material code, e.g. "F25Y007") against each roll's own
+// `fabricCode`, case/whitespace-insensitive since codes get typed slightly differently across the two
+// systems sometimes.
+function campaignTimelineFabricRolls(materialCode) {
+  const needle = campaignTimelineNormHeader(materialCode);
+  if (!needle) return [];
+  return rawMaterialRolls.filter(r => campaignTimelineNormHeader(r.fabricCode) === needle);
+}
+function campaignTimelineFabricStatusBadgeHtml(rec) {
+  if (!rec.material) return `<span class="badge badge-gray">-</span>`;
+  const rolls = campaignTimelineFabricRolls(rec.material);
+  if (!rolls.length) return `<span class="badge badge-red">Not Received Yet</span>`;
+  const totalMeter = rolls.reduce((sum, r) => sum + (Number(r.meter) || 0), 0);
+  const remainingMeter = rolls.reduce((sum, r) => sum + (Number(r.meterRemaining) || 0), 0);
+  return `<span class="badge badge-green" title="${rolls.length} roll(s), ${formatQty(remainingMeter)}m remaining of ${formatQty(totalMeter)}m received">Received (${rolls.length} roll${rolls.length > 1 ? 's' : ''})</span>`;
 }
 // Shared by the Timeline tab's table and the TV Dashboard slide — soonest upcoming milestone first,
 // then anything with only a past milestone (most recently passed first), then anything with no
@@ -11982,45 +12668,45 @@ function renderCampaignTimelineTable() {
     return;
   }
   const rows = campaignTimelineSortedRows(list);
-  // Every column from her Excel tracker shown directly, flat, in one row — plus the one computed
-  // column (Received (Garment Order)) that doesn't come from the file at all — per Shaila's
-  // explicit request to mirror the tracker's own columns instead of tucking most of them away
-  // behind a click-to-expand detail row (the old design). The "Next Milestone" badge column was
-  // dropped per her request (Sep 22, 2026) — row order still uses the same soonest-upcoming-first
-  // logic via campaignTimelineSortedRows, it's just no longer shown as its own column. Wrap this
-  // table's container in overflow-x:auto if it isn't already — 21 columns is wide by design here.
+  // Column set + order per Shaila's explicit list (Sep 24, 2026), replacing the earlier "every column
+  // from the tracker, flat" layout. Dropped from display (still parsed/available on `rec`, just not
+  // shown as their own columns): Material (its code is still used to look up Fabric Status below, just
+  // not shown as raw text), Production instruction to supplier, Production status, Release Date — she
+  // didn't list any of these this time. The old single "Received (Garment Order)" column is repositioned
+  // right after the Shipment date columns as "Status" (same badge/logic, campaignTimelineReceivedBadgeHtml
+  // — unchanged), and a second new "Status" column after the fabric dates shows Fabric Status instead,
+  // sourced from the Raw Material module rather than Garment Order (campaignTimelineFabricStatusBadgeHtml
+  // — see its own comment for why rawMaterialRolls is the right thing to match against).
   const dateCell = (iso) => `<td>${iso ? formatDateLabel(iso) : '-'}</td>`;
   let html = `<table><thead><tr>
-    <th>Series</th><th>Category</th><th>Supplier</th><th>Official Product Name</th>
-    <th>Batch</th><th>Material</th><th>Fabric Supplier</th><th>Quantity</th><th>Color</th>
-    <th>Production instruction to supplier</th><th>Production status</th>
-    <th>Fabric Delivery</th><th>Fabric Arrive</th><th>FG Delivery</th><th>FG Arrive</th><th>Release Date</th>
-    <th>Shipment 1 Delivery</th><th>Shipment 2 Arrive</th><th>Shipment 2 Delivery</th><th>Shipment 3 Arrive</th>
-    <th>Received (Garment Order)</th>
+    <th>Series</th><th>Category</th><th>Official Product Name</th><th>Batch</th><th>Color</th>
+    <th>Tailor Supplier</th><th>Quantity FG Order pcs</th>
+    <th>Shipment 1 Delivery</th><th>Shipment 1 Arrive</th><th>Shipment 2 Delivery</th><th>Shipment 2 Arrive</th>
+    <th>Status</th>
+    <th>Fabric Supplier</th><th>Quantity Fabrics Ctn</th><th>Quantity Fabrics Meter</th>
+    <th>Fabric Delivery</th><th>Fabric Arrive</th>
+    <th>Status</th>
   </tr></thead><tbody>`;
   rows.forEach(({ rec }) => {
     html += `<tr data-id="${escapeHtml(rec.id)}">
       <td>${escapeHtml(rec.series || '-')}</td>
       <td>${escapeHtml(rec.category || '-')}</td>
-      <td>${escapeHtml(rec.supplier || '-')}</td>
       <td>${escapeHtml(campaignTimelineProductLabel(rec))}</td>
       <td>${escapeHtml(rec.batch || '-')}</td>
-      <td>${escapeHtml(rec.material || '-')}</td>
-      <td>${escapeHtml(rec.fabricSupplier || '-')}</td>
-      <td>${formatQty(rec.quantity || 0)}</td>
       <td>${escapeHtml(rec.color || '-')}</td>
-      <td>${escapeHtml(rec.productionInstruction || '-')}</td>
-      <td>${rec.productionStatus ? `<span class="badge badge-gray">${escapeHtml(rec.productionStatus)}</span>` : '-'}</td>
+      <td>${escapeHtml(rec.supplier || '-')}</td>
+      <td>${formatQty(rec.quantity || 0)}</td>
+      ${dateCell(rec.ship1Delivery)}
+      ${dateCell(rec.ship1Arrive)}
+      ${dateCell(rec.ship2Delivery)}
+      ${dateCell(rec.ship2Arrive)}
+      <td>${campaignTimelineReceivedBadgeHtml(rec)}</td>
+      <td>${escapeHtml(rec.fabricSupplier || '-')}</td>
+      <td>${formatQty(rec.quantityFabricsCtn || 0)}</td>
+      <td>${formatQty(rec.quantityFabricsMeter || 0)}</td>
       ${dateCell(rec.fabricDelivery)}
       ${dateCell(rec.fabricArrive)}
-      ${dateCell(rec.fgDelivery)}
-      ${dateCell(rec.fgArrive)}
-      <td><strong>${escapeHtml(rec.releaseDateRaw || '-')}</strong></td>
-      ${dateCell(rec.ship1Delivery)}
-      ${dateCell(rec.ship2Arrive)}
-      ${dateCell(rec.ship2Delivery)}
-      ${dateCell(rec.ship3Arrive)}
-      <td>${campaignTimelineReceivedBadgeHtml(rec)}</td>
+      <td>${campaignTimelineFabricStatusBadgeHtml(rec)}</td>
     </tr>`;
   });
   html += `</tbody></table>`;
@@ -12036,6 +12722,13 @@ function renderCampaignTimelineTab() {
   renderCampaignTimelineStatusNote();
   renderCampaignTimelineFilterOptions();
   renderCampaignTimelineTable();
+  // The very first renderCampaignTimelineGsheetInputs() call (near the bottom of this script, at
+  // module load) runs BEFORE loadData() has actually read the saved links back out of localStorage
+  // (loadData() itself only runs later, once the login/station flow completes) — so on a fresh page
+  // load the two link boxes always started blank even though the links were genuinely saved and the
+  // fetch logic had them fine. Re-populating here, every time the Timeline tab is opened, makes sure
+  // what's on screen always matches what's actually saved, regardless of load-order timing.
+  renderCampaignTimelineGsheetInputs();
 }
 document.getElementById('campaignTimelineSearchInput').addEventListener('input', renderCampaignTimelineTable);
 document.getElementById('campaignTimelineSeriesFilter').addEventListener('change', renderCampaignTimelineTable);
@@ -12047,9 +12740,12 @@ document.getElementById('campaignTimelineStatusFilter').addEventListener('change
    arriving soon for Fabric and Finished Goods SEPARATELY (each its own priority list — a fabric
    delay and an FG delay need different people chasing them, so mixing them together like the old
    list did made it harder to scan at a glance), plus the Release Date calendar kept as-is since she
-   specifically asked to keep that. "Arriving" = the Arrive date columns (fabricArrive / fgArrive),
-   not the Delivery ones — "sampai" is specifically about the goods physically landing, which is what
-   Arrive represents; Delivery is the supplier/courier handing it off a step earlier.
+   specifically asked to keep that. "Arriving" = the Arrive date columns, not the Delivery ones —
+   "sampai" is specifically about the goods physically landing, which is what Arrive represents;
+   Delivery is the supplier/courier handing it off a step earlier. Fabric reads fabricArrive; FG reads
+   BOTH ship1Arrive and ship2Arrive (per Shaila's request, Sep 24, 2026 — the old fgArrive column was
+   removed from the Timeline table since her tracker no longer fills it in, and FG arrival is now
+   tracked per physical shipment instead).
    Grouped by WEEK (not month) — chose week because this is a TV dashboard meant for "what do I need
    to watch this week / next week" at-a-glance production planning, not a long-range overview (that's
    what the Release Calendar to the side already covers on a month basis). Capped to the next
@@ -12073,21 +12769,31 @@ function campaignTimelineWeekLabel(weekStartIso, todayWeekStartIso) {
 }
 // Buckets every record with a set date in `field` into its week, soonest week first; drops anything
 // already past or further out than the cap. Within a week, soonest exact date first.
+// `field` can be a single field name (e.g. 'fabricArrive') or an ARRAY of field names — per Shaila's
+// request (Sep 24, 2026), FG Arriving Soon no longer reads the old fgArrive column (that whole column
+// was removed from the Timeline table since her tracker doesn't fill it in anymore) and instead reads
+// BOTH ship1Arrive and ship2Arrive, since her sheet now tracks two separate physical shipments that can
+// land on different weeks. Each entry is wrapped as { rec, field, iso } (not the bare record) so a row
+// with dates on both shipments produces two separate list entries — one per shipment, in whichever
+// week(s) they actually land — instead of only ever showing one date per row.
 function campaignTimelineArrivingSoonGroups(list, field) {
+  const fields = Array.isArray(field) ? field : [field];
   const todayWeekStart = campaignTimelineWeekStartIso(todayStr());
   const cutoffWeekStart = addDaysIso(todayWeekStart, CAMPAIGN_TIMELINE_DASH_WEEKS_AHEAD * 7);
   const byWeek = new Map();
   list.forEach(rec => {
-    const iso = rec[field];
-    if (!iso) return;
-    const weekStart = campaignTimelineWeekStartIso(iso);
-    if (weekStart < todayWeekStart || weekStart >= cutoffWeekStart) return;
-    if (!byWeek.has(weekStart)) byWeek.set(weekStart, []);
-    byWeek.get(weekStart).push(rec);
+    fields.forEach(f => {
+      const iso = rec[f];
+      if (!iso) return;
+      const weekStart = campaignTimelineWeekStartIso(iso);
+      if (weekStart < todayWeekStart || weekStart >= cutoffWeekStart) return;
+      if (!byWeek.has(weekStart)) byWeek.set(weekStart, []);
+      byWeek.get(weekStart).push({ rec, field: f, iso });
+    });
   });
-  return [...byWeek.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([weekStart, recs]) => ({
+  return [...byWeek.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([weekStart, entries]) => ({
     label: campaignTimelineWeekLabel(weekStart, todayWeekStart),
-    recs: recs.slice().sort((a, b) => a[field].localeCompare(b[field])),
+    recs: entries.slice().sort((a, b) => a.iso.localeCompare(b.iso)),
   }));
 }
 // opts.product drops/shows the Product column (off for Fabric — fabric rows come from the "PROD
@@ -12097,21 +12803,45 @@ function campaignTimelineArrivingSoonGroups(list, field) {
 // there, which is the more useful "who to chase" info for a fabric delay).
 // opts.supplierField, when set, adds a Supplier column reading that record field — 'fabricSupplier'
 // for Fabric, 'supplier' (the garment supplier) for FG.
+// mergeSameSeries collapses rows that share the same Series + Supplier + Date into a single row with
+// a "×N" count — per Shaila's request (Sep 24, 2026) for the Fabric list specifically, where several
+// items of the same series/fabric all land from the same supplier on the same day and just repeated
+// as identical-looking rows. Rows with a different date (even same series/supplier) stay separate, as
+// she asked. Only wired up for Fabric below, not FG — FG rows carry a per-row Product name that's
+// worth keeping visible rather than collapsed.
+// fieldLabels (optional): { fieldName: 'Shipment 1' } — when `field` (passed to
+// campaignTimelineArrivingSoonGroups) is an array of more than one field, each date's matching field
+// name is looked up here and appended to the Date cell (e.g. "1 Nov 2026 (Shipment 2)"), so it's clear
+// which of the two shipments that particular date belongs to. Not shown at all when only one field is
+// in play (unchanged single-date look for Fabric).
 function campaignTimelineArrivingSoonHtml(list, field, opts) {
-  const { product = true, qty = true, supplierField = null } = opts || {};
+  const { product = true, qty = true, supplierField = null, supplierLabel = 'Supplier', mergeSameSeries = false, fieldLabels = null } = opts || {};
   const groups = campaignTimelineArrivingSoonGroups(list, field);
+  const showFieldLabel = fieldLabels && Array.isArray(field) && field.length > 1;
   const colCount = 2 + (product ? 1 : 0) + (qty ? 1 : 0) + (supplierField ? 1 : 0);
   if (!groups.length) return `<div class="empty-state">Nothing arriving in the next ${CAMPAIGN_TIMELINE_DASH_WEEKS_AHEAD} weeks.</div>`;
-  let html = `<table><thead><tr><th>Series</th>${product ? '<th>Product</th>' : ''}${supplierField ? '<th>Supplier</th>' : ''}${qty ? '<th>Qty</th>' : ''}<th>Date</th></tr></thead><tbody>`;
+  let html = `<table><thead><tr><th>Series</th>${product ? '<th>Product</th>' : ''}${supplierField ? `<th>${escapeHtml(supplierLabel)}</th>` : ''}${qty ? '<th>Qty</th>' : ''}<th>Date</th></tr></thead><tbody>`;
   groups.forEach(g => {
     html += `<tr class="table-group-header"><td colspan="${colCount}" style="background:rgba(255,255,255,0.04); font-weight:700; color:var(--gold); text-transform:uppercase; letter-spacing:0.04em; font-size:11px; padding-top:8px; padding-bottom:8px;">${escapeHtml(g.label)} (${g.recs.length})</td></tr>`;
-    g.recs.forEach(rec => {
+    let displayEntries = g.recs; // each entry: { rec, field, iso }
+    if (mergeSameSeries) {
+      const merged = new Map();
+      g.recs.forEach(entry => {
+        const key = [entry.rec.series || '', supplierField ? (entry.rec[supplierField] || '') : '', entry.iso || '', entry.field].join('|');
+        if (!merged.has(key)) merged.set(key, { ...entry, count: 0 });
+        merged.get(key).count++;
+      });
+      displayEntries = [...merged.values()];
+    }
+    displayEntries.forEach(entry => {
+      const rec = entry.rec;
+      const dateLabel = formatDateLabel(entry.iso) + (showFieldLabel && fieldLabels[entry.field] ? ` (${fieldLabels[entry.field]})` : '');
       html += `<tr>
         <td class="mono-name">${escapeHtml(rec.series || '-')}</td>
         ${product ? `<td>${escapeHtml(campaignTimelineProductLabel(rec))}</td>` : ''}
         ${supplierField ? `<td>${escapeHtml(rec[supplierField] || '-')}</td>` : ''}
         ${qty ? `<td>${formatQty(rec.quantity || 0)}</td>` : ''}
-        <td>${formatDateLabel(rec[field])}</td>
+        <td>${escapeHtml(dateLabel)}</td>
       </tr>`;
     });
   });
@@ -12319,8 +13049,8 @@ function renderDashCampaignTimelineSlide() {
     if (calendarHeader) calendarHeader.innerHTML = '';
     return;
   }
-  fabricWrap.innerHTML = campaignTimelineArrivingSoonHtml(campaignTimelineList, 'fabricArrive', { product: false, qty: false, supplierField: 'fabricSupplier' });
-  fgWrap.innerHTML = campaignTimelineArrivingSoonHtml(campaignTimelineList, 'fgArrive', { product: true, qty: true, supplierField: 'supplier' });
+  fabricWrap.innerHTML = campaignTimelineArrivingSoonHtml(campaignTimelineList, 'fabricArrive', { product: false, qty: false, supplierField: 'fabricSupplier', mergeSameSeries: true });
+  fgWrap.innerHTML = campaignTimelineArrivingSoonHtml(campaignTimelineList, ['ship1Arrive', 'ship2Arrive'], { product: true, qty: true, supplierField: 'supplier', supplierLabel: 'Tailor Supplier', fieldLabels: { ship1Arrive: 'Shipment 1', ship2Arrive: 'Shipment 2' } });
   renderCampaignTimelineDashCalendar(campaignTimelineList);
 }
 /* ==================== end Production ==================== */
@@ -14643,6 +15373,7 @@ function renderRmStoListTable() {
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
           ${fabricItems.some(s => isRmStoManualReconLine(s) && !s.stockDeducted) ? `<button type="button" class="btn-ghost rm-sto-deduct-now-btn" data-sto="${escapeHtml(g.stoNo)}" style="color:#e0a63c;" title="This was manually added without deducting stock — deduct it now">⚠ Deduct Stock Now</button>` : ''}
           ${allCompleted && rmDoAlreadyExistsFor(g.stoNo) ? `<button type="button" class="btn-ghost rm-sto-print-do-btn" data-sto="${escapeHtml(g.stoNo)}" title="Reprint DO for this STO">🖨 Print DO</button>` : ''}
+          <button type="button" class="btn-ghost rm-sto-edit-btn" data-sto="${escapeHtml(g.stoNo)}" title="Add or remove rolls from this STO">✎ Edit STO</button>
           <button type="button" class="btn-ghost rm-sto-delete-btn" data-sto="${escapeHtml(g.stoNo)}" style="color:#e0685c;" title="Delete this STO">🗑 Delete STO</button>
         </div>
       </div>
@@ -14665,6 +15396,9 @@ function renderRmStoListTable() {
       const doRec = rawMaterialDos.find(d => d.stoNo === btn.dataset.sto);
       if (doRec) printRmDo(doRec);
     });
+  });
+  wrap.querySelectorAll('.rm-sto-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => openRmStoEditModal(btn.dataset.sto));
   });
   // Retrofit for a "Manually Add STO/DO" record created without the deduct-stock checkbox ticked —
   // deducts by re-grouping THIS STO's own already-stored lines (Fabric+Code+Colour, summed), the same
@@ -14735,6 +15469,135 @@ function renderRmStoListTable() {
     });
   });
 }
+// Edit STO — add or remove fabric roll lines from an already-created STO (per Shaila's request,
+// Sep 24, 2026: "boleh tak buat button edit sto untuk tambah roll atau tolak roll"). Adding writes a
+// new Open line directly into rawMaterialStos (same shape as createRmStoFromForm's per-roll push, just
+// against an existing stoNo instead of a fresh one). Removing is only offered for Open lines — a
+// Completed line represents fabric already scanned/sent at the Pick tab, and undoing that here would
+// silently diverge from whatever DO/paper trail already exists; Delete STO (which restores meterage
+// for Completed lines too) remains the way to fully cancel an STO that's gone wrong.
+let rmStoEditingStoNo = null;
+// Captured once at open time (not re-derived from rawMaterialStos each add) so destination/date/notes
+// are still available even if she removes every existing line before adding new ones.
+let rmStoEditingMeta = { destination: '', date: '', notes: '' };
+function openRmStoEditModal(stoNo) {
+  rmStoEditingStoNo = stoNo;
+  const group = rmStoGroupsByStoNo().find(g => g.stoNo === stoNo);
+  rmStoEditingMeta = { destination: group ? group.destination : '', date: group ? group.date : todayStr(), notes: group ? group.notes : '' };
+  renderRmStoEditModal();
+  document.getElementById('rmStoEditModal').classList.remove('hidden');
+}
+function closeRmStoEditModal() {
+  rmStoEditingStoNo = null;
+  document.getElementById('rmStoEditModal').classList.add('hidden');
+}
+// Fabric/colour groups for the Edit STO "Add rolls" picker — deliberately NOT filtered against
+// rmStoDraftItems (that set only matters for the separate create-STO draft-staging flow); this modal
+// commits directly to rawMaterialStos, so it just needs currently-available rolls (meterRemaining > 0).
+function rmStoEditAvailableGroups() {
+  const groups = new Map();
+  rmAvailableRolls().forEach(r => {
+    const key = rmStoFabricGroupKey(r);
+    if (!groups.has(key)) groups.set(key, { key, fabricKey: rmStoFabricKey(r), fabricName: r.fabricName, fabricCode: r.fabricCode, colorCode: r.colorCode, colorName: r.colorName, rolls: [] });
+    groups.get(key).rolls.push(r);
+  });
+  groups.forEach(g => g.rolls.sort((a, b) => (a.rollNo || '').localeCompare(b.rollNo || '')));
+  return [...groups.values()].sort((a, b) => (a.fabricName || '').localeCompare(b.fabricName || ''));
+}
+function rmStoEditFabricNameGroups() {
+  const byFabric = new Map();
+  rmStoEditAvailableGroups().forEach(g => {
+    if (!byFabric.has(g.fabricKey)) byFabric.set(g.fabricKey, { fabricKey: g.fabricKey, fabricName: g.fabricName, fabricCode: g.fabricCode, rollCount: 0, totalMeter: 0 });
+    const entry = byFabric.get(g.fabricKey);
+    entry.rollCount += g.rolls.length;
+    entry.totalMeter += g.rolls.reduce((sum, r) => sum + (Number(r.meterRemaining) || 0), 0);
+  });
+  return [...byFabric.values()].sort((a, b) => (a.fabricName || '').localeCompare(b.fabricName || ''));
+}
+function renderRmStoEditColorOptions() {
+  const fabricSelect = document.getElementById('rmStoEditFabricSelect');
+  const colorSelect = document.getElementById('rmStoEditColorSelect');
+  const prevColorVal = colorSelect.value;
+  const groups = rmStoEditAvailableGroups().filter(g => g.fabricKey === fabricSelect.value);
+  colorSelect.disabled = !fabricSelect.value;
+  colorSelect.innerHTML = `<option value="">Select colour…</option>` + groups.map(g => {
+    const totalMeter = g.rolls.reduce((sum, r) => sum + (Number(r.meterRemaining) || 0), 0);
+    return `<option value="${escapeHtml(g.key)}">${escapeHtml(g.colorName || g.colorCode || '-')} — ${g.rolls.length} roll(s), ${formatQty(totalMeter)}m total</option>`;
+  }).join('');
+  if (groups.some(g => g.key === prevColorVal)) colorSelect.value = prevColorVal;
+}
+function renderRmStoEditModal() {
+  if (!rmStoEditingStoNo) return;
+  document.getElementById('rmStoEditModalTitle').textContent = `Edit STO — ${rmStoEditingStoNo}`;
+  const linesWrap = document.getElementById('rmStoEditLinesWrap');
+  const lines = rawMaterialStos.filter(s => s.stoNo === rmStoEditingStoNo && s.itemType === 'fabric');
+  if (!lines.length) {
+    linesWrap.innerHTML = `<div class="empty-state">No fabric roll lines on this STO yet.</div>`;
+  } else {
+    linesWrap.innerHTML = lines.map(s => `<div class="rm-card-row" style="padding:6px 0; border-bottom:1px solid var(--border);">
+      <span>🧵 ${escapeHtml(s.fabricName || '-')} (${escapeHtml(s.colorName || s.colorCode || '-')}) — ${escapeHtml(s.rollNo || '-')} · ${formatQty(s.meter || 0)}m
+        <span class="badge ${s.status === 'Completed' ? 'badge-green' : 'badge-blue'}" style="margin-left:6px;">${escapeHtml(s.status || 'Open')}</span>
+      </span>
+      ${s.status === 'Open' ? `<button type="button" class="btn-ghost rm-sto-edit-remove-btn" data-line="${escapeHtml(s.id)}" style="color:#e0685c;">Remove</button>` : ''}
+    </div>`).join('');
+  }
+  const fabricSelect = document.getElementById('rmStoEditFabricSelect');
+  const prevFabricVal = fabricSelect.value;
+  const fabricGroups = rmStoEditFabricNameGroups();
+  fabricSelect.innerHTML = `<option value="">Select fabric…</option>` + fabricGroups.map(g =>
+    `<option value="${escapeHtml(g.fabricKey)}">${escapeHtml(g.fabricName || '-')}${g.fabricCode ? ` (${escapeHtml(g.fabricCode)})` : ''} — ${g.rollCount} roll(s), ${formatQty(g.totalMeter)}m total</option>`
+  ).join('');
+  if (fabricGroups.some(g => g.fabricKey === prevFabricVal)) fabricSelect.value = prevFabricVal;
+  renderRmStoEditColorOptions();
+  document.getElementById('rmStoEditError').style.display = 'none';
+  document.getElementById('rmStoEditQtyInput').value = '';
+}
+document.getElementById('rmStoEditFabricSelect').addEventListener('change', renderRmStoEditColorOptions);
+document.getElementById('rmStoEditCloseBtn').addEventListener('click', closeRmStoEditModal);
+document.getElementById('rmStoEditDoneBtn').addEventListener('click', closeRmStoEditModal);
+document.getElementById('rmStoEditAddBtn').addEventListener('click', () => {
+  const stoNo = rmStoEditingStoNo;
+  if (!stoNo) return;
+  const errEl = document.getElementById('rmStoEditError');
+  errEl.style.display = 'none';
+  const fabricSelect = document.getElementById('rmStoEditFabricSelect');
+  const colorSelect = document.getElementById('rmStoEditColorSelect');
+  const qtyInput = document.getElementById('rmStoEditQtyInput');
+  const qty = Math.max(0, Math.floor(Number(qtyInput.value) || 0));
+  if (!fabricSelect.value) { errEl.textContent = 'Pick a fabric first.'; errEl.style.display = 'block'; return; }
+  if (!colorSelect.value) { errEl.textContent = 'Pick a colour first.'; errEl.style.display = 'block'; return; }
+  if (!qty) { errEl.textContent = 'Enter Quantity (Rolls) first.'; errEl.style.display = 'block'; return; }
+  const group = rmStoEditAvailableGroups().find(g => g.key === colorSelect.value);
+  if (!group || group.rolls.length < qty) {
+    errEl.textContent = `Only ${group ? group.rolls.length : 0} roll(s) available for this fabric/colour.`;
+    errEl.style.display = 'block';
+    return;
+  }
+  const picked = group.rolls.slice(0, qty);
+  picked.forEach(roll => {
+    rawMaterialStos.push({
+      id: genRmId(), stoNo, itemType: 'fabric', rollId: roll.id, rollNo: roll.rollNo,
+      fabricName: roll.fabricName, fabricCode: roll.fabricCode, colorCode: roll.colorCode, colorName: roll.colorName,
+      meter: Number(roll.meterRemaining) || 0,
+      destination: rmStoEditingMeta.destination, date: rmStoEditingMeta.date, notes: rmStoEditingMeta.notes,
+      status: 'Open'
+    });
+  });
+  saveRawMaterialStos();
+  renderRmStoEditModal();
+  renderRmStoListTable();
+});
+document.getElementById('rmStoEditLinesWrap').addEventListener('click', (e) => {
+  const btn = e.target.closest('.rm-sto-edit-remove-btn');
+  if (!btn) return;
+  const lineId = btn.dataset.line;
+  const line = rawMaterialStos.find(s => s.id === lineId);
+  if (!line || line.status !== 'Open') return; // Completed lines aren't removable here — see comment above
+  rawMaterialStos = rawMaterialStos.filter(s => s.id !== lineId);
+  saveRawMaterialStos();
+  renderRmStoEditModal();
+  renderRmStoListTable();
+});
 function renderRmStoTab() { renderRmStoForm(); renderRmStoListTable(); }
 document.getElementById('rmStoSearchInput').addEventListener('input', renderRmStoListTable);
 document.getElementById('rmStoAddItemBtn').addEventListener('click', addRmStoItem);
@@ -23899,6 +24762,18 @@ let garmentBatchReceivedDateEditingKey = null;
 // Same idea again, for the Putaway Date shown once a batch's putaway is fully Done — corrects a
 // wrong/late-confirmed date the same way Received Date does. Admin/Team Lead only.
 let garmentBatchPutawayDateEditingKey = null;
+// Same in-memory "which card is showing an editable field" pattern, for the Campaign Timeline link
+// (see campaignTimelineMatchReceivingRaw's "direct" link) — open to everyone, not Admin/Team Lead
+// only, since this is just picking which Timeline row this batch corresponds to, not a date that
+// feeds financial/duration reporting.
+let garmentBatchTimelineEditingKey = null;
+// Same pattern, for the Garment Name shown on each card (per Shaila's request, Sep 24, 2026 — she
+// needs to fix spelling typos here, e.g. "CHATAYA CHINA" vs Timeline's "Cathaya", so her batches
+// auto-match/link correctly). Open to everyone, same reasoning as the Timeline link above — not a
+// date that feeds financial/duration reporting, just a text label used for matching. Note: batchNo
+// itself (the card's identifier/key) is intentionally left untouched even though it was originally
+// built by joining garmentName in — only the separate batch.garmentName field is edited.
+let garmentBatchNameEditingKey = null;
 function loadGarmentOrders() {
   try { garmentOrders = JSON.parse(localStorage.getItem(GARMENT_ORDERS_KEY)) || []; } catch (e) { garmentOrders = []; }
   // Migrate from the old flat structure (one row = one batch = one SKU) to the new nested
@@ -23910,6 +24785,14 @@ function loadGarmentOrders() {
       orderDate: o.orderDate,
       skus: [{ sku: o.sku || '', size: o.size || '', qtyOrder: o.qtyOrder || 0, qtyReceived: o.qtyReceived || 0, lastReceivedDate: o.lastReceivedDate || null }]
     };
+  });
+  // Migrate the old single "timelineId" link (one Timeline row per batch) to "timelineIds" (an array)
+  // — per Shaila's request, Sep 24, 2026, a batch can now be linked to several Timeline rows at once.
+  // Old data isn't lost, just wrapped in a one-item array.
+  garmentOrders = garmentOrders.map(o => {
+    if (Array.isArray(o.timelineIds)) return o;
+    const { timelineId, ...rest } = o;
+    return { ...rest, timelineIds: timelineId ? [timelineId] : [] };
   });
 }
 function saveGarmentOrders() { localStorage.setItem(GARMENT_ORDERS_KEY, JSON.stringify(garmentOrders)); }
@@ -24050,13 +24933,14 @@ function processUploadedGarmentFile(file) {
         sheetRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
       }
       const mapped = parseGarmentImportSheet(sheetRows);
-      const { batchesAdded, skusAdded, skusUpdated, skippedNoBatch } = upsertGarmentImportRows(mapped);
-
-      let msg = `Success: ${batchesAdded} new batch(es), ${skusAdded} SKU line(s) added, ${skusUpdated} SKU(s) updated.`;
-      if (skippedNoBatch) msg += ` ${skippedNoBatch} row(s) skipped (missing Batch No.).`;
-      statusEl.textContent = msg;
-      statusEl.className = 'upload-status ok';
-      renderAll();
+      if (!mapped.length) {
+        statusEl.textContent = 'No valid rows found in this file (check Batch No. is filled in on every row).';
+        statusEl.className = 'upload-status err';
+        return;
+      }
+      statusEl.textContent = '';
+      statusEl.className = 'upload-status';
+      openGarmentImportLinkModal(mapped);
     } catch (err) {
       statusEl.textContent = 'Failed to process file: ' + err.message;
       statusEl.className = 'upload-status err';
@@ -24070,6 +24954,87 @@ function processUploadedGarmentFile(file) {
   if (ext === 'csv') reader.readAsText(file);
   else reader.readAsArrayBuffer(file);
 }
+// Holds the parsed-but-not-yet-committed import rows while the Link-to-Timeline popup (below) is
+// open — nothing is written to garmentOrders until she clicks "Confirm Upload" there, so "Cancel
+// Upload" can back out cleanly with no cleanup needed.
+let garmentPendingImportRows = null;
+function closeGarmentImportLinkModal() {
+  document.getElementById('garmentImportLinkModal').classList.add('hidden');
+  garmentPendingImportRows = null;
+}
+// One row per DISTINCT batch in the file (not per SKU/size line — a batch usually has many of those
+// under the same Batch No.), each with its own Timeline-link picker. A batch that already exists
+// (this import is adding more SKUs to it) shows its CURRENT link pre-selected, so leaving it alone
+// keeps whatever was already set rather than accidentally clearing it.
+function openGarmentImportLinkModal(mapped) {
+  garmentPendingImportRows = mapped;
+  const seen = new Map(); // batchNo -> garmentName
+  mapped.forEach(row => { if (!seen.has(row.batchNo)) seen.set(row.batchNo, row.garmentName); });
+  const listWrap = document.getElementById('garmentImportLinkListWrap');
+  listWrap.innerHTML = [...seen.entries()].map(([batchNo, garmentName]) => {
+    const existing = garmentOrders.find(b => b.batchNo === batchNo);
+    return `<div class="form-grid" style="grid-template-columns: 1fr 2fr; align-items:end; margin-bottom:10px;">
+      <div class="field" style="margin:0;">
+        <label style="font-size:11px;">${escapeHtml(batchNo)}${existing ? ' (existing)' : ' (new)'}</label>
+        <span class="data-note" style="margin:0;">${escapeHtml(garmentName || '(no garment name)')}</span>
+      </div>
+      <div class="field" style="margin:0; display:flex; gap:6px; flex-wrap:wrap; align-items:flex-start;">
+        <select class="garment-import-link-series-input" data-batch="${escapeHtml(batchNo)}" style="max-width:130px;"><option value="">-- Select Series --</option></select>
+        <div class="garment-import-link-input" data-batch="${escapeHtml(batchNo)}" style="max-width:220px;"></div>
+        <select class="garment-import-shipment-leg-input" data-batch="${escapeHtml(batchNo)}" style="max-width:150px;" disabled>
+          <option value="" ${!(existing && existing.shipmentLeg) ? 'selected' : ''}>-- Overall (not split) --</option>
+          <option value="shipment1" ${existing && existing.shipmentLeg === 'shipment1' ? 'selected' : ''}>Shipment 1</option>
+          <option value="shipment2" ${existing && existing.shipmentLeg === 'shipment2' ? 'selected' : ''}>Shipment 2</option>
+        </select>
+        <span class="data-note" style="width:100%; margin:2px 0 0;">Tick as many items as apply.</span>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('garmentImportLinkModal').classList.remove('hidden');
+  document.querySelectorAll('.garment-import-link-input').forEach(select => {
+    const seriesSelect = document.querySelector(`.garment-import-link-series-input[data-batch="${CSS.escape(select.dataset.batch)}"]`);
+    const legSelect = document.querySelector(`.garment-import-shipment-leg-input[data-batch="${CSS.escape(select.dataset.batch)}"]`);
+    const existing = garmentOrders.find(b => b.batchNo === select.dataset.batch);
+    campaignTimelineWireCascadingLink(seriesSelect, select, existing ? (existing.timelineIds || []) : null, legSelect, select.dataset.batch);
+  });
+}
+document.getElementById('garmentImportLinkCloseBtn').addEventListener('click', () => {
+  closeGarmentImportLinkModal();
+  document.getElementById('garmentUploadStatus').textContent = 'Upload cancelled — nothing was added.';
+  document.getElementById('garmentUploadStatus').className = 'upload-status';
+});
+document.getElementById('garmentImportLinkCancelBtn').addEventListener('click', () => {
+  closeGarmentImportLinkModal();
+  document.getElementById('garmentUploadStatus').textContent = 'Upload cancelled — nothing was added.';
+  document.getElementById('garmentUploadStatus').className = 'upload-status';
+});
+document.getElementById('garmentImportLinkConfirmBtn').addEventListener('click', () => {
+  if (!garmentPendingImportRows) return;
+  const picks = new Map(); // batchNo -> { timelineIds, shipmentLeg }
+  document.querySelectorAll('.garment-import-link-input').forEach(sel => {
+    const legSel = document.querySelector(`.garment-import-shipment-leg-input[data-batch="${CSS.escape(sel.dataset.batch)}"]`);
+    const timelineIds = campaignTimelineReadCheckedIds(sel);
+    picks.set(sel.dataset.batch, { timelineIds, shipmentLeg: timelineIds.length && legSel ? legSel.value : '' });
+  });
+  const { batchesAdded, skusAdded, skusUpdated, skippedNoBatch } = upsertGarmentImportRows(garmentPendingImportRows);
+  picks.forEach(({ timelineIds, shipmentLeg }, batchNo) => {
+    // Applied as-is, including empty — for an existing batch the select started pre-filled with its
+    // current link(s) (see openGarmentImportLinkModal), so leaving it alone round-trips the same value
+    // back and a genuinely new batch has nothing to clear anyway; only an EXISTING batch where she
+    // deliberately deselects everything actually clears something, which is exactly what that should do.
+    const batch = garmentOrders.find(b => b.batchNo === batchNo);
+    if (batch) { batch.timelineIds = timelineIds; batch.shipmentLeg = shipmentLeg; }
+  });
+  saveGarmentOrders();
+
+  const statusEl = document.getElementById('garmentUploadStatus');
+  let msg = `Success: ${batchesAdded} new batch(es), ${skusAdded} SKU line(s) added, ${skusUpdated} SKU(s) updated.`;
+  if (skippedNoBatch) msg += ` ${skippedNoBatch} row(s) skipped (missing Batch No.).`;
+  statusEl.textContent = msg;
+  statusEl.className = 'upload-status ok';
+  closeGarmentImportLinkModal();
+  renderAll();
+});
 document.getElementById('garmentFileInput').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -24473,6 +25438,27 @@ function garmentBatchMatchesSearch(batch, q) {
 }
 
 function renderGarmentOrderTab() {
+  // Self-healing auto-link pass (see garmentBatchAutoLinkTimelineIds above) — runs on every render so
+  // a batch picks up its explicit Timeline link automatically as soon as its Garment Name and the
+  // Timeline data agree, whether that happened because she just fixed a typo, or because new Timeline
+  // rows synced in later. Each call is a cheap early-return for any batch already linked, so this
+  // doesn't meaningfully slow down rendering.
+  let garmentAutoLinked = false;
+  garmentOrders.forEach(b => { if (garmentBatchAutoLinkTimelineIds(b)) garmentAutoLinked = true; });
+  if (garmentAutoLinked) saveGarmentOrders();
+
+  // The "Add Batch" form's link-picker lives outside #garmentOrderTableWrap (it's above the batch
+  // list), so it needs refreshing here regardless of the early-returns below — keeps its option list
+  // current with whatever's in Campaign Timeline right now, without needing its own separate render
+  // hook. Preserves whatever the user already picked (if that Timeline row still exists) rather than
+  // resetting it every time this runs (e.g. after any other edit elsewhere triggers a re-render).
+  const timelineLinkSelect = document.getElementById('inputNewGarmentTimelineLink');
+  const timelineSeriesSelect = document.getElementById('inputNewGarmentTimelineSeries');
+  const timelineLegSelect = document.getElementById('inputNewGarmentShipmentLeg');
+  if (timelineLinkSelect && timelineSeriesSelect) {
+    const currentIds = campaignTimelineReadCheckedIds(timelineLinkSelect);
+    campaignTimelineWireCascadingLink(timelineSeriesSelect, timelineLinkSelect, currentIds, timelineLegSelect);
+  }
   const wrap = document.getElementById('garmentOrderTableWrap');
   if (!garmentOrders.length) {
     wrap.innerHTML = `<div class="empty-state">No garment order batches yet. Add one above.</div>`;
@@ -24519,6 +25505,27 @@ function renderGarmentOrderTab() {
           <span class="mono-name" style="font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(batch.batchNo)}</span>
           ${canDeleteBatch ? `<button type="button" class="icon-btn remove-garment-batch-btn" data-batch="${escapeHtml(batch.batchNo)}" title="Delete batch">✕</button>` : ''}
         </div>
+        <div class="data-note garment-batch-name-row" data-batch="${escapeHtml(batch.batchNo)}" style="margin:0 0 4px; display:flex; align-items:center; gap:6px;">
+          <span style="color:var(--text-muted); font-size:10px; text-transform:uppercase; letter-spacing:0.03em;">Garment Name:</span>
+          ${garmentBatchNameEditingKey === batch.batchNo
+            ? (() => {
+                const suppliers = campaignTimelineDistinctSuppliers();
+                const current = (batch.garmentName || '').trim();
+                // Keep whatever's currently saved as its own option (even if it's not a valid Timeline
+                // Tailor Supplier, e.g. it's the very typo she's fixing) so picking the dropdown never
+                // silently discards it before she's chosen a replacement.
+                const allOptions = current && !suppliers.includes(current) ? [current, ...suppliers] : suppliers;
+                const optionsHtml = allOptions.map(name => `<option value="${escapeHtml(name)}"${name === current ? ' selected' : ''}>${escapeHtml(name)}</option>`).join('');
+                return `<select class="garment-batch-name-input" data-batch="${escapeHtml(batch.batchNo)}" style="max-width:220px;">
+                 <option value="">-- Pilih Tailor Supplier --</option>
+                 ${optionsHtml}
+               </select>
+               <button type="button" class="icon-btn garment-batch-name-save-btn" data-batch="${escapeHtml(batch.batchNo)}" title="Save">✓</button>
+               <button type="button" class="icon-btn garment-batch-name-cancel-btn" data-batch="${escapeHtml(batch.batchNo)}" title="Cancel">✕</button>`;
+              })()
+            : `<span>${escapeHtml(batch.garmentName || '-')}</span><button type="button" class="icon-btn garment-batch-name-edit-btn" data-batch="${escapeHtml(batch.batchNo)}" title="Edit Garment Name (fix a spelling typo so this batch matches Timeline)">✎</button>`
+          }
+        </div>
         <div class="data-note garment-batch-date-row" data-batch="${escapeHtml(batch.batchNo)}" style="margin:0 0 4px; display:flex; align-items:center; gap:6px;">
           <span style="color:var(--text-muted); font-size:10px; text-transform:uppercase; letter-spacing:0.03em;">Order:</span>
           ${garmentBatchDateEditingKey === batch.batchNo
@@ -24546,6 +25553,42 @@ function renderGarmentOrderTab() {
             : `<span>${formatDateLabel(lastPutawayDate)}</span>${(currentUser && currentUser.isAdmin) ? `<button type="button" class="icon-btn garment-batch-putaway-date-edit-btn" data-batch="${escapeHtml(batch.batchNo)}" title="Edit Putaway Date (Admin/Team Lead only) — applies to every SKU already marked done in this batch">✎</button>` : ''}`
           }
         </div>` : ''}
+        <div class="data-note garment-batch-timeline-link-row" data-batch="${escapeHtml(batch.batchNo)}" style="margin:0 0 10px;${garmentBatchTimelineEditingKey === batch.batchNo ? '' : ' display:flex; align-items:center; gap:6px;'}">
+          <span style="color:var(--text-muted); font-size:10px; text-transform:uppercase; letter-spacing:0.03em; display:block; margin-bottom:${garmentBatchTimelineEditingKey === batch.batchNo ? '4px' : '0'};">Timeline:</span>
+          ${garmentBatchTimelineEditingKey === batch.batchNo
+            ? `<div style="display:flex; align-items:flex-start; gap:6px; flex-wrap:wrap;">
+                 <select class="garment-batch-timeline-series-input" data-batch="${escapeHtml(batch.batchNo)}" style="max-width:140px;"><option value="">-- Select Series --</option></select>
+                 <div class="garment-batch-timeline-link-input" data-batch="${escapeHtml(batch.batchNo)}" style="max-width:240px;"></div>
+                 <select class="garment-batch-shipment-leg-input" data-batch="${escapeHtml(batch.batchNo)}" style="max-width:150px;" disabled>
+                   <option value="" ${!batch.shipmentLeg ? 'selected' : ''}>-- Overall (not split) --</option>
+                   <option value="shipment1" ${batch.shipmentLeg === 'shipment1' ? 'selected' : ''}>Shipment 1</option>
+                   <option value="shipment2" ${batch.shipmentLeg === 'shipment2' ? 'selected' : ''}>Shipment 2</option>
+                 </select>
+                 <button type="button" class="icon-btn garment-batch-timeline-link-save-btn" data-batch="${escapeHtml(batch.batchNo)}" title="Save">✓</button>
+                 <button type="button" class="icon-btn garment-batch-timeline-link-cancel-btn" data-batch="${escapeHtml(batch.batchNo)}" title="Cancel">✕</button>
+                 <span class="data-note" style="width:100%; margin:2px 0 0;">Tick as many items as apply.</span>
+               </div>`
+            : (() => {
+                const timelineIds = batch.timelineIds || [];
+                const linkedRecs = timelineIds.map(id => campaignTimelineList.find(r => r.id === id)).filter(Boolean);
+                const legLabel = batch.shipmentLeg === 'shipment1' ? ' (Shipment 1)' : batch.shipmentLeg === 'shipment2' ? ' (Shipment 2)' : '';
+                let label, title = '';
+                if (!timelineIds.length) label = 'Not linked';
+                else if (!linkedRecs.length) label = '(linked item(s) no longer in Timeline)';
+                else if (linkedRecs.length === 1) label = [linkedRecs[0].series, linkedRecs[0].officialProductName].filter(Boolean).join(' — ') + legLabel;
+                else {
+                  label = `${linkedRecs[0].series || '-'} — ${linkedRecs.length} items linked` + legLabel;
+                  title = linkedRecs.map(r => r.officialProductName || '(no product name)').join(', ');
+                }
+                return `<span title="${escapeHtml(title)}">${escapeHtml(label)}</span><button type="button" class="icon-btn garment-batch-timeline-link-edit-btn" data-batch="${escapeHtml(batch.batchNo)}" title="Link this batch to a Campaign Timeline row">✎</button>`;
+              })()
+          }
+        </div>
+        ${garmentBatchTimelineEditingKey === batch.batchNo ? '' : (() => {
+          const warningLines = garmentBatchGroupWarningLines(batch);
+          if (!warningLines.length) return '';
+          return `<div class="data-note garment-batch-name-mismatch-warning" style="margin:0 0 10px; padding:6px 8px; background:rgba(214,90,60,0.12); border:1px solid rgba(214,90,60,0.4); border-radius:4px; color:#e08a6f; font-size:11px; line-height:1.4;">${warningLines.map(line => `⚠ ${escapeHtml(line)}`).join('<br>')}</div>`;
+        })()}
         <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;">
           <span class="data-note" style="margin:0;">${batch.skus.length} SKU · ${formatQty(qtyReceived)}/${formatQty(qtyOrder)} pcs</span>
           <span class="badge ${garmentStatusBadgeClass(status)}">Receive: ${status}</span>
@@ -24600,7 +25643,7 @@ function renderGarmentOrderTab() {
   // it bails out of the toggle instead of also opening/closing the card.
   wrap.querySelectorAll('.garment-batch-header').forEach(header => {
     header.addEventListener('click', (e) => {
-      if (e.target.closest('.remove-garment-batch-btn') || e.target.closest('.garment-batch-date-row') || e.target.closest('.garment-batch-received-date-row') || e.target.closest('.garment-batch-putaway-date-row')) return;
+      if (e.target.closest('.remove-garment-batch-btn') || e.target.closest('.garment-batch-name-row') || e.target.closest('.garment-batch-date-row') || e.target.closest('.garment-batch-received-date-row') || e.target.closest('.garment-batch-putaway-date-row') || e.target.closest('.garment-batch-timeline-link-row')) return;
       const batchNo = header.dataset.batch;
       if (garmentExpandedBatches.has(batchNo)) garmentExpandedBatches.delete(batchNo);
       else garmentExpandedBatches.add(batchNo);
@@ -24640,6 +25683,37 @@ function renderGarmentOrderTab() {
         renderRollcagesList();
         renderRollcageUsageBoards();
       }
+    });
+  });
+
+  // Garment Name edit — open to everyone (not gated to Admin/Team Lead), since this is just a text
+  // label used for Timeline auto-matching (see garmentBatchGroupDiagnostics above), not a date
+  // feeding financial/duration reporting. Only batch.garmentName is changed here — batchNo (the
+  // card's key, used everywhere as data-batch) is left untouched on purpose.
+  wrap.querySelectorAll('.garment-batch-name-edit-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      garmentBatchNameEditingKey = btn.dataset.batch;
+      renderGarmentOrderTab();
+    });
+  });
+  wrap.querySelectorAll('.garment-batch-name-cancel-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      garmentBatchNameEditingKey = null;
+      renderGarmentOrderTab();
+    });
+  });
+  wrap.querySelectorAll('.garment-batch-name-save-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const batchNo = btn.dataset.batch;
+      const input = wrap.querySelector(`.garment-batch-name-input[data-batch="${CSS.escape(batchNo)}"]`);
+      const newName = input ? input.value.trim() : '';
+      const batch = garmentOrders.find(b => b.batchNo === batchNo);
+      if (batch) { batch.garmentName = newName; saveGarmentOrders(); }
+      garmentBatchNameEditingKey = null;
+      renderGarmentOrderTab();
     });
   });
 
@@ -24753,6 +25827,48 @@ function renderGarmentOrderTab() {
         if (touched) saveGarmentOrders();
       }
       garmentBatchPutawayDateEditingKey = null;
+      renderGarmentOrderTab();
+    });
+  });
+
+  // Campaign Timeline link edit — open to everyone (not Admin/Team Lead only, unlike the date edits
+  // above), since this just picks which Timeline row this batch corresponds to rather than touching
+  // any date that feeds financial/duration reporting. See campaignTimelineMatchReceivingRaw for how
+  // this direct link overrides the fuzzy name-matching once set.
+  wrap.querySelectorAll('.garment-batch-timeline-link-edit-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      garmentBatchTimelineEditingKey = btn.dataset.batch;
+      renderGarmentOrderTab();
+    });
+  });
+  wrap.querySelectorAll('.garment-batch-timeline-link-cancel-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      garmentBatchTimelineEditingKey = null;
+      renderGarmentOrderTab();
+    });
+  });
+  wrap.querySelectorAll('.garment-batch-timeline-link-input').forEach(select => {
+    const seriesSelect = wrap.querySelector(`.garment-batch-timeline-series-input[data-batch="${CSS.escape(select.dataset.batch)}"]`);
+    const legSelect = wrap.querySelector(`.garment-batch-shipment-leg-input[data-batch="${CSS.escape(select.dataset.batch)}"]`);
+    const batch = garmentOrders.find(b => b.batchNo === select.dataset.batch);
+    campaignTimelineWireCascadingLink(seriesSelect, select, batch ? (batch.timelineIds || []) : null, legSelect, select.dataset.batch);
+  });
+  wrap.querySelectorAll('.garment-batch-timeline-link-save-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const batchNo = btn.dataset.batch;
+      const select = wrap.querySelector(`.garment-batch-timeline-link-input[data-batch="${CSS.escape(batchNo)}"]`);
+      const legSelect = wrap.querySelector(`.garment-batch-shipment-leg-input[data-batch="${CSS.escape(batchNo)}"]`);
+      const batch = garmentOrders.find(b => b.batchNo === batchNo);
+      if (batch) {
+        const timelineIds = campaignTimelineReadCheckedIds(select);
+        batch.timelineIds = timelineIds;
+        batch.shipmentLeg = (timelineIds.length && legSelect) ? legSelect.value : '';
+        saveGarmentOrders();
+      }
+      garmentBatchTimelineEditingKey = null;
       renderGarmentOrderTab();
     });
   });
@@ -25011,6 +26127,9 @@ document.getElementById('addGarmentOrderBtn').addEventListener('click', () => {
   const nameInput = document.getElementById('inputNewGarmentName');
   const skuInput = document.getElementById('inputNewGarmentSku');
   const catSelect = document.getElementById('inputNewGarmentCategory');
+  const timelineLinkSelect = document.getElementById('inputNewGarmentTimelineLink');
+  const timelineSeriesSelect = document.getElementById('inputNewGarmentTimelineSeries');
+  const shipmentLegSelect = document.getElementById('inputNewGarmentShipmentLeg');
   const note = document.getElementById('garmentOrderNote');
   const defaultNote = 'Order No. is auto-generated ("Batch No.-Garment Name-YYYYMMDD"). Pick a Category to open its size boxes, fill in whichever apply — you can reopen the card later to add more SKUs/sizes.';
 
@@ -25045,7 +26164,9 @@ document.getElementById('addGarmentOrderBtn').addEventListener('click', () => {
     skus.push({ sku, qtyOrder: 0, qtyReceived: 0 });
   }
 
-  garmentOrders.push({ batchNo, garmentName, orderDate, skus });
+  const timelineIds = campaignTimelineReadCheckedIds(timelineLinkSelect);
+  const shipmentLeg = (timelineIds.length && shipmentLegSelect) ? shipmentLegSelect.value : '';
+  garmentOrders.push({ batchNo, garmentName, orderDate, skus, timelineIds, shipmentLeg });
   garmentExpandedBatches.add(batchNo);
   saveGarmentOrders();
 
@@ -25055,6 +26176,9 @@ document.getElementById('addGarmentOrderBtn').addEventListener('click', () => {
   nameInput.value = '';
   skuInput.value = '';
   catSelect.value = '';
+  if (timelineSeriesSelect) timelineSeriesSelect.value = '';
+  if (timelineLinkSelect) timelineLinkSelect.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = false; });
+  if (shipmentLegSelect) shipmentLegSelect.value = '';
   document.getElementById('newGarmentSizeGridWrap').style.display = 'none';
   document.getElementById('newGarmentSizeGrid').innerHTML = '';
   batchInput.focus();
