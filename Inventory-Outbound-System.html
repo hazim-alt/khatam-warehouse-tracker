@@ -1260,6 +1260,7 @@
     </div>
     <button class="tab-btn" data-tab="staff-schedule">Staff Schedule</button>
     <button class="tab-btn" data-tab="item-master">Item Master List</button>
+    <button class="tab-btn" data-tab="sku-price">SKU Price List</button>
     <button class="tab-btn" data-tab="stock-available">Available Stock</button>
     <button class="tab-btn" data-tab="finance">Finance</button>
     <button class="tab-btn" data-tab="request-stock">Request Stock</button>
@@ -2621,6 +2622,70 @@
       <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
         <button class="btn-ghost" id="undoResetItemMasterBtn" style="display:none;">↩ Undo Reset</button>
         <button class="btn-ghost" id="resetItemMasterBtn" style="color:#e0685c;">🗑 Reset Item Master List</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-sku-price">
+    <p class="section-title">SKU Price List</p>
+    <div class="card">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <span class="data-note" style="margin:0;">Upload a simple SKU + Price file (2 columns only — needs a "SKU" column and a "Price" column; header names are matched loosely, case-insensitive). Kept in its own storage (same IndexedDB approach as Item Master List), separate from the Item Master upload, so a big price file never touches or disturbs the SKUs you've already uploaded there by Campaign Year.</span>
+        <span id="skuPriceStatusNote" class="data-note" style="margin:0; white-space:nowrap;"></span>
+      </div>
+      <div style="display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; margin-bottom:12px;">
+        <div class="field" style="margin:0;">
+          <label>Upload mode</label>
+          <select id="skuPriceUploadModeSelect" style="width:auto;">
+            <option value="add">➕ Add / update these SKUs (keep the rest)</option>
+            <option value="replace">🔁 Replace whole list</option>
+          </select>
+        </div>
+        <button type="button" class="btn-ghost" id="downloadSkuPriceTemplateBtn">⬇ Download Template</button>
+      </div>
+      <div class="dropzone" id="skuPriceDropzone">
+        <div class="dropzone-icon">⬆</div>
+        <div class="upload-row">
+          <label class="upload-btn-label">
+            Choose File
+            <input type="file" id="skuPriceFileInput" accept=".csv,.xlsx,.xls">
+          </label>
+          <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx / .xls file here</span>
+        </div>
+      </div>
+      <div class="upload-status" id="skuPriceUploadStatus"></div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
+        <p class="section-title" style="margin:0;">Price List</p>
+        <button type="button" class="btn-primary" id="skuPriceAddBtn">+ Add SKU</button>
+      </div>
+
+      <div id="skuPriceFormWrap" class="card" style="display:none; margin-bottom:14px; background:rgba(255,255,255,0.03);">
+        <p class="section-title" id="skuPriceFormTitle" style="margin-top:0;">Add SKU Price</p>
+        <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:10px;">
+          <div class="field"><label>SKU</label><input type="text" id="skuPriceFormSku"></div>
+          <div class="field"><label>Price</label><input type="text" id="skuPriceFormPrice" placeholder="e.g. 89.90"></div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:14px;">
+          <button type="button" class="btn-primary" id="skuPriceFormSaveBtn">Save</button>
+          <button type="button" class="btn-ghost" id="skuPriceFormCancelBtn">Cancel</button>
+        </div>
+      </div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+        <input type="text" id="skuPriceSearchInput" placeholder="Search SKU..." style="flex:1; min-width:220px;">
+      </div>
+      <div id="skuPriceTableWrap" class="scroll-table"></div>
+      <div id="skuPricePaginationWrap" style="display:flex; align-items:center; justify-content:center; gap:10px; margin-top:12px;"></div>
+    </div>
+
+    <div class="card" style="margin-top:16px; border-color:#e0685c;">
+      <p class="rm-form-section-label" style="margin-top:0; color:#e0685c;">⚠ Danger Zone</p>
+      <span class="data-note" style="margin:0;">Delete ALL SKU Price List data — to clear old/test data before starting fresh.</span>
+      <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+        <button class="btn-ghost" id="resetSkuPriceBtn" style="color:#e0685c;">🗑 Reset SKU Price List</button>
       </div>
     </div>
   </section>
@@ -4685,11 +4750,20 @@ function loadData() {
   loadReqStockTemplate();
   loadSkuReference();
   loadItemMasterList();
+  loadSkuPriceList();
   loadStockAvailableList();
   loadProductionDecisions();
   loadProductionRmDecisions();
   loadCampaignTimelineList();
   loadCampaignTimelineGsheetUrls();
+  // Per Shaila's request (Sep 25, 2026 — "tkleh buat auto je teros?"): auto-refresh from her saved
+  // Google Sheet link(s) once on every page load, instead of her having to remember to click "Refresh
+  // from Google Sheets" by hand every time she reopens/reloads the app. Same function the button
+  // itself calls — runs silently in the background; its own status line (under the Timeline upload
+  // section) updates once it's done. A no-op if she hasn't saved a link yet.
+  if (campaignTimelineGsheetUrls.summary || campaignTimelineGsheetUrls.patawali) {
+    fetchCampaignTimelineFromGoogleSheets();
+  }
   // Cleans up any STO No. duplicates already sitting in storage (e.g. from two devices each adding
   // the same STO No. before they'd ever synced with each other — see backfillNaturalSyncIds above)
   // and makes sure every record has a stable id going forward, right from the moment data loads —
@@ -5429,6 +5503,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'fleet-trips' || btn.dataset.tab === 'fleet-board' || btn.dataset.tab === 'fleet-driver-trip') renderFleetTab();
     if (btn.dataset.tab === 'staff-schedule') { renderStaffRosterList(); renderStaffScheduleGrid(); }
     if (btn.dataset.tab === 'item-master') renderItemMasterTab();
+    if (btn.dataset.tab === 'sku-price') renderSkuPriceTab();
     if (btn.dataset.tab === 'stock-available') { renderStockAvailableTab(); refreshStockAvailableFromServer(); }
     if (btn.dataset.tab === 'production-stock-balance') renderProductionStockBalanceTab();
     if (btn.dataset.tab === 'production-fg') renderProductionStockFgTab();
@@ -8433,6 +8508,7 @@ const PERMISSION_TABS = [
   { id: 'team-printers', label: 'Printers (Team Setup)' },
   { id: 'staff-schedule', label: 'Staff Schedule' },
   { id: 'item-master', label: 'Item Master List' },
+  { id: 'sku-price', label: 'SKU Price List' },
   { id: 'stock-available', label: 'Available Stock' },
   { id: 'production-stock-balance', label: 'Stock Balance (Production)' },
   { id: 'production-fg', label: 'Stock Level Finish Good (Production)' },
@@ -10134,6 +10210,332 @@ document.getElementById('undoResetItemMasterBtn').addEventListener('click', asyn
   updateResetUndoButtons();
 });
 
+/* ==================== SKU Price List (per Shaila, Sep 25, 2026 — "saya ade data untuk price setiap
+   sku,,tapi saya takut file ni terlalu besar untuk upload") ====================
+   A deliberately separate, minimal module: just SKU + Price, in its OWN IndexedDB database — same
+   size-safety reasoning as Item Master List above (localStorage's ~5-10MB quota can't hold a big
+   list), kept apart from Item Master's own storage/upload flow entirely per her explicit worry
+   ("kalau dalam item master tak kacau ke sku saya dah upload tu,,sbb saya dah asing kan ikut campaign
+   years") — a big price upload here can never touch or disturb what she's already organized there by
+   Campaign Year. `sku` (uppercased/trimmed) is the IndexedDB keyPath itself, so re-uploading a file
+   naturally upserts matching SKUs instead of needing a separate id. */
+const SKU_PRICE_DB_NAME = 'khatam_sku_price_db';
+const SKU_PRICE_DB_VERSION = 1;
+const SKU_PRICE_STORE = 'prices';
+const SKU_PRICE_IMPORTED_AT_KEY = 'sto_sku_price_imported_at_v1';
+let skuPriceList = []; // [{ sku, price }] — sku is uppercased/trimmed, doubles as the IndexedDB key
+let skuPriceImportedAt = '';
+let skuPriceDb = null;
+function openSkuPriceDb() {
+  return new Promise((resolve, reject) => {
+    if (skuPriceDb) { resolve(skuPriceDb); return; }
+    if (!window.indexedDB) { reject(new Error('This browser does not support IndexedDB.')); return; }
+    const req = indexedDB.open(SKU_PRICE_DB_NAME, SKU_PRICE_DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(SKU_PRICE_STORE)) db.createObjectStore(SKU_PRICE_STORE, { keyPath: 'sku' });
+    };
+    req.onsuccess = (e) => { skuPriceDb = e.target.result; resolve(skuPriceDb); };
+    req.onerror = (e) => reject((e.target && e.target.error) || new Error('Failed to open SKU Price List storage.'));
+  });
+}
+function skuPriceReplaceAll(list, onProgress) {
+  return openSkuPriceDb().then(db => idbReplaceAllChunked(db, SKU_PRICE_STORE, list, onProgress));
+}
+function skuPriceBulkPut(items) {
+  return openSkuPriceDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(SKU_PRICE_STORE, 'readwrite');
+    const store = tx.objectStore(SKU_PRICE_STORE);
+    items.forEach(it => store.put(it));
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+function skuPricePutOne(item) {
+  return openSkuPriceDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(SKU_PRICE_STORE, 'readwrite');
+    tx.objectStore(SKU_PRICE_STORE).put(item);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+function skuPriceDeleteOne(sku) {
+  return openSkuPriceDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(SKU_PRICE_STORE, 'readwrite');
+    tx.objectStore(SKU_PRICE_STORE).delete(sku);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+function skuPriceGetAll() {
+  return openSkuPriceDb().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(SKU_PRICE_STORE, 'readonly');
+    const req = tx.objectStore(SKU_PRICE_STORE).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  }));
+}
+async function loadSkuPriceList() {
+  skuPriceImportedAt = localStorage.getItem(SKU_PRICE_IMPORTED_AT_KEY) || '';
+  try {
+    skuPriceList = await skuPriceGetAll();
+  } catch (err) {
+    skuPriceList = [];
+  }
+  const tabEl = document.getElementById('tab-sku-price');
+  if (tabEl && tabEl.classList.contains('active')) renderSkuPriceTab();
+}
+// Cached lookup Map, same invalidate-on-reference-change pattern used elsewhere in this app (e.g.
+// itemMasterSkuIndex) — cheap to keep in sync since skuPriceList is only ever reassigned wholesale
+// (upload/reset), never mutated item-by-item in place.
+let _skuPriceMapCache = null;
+let _skuPriceMapCacheSrc = null;
+function skuPriceMap() {
+  if (_skuPriceMapCacheSrc !== skuPriceList) {
+    _skuPriceMapCache = new Map(skuPriceList.map(it => [it.sku, it.price]));
+    _skuPriceMapCacheSrc = skuPriceList;
+  }
+  return _skuPriceMapCache;
+}
+// Available for other modules to pull a SKU's price later (e.g. costing on a Garment Order/DO) —
+// returns the raw price value (whatever text/number she uploaded) or null if this SKU has none.
+function skuPriceLookup(sku) {
+  const key = String(sku || '').trim().toUpperCase();
+  if (!key) return null;
+  const map = skuPriceMap();
+  return map.has(key) ? map.get(key) : null;
+}
+function renderSkuPriceStatusNote() {
+  const el = document.getElementById('skuPriceStatusNote');
+  if (!el) return;
+  if (!skuPriceList.length) { el.textContent = 'No SKU Price List uploaded yet.'; return; }
+  const dateLabel = skuPriceImportedAt ? formatDateLabel(skuPriceImportedAt.slice(0, 10)) : '';
+  el.textContent = `${formatQty(skuPriceList.length)} SKU price(s) loaded${dateLabel ? ` (${dateLabel})` : ''}.`;
+}
+function processUploadedSkuPriceFile(file) {
+  const statusEl = document.getElementById('skuPriceUploadStatus');
+  statusEl.textContent = 'Processing file... (large list, may take a few seconds)';
+  statusEl.className = 'upload-status';
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = async (evt) => {
+    try {
+      let objRows = [];
+      if (ext === 'csv') {
+        const text = String(evt.target.result).replace(/^﻿/, '');
+        objRows = parseCsv(text);
+      } else {
+        const wb = XLSX.read(evt.target.result, { type: 'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        objRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+      }
+      if (!objRows.length) throw new Error('File is empty / has no data.');
+      const headerKeys = Object.keys(objRows[0]);
+      const findKey = (name) => headerKeys.find(k => k.trim().toLowerCase() === name);
+      // Exact match first ("SKU", "Price"), then fall back to a contains-match (e.g. "SKU Code",
+      // "SKU No.", "Item SKU", "Selling Price", "Unit Price") — same lesson learned from her Tailor
+      // Supplier / Quantity FG headers elsewhere in this file not being an exact match either.
+      const findKeyContains = (name) => headerKeys.find(k => k.trim().toLowerCase().includes(name));
+      const skuKey = findKey('sku') || findKeyContains('sku');
+      const priceKey = findKey('price') || findKeyContains('price');
+      if (!skuKey) throw new Error(`This file needs a "SKU" column. Columns found: ${headerKeys.join(', ')}`);
+      if (!priceKey) throw new Error(`This file needs a "Price" column. Columns found: ${headerKeys.join(', ')}`);
+      const uploadMode = document.getElementById('skuPriceUploadModeSelect').value; // 'add' | 'replace'
+      const seen = new Set();
+      const mapped = [];
+      objRows.forEach(r => {
+        const skuRaw = String(r[skuKey] || '').trim();
+        if (!skuRaw) return;
+        const sku = skuRaw.toUpperCase();
+        if (seen.has(sku)) return; // dedupe exact-duplicate rows, keep first seen
+        seen.add(sku);
+        mapped.push({ sku, price: String(r[priceKey] == null ? '' : r[priceKey]).trim() });
+      });
+      if (!mapped.length) throw new Error('No valid rows (all SKUs blank?).');
+      statusEl.textContent = `Saving ${formatQty(mapped.length)} SKU price(s) to storage...`;
+      if (uploadMode === 'replace') {
+        await skuPriceReplaceAll(mapped);
+        skuPriceList = mapped;
+      } else {
+        await skuPriceBulkPut(mapped);
+        const bySku = new Map(skuPriceList.map(it => [it.sku, it]));
+        mapped.forEach(it => bySku.set(it.sku, it));
+        skuPriceList = [...bySku.values()];
+      }
+      skuPriceImportedAt = new Date().toISOString();
+      localStorage.setItem(SKU_PRICE_IMPORTED_AT_KEY, skuPriceImportedAt);
+      skuPricePage = 0;
+      const droppedCount = objRows.length - mapped.length;
+      const modeLabel = uploadMode === 'replace' ? 'loaded (old list replaced)' : 'added/updated (other SKUs kept)';
+      statusEl.textContent = `Success: ${formatQty(mapped.length)} SKU price(s) ${modeLabel}${droppedCount > 0 ? ` (${formatQty(droppedCount)} duplicate/blank row(s) dropped)` : ''}.`;
+      statusEl.className = 'upload-status ok';
+      renderSkuPriceTab();
+    } catch (err) {
+      statusEl.textContent = 'Failed to process file: ' + err.message;
+      statusEl.className = 'upload-status err';
+    }
+  };
+  reader.onerror = () => { statusEl.textContent = 'Failed to read file.'; statusEl.className = 'upload-status err'; };
+  if (ext === 'csv') reader.readAsText(file);
+  else reader.readAsArrayBuffer(file);
+}
+document.getElementById('skuPriceFileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  processUploadedSkuPriceFile(file);
+  e.target.value = '';
+});
+const skuPriceDropzone = document.getElementById('skuPriceDropzone');
+['dragenter', 'dragover'].forEach(evtName => {
+  skuPriceDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); skuPriceDropzone.classList.add('dragover'); });
+});
+['dragleave', 'drop'].forEach(evtName => {
+  skuPriceDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); skuPriceDropzone.classList.remove('dragover'); });
+});
+skuPriceDropzone.addEventListener('drop', (e) => {
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (file) processUploadedSkuPriceFile(file);
+});
+document.getElementById('downloadSkuPriceTemplateBtn').addEventListener('click', () => {
+  const wsData = [['SKU', 'Price'], ['ABC-001-S', '89.90']];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [{ wch: 20 }, { wch: 12 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'SKU Price');
+  XLSX.writeFile(wb, 'sku_price_list_template.xlsx');
+});
+
+// Per Shaila's request (Sep 25, 2026 — "buat la RMxx,,,kalau no je tak cantik"): display-only currency
+// formatting — the stored value stays exactly as uploaded (so re-exporting/editing never loses
+// precision or an already-formatted string), this just dresses up a plain number for the table. Any
+// value that's already text (e.g. she typed "RM89.00" or "TBC" manually) is shown as-is untouched.
+function skuPriceFormatDisplay(price) {
+  const raw = String(price == null ? '' : price).trim();
+  if (!raw) return '-';
+  if (/rm/i.test(raw)) return raw; // already has an RM (or similar) prefix — don't double up
+  const num = Number(raw.replace(/,/g, ''));
+  return isNaN(num) ? raw : `RM${num.toFixed(2)}`;
+}
+/* ---- SKU Price List table: search + pagination (list can run to tens of thousands of rows) + add/edit/delete ---- */
+let skuPricePage = 0;
+const SKU_PRICE_PAGE_SIZE = 50;
+let skuPriceEditSku = null; // which row (by sku) the form is currently editing, null = adding new
+function skuPriceFilteredList() {
+  const search = (document.getElementById('skuPriceSearchInput').value || '').trim().toLowerCase();
+  let list = skuPriceList;
+  if (search) list = list.filter(it => (it.sku || '').toLowerCase().includes(search));
+  return list;
+}
+function renderSkuPriceTable() {
+  const wrap = document.getElementById('skuPriceTableWrap');
+  const pagWrap = document.getElementById('skuPricePaginationWrap');
+  const list = skuPriceFilteredList();
+  if (!list.length) {
+    wrap.innerHTML = `<div class="empty-state">${skuPriceList.length ? 'No SKU matches the search.' : 'No SKU Price List uploaded yet.'}</div>`;
+    pagWrap.innerHTML = '';
+    return;
+  }
+  const totalPages = Math.max(1, Math.ceil(list.length / SKU_PRICE_PAGE_SIZE));
+  if (skuPricePage >= totalPages) skuPricePage = totalPages - 1;
+  if (skuPricePage < 0) skuPricePage = 0;
+  const pageItems = list.slice(skuPricePage * SKU_PRICE_PAGE_SIZE, (skuPricePage + 1) * SKU_PRICE_PAGE_SIZE);
+
+  let html = `<table><thead><tr><th>SKU</th><th>Price</th><th></th></tr></thead><tbody>`;
+  pageItems.forEach(it => {
+    html += `<tr>
+      <td class="mono-name">${escapeHtml(it.sku)}</td>
+      <td>${escapeHtml(skuPriceFormatDisplay(it.price))}</td>
+      <td style="white-space:nowrap;">
+        <button type="button" class="btn-ghost sku-price-edit-btn" data-sku="${escapeHtml(it.sku)}">✎</button>
+        <button type="button" class="btn-ghost sku-price-delete-btn" data-sku="${escapeHtml(it.sku)}" style="color:#e0685c;">🗑</button>
+      </td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+
+  pagWrap.innerHTML = `
+    <button type="button" class="btn-ghost" id="skuPricePrevPageBtn" ${skuPricePage === 0 ? 'disabled' : ''}>&#8249; Prev</button>
+    <span class="data-note" style="margin:0;">Page ${skuPricePage + 1} / ${totalPages} — ${formatQty(list.length)} SKU</span>
+    <button type="button" class="btn-ghost" id="skuPriceNextPageBtn" ${skuPricePage >= totalPages - 1 ? 'disabled' : ''}>Next &#8250;</button>
+  `;
+  document.getElementById('skuPricePrevPageBtn').addEventListener('click', () => { skuPricePage--; renderSkuPriceTable(); });
+  document.getElementById('skuPriceNextPageBtn').addEventListener('click', () => { skuPricePage++; renderSkuPriceTable(); });
+
+  wrap.querySelectorAll('.sku-price-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => openSkuPriceForm(btn.dataset.sku));
+  });
+  wrap.querySelectorAll('.sku-price-delete-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const it = skuPriceList.find(x => x.sku === btn.dataset.sku);
+      if (!it) return;
+      if (!confirm(`Delete price for SKU "${it.sku}"?`)) return;
+      try {
+        await skuPriceDeleteOne(it.sku);
+      } catch (err) {
+        alert('Failed to delete this SKU: ' + err.message);
+        return;
+      }
+      skuPriceList = skuPriceList.filter(x => x.sku !== it.sku);
+      renderSkuPriceTab();
+    });
+  });
+}
+function openSkuPriceForm(sku) {
+  skuPriceEditSku = sku || null;
+  const it = sku ? skuPriceList.find(x => x.sku === sku) : null;
+  document.getElementById('skuPriceFormTitle').textContent = it ? `Edit Price — ${it.sku}` : 'Add SKU Price';
+  document.getElementById('skuPriceFormSku').value = it ? it.sku : '';
+  document.getElementById('skuPriceFormSku').disabled = !!it; // SKU is the storage key — editing it in place would orphan the old record, so it's locked once created (delete + re-add instead)
+  document.getElementById('skuPriceFormPrice').value = it ? it.price : '';
+  document.getElementById('skuPriceFormWrap').style.display = '';
+  document.getElementById('skuPriceFormSku').focus();
+}
+function closeSkuPriceForm() {
+  skuPriceEditSku = null;
+  document.getElementById('skuPriceFormSku').disabled = false;
+  document.getElementById('skuPriceFormWrap').style.display = 'none';
+}
+async function saveSkuPriceForm() {
+  const skuRaw = document.getElementById('skuPriceFormSku').value.trim();
+  if (!skuRaw) { alert('SKU is required.'); return; }
+  const sku = skuRaw.toUpperCase();
+  if (!skuPriceEditSku && skuPriceList.some(it => it.sku === sku)) { alert(`SKU "${skuRaw}" already exists — edit it instead.`); return; }
+  const item = { sku, price: document.getElementById('skuPriceFormPrice').value.trim() };
+  try {
+    await skuPricePutOne(item);
+  } catch (err) {
+    alert('Failed to save this SKU price: ' + err.message);
+    return;
+  }
+  const idx = skuPriceList.findIndex(x => x.sku === sku);
+  if (idx >= 0) skuPriceList[idx] = item; else skuPriceList.push(item);
+  closeSkuPriceForm();
+  renderSkuPriceTab();
+}
+function renderSkuPriceTab() {
+  renderSkuPriceStatusNote();
+  renderSkuPriceTable();
+}
+document.getElementById('skuPriceSearchInput').addEventListener('input', () => { skuPricePage = 0; renderSkuPriceTable(); });
+document.getElementById('skuPriceAddBtn').addEventListener('click', () => openSkuPriceForm(null));
+document.getElementById('skuPriceFormCancelBtn').addEventListener('click', closeSkuPriceForm);
+document.getElementById('skuPriceFormSaveBtn').addEventListener('click', saveSkuPriceForm);
+document.getElementById('resetSkuPriceBtn').addEventListener('click', async () => {
+  if (!confirm(`Delete ALL SKU Price List data (${formatQty(skuPriceList.length)} SKU)? This cannot be undone.`)) return;
+  try {
+    await skuPriceReplaceAll([]);
+  } catch (err) {
+    alert('Failed to reset SKU Price List: ' + err.message);
+    return;
+  }
+  skuPriceList = [];
+  skuPriceImportedAt = '';
+  localStorage.removeItem(SKU_PRICE_IMPORTED_AT_KEY);
+  skuPricePage = 0;
+  renderSkuPriceTab();
+});
+
 /* ==================== Stock Available (finished goods on-hand snapshot, by SKU × Zone) ====================
    She uploads the "Inventory Balance ... Summary Report" export straight in — a long/tall report
    with one row per SKU × Zone (Customer/Zone/Bin/Batch/Total Qty columns), which this groups down to
@@ -11399,6 +11801,21 @@ let campaignTimelineList = [];
 let campaignTimelineImportedAt = '';
 let campaignTimelineInitialSyncDone = false;
 function genCampaignTimelineId() { return 'ctl_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+// Deterministic id for a Timeline row, built from its own identity fields — see the big comment at the
+// call site (parseCampaignTimelineRows) for why this replaced the old random genCampaignTimelineId()
+// for every parsed row: a random id meant the SAME logical row got a DIFFERENT id every time the sheet
+// was re-parsed (upload OR "Refresh from Google Sheets"), silently breaking every batch.timelineIds
+// link across the whole Garment Order module on every single refresh. FNV-1a-style hash — not
+// cryptographic, just needs to be stable and cheap, which this is.
+function campaignTimelineStableId(series, officialProductName, batch, color, supplier) {
+  const key = [series, officialProductName, batch, color, supplier].map(v => String(v || '').trim().toLowerCase()).join('|');
+  let h = 2166136261;
+  for (let i = 0; i < key.length; i++) {
+    h ^= key.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return 'ctl_' + (h >>> 0).toString(36);
+}
 function loadCampaignTimelineList() {
   campaignTimelineImportedAt = localStorage.getItem(CAMPAIGN_TIMELINE_IMPORTED_AT_KEY) || '';
   try { campaignTimelineList = JSON.parse(localStorage.getItem(CAMPAIGN_TIMELINE_KEY)) || []; } catch (e) { campaignTimelineList = []; }
@@ -11631,15 +12048,25 @@ function parseCampaignTimelineRows(rows, sheetLabel) {
     const officialName = idx.officialProductName !== -1 ? campaignTimelineCellText(row[idx.officialProductName]) : '';
     if (!series && !officialName) continue; // skip blank padding rows
     const releaseRaw = idx.releaseDate !== -1 ? row[idx.releaseDate] : '';
+    const batchVal = idx.batch !== -1 ? campaignTimelineCellText(row[idx.batch]) : '';
+    const colorVal = idx.color !== -1 ? campaignTimelineCellText(row[idx.color]) : '';
+    const supplierVal = idx.supplier !== -1 ? campaignTimelineCellText(row[idx.supplier]) : '';
     mapped.push({
-      id: genCampaignTimelineId(),
+      // STABLE id derived from this row's own identity fields (Series/Product/Batch/Color/Supplier),
+      // NOT a fresh random one — per Shaila's report (Sep 25, 2026 — "ni semalam saya dah betul kan
+      // kenapa jadi balik"): every "Refresh from Google Sheets" fully replaced campaignTimelineList
+      // with brand-new random ids, which silently orphaned EVERY batch's saved timelineIds across the
+      // whole Garment Order module on every single refresh — that's why her manual fixes (and the
+      // auto-link feature) kept reverting. Same logical row now gets the same id every time it's
+      // re-parsed, so links made against it keep working across refreshes.
+      id: campaignTimelineStableId(series, officialName, batchVal, colorVal, supplierVal),
       series, category: idx.category !== -1 ? campaignTimelineCellText(row[idx.category]) : '',
-      supplier: idx.supplier !== -1 ? campaignTimelineCellText(row[idx.supplier]) : '',
+      supplier: supplierVal,
       officialProductName: officialName,
-      batch: idx.batch !== -1 ? campaignTimelineCellText(row[idx.batch]) : '',
+      batch: batchVal,
       material: idx.material !== -1 ? campaignTimelineCellText(row[idx.material]) : '',
       fabricSupplier: idx.fabricSupplier !== -1 ? campaignTimelineCellText(row[idx.fabricSupplier]) : '',
-      color: idx.color !== -1 ? campaignTimelineCellText(row[idx.color]) : '',
+      color: colorVal,
       quantity: idx.quantity !== -1 ? campaignTimelineCellNum(row[idx.quantity]) : 0,
       productionInstruction: idx.productionInstruction !== -1 ? campaignTimelineCellText(row[idx.productionInstruction]) : '',
       productionStatus: idx.productionStatus !== -1 ? campaignTimelineCellText(row[idx.productionStatus]) : '',
@@ -11660,6 +12087,17 @@ function parseCampaignTimelineRows(rows, sheetLabel) {
       quantityFabricsMeter: idx.quantityFabricsMeter !== -1 ? campaignTimelineCellNum(row[idx.quantityFabricsMeter]) : 0,
     });
   }
+  // Safety net for the rare case where two genuinely different rows share the exact same identity
+  // fields (so campaignTimelineStableId hashes them to the same id) — only the FIRST occurrence keeps
+  // the clean stable id (so existing links to it keep working); any further duplicates get a suffix
+  // instead of silently colliding into one record. Stable across re-parses as long as duplicate rows
+  // keep the same relative order in the sheet, which they naturally do.
+  const idOccurrences = new Map();
+  mapped.forEach(rec => {
+    const count = (idOccurrences.get(rec.id) || 0) + 1;
+    idOccurrences.set(rec.id, count);
+    if (count > 1) rec.id = `${rec.id}_${count}`;
+  });
   return mapped;
 }
 function parseCampaignTimelineWorkbook(wb) {
@@ -11916,10 +12354,43 @@ function campaignTimelineFillSelect(id, values, allLabel) {
   sel.innerHTML = `<option value="">${allLabel}</option>` + values.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
   if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
 }
+// Per Shaila's request (Sep 24, 2026 — "yg ni tukar ke filter status boleh ke?"): the "All Status"
+// filter used to run off `productionStatus`, a sheet column that's no longer shown anywhere in the
+// redesigned table (she dropped it — see the column-list redesign earlier this session) so this filter
+// had gone dead. Replaced with a fixed set of 4 options covering BOTH of the table's current Status
+// columns (FG Status and Fabric Status — her choice, "Kedua-dua sekali"), computed the same way the
+// two Status badges themselves are (see campaignTimelineReceivedBadgeHtml / campaignTimelineFabricStatusBadgeHtml
+// below) so the filter always agrees with what's actually shown in each row.
+function campaignTimelineFgStatusForFilter(rec) {
+  const linked = campaignTimelineLinkedBatchesIndex().get(rec.id);
+  const hasLegSplit = linked && linked.some(b => b.shipmentLeg === 'shipment1' || b.shipmentLeg === 'shipment2');
+  if (hasLegSplit) {
+    const acc1 = campaignTimelineLinkedShipmentAcc(rec, 'shipment1');
+    const acc2 = campaignTimelineLinkedShipmentAcc(rec, 'shipment2');
+    const accOverall = campaignTimelineLinkedShipmentAcc(rec, '');
+    return (acc1 || acc2 || accOverall) ? 'received' : 'not-received';
+  }
+  const match = campaignTimelineMatchReceiving(rec);
+  return (match.acc && match.acc.totalOrder) ? 'received' : 'not-received';
+}
+function campaignTimelineFabricStatusForFilter(rec) {
+  if (!rec.material) return 'not-received';
+  return campaignTimelineFabricRolls(rec.material).length ? 'received' : 'not-received';
+}
+function campaignTimelineFillStatusFilter() {
+  const sel = document.getElementById('campaignTimelineStatusFilter');
+  const cur = sel.value;
+  sel.innerHTML = `<option value="">All Status</option>
+    <option value="fg-received">FG: Received</option>
+    <option value="fg-not-received">FG: Not Received</option>
+    <option value="fabric-received">Fabric: Received</option>
+    <option value="fabric-not-received">Fabric: Not Received</option>`;
+  if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+}
 function renderCampaignTimelineFilterOptions() {
   campaignTimelineFillSelect('campaignTimelineSeriesFilter', [...new Set(campaignTimelineList.map(it => it.series).filter(Boolean))].sort(), 'All Series');
   campaignTimelineFillSelect('campaignTimelineSupplierFilter', [...new Set(campaignTimelineList.map(it => it.supplier).filter(Boolean))].sort(), 'All Suppliers');
-  campaignTimelineFillSelect('campaignTimelineStatusFilter', [...new Set(campaignTimelineList.map(it => it.productionStatus).filter(Boolean))].sort(), 'All Status');
+  campaignTimelineFillStatusFilter();
 }
 function campaignTimelineFilteredList() {
   const search = (document.getElementById('campaignTimelineSearchInput').value || '').trim().toLowerCase();
@@ -11930,7 +12401,10 @@ function campaignTimelineFilteredList() {
     if (search && ![it.series, it.officialProductName, it.supplier, it.category].filter(Boolean).join(' ').toLowerCase().includes(search)) return false;
     if (seriesFilter && it.series !== seriesFilter) return false;
     if (supplierFilter && it.supplier !== supplierFilter) return false;
-    if (statusFilter && it.productionStatus !== statusFilter) return false;
+    if (statusFilter === 'fg-received' && campaignTimelineFgStatusForFilter(it) !== 'received') return false;
+    if (statusFilter === 'fg-not-received' && campaignTimelineFgStatusForFilter(it) !== 'not-received') return false;
+    if (statusFilter === 'fabric-received' && campaignTimelineFabricStatusForFilter(it) !== 'received') return false;
+    if (statusFilter === 'fabric-not-received' && campaignTimelineFabricStatusForFilter(it) !== 'not-received') return false;
     return true;
   });
 }
@@ -12432,7 +12906,7 @@ function campaignTimelineShipmentCountForRec(rec) {
 // <select> (needed an awkward Ctrl/Cmd-click) AND the always-open checkbox list that came after it
 // (Shaila: "nampak buruk macam ni,,,buat macam dropdown tkleh ke" — it took up a lot of space sitting
 // open all the time and didn't look like the rest of the form's dropdowns).
-function campaignTimelineWireCascadingLink(seriesSelectOrig, itemContainerOrig, selectedIds, legSelect, excludeBatchNo) {
+function campaignTimelineWireCascadingLink(seriesSelectOrig, itemContainerOrig, selectedIds, legSelect, excludeBatchNo, initialSeriesOverride) {
   if (!seriesSelectOrig || !itemContainerOrig) return;
   const initialIds = Array.isArray(selectedIds) ? selectedIds.filter(Boolean) : (selectedIds ? [selectedIds] : []);
   const seriesSelect = seriesSelectOrig.cloneNode(false);
@@ -12457,7 +12931,11 @@ function campaignTimelineWireCascadingLink(seriesSelectOrig, itemContainerOrig, 
   const toggleLabel = itemContainer.querySelector('.tl-ms-toggle-label');
   const panel = itemContainer.querySelector('.tl-ms-panel');
   const firstSelectedRec = initialIds.length ? campaignTimelineList.find(r => r.id === initialIds[0]) : null;
-  const initialSeries = firstSelectedRec ? (firstSelectedRec.series || '(no series)') : '';
+  // initialSeriesOverride covers the case where a Series was already picked but nothing under it is
+  // ticked yet (initialIds empty, so there's no row to derive the series from) — e.g. restoring an
+  // in-progress, not-yet-saved pick across an unrelated background re-render (see
+  // renderGarmentOrderTab's inProgressTimelineEdit for where this comes from).
+  const initialSeries = firstSelectedRec ? (firstSelectedRec.series || '(no series)') : (initialSeriesOverride || '');
   seriesSelect.innerHTML = '<option value="">-- Select Series --</option>' + campaignTimelineSeriesOptionsHtml(initialSeries);
   seriesSelect.value = initialSeries;
   function setToggleEnabled(enabled) {
@@ -25614,6 +26092,29 @@ function renderGarmentOrderTab() {
   const pendingBatches = visibleBatches.filter(b => !isBatchFullyDone(b));
   const doneBatches = visibleBatches.filter(b => isBatchFullyDone(b));
 
+  // Per Shaila's report (Sep 25, 2026 — "saya dah pilih tdi,,pastu nak pilih yg next tu asyik2
+  // hilang"): this whole tab gets fully re-rendered any time ANY cloud-synced data changes anywhere
+  // in the app (a broad realtime listener — see attachCollectionListener/renderAll), which can easily
+  // fire several times a minute from something totally unrelated to what she's doing right now. Every
+  // one of those re-renders replaces wrap.innerHTML from scratch, which was silently wiping out
+  // whatever Series/items she'd already picked in the currently-open Timeline-link editor but hadn't
+  // saved yet — the editor would reopen looking blank ("hilang") even though nothing she did was
+  // wrong. Captured here, right before the wipe, and fed back in as the pre-selected value below
+  // (same pattern already used for the Add Batch form's own picker, which never had this bug) so an
+  // in-progress, not-yet-saved pick survives an unrelated background re-render.
+  let inProgressTimelineEdit = null;
+  if (garmentBatchTimelineEditingKey) {
+    const openInput = wrap.querySelector(`.garment-batch-timeline-link-input[data-batch="${CSS.escape(garmentBatchTimelineEditingKey)}"]`);
+    if (openInput) {
+      const openSeries = wrap.querySelector(`.garment-batch-timeline-series-input[data-batch="${CSS.escape(garmentBatchTimelineEditingKey)}"]`);
+      const openLeg = wrap.querySelector(`.garment-batch-shipment-leg-input[data-batch="${CSS.escape(garmentBatchTimelineEditingKey)}"]`);
+      // `series` is captured separately from `ids` because she can have picked a Series but not yet
+      // ticked any item under it — in that state `ids` is still empty, so it alone isn't enough to
+      // tell campaignTimelineWireCascadingLink which Series to reopen with.
+      inProgressTimelineEdit = { ids: campaignTimelineReadCheckedIds(openInput), series: openSeries ? openSeries.value : '', leg: openLeg ? openLeg.value : '' };
+    }
+  }
+
   let sectionsHtml = '';
   if (pendingBatches.length) {
     sectionsHtml += `<div class="data-note" style="margin:0 0 8px; font-weight:600; color:var(--text-secondary);">Pending (${pendingBatches.length})</div>
@@ -25853,7 +26354,12 @@ function renderGarmentOrderTab() {
     const seriesSelect = wrap.querySelector(`.garment-batch-timeline-series-input[data-batch="${CSS.escape(select.dataset.batch)}"]`);
     const legSelect = wrap.querySelector(`.garment-batch-shipment-leg-input[data-batch="${CSS.escape(select.dataset.batch)}"]`);
     const batch = garmentOrders.find(b => b.batchNo === select.dataset.batch);
-    campaignTimelineWireCascadingLink(seriesSelect, select, batch ? (batch.timelineIds || []) : null, legSelect, select.dataset.batch);
+    // Restore her in-progress (not-yet-saved) pick, captured just above, instead of the saved
+    // batch.timelineIds — see the big comment above for why this matters.
+    const restoring = inProgressTimelineEdit && select.dataset.batch === garmentBatchTimelineEditingKey;
+    const initialIds = restoring ? inProgressTimelineEdit.ids : (batch ? (batch.timelineIds || []) : null);
+    campaignTimelineWireCascadingLink(seriesSelect, select, initialIds, legSelect, select.dataset.batch, restoring ? inProgressTimelineEdit.series : null);
+    if (restoring && legSelect && inProgressTimelineEdit.leg) legSelect.value = inProgressTimelineEdit.leg;
   });
   wrap.querySelectorAll('.garment-batch-timeline-link-save-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
