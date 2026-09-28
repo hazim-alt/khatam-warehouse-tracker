@@ -232,6 +232,12 @@
   .tab-panel { display: none; }
   .tab-panel.active { display: block; animation: tabPanelIn 0.32s cubic-bezier(0.22, 1, 0.36, 1); }
   #tab-dashboard.active { display: flex; flex-direction: column; height: calc((100vh - 88px) / var(--dash-zoom, 1)); overflow: hidden; zoom: 1; --dash-zoom: 1; }
+  /* Per Shaila's request (Sep 28, 2026 — "buat full macam dalam slide dashboard tu"): the Production
+     tab version of Release Calendar fills the available viewport height the same way the TV Dashboard
+     slide does (#tab-dashboard.active above), instead of sitting at its own small content height with
+     empty page below it. */
+  #tab-production-release-calendar.active { display: flex; flex-direction: column; height: calc(100vh - 88px); }
+  #tab-production-release-calendar.active > .card { flex: 1; min-height: 0; }
   /* The -88px above accounts for `main`'s own top/bottom padding (28px + 60px), which the
      dashboard sits inside of in normal (windowed) view. True Fullscreen API mode escapes `main`
      entirely — this element becomes its own top-layer box with its OWN 28px/60px padding below
@@ -1261,6 +1267,7 @@
       <button class="tab-btn" data-tab="production-rm">Stock Level Raw Materials</button>
       <button class="tab-btn" data-tab="production-restock">Restock Status</button>
       <button class="tab-btn" data-tab="production-timeline">Timeline</button>
+      <button class="tab-btn" data-tab="production-release-calendar">Release Calendar</button>
     </div>
     <button type="button" class="nav-group-toggle" id="navGroupTeamToggle" data-group="navGroupTeam">
       <span>Team Setup</span><span class="nav-group-chevron">▾</span>
@@ -2841,7 +2848,7 @@
     <p class="section-title">Production — Timeline</p>
     <div class="card">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-        <span class="data-note" style="margin:0;">Upload the campaign tracker export (e.g. "20XX Raya Campaign Tracker.xlsx") — reads the "Summary all series" sheet if present, otherwise the first sheet. Needs "Item", "Series", "Supplier", "Production status" and the ETA/date columns (Fabric, Finished Goods, Shipment 1/2/3, Release Date). Each upload FULLY REPLACES the current timeline (a fresh snapshot, not additive) — cloud-synced automatically, so every account/device picks it up on its own.</span>
+        <span class="data-note" style="margin:0;">Upload the campaign tracker export (e.g. "20XX Raya Campaign Tracker.xlsx") — reads the "Summary all series" sheet if present (otherwise the first sheet), and if a "Patawali" sheet is ALSO in the same file, its fuller PATAWALI rows (with the real per-material Batch: "1"/"R"/etc.) replace the sparse PATAWALI rows from Summary. Needs "Item", "Series", "Supplier", "Production status" and the ETA/date columns (Fabric, Finished Goods, Shipment 1/2/3, Release Date). Each upload FULLY REPLACES the current timeline (a fresh snapshot, not additive) — cloud-synced automatically, so every account/device picks it up on its own.</span>
         <span id="campaignTimelineStatusNote" class="data-note" style="margin:0; white-space:nowrap;"></span>
       </div>
       <div class="dropzone" id="campaignTimelineDropzone">
@@ -2915,6 +2922,14 @@
       <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
         <button class="btn-ghost" id="resetCampaignTimelineBtn" style="color:#e0685c;">🗑 Reset Timeline</button>
       </div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-production-release-calendar">
+    <p class="section-title" style="flex-shrink:0;">Production — Release Calendar</p>
+    <div class="card" style="display:flex; flex-direction:column;">
+      <div id="productionReleaseCalendarHeader" style="flex-shrink:0;"></div>
+      <div id="productionReleaseCalendarWrap" style="display:flex; flex-direction:column; justify-content:center; flex:1; min-height:0; overflow-y:auto; overflow-x:hidden;"></div>
     </div>
   </section>
 
@@ -5563,6 +5578,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'production-rm') renderProductionRmTab();
     if (btn.dataset.tab === 'production-restock') renderProductionRestockTab();
     if (btn.dataset.tab === 'production-timeline') renderCampaignTimelineTab();
+    if (btn.dataset.tab === 'production-release-calendar') renderProductionReleaseCalendarTab();
     if (btn.dataset.tab === 'finance') renderFinanceTab();
     if (btn.dataset.tab === 'request-stock') renderRequestStockTab();
     updateSidebarSyncBarVisibility();
@@ -8578,6 +8594,7 @@ const PERMISSION_TABS = [
   { id: 'production-rm', label: 'Stock Level Raw Materials (Production)' },
   { id: 'production-restock', label: 'Restock Status (Production)' },
   { id: 'production-timeline', label: 'Timeline (Production)' },
+  { id: 'production-release-calendar', label: 'Release Calendar (Production)' },
   { id: 'finance', label: 'Finance' },
   { id: 'request-stock', label: 'Request Stock' },
   { id: 'laporan', label: 'Reports' },
@@ -10348,6 +10365,100 @@ async function loadSkuPriceList() {
   const tabEl = document.getElementById('tab-sku-price');
   if (tabEl && tabEl.classList.contains('active')) renderSkuPriceTab();
 }
+
+/* ---- SKU Price List cloud sync — per Shaila (Sep 28, 2026: "saya update manual dalam tab tu,,saya
+   nak sync teros kalau account mana2 update"): this list must match across every account/computer,
+   not stay local-only per device like it did before. Same diff-push + realtime-listener pattern as
+   Item Master List (see pushItemMasterDiffToFirebase above) rather than the generic SYNC_COLLECTIONS
+   polling loop — this list can run into the thousands of rows and the 2s reconcile tick would re-diff
+   the whole thing forever. `sku` (already the IndexedDB keyPath) doubles as the Firebase key via
+   fbSafeKey, same idea as Item Master keying off `id`. */
+const SKU_PRICE_FB_TABLE = 'SkuPriceList';
+let _skuPriceLastServerSnapshot = {};
+let skuPriceFbListenerAttached = false;
+// Firebase's realtime listener fires on every individual chunk of a multi-chunk push, not just once
+// at the end, so applying mid-push would apply a genuinely partial snapshot. Skipped while our own
+// push is still landing (same guard as itemMasterPushInFlight).
+let skuPricePushInFlight = false;
+function pushSkuPriceDiffToFirebase() {
+  if (!fbDb) return;
+  const nowKeyed = {};
+  skuPriceList.forEach(it => { nowKeyed[fbSafeKey(it.sku)] = it; });
+  const updateObj = {};
+  let changed = false;
+  Object.keys(nowKeyed).forEach(k => {
+    const prevStr = (_skuPriceLastServerSnapshot[k] !== undefined) ? stableStringify(_skuPriceLastServerSnapshot[k]) : undefined;
+    if (stableStringify(nowKeyed[k]) !== prevStr) { updateObj[k] = nowKeyed[k]; changed = true; }
+  });
+  Object.keys(_skuPriceLastServerSnapshot).forEach(k => { if (!(k in nowKeyed)) { updateObj[k] = null; changed = true; } });
+  if (!changed) return;
+  _skuPriceLastServerSnapshot = nowKeyed;
+  skuPricePushInFlight = true;
+  fbChunkedUpdate(fbDb.ref(SKU_PRICE_FB_TABLE), updateObj).catch(e => {
+    cloudSyncStatus = 'error';
+    cloudSyncLastError = `SkuPriceList: ${(e && e.message) || e}`;
+    renderCloudSyncStatus();
+  }).finally(() => { skuPricePushInFlight = false; });
+}
+function applySkuPriceServerSnapshot(remoteObj) {
+  if (skuPricePushInFlight) return;
+  _skuPriceLastServerSnapshot = remoteObj || {};
+  const remoteArr = Object.values(_skuPriceLastServerSnapshot);
+  if (stableStringify(remoteArr) === stableStringify(skuPriceList)) return; // no-op — likely our own echo
+  skuPriceList = remoteArr;
+  skuPriceReplaceAll(remoteArr).catch(e => console.error('skuPriceReplaceAll (remote sync) failed', e));
+  skuPricePage = 0;
+  const tabEl2 = document.getElementById('tab-sku-price');
+  if (tabEl2 && tabEl2.classList.contains('active')) renderSkuPriceTab();
+}
+function attachSkuPriceFbListener() {
+  if (!fbDb || skuPriceFbListenerAttached) return;
+  skuPriceFbListenerAttached = true;
+  fbDb.ref(SKU_PRICE_FB_TABLE).on('value', snapshot => {
+    applySkuPriceServerSnapshot(snapshot.val() || {});
+  }, error => {
+    cloudSyncStatus = 'error';
+    cloudSyncLastError = `SkuPriceList: ${(error && error.message) || error}`;
+    renderCloudSyncStatus();
+  });
+}
+// Runs once at startup (alongside initialCloudSync/initialItemMasterCloudSync). First time EVER on
+// this computer: union-merge (keep every local item, adopt every remote-only item) so this computer's
+// existing upload isn't silently discarded just because Firebase happened to have something (or
+// nothing) already. Every run after that: remote wins outright.
+async function initialSkuPriceCloudSync() {
+  if (!fbDb) return;
+  await loadSkuPriceList(); // make sure skuPriceList reflects this computer's IndexedDB before merging
+  try {
+    const snap = await fbDb.ref(SKU_PRICE_FB_TABLE).once('value');
+    const remoteObj = snap.val() || {};
+    _skuPriceLastServerSnapshot = remoteObj;
+    const everMergedKey = fbEverMergedKey(SKU_PRICE_FB_TABLE);
+    if (!localStorage.getItem(everMergedKey)) {
+      const localKeys = new Set(skuPriceList.map(it => fbSafeKey(it.sku)));
+      const mergedArr = [...skuPriceList];
+      Object.keys(remoteObj).forEach(k => { if (!localKeys.has(k)) mergedArr.push(remoteObj[k]); });
+      if (stableStringify(mergedArr) !== stableStringify(skuPriceList)) {
+        skuPriceList = mergedArr;
+        await skuPriceReplaceAll(mergedArr);
+        skuPricePage = 0;
+        const tabEl3 = document.getElementById('tab-sku-price');
+        if (tabEl3 && tabEl3.classList.contains('active')) renderSkuPriceTab();
+      }
+      pushSkuPriceDiffToFirebase();
+      localStorage.setItem(everMergedKey, '1');
+    } else {
+      applySkuPriceServerSnapshot(remoteObj);
+      pushSkuPriceDiffToFirebase();
+    }
+  } catch (e) {
+    cloudSyncStatus = 'error';
+    cloudSyncLastError = `SkuPriceList: ${(e && e.message) || e}`;
+    renderCloudSyncStatus();
+  }
+  attachSkuPriceFbListener();
+}
+
 // Cached lookup Map, same invalidate-on-reference-change pattern used elsewhere in this app (e.g.
 // itemMasterSkuIndex) — cheap to keep in sync since skuPriceList is only ever reassigned wholesale
 // (upload/reset), never mutated item-by-item in place.
@@ -10443,6 +10554,7 @@ function processUploadedSkuPriceFile(file) {
       statusEl.textContent = `Success: ${formatQty(mapped.length)} SKU price(s) ${modeLabel}${droppedCount > 0 ? ` (${formatQty(droppedCount)} duplicate/blank row(s) dropped)` : ''}.`;
       statusEl.className = 'upload-status ok';
       renderSkuPriceTab();
+      pushSkuPriceDiffToFirebase();
     } catch (err) {
       statusEl.textContent = 'Failed to process file: ' + err.message;
       statusEl.className = 'upload-status err';
@@ -10555,6 +10667,7 @@ function renderSkuPriceTable() {
       }
       skuPriceList = skuPriceList.filter(x => x.sku !== it.sku);
       renderSkuPriceTab();
+      pushSkuPriceDiffToFirebase();
     });
   });
 }
@@ -10589,6 +10702,7 @@ async function saveSkuPriceForm() {
   if (idx >= 0) skuPriceList[idx] = item; else skuPriceList.push(item);
   closeSkuPriceForm();
   renderSkuPriceTab();
+  pushSkuPriceDiffToFirebase();
 }
 function renderSkuPriceTab() {
   renderSkuPriceStatusNote();
@@ -10611,6 +10725,7 @@ document.getElementById('resetSkuPriceBtn').addEventListener('click', async () =
   localStorage.removeItem(SKU_PRICE_IMPORTED_AT_KEY);
   skuPricePage = 0;
   renderSkuPriceTab();
+  pushSkuPriceDiffToFirebase();
 });
 
 /* ==================== Stock Available (finished goods on-hand snapshot, by SKU × Zone) ====================
@@ -12941,7 +13056,14 @@ function parseCampaignTimelineRows(rows, sheetLabel) {
     item: col('item'), series: col('series'), category: col('category'),
     supplier: tailorSupplierIdx !== -1 ? tailorSupplierIdx : col('supplier'),
     officialProductName: col('official product name'),
-    batch: col('batch'), material: col('material'), fabricSupplier: col('fabric supplier'), color: col('color'),
+    // "Batch" (Sep 28, 2026 — Shaila: "untuk patawali ade batch tulis R,,kene follow jugak", batch
+    // showing "-" for some Patawali rows even with the Patawali sheet linked+refreshed): switched from
+    // an EXACT header match to a contains-match, same reasoning as the Tailor Supplier / Quantity FG
+    // fixes above — her live Google Sheet's multi-row header block can glue extra banner/title text
+    // onto a column's merged label (see campaignTimelineFetchGvizRows), which silently fails an exact
+    // "batch" === match while still containing the word "batch" somewhere in it.
+    batch: campaignTimelineFindColContains(headerRow, ['batch']),
+    material: col('material'), fabricSupplier: col('fabric supplier'), color: col('color'),
     quantity: quantityFgIdx !== -1 ? quantityFgIdx : col('quantity'),
     // "Total Value" — a column she's since added to her sheet (Sep 25, 2026) holding the total FG order
     // value for that row (not a per-unit price); Receive Value/Balance Value are derived from this at
@@ -13028,11 +13150,38 @@ function parseCampaignTimelineRows(rows, sheetLabel) {
   });
   return mapped;
 }
+// Per Shaila (Sep 28, 2026 — "untuk patawali ade batch tulis R,,kene follow jugak" / "untuk series
+// patawali (finish good) kene follow sheet patawali"): her "Summary all series" tab only carries
+// sparse/incomplete PATAWALI rows (most fields blank, including which Batch — "1" new-fabric vs "R"
+// rewashed — a product/color actually belongs to); the dedicated "Patawali" sheet has the fuller
+// per-material version of those same rows. The Google Sheets live-link path already merges these two
+// sheets (see fetchCampaignTimelineFromGoogleSheets, Sep 23, 2026); this brings the SAME merge to a
+// plain uploaded .xlsx/.csv workbook, which previously only ever read "Summary all series" (or the
+// first sheet) and silently dropped any "Patawali" tab sitting alongside it in the same file.
 function parseCampaignTimelineWorkbook(wb) {
-  const sheetName = wb.SheetNames.find(n => campaignTimelineNormHeader(n) === 'summary all series') || wb.SheetNames[0];
-  const sheet = wb.Sheets[sheetName];
-  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-  return parseCampaignTimelineRows(rows, sheetName);
+  const summarySheetName = wb.SheetNames.find(n => campaignTimelineNormHeader(n) === 'summary all series');
+  const patawaliSheetName = wb.SheetNames.find(n => campaignTimelineNormHeader(n) === 'patawali');
+  const readSheet = (name) => parseCampaignTimelineRows(XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '' }), name);
+  if (!summarySheetName && !patawaliSheetName) {
+    // Neither named sheet found — fall back to the first sheet, same single-sheet behaviour as before
+    // this function also learned to merge in a dedicated "Patawali" sheet.
+    return readSheet(wb.SheetNames[0]);
+  }
+  let mapped = [];
+  if (summarySheetName) {
+    let summaryRows = readSheet(summarySheetName);
+    // Skip PATAWALI here when the fuller "Patawali" sheet is ALSO present in this same workbook, so it
+    // isn't shown twice — once sparse from Summary, once full (with the real per-material Batch) from
+    // Patawali. If there's no Patawali sheet in this file, keep these as a fallback so PATAWALI data
+    // doesn't just disappear.
+    if (patawaliSheetName) summaryRows = summaryRows.filter(row => campaignTimelineNormHeader(row.series) !== 'patawali');
+    mapped = mapped.concat(summaryRows);
+  }
+  if (patawaliSheetName) {
+    try { mapped = mapped.concat(readSheet(patawaliSheetName)); }
+    catch (e) { /* Patawali sheet present but malformed (e.g. no Series column) — keep whatever Summary already gave us rather than failing the whole upload over one extra sheet. */ }
+  }
+  return mapped;
 }
 let campaignTimelineUploadInFlight = false;
 function processUploadedCampaignTimelineFile(file) {
@@ -14821,10 +14970,20 @@ function campaignTimelineMonthDayGridHtml(year, month, buckets) {
 // One month shown at a time (per Shaila's request — 4 squeezed side by side was too cramped to read),
 // with prev/next arrows to browse. Index is clamped on every render, so it stays valid even if the
 // underlying data (and therefore the number of months) changes between renders.
-let campaignTimelineDashCalendarMonthIdx = 0;
-function campaignTimelineDashCalendarNav(delta) {
-  campaignTimelineDashCalendarMonthIdx += delta;
-  renderCampaignTimelineDashCalendar(campaignTimelineList);
+//
+// This calendar now renders in TWO places (Sep 28, 2026 — Shaila: "nak tambah tab Realese Calender
+// kat module production", added alongside the existing TV Dashboard "Release Calendar" slide) — each
+// instance needs its OWN month position / auto-jump-to-today tracking, not one shared cursor, or
+// browsing the month on one would jump the other around too. State is keyed by a short instance id
+// ('dash' / 'production') instead of the old single pair of module-level variables.
+const campaignTimelineCalendarState = {}; // key -> { monthIdx, lastAutoKey }
+function campaignTimelineCalendarStateFor(key) {
+  if (!campaignTimelineCalendarState[key]) campaignTimelineCalendarState[key] = { monthIdx: 0, lastAutoKey: '' };
+  return campaignTimelineCalendarState[key];
+}
+function campaignTimelineCalendarNav(key, wrapId, headerId, delta) {
+  campaignTimelineCalendarStateFor(key).monthIdx += delta;
+  renderCampaignTimelineCalendar(campaignTimelineList, wrapId, headerId, key);
 }
 // Ensures today's real calendar month is always in the list (as an empty month if nothing releases
 // then) — so "this month" always genuinely means the real current month, never skips ahead to whatever
@@ -14847,17 +15006,17 @@ function campaignTimelineFindMonthIndexForToday(sortedMonths) {
 // time its rotation comes back around, so comparing against this on each render is enough to catch the
 // moment the real month actually rolls over (e.g. Sep -> Oct at midnight) and jump the view forward —
 // without fighting any manual prev/next browsing done earlier within the same real month.
-let campaignTimelineDashCalendarLastAutoKey = '';
-function renderCampaignTimelineDashCalendar(list) {
-  const wrap = document.getElementById('campaignTimelineDashCalendarWrap');
-  const header = document.getElementById('campaignTimelineDashCalendarHeader');
+function renderCampaignTimelineCalendar(list, wrapId, headerId, key) {
+  const wrap = document.getElementById(wrapId);
+  const header = document.getElementById(headerId);
   if (!wrap || !header) return;
+  const state = campaignTimelineCalendarStateFor(key);
   const months = new Map(); // "YYYY-MM" -> { year, month, buckets: Map<bucket, rec[]> }
   list.forEach(rec => {
     campaignTimelineParseReleaseSlots(rec.releaseDateRaw).forEach(slot => {
-      const key = `${slot.year}-${slot.month}`;
-      if (!months.has(key)) months.set(key, { year: slot.year, month: slot.month, buckets: new Map() });
-      const m = months.get(key);
+      const mkey = `${slot.year}-${slot.month}`;
+      if (!months.has(mkey)) months.set(mkey, { year: slot.year, month: slot.month, buckets: new Map() });
+      const m = months.get(mkey);
       if (!m.buckets.has(slot.bucket)) m.buckets.set(slot.bucket, []);
       m.buckets.get(slot.bucket).push(rec);
     });
@@ -14872,21 +15031,21 @@ function renderCampaignTimelineDashCalendar(list) {
   );
   const now = new Date();
   const todayKey = `${now.getFullYear()}-${now.getMonth()}`;
-  if (campaignTimelineDashCalendarLastAutoKey !== todayKey) {
-    campaignTimelineDashCalendarMonthIdx = campaignTimelineFindMonthIndexForToday(sortedMonths);
-    campaignTimelineDashCalendarLastAutoKey = todayKey;
+  if (state.lastAutoKey !== todayKey) {
+    state.monthIdx = campaignTimelineFindMonthIndexForToday(sortedMonths);
+    state.lastAutoKey = todayKey;
   }
-  if (campaignTimelineDashCalendarMonthIdx < 0) campaignTimelineDashCalendarMonthIdx = 0;
-  if (campaignTimelineDashCalendarMonthIdx > sortedMonths.length - 1) campaignTimelineDashCalendarMonthIdx = sortedMonths.length - 1;
-  const idx = campaignTimelineDashCalendarMonthIdx;
+  if (state.monthIdx < 0) state.monthIdx = 0;
+  if (state.monthIdx > sortedMonths.length - 1) state.monthIdx = sortedMonths.length - 1;
+  const idx = state.monthIdx;
   const m = sortedMonths[idx];
 
   // Rendered into its own element OUTSIDE the scrolling body below — so the month title and prev/next
   // arrows always stay visible and clickable even when a busy month's series list needs to scroll.
   header.innerHTML = `<div style="display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:8px;">
-    <button type="button" class="icon-btn" onclick="campaignTimelineDashCalendarNav(-1)" ${idx === 0 ? 'disabled' : ''} title="Previous month">‹</button>
+    <button type="button" class="icon-btn" onclick="campaignTimelineCalendarNav('${key}','${wrapId}','${headerId}',-1)" ${idx === 0 ? 'disabled' : ''} title="Previous month">‹</button>
     <div style="font-weight:700; font-size:16px; letter-spacing:0.04em; color:var(--gold); min-width:150px; text-align:center;">${CAMPAIGN_TIMELINE_MONTH_LABELS[m.month]} ${m.year}</div>
-    <button type="button" class="icon-btn" onclick="campaignTimelineDashCalendarNav(1)" ${idx === sortedMonths.length - 1 ? 'disabled' : ''} title="Next month">›</button>
+    <button type="button" class="icon-btn" onclick="campaignTimelineCalendarNav('${key}','${wrapId}','${headerId}',1)" ${idx === sortedMonths.length - 1 ? 'disabled' : ''} title="Next month">›</button>
   </div>`;
 
   let html = `${campaignTimelineMonthDayGridHtml(m.year, m.month, m.buckets)}
@@ -14920,7 +15079,22 @@ function renderDashReleaseCalendarSlide() {
     if (calendarHeader) calendarHeader.innerHTML = '';
     return;
   }
-  renderCampaignTimelineDashCalendar(campaignTimelineList);
+  renderCampaignTimelineCalendar(campaignTimelineList, 'campaignTimelineDashCalendarWrap', 'campaignTimelineDashCalendarHeader', 'dash');
+}
+// New Production tab "Release Calendar" (Sep 28, 2026 — Shaila: "nak tambah tab Realese Calender kat
+// module production boleh tak") — same calendar widget as the TV Dashboard slide above, just reachable
+// directly from the sidebar instead of only via the rotating TV Dashboard, and with its own
+// independent month-browsing state (see campaignTimelineCalendarState).
+function renderProductionReleaseCalendarTab() {
+  const calendarWrap = document.getElementById('productionReleaseCalendarWrap');
+  const calendarHeader = document.getElementById('productionReleaseCalendarHeader');
+  if (!calendarWrap) return;
+  if (!campaignTimelineList.length) {
+    calendarWrap.innerHTML = `<div class="empty-state">No Timeline data uploaded yet — upload the campaign tracker file in Production &gt; Timeline.</div>`;
+    if (calendarHeader) calendarHeader.innerHTML = '';
+    return;
+  }
+  renderCampaignTimelineCalendar(campaignTimelineList, 'productionReleaseCalendarWrap', 'productionReleaseCalendarHeader', 'production');
 }
 /* ==================== end Production ==================== */
 
@@ -19879,8 +20053,8 @@ function renderCloudSyncStatus() {
   if (sidebarNote) sidebarNote.textContent = shortText;
   updateSidebarSyncBarVisibility();
 }
-document.getElementById('cloudSyncNowBtn').addEventListener('click', () => { initialCloudSync(); initialItemMasterCloudSync(); initialStockAvailableCloudSync(); initialCampaignTimelineCloudSync(); });
-document.getElementById('sidebarSyncNowBtn').addEventListener('click', () => { initialCloudSync(); initialItemMasterCloudSync(); initialStockAvailableCloudSync(); initialCampaignTimelineCloudSync(); });
+document.getElementById('cloudSyncNowBtn').addEventListener('click', () => { initialCloudSync(); initialItemMasterCloudSync(); initialStockAvailableCloudSync(); initialCampaignTimelineCloudSync(); initialSkuPriceCloudSync(); });
+document.getElementById('sidebarSyncNowBtn').addEventListener('click', () => { initialCloudSync(); initialItemMasterCloudSync(); initialStockAvailableCloudSync(); initialCampaignTimelineCloudSync(); initialSkuPriceCloudSync(); });
 
 const FLEET_DRIVERS_KEY = 'sto_fleet_drivers_v1';
 const FLEET_VEHICLES_KEY_LEGACY = 'sto_fleet_vehicles_v1'; // pre-simplification key (had plate/vehicle type too)
@@ -29956,7 +30130,7 @@ async function syncThenRecheckAuthGate() {
   if (isCloudSyncEnabled()) {
     // Run together (not one-after-another) so the large Item Master sync doesn't add extra wait
     // time on top of the normal (much smaller/faster) collections sync before the login gate re-checks.
-    try { await Promise.all([initialCloudSync(), initialItemMasterCloudSync(), initialStockAvailableCloudSync(), initialCampaignTimelineCloudSync()]); } catch (e) { /* keep whatever's already showing */ }
+    try { await Promise.all([initialCloudSync(), initialItemMasterCloudSync(), initialStockAvailableCloudSync(), initialCampaignTimelineCloudSync(), initialSkuPriceCloudSync()]); } catch (e) { /* keep whatever's already showing */ }
     initAuthGate();
     renderLoginBoutiqueMarkers();
   }
