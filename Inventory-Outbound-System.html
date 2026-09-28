@@ -11990,6 +11990,8 @@ function renderProductionSummaryReceivingTable() {
   wrap.innerHTML = html;
   wrap.style.overflowX = 'auto';
 }
+let productionSummaryBalanceChart = null;
+let productionSummaryReceivingChart = null;
 function renderProductionSummaryWrap() {
   const wrap = document.getElementById('productionSummaryWrap');
   if (!wrap) return;
@@ -12020,13 +12022,18 @@ function renderProductionSummaryWrap() {
     // exactly (Sep 25, 2026 — "match kan data nya"), summed row-by-row with the same formulas.
     { num: qtyValueCard(kpis.extraPcs, kpis.extraValue, kpis.hasValue), label: 'Total Extra Qty & Value' },
   ];
+  // Per Shaila's request (Sep 28, 2026 — "kt card percentage tu nak tambah chart boleh ke??sbb ade
+  // mntk letak chart kt tempat yang perlu"): the two % cards each get a small donut alongside their
+  // existing number/label, same visual language as the Picker/Packer Target Progress donuts elsewhere
+  // in the app (Chart.js doughnut, cutout, gold slice = the %, dark slice = the remainder) — chartId
+  // is a new optional field on a kpi card, wired up below after wrap.innerHTML is set.
   const kpiRow2 = [
     { num: qtyValueCard(kpis.balancePcs, kpis.balanceValue, kpis.hasValue), label: 'Total Balance Qty & Value' },
-    { num: `${kpis.balancePct}%`, label: 'Balance %' },
+    { num: `${kpis.balancePct}%`, label: 'Balance %', chartId: 'productionSummaryBalancePctChart', pct: kpis.balancePct },
     // Value half pulls the same Receive Value the Timeline table computes (Garment Order qty × SKU
     // Price List price, summed per SKU) — never waits on the sheet's Total Value column for this one.
     { num: qtyValueCard(kpis.receivingQty, kpis.receivingValue, !!kpis.receivingValue), label: 'Total Receiving Qty & Value' },
-    { num: `${kpis.receivingPct}%`, label: 'Overall Receiving %' },
+    { num: `${kpis.receivingPct}%`, label: 'Overall Receiving %', chartId: 'productionSummaryReceivingPctChart', pct: kpis.receivingPct },
   ];
   // Per Shaila's correction (Sep 25, 2026 — "bukan number,,tulisan macam Total series apa semua...
   // besar kan,,number dah okay dah tdi"): it's the LABEL text (the small caption under each number,
@@ -12048,7 +12055,13 @@ function renderProductionSummaryWrap() {
   // get WIDER than its own text needs this way, never narrower, so the earlier nowrap/overflow problem
   // can't come back — growing room is the one direction that's always safe for a nowrap number.
   // flex-wrap:wrap still moves whichever cards don't fit down to the next row, same as before.
-  const kpiCardsHtml = (cards) => `<div style="display:flex; flex-wrap:wrap; gap:14px; margin-bottom:14px;">${cards.map(c => `<div class="kpi-card" style="flex:1 1 auto; min-width:150px;"><div class="kpi-num" style="white-space:nowrap;">${escapeHtml(String(c.num))}</div><div class="kpi-label" style="font-size:15px; white-space:nowrap;">${escapeHtml(c.label)}</div></div>`).join('')}</div>`;
+  const kpiCardsHtml = (cards) => `<div style="display:flex; flex-wrap:wrap; gap:14px; margin-bottom:14px;">${cards.map(c => c.chartId
+    ? `<div class="kpi-card" style="flex:1 1 auto; min-width:170px; display:flex; align-items:center; gap:12px;">
+        <div style="position:relative; width:44px; height:44px; flex:0 0 auto;"><canvas id="${c.chartId}"></canvas></div>
+        <div style="min-width:0;"><div class="kpi-num" style="white-space:nowrap;">${escapeHtml(String(c.num))}</div><div class="kpi-label" style="font-size:15px; white-space:nowrap;">${escapeHtml(c.label)}</div></div>
+      </div>`
+    : `<div class="kpi-card" style="flex:1 1 auto; min-width:150px;"><div class="kpi-num" style="white-space:nowrap;">${escapeHtml(String(c.num))}</div><div class="kpi-label" style="font-size:15px; white-space:nowrap;">${escapeHtml(c.label)}</div></div>`
+  ).join('')}</div>`;
 
   const loc = productionSummaryLocationOverview();
   // Clickable filter cards (Sep 25, 2026 — "kalau tekan mana2 card kat Production Location Overview
@@ -12090,6 +12103,23 @@ function renderProductionSummaryWrap() {
     <div id="productionSummaryReceivingFiltersWrap" style="margin-bottom:12px; ${productionSummaryActiveSubTable === 'receiving' ? '' : 'display:none;'}"></div>
     <div id="productionSummaryReceivingTableWrap" style="${productionSummaryActiveSubTable === 'receiving' ? '' : 'display:none;'}"></div>
   `;
+
+  // Build/rebuild the two % donuts now that their canvases exist in the DOM. Destroy the previous
+  // Chart.js instance first — reusing a canvas id without destroying throws "Canvas is already in
+  // use" (same guard every other dashboard donut in this file already follows).
+  const buildPctDonut = (existingChart, canvasId, pct) => {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
+    if (existingChart) existingChart.destroy();
+    const clamped = Math.max(0, Math.min(100, Number(pct) || 0));
+    return new Chart(canvas.getContext('2d'), {
+      type: 'doughnut',
+      data: { datasets: [{ data: [clamped, 100 - clamped], backgroundColor: [KPI_COLOR_HEX.gold, KPI_COLOR_HEX.track], borderWidth: 0 }] },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+    });
+  };
+  productionSummaryBalanceChart = buildPctDonut(productionSummaryBalanceChart, 'productionSummaryBalancePctChart', kpis.balancePct);
+  productionSummaryReceivingChart = buildPctDonut(productionSummaryReceivingChart, 'productionSummaryReceivingPctChart', kpis.receivingPct);
 
   wrap.querySelectorAll('.production-summary-loc-card').forEach(card => {
     card.addEventListener('click', () => {
