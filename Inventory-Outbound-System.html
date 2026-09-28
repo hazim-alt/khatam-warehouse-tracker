@@ -29952,6 +29952,21 @@ function dsCloseAllPanels(except) {
   document.querySelectorAll('.ds-panel').forEach(p => { if (p !== except) p.style.display = 'none'; });
 }
 document.addEventListener('click', () => dsCloseAllPanels());
+// Per Shaila's report (Sep 28, 2026 — "ade banyak yg terpotong ni"): position:absolute wasn't enough —
+// a panel opened from a select sitting inside ANY scrollable/clipping ancestor (a .scroll-table with
+// max-height, a modal-box with overflow-y:auto, a card, etc.) still got cropped by that ancestor's own
+// overflow boundary, not just the browser viewport, no matter which direction it opened. Switched the
+// panel to position:fixed (computed against the toggle's on-screen position at open-time — see
+// dsEnhanceSelect below) so it always renders on top of everything, escaping every ancestor's clipping.
+// A position:fixed panel doesn't move with page/table scroll though, so it would visually detach from
+// its toggle button if left open while something scrolls underneath it — simplest safe fix is to just
+// close it. Scrolling the panel's OWN option list must not trigger this (that's normal use), so scroll
+// events whose target is inside an open .ds-panel are ignored; 'scroll' doesn't bubble, so this needs
+// the capture phase to see it at all.
+document.addEventListener('scroll', (e) => {
+  if (e.target && e.target.closest && e.target.closest('.ds-panel')) return;
+  dsCloseAllPanels();
+}, true);
 function dsEnhanceSelect(selectEl) {
   if (!selectEl || selectEl.tagName !== 'SELECT' || selectEl.dataset.dsEnhanced) return;
   selectEl.dataset.dsEnhanced = '1';
@@ -29991,7 +30006,7 @@ function dsEnhanceSelect(selectEl) {
       <button type="button" class="ds-toggle" ${disabled ? 'disabled' : ''} style="width:100%; text-align:left; padding:8px 10px; border:1px solid #4a4038; border-radius:4px; font-size:13px; background:#1e1a17; color:var(--text); font-family:inherit; cursor:${disabled ? 'not-allowed' : 'pointer'}; opacity:${disabled ? '0.5' : '1'}; display:flex; align-items:center; justify-content:space-between; gap:6px;">
         <span class="ds-toggle-label" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(toggleLabel)}</span><span>▾</span>
       </button>
-      <div class="ds-panel" style="display:none; position:absolute; z-index:200; top:100%; left:0; right:0; min-width:180px; max-height:280px; overflow-y:auto; background:#1e1a17; border:1px solid #4a4038; border-radius:4px; margin-top:4px; box-shadow:0 6px 16px rgba(0,0,0,0.5);">
+      <div class="ds-panel" style="display:none; position:fixed; z-index:9999; min-width:180px; max-height:280px; overflow-y:auto; background:#1e1a17; border:1px solid #4a4038; border-radius:4px; box-shadow:0 6px 16px rgba(0,0,0,0.5);">
         <div style="padding:8px 8px 4px; position:sticky; top:0; background:#1e1a17;">
           <input type="text" class="ds-search" placeholder="Search..." style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #4a4038; border-radius:4px; font-size:12px; background:#12100e; color:var(--text); font-family:inherit;">
         </div>
@@ -30021,6 +30036,25 @@ function dsEnhanceSelect(selectEl) {
         searchInput.value = '';
         panel.querySelectorAll('.ds-option').forEach(opt => { opt.style.display = 'flex'; });
         emptyMsg.style.display = 'none';
+        // Position against the toggle's on-screen location every time it opens (Sep 28, 2026 — "ade
+        // banyak yg terpotong ni"): position:fixed (set on the panel itself, see its template above)
+        // means these coordinates are relative to the VIEWPORT, not any ancestor — that's what lets the
+        // panel escape clipping from a scrollable table, a modal's own overflow, a card, etc. Flips
+        // upward when there isn't enough room below (falls back to downward whenever there's enough
+        // room, or there's even less room above than below).
+        const rect = toggle.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const spaceAbove = rect.top;
+        const neededSpace = Math.min(panel.scrollHeight || 280, 280) + 12;
+        panel.style.left = rect.left + 'px';
+        panel.style.width = rect.width + 'px';
+        if (spaceBelow < neededSpace && spaceAbove > spaceBelow) {
+          panel.style.top = 'auto';
+          panel.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+        } else {
+          panel.style.top = (rect.bottom + 4) + 'px';
+          panel.style.bottom = 'auto';
+        }
         setTimeout(() => searchInput.focus(), 0);
       }
     });
