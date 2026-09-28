@@ -11853,7 +11853,14 @@ function renderPscfFilterBar(wrapId, fields, filtersObj, onApply, rows) {
 // stable and complete regardless of which Local/Overseas/Mixed card is active — only the RESULTS
 // narrow when a location card is also selected, not the list of things you can filter by.
 function renderProductionSummaryCollectionFilters() {
-  const rows = productionSummaryFgRows();
+  // Per Shaila's correction (Sep 28, 2026 — "saya tekan mixed production,,tapi filter tetap show
+  // semua,,sepatut show untuk tu je la"): the column filter dropdowns (Series/Category/etc.) now also
+  // narrow to whichever Local/Overseas/Mixed card is active, same as the KPI cards and table already
+  // do — sourced from productionSummaryFilteredRows() (location-aware) instead of the raw, unfiltered
+  // productionSummaryFgRows(). This replaces an earlier deliberate choice to keep the option lists
+  // "stable and complete" regardless of the location card; per her latest instruction the dropdowns
+  // should instead reflect only what's actually in that location bucket.
+  const rows = productionSummaryFilteredRows();
   const distinct = (fn) => [...new Set(rows.map(fn).filter(Boolean))].sort((a, b) => a.localeCompare(b));
   // getValue on each field (Sep 28, 2026 — cascading filters) must match EXACTLY what
   // productionSummaryCollectionFilteredRows() compares that field against, or the option list shown
