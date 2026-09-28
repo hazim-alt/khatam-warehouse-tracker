@@ -11389,8 +11389,12 @@ function productionSummaryFgRows() {
 function productionSummaryComputeKpis() {
   // Uses the ACTIVE filter (Local/Overseas/Mixed, if one's selected) rather than the raw full row set —
   // so clicking a Production Location Overview card reflows every KPI card above to that subset too
-  // (Sep 25, 2026 — "card yg kt atas pon akan ikut reflex jugak").
-  const rows = productionSummaryFilteredRows();
+  // (Sep 25, 2026 — "card yg kt atas pon akan ikut reflex jugak"). Extended (Sep 28, 2026 — "saya nak
+  // card summary dashboard ni reflex kalau filter series atau apa2 filter") to ALSO react to the
+  // Summary Collection Status column filters (Series/Category/Official Product Name/Production
+  // Status/Batch/Est. Arrive M'sia Status/Variance) — productionSummaryCollectionFilteredRows()
+  // already layers those on top of the Location filter, so this one call covers both.
+  const rows = productionSummaryCollectionFilteredRows();
   const seriesSet = new Set(rows.map(r => r.series).filter(Boolean));
   let projectedQty = 0, receivingQty = 0, projectedValue = 0, receivingValue = 0, rowsWithValue = 0;
   let balancePcs = 0, extraPcs = 0, balanceValue = 0, extraValue = 0;
@@ -11745,7 +11749,23 @@ function renderProductionSummaryCollectionFilters() {
       { value: 'extra', text: 'Extra' }, { value: 'short', text: 'Short' }, { value: 'balance', text: 'Balance' },
     ], getValue: campaignTimelineVarianceStatusFilterKey },
   ];
-  renderPscfFilterBar('productionSummaryCollectionFiltersWrap', fields, productionSummaryCollectionFilters, renderProductionSummaryCollectionTable, rows);
+  // onApply must also refresh the KPI cards (renderProductionSummaryWrap), not just this table — the
+  // KPI numbers now read from productionSummaryCollectionFilteredRows() too (Sep 28, 2026 — "saya nak
+  // card summary dashboard ni reflex kalau filter series atau apa2 filter"), so confirming a column
+  // filter here has to reflow both.
+  renderPscfFilterBar('productionSummaryCollectionFiltersWrap', fields, productionSummaryCollectionFilters, productionSummaryRenderCollectionTableAndKpis, rows);
+}
+function productionSummaryRenderCollectionTableAndKpis() {
+  // renderProductionSummaryWrap() rebuilds wrap.innerHTML from scratch, which wipes out (and creates a
+  // fresh, empty) #productionSummaryCollectionFiltersWrap / #productionSummaryReceivingFiltersWrap divs
+  // — same as the existing Location-card and Collection/Receiving switch-toggle handlers already have to
+  // account for — so both filter bars and both tables must all be re-rendered after it, or the filter
+  // dropdowns themselves would vanish the moment a filter is confirmed.
+  renderProductionSummaryWrap();
+  renderProductionSummaryCollectionFilters();
+  renderProductionSummaryCollectionTable();
+  renderProductionSummaryReceivingFilters();
+  renderProductionSummaryReceivingTable();
 }
 function renderProductionSummaryCollectionTable() {
   const wrap = document.getElementById('productionSummaryCollectionTableWrap');
