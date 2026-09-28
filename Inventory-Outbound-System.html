@@ -9234,7 +9234,7 @@ function attachPostponedDoNosListener() {
 // in the file would throw "Cannot access before initialization". Calling this only from inside the
 // functions below (which only ever run after the whole script has finished loading) avoids that.
 function syncSettingsKeys() {
-  return [SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, STICKER_KEY, DAILY_TARGETS_KEY, CAMPAIGN_MODE_KEY, DAILY_TARGETS_CAMPAIGN_SNAPSHOT_KEY, INBOUND_ALERT_SETTINGS_KEY, EMAILJS_SETTINGS_KEY, ADMIN_PASSWORD_KEY, PACKING_STATION_RR_KEY, STAFF_SCHEDULE_KEY, STATION_PRESENCE_KEY, REQ_STOCK_TEMPLATE_KEY, ITEM_MASTER_IMPORTED_AT_KEY, CAMPAIGN_TIMELINE_GSHEET_URLS_KEY];
+  return [SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, STICKER_KEY, DAILY_TARGETS_KEY, CAMPAIGN_MODE_KEY, DAILY_TARGETS_CAMPAIGN_SNAPSHOT_KEY, INBOUND_ALERT_SETTINGS_KEY, EMAILJS_SETTINGS_KEY, ADMIN_PASSWORD_KEY, PACKING_STATION_RR_KEY, STAFF_SCHEDULE_KEY, STATION_PRESENCE_KEY, REQ_STOCK_TEMPLATE_KEY, ITEM_MASTER_IMPORTED_AT_KEY, CAMPAIGN_TIMELINE_GSHEET_URLS_KEY, PRODUCTION_SUMMARY_SUPPLIER_LOCATIONS_KEY];
 }
 const FB_SETTINGS_TABLE = 'AppSettings';
 function pushSettingsDiff() {
@@ -9305,6 +9305,13 @@ function applySettingsSnapshot() {
     renderItemMasterStatusNote();
     loadCampaignTimelineGsheetUrls();
     renderCampaignTimelineGsheetInputs();
+    // Supplier Locations (Team Setup — Sep 28, 2026: "saya dah update ni,,tapi kat device/acount lain
+    // takde") — was plain localStorage-only before, never reaching other devices/accounts at all.
+    // Refresh both places that read this map: the Team Setup editor itself, and the Summary Dashboard's
+    // "Production Location Overview" (which filters/labels every card off the very same map).
+    loadProductionSummarySupplierLocations();
+    if (typeof renderProductionSummarySupplierTab === 'function' && document.getElementById('productionSummarySupplierTableWrap')) renderProductionSummarySupplierTab();
+    if (typeof renderProductionSummaryWrap === 'function' && document.getElementById('productionSummaryWrap')) renderProductionSummaryWrap();
     // Daily Targets' inputs are a static section (not tied to any tab-switch re-render), so unlike
     // everything else here, refreshing the underlying variable above isn't enough on its own — the
     // visible fields need their own explicit repaint or they'd keep showing stale numbers until a
@@ -12289,6 +12296,7 @@ function renderProductionSummarySupplierTab() {
       if (!supplier) { alert('Pilih Tailor Supplier dahulu.'); return; }
       productionSummarySupplierLocations[supplier.trim().toUpperCase()] = location;
       saveProductionSummarySupplierLocations();
+      pushSettingsDiff();
       renderProductionSummarySupplierTab();
     });
   }
@@ -12309,6 +12317,7 @@ function renderProductionSummarySupplierTable() {
     btn.addEventListener('click', () => {
       delete productionSummarySupplierLocations[btn.dataset.supplier.trim().toUpperCase()];
       saveProductionSummarySupplierLocations();
+      pushSettingsDiff();
       renderProductionSummarySupplierTab();
     });
   });
