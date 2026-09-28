@@ -1262,12 +1262,12 @@
     </button>
     <div class="nav-group" id="navGroupProduction">
       <button class="tab-btn" data-tab="production-summary">Summary Dashboard</button>
+      <button class="tab-btn" data-tab="production-release-calendar">Release Calendar</button>
       <button class="tab-btn" data-tab="production-stock-balance">Stock Balance</button>
       <button class="tab-btn" data-tab="production-fg">Stock Level Finish Good</button>
       <button class="tab-btn" data-tab="production-rm">Stock Level Raw Materials</button>
       <button class="tab-btn" data-tab="production-restock">Restock Status</button>
       <button class="tab-btn" data-tab="production-timeline">Timeline</button>
-      <button class="tab-btn" data-tab="production-release-calendar">Release Calendar</button>
     </div>
     <button type="button" class="nav-group-toggle" id="navGroupTeamToggle" data-group="navGroupTeam">
       <span>Team Setup</span><span class="nav-group-chevron">▾</span>
@@ -13834,6 +13834,64 @@ function garmentBatchAutoLinkTimelineIds(batch) {
   batch.timelineIds = Array.from(new Set([...existingIds, ...newIds]));
   return true;
 }
+// Per Shaila (Sep 28, 2026 — "ni semua dah betol,,,kuantiti receive yg tak sama"): ONE Garment Order
+// batch commonly covers SEVERAL different products at once (e.g. "Batch-5 TSX4-SAMIM" covering Open
+// Collar Top + Quarter Sleeve Top + Short Sleeve Shirt + Teluk Belanga, 24 SKU total) — before this,
+// every Timeline row linked to that batch showed the batch's WHOLE combined total identically, instead
+// of just its own product's share. This splits a shared batch's SKUs across its several linked rows by
+// Item Master Group (the product each SKU actually belongs to, looked up per-SKU), matched against each
+// row's Official Product Name — same Product<->Group relationship already documented on
+// campaignTimelineReceivingIndex above, just applied WITHIN an already-confirmed batch instead of
+// guessing which batch a row belongs to in the first place (that guessing was deliberately turned off,
+// see the comment below — this is a much narrower, lower-risk use of the same word-overlap idea, since
+// the batch itself is never in question here, only how to divide it up). A batch linked to only ONE row
+// is completely unaffected — it keeps using the batch's whole total exactly as before.
+const _campaignTimelineBatchSplitCache = new Map(); // batchNo -> { sig, map: recId -> {totalOrder,totalReceived,closedShort} }
+function campaignTimelineBatchSplitByRec(batch) {
+  const ids = batch.timelineIds || (batch.timelineId ? [batch.timelineId] : []);
+  if (ids.length <= 1) return null; // single-product batch — no split needed
+  const recs = ids.map(id => campaignTimelineList.find(r => r.id === id)).filter(Boolean);
+  if (recs.length <= 1) return null;
+  const sig = stableStringify({ skus: batch.skus, ids });
+  const cached = _campaignTimelineBatchSplitCache.get(batch.batchNo);
+  if (cached && cached.sig === sig) return cached.map;
+  // Group this batch's SKUs by Item Master Group (the specific product each SKU line belongs to).
+  const byGroup = new Map(); // group text -> { totalOrder, totalReceived, closedShort }
+  (batch.skus || []).forEach(s => {
+    const im = itemMasterLookupBySku(s.sku);
+    const group = ((im && im.itemGroup) || '').trim();
+    if (!group) return; // can't attribute an unmapped SKU to any specific product — left out of every row's split rather than risk double-counting or guessing
+    if (!byGroup.has(group)) byGroup.set(group, { totalOrder: 0, totalReceived: 0, closedShort: false });
+    const acc = byGroup.get(group);
+    acc.totalOrder += Number(s.qtyOrder) || 0;
+    acc.totalReceived += Number(s.qtyReceived) || 0;
+    if (s.closedShort) acc.closedShort = true;
+  });
+  const map = new Map();
+  byGroup.forEach((acc, group) => {
+    // Which of THIS batch's own linked rows best matches this group's name — same word-overlap scoring
+    // as campaignTimelineBestWordMatch, just picking among a short known list of sibling rows instead of
+    // searching a whole index.
+    const groupWords = campaignTimelineNormWords(group);
+    let best = null, bestScore = 0;
+    recs.forEach(r => {
+      const recWords = campaignTimelineNormWords(r.officialProductName || '');
+      if (!groupWords.length || !recWords.length) return;
+      const recWordSet = new Set(recWords);
+      const matchCount = groupWords.filter(w => recWordSet.has(w)).length;
+      const score = Math.max(matchCount / groupWords.length, matchCount / recWords.length);
+      if (score > bestScore) { bestScore = score; best = r; }
+    });
+    if (!best || bestScore < 0.5) return; // no confident owner among this batch's own linked rows — left out rather than guess
+    if (!map.has(best.id)) map.set(best.id, { totalOrder: 0, totalReceived: 0, closedShort: false });
+    const target = map.get(best.id);
+    target.totalOrder += acc.totalOrder;
+    target.totalReceived += acc.totalReceived;
+    if (acc.closedShort) target.closedShort = true;
+  });
+  _campaignTimelineBatchSplitCache.set(batch.batchNo, { sig, map });
+  return map;
+}
 function campaignTimelineMatchReceivingRaw(rec) {
   const linked = campaignTimelineLinkedBatchesIndex().get(rec.id);
   if (linked && linked.length) {
@@ -13847,6 +13905,18 @@ function campaignTimelineMatchReceivingRaw(rec) {
     let groupLabel = '';
     linked.forEach(b => {
       groupLabel = groupLabel || b.garmentName || b.batchNo;
+      const split = campaignTimelineBatchSplitByRec(b);
+      if (split) {
+        // This batch covers several products (see campaignTimelineBatchSplitByRec above) — only THIS
+        // row's own share counts, not the whole batch.
+        const part = split.get(rec.id);
+        if (part) {
+          acc.totalOrder += part.totalOrder;
+          acc.totalReceived += part.totalReceived;
+          if (part.closedShort) acc.closedShort = true;
+        }
+        return;
+      }
       (b.skus || []).forEach(s => {
         acc.totalOrder += Number(s.qtyOrder) || 0;
         acc.totalReceived += Number(s.qtyReceived) || 0;
