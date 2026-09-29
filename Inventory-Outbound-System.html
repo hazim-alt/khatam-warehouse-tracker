@@ -4807,6 +4807,28 @@ function loadData() {
   loadStationPresence();
   loadRawMaterialData();
   migrateFixDuplicateRmReconRollNos();
+  migrateSyncPickStoFabricNameFromRoll();
+  // Per Shaila (Sep 29, 2026 — "pangku plain tu saya dah tukar nama ke pangku" / "roll out pon kene
+  // tukar la ke pangku"): the id/rollNo-based fix above wasn't enough for this specific fabric — its old
+  // "PANGKU PLAIN" pick/STO records have no working rollId or rollNo link back to the current "PANGKU"
+  // rolls (most likely the original rolls were deleted and re-received fresh under the new name, rather
+  // than the same rolls being edited in place, so there's no trail to follow). One-time direct text
+  // merge for this exact pair so Roll OUT (and Balance) shows "PANGKU" everywhere, matching what she
+  // confirmed the rename should have been.
+  // CORRECTED Sep 29, 2026 (Shaila: "kenapa awak tukar data saya yang saya dah betul kan?" / STO cards
+  // going missing from the Create STO page): this was WRONGLY left running on EVERY load under the
+  // assumption it'd be a harmless no-op once no "PANGKU PLAIN"/"26Y01" records were left — but "PANGKU
+  // PLAIN" is a real, ongoing fabric name she still receives fresh stock under (a legitimate NEW batch,
+  // e.g. the Wine Red / Sep 2, 2026 receipt), not a name that only ever existed historically. Running
+  // this on every load kept silently re-merging that brand-new, correctly-named stock into the old
+  // "PANGKU" identity, corrupting/mixing records and breaking whatever grouped it (like the Create STO
+  // fabric cards) every single time the app loaded. Guarded with a one-time flag so it fires exactly
+  // once (fixing only the old historical records that already existed at the time of that fix) and never
+  // touches anything entered after.
+  if (!localStorage.getItem('rmMigrationPangkuPlainMergeDone_v1')) {
+    mergeFabricIdentityByName('PANGKU PLAIN', '26Y01', 'PANGKU', '26Y01');
+    localStorage.setItem('rmMigrationPangkuPlainMergeDone_v1', '1');
+  }
   loadAccessoriesReceipts();
   loadPriceTagStickers();
   loadPriceTagPrinters();
@@ -9161,6 +9183,32 @@ function applyServerSnapshot(table) {
   // caller), an empty remoteArr reaching this point can now only mean a genuine, intentional delete,
   // so it's safe — correct, even — to apply it like any other change below.
   if (table === 'STO_Records' || table === 'Inbound_STO') checkStoCollisionOnIncoming(table, remoteArr);
+  // Per Shaila (Sep 29, 2026 — 3 completed Raw Material STOs, with printed DOs proving they existed,
+  // vanished permanently from BOTH local storage AND Firebase): a device that creates/completes a
+  // RawMaterial_Rolls/Picks/STOs/DOs record and then closes or loses network before the next
+  // cloudSyncReconcile tick actually pushes it can have that brand-new record silently wiped the very
+  // next time ANY device (including itself) reloads — the realtime listener's very first "value"
+  // callback fires with whatever's CURRENTLY on the server (which doesn't have the not-yet-pushed
+  // record yet), and this function would otherwise blindly adopt that as truth below, discarding the
+  // local-only addition before it ever got a chance to be pushed. Confirmed via Firebase directly:
+  // the 3 missing STOs were never there either, meaning the loss happened exactly this way rather
+  // than a delete or a display bug. These 4 tables record real, physical stock movements that can't
+  // be reconstructed from anywhere else once lost, so — unlike most other SYNC_COLLECTIONS tables —
+  // an incoming remote snapshot here is MERGED into the local array instead of replacing it outright:
+  // any local record missing from the incoming remote snapshot is preserved and immediately re-queued
+  // to push, rather than treated as "remote must know something we don't and deleted it". The one
+  // legitimate cost is a genuine delete made on a different device (e.g. the Delete STO button) might
+  // take one extra sync cycle to reach here if this device also has an unrelated pending local
+  // addition at that exact moment — far smaller a risk than silently losing real stock records.
+  if (table === 'RawMaterial_Rolls' || table === 'RawMaterial_Picks' || table === 'RawMaterial_STOs' || table === 'RawMaterial_DOs') {
+    const localArr = def.getArray();
+    const remoteKeys = new Set(remoteArr.map(r => syncKeyOf(r)));
+    const localOnly = localArr.filter(r => !remoteKeys.has(syncKeyOf(r)));
+    if (localOnly.length) {
+      pushCollectionDiff(def, { skipEmptyGuard: true });
+      remoteArr = remoteArr.concat(localOnly);
+    }
+  }
   if (stableStringify(remoteArr) === stableStringify(def.getArray())) { pendingRemoteApply.delete(table); return; }
   if (isUserActivelyTyping() || isTableDirty(table)) { pendingRemoteApply.add(table); return; }
   def.setArray(remoteArr);
@@ -9398,7 +9446,144 @@ function migrateFixDuplicateRmReconRollNos() {
   });
   saveRawMaterialStos();
 }
-
+// Shared by both the "Edit Roll" modal (Print Sticker tab) and, indirectly, the migration below: pushes
+// a roll's CURRENT identity fields (Fabric Name/Code, Colour Name/Code, Roll No.) into every pick, STO,
+// and DO-item that's linked to it by the roll's own stable `id` — so editing any of those fields on the
+// roll can never leave historical records behind with stale copies, regardless of how many fields
+// changed at once or whether Roll No. itself changed (which would otherwise also break the rollNo-based
+// fallback matching used elsewhere).
+function syncRollIdentityToHistory(roll) {
+  if (!roll || !roll.id) return;
+  const apply = (rec) => {
+    rec.fabricName = roll.fabricName; rec.fabricCode = roll.fabricCode;
+    rec.colorName = roll.colorName; rec.colorCode = roll.colorCode;
+    if (rec.rollNo !== undefined) rec.rollNo = roll.rollNo;
+  };
+  let picksChanged = 0, stosChanged = 0, doItemsChanged = 0;
+  (typeof rawMaterialPicks !== 'undefined' ? rawMaterialPicks : []).forEach(p => { if (p.rollId === roll.id) { apply(p); picksChanged++; } });
+  (typeof rawMaterialStos !== 'undefined' ? rawMaterialStos : []).forEach(s => { if (s.rollId === roll.id) { apply(s); stosChanged++; } });
+  (typeof rawMaterialDos !== 'undefined' ? rawMaterialDos : []).forEach(d => {
+    (d.items || []).forEach(it => { if (it.itemType !== 'accessories' && it.rollId === roll.id) { apply(it); doItemsChanged++; } });
+  });
+  if (picksChanged && typeof saveRawMaterialPicks === 'function') saveRawMaterialPicks();
+  if (stosChanged && typeof saveRawMaterialStos === 'function') saveRawMaterialStos();
+  if (doItemsChanged && typeof saveRawMaterialDos === 'function') saveRawMaterialDos();
+}
+// Per Shaila (Sep 29, 2026 — "kenapa balance tak sama,,mntk fix kan semula" on Finance's Fabric Stock
+// Dashboard): a PAST use of the Stock Balance page's "Rename All" (Edit Fabric Name/Code) button only
+// ever updated rawMaterialRolls — every pick/STO already recorded against those rolls kept its OLD
+// Fabric Name/Code (its own copy, taken at creation time), so Finance's Roll IN (reads current roll
+// data) and Roll OUT (read picks/STOs) stopped matching under the same fabric identity, making it look
+// like nothing had gone out. The rename button itself is fixed to keep both sides in sync going
+// forward (see the 'rm-stock-rename-all-btn' click handler) — this is a ONE-TIME backfill for renames
+// that already happened before that fix: for every pick/STO whose rollId still points to a roll that
+// exists today, sync its Fabric Name/Code to match that roll's CURRENT values (the roll is the
+// authoritative source — Stock Balance already reads straight from it and was showing correctly all
+// along). Picks/STOs whose roll was later deleted are left untouched (nothing to reconcile against).
+function migrateSyncPickStoFabricNameFromRoll() {
+  const rollMap = new Map();
+  // Fallback lookup by Roll No. (e.g. "R-0066") for records that have no rollId at all — some STOs are
+  // created that way (manual/reconstructed entries, see rawMaterialStos.push sites with `rollId: null`)
+  // — Roll No. is globally unique across every fabric (gap-filling scheme, see formatRmRollNo), so it's
+  // a safe second identity to match on when rollId itself isn't available.
+  const rollByNo = new Map();
+  (typeof rawMaterialRolls !== 'undefined' ? rawMaterialRolls : []).forEach(r => {
+    rollMap.set(r.id, r);
+    if (r.rollNo) rollByNo.set(r.rollNo, r);
+  });
+  if (!rollMap.size) return;
+  const resolveRoll = (rec) => (rec.rollId && rollMap.get(rec.rollId)) || (rec.rollNo && rollByNo.get(rec.rollNo)) || null;
+  let picksChanged = 0, stosChanged = 0;
+  (typeof rawMaterialPicks !== 'undefined' ? rawMaterialPicks : []).forEach(p => {
+    const roll = resolveRoll(p);
+    if (!roll) return;
+    if ((p.fabricName || '') !== (roll.fabricName || '') || (p.fabricCode || '') !== (roll.fabricCode || '')
+      || (p.colorName || '') !== (roll.colorName || '') || (p.colorCode || '') !== (roll.colorCode || '')) {
+      p.fabricName = roll.fabricName; p.fabricCode = roll.fabricCode;
+      p.colorName = roll.colorName; p.colorCode = roll.colorCode;
+      picksChanged++;
+    }
+  });
+  (typeof rawMaterialStos !== 'undefined' ? rawMaterialStos : []).forEach(s => {
+    const roll = resolveRoll(s);
+    if (!roll) return;
+    if ((s.fabricName || '') !== (roll.fabricName || '') || (s.fabricCode || '') !== (roll.fabricCode || '')
+      || (s.colorName || '') !== (roll.colorName || '') || (s.colorCode || '') !== (roll.colorCode || '')) {
+      s.fabricName = roll.fabricName; s.fabricCode = roll.fabricCode;
+      s.colorName = roll.colorName; s.colorCode = roll.colorCode;
+      stosChanged++;
+    }
+  });
+  // Per Shaila (Sep 29, 2026 — "tolong masuk kan do dalam yg kosong tu,,saya dah sediakan kt atas tu"):
+  // the DO column on Finance's Roll OUT view (financeDosForFabric) matches rawMaterialDos by exact
+  // Fabric Name+Code against each DO's OWN item snapshot (items[].fabricName/fabricCode, copied at the
+  // moment the DO was generated — see rawMaterialDos.push sites) — the exact same "stale copy" issue as
+  // picks/STOs above, just one layer deeper. A DO generated back when its fabric still had an old name
+  // keeps that old name in its item forever, so it silently stops matching once the fabric is renamed —
+  // that's why these fabrics show a real, already-existing DO as "-": financeDosForFabric simply can't
+  // find it under the CURRENT name. Reconciled the same way, via each item's own rollNo.
+  let doItemsChanged = 0;
+  (typeof rawMaterialDos !== 'undefined' ? rawMaterialDos : []).forEach(d => {
+    (d.items || []).forEach(it => {
+      if (it.itemType === 'accessories') return;
+      const roll = resolveRoll(it);
+      if (!roll) return;
+      if ((it.fabricName || '') !== (roll.fabricName || '') || (it.fabricCode || '') !== (roll.fabricCode || '')
+        || (it.colorName || '') !== (roll.colorName || '') || (it.colorCode || '') !== (roll.colorCode || '')) {
+        it.fabricName = roll.fabricName; it.fabricCode = roll.fabricCode;
+        it.colorName = roll.colorName; it.colorCode = roll.colorCode;
+        doItemsChanged++;
+      }
+    });
+  });
+  if (picksChanged && typeof saveRawMaterialPicks === 'function') saveRawMaterialPicks();
+  if (stosChanged && typeof saveRawMaterialStos === 'function') saveRawMaterialStos();
+  if (doItemsChanged && typeof saveRawMaterialDos === 'function') saveRawMaterialDos();
+}
+// Direct fallback for when the rollId/rollNo-based reconciliation above can't find a link at all —
+// e.g. the original "PANGKU PLAIN" rolls were deleted and fresh ones created under "PANGKU" rather
+// than the SAME roll objects being renamed in place, so there's no id/rollNo trail left to follow at
+// all.
+// CORRECTED Sep 29, 2026 (Shaila: "kenapa awak tukar data saya yang saya dah betul kan?" — a real,
+// freshly-received batch legitimately named "PANGKU PLAIN" got silently merged into "PANGKU"): the
+// old version of this function renamed EVERY record matching the old name by plain text, with no way
+// to tell a truly orphaned historical record apart from a currently-active roll that just happens to
+// share that exact name — so it couldn't distinguish "this pick's roll was deleted years ago" from
+// "this pick belongs to a roll that's alive today and is correctly named this". Renaming
+// `rawMaterialRolls` itself by blind text match is now removed entirely (a roll that still exists is
+// always its own source of truth — nothing should overwrite its name from the outside). Picks/STOs/DO
+// items are only renamed when they're genuinely ORPHANED — i.e. their rollId/rollNo doesn't resolve to
+// any roll that exists today — so anything tied to a real, currently-alive roll (whatever it's named)
+// is always left completely untouched.
+function mergeFabricIdentityByName(oldName, oldCode, newName, newCode) {
+  const rollMap = new Map();
+  const rollByNo = new Map();
+  (typeof rawMaterialRolls !== 'undefined' ? rawMaterialRolls : []).forEach(r => {
+    rollMap.set(r.id, r);
+    if (r.rollNo) rollByNo.set(r.rollNo, r);
+  });
+  const resolveRoll = (rec) => (rec.rollId && rollMap.get(rec.rollId)) || (rec.rollNo && rollByNo.get(rec.rollNo)) || null;
+  let picksChanged = 0, stosChanged = 0, doItemsChanged = 0;
+  const matches = (rec) => (rec.fabricName || '') === oldName && (rec.fabricCode || '') === oldCode && !resolveRoll(rec);
+  (typeof rawMaterialPicks !== 'undefined' ? rawMaterialPicks : []).forEach(p => {
+    if (matches(p)) { p.fabricName = newName; p.fabricCode = newCode; picksChanged++; }
+  });
+  (typeof rawMaterialStos !== 'undefined' ? rawMaterialStos : []).forEach(s => {
+    if (matches(s)) { s.fabricName = newName; s.fabricCode = newCode; stosChanged++; }
+  });
+  // Same orphaned-only text-match rename applied one layer deeper, to each DO's own item snapshot (see
+  // the doItemsChanged block in migrateSyncPickStoFabricNameFromRoll above for why DOs need this too).
+  (typeof rawMaterialDos !== 'undefined' ? rawMaterialDos : []).forEach(d => {
+    (d.items || []).forEach(it => {
+      if (it.itemType === 'accessories') return;
+      if (matches(it)) { it.fabricName = newName; it.fabricCode = newCode; doItemsChanged++; }
+    });
+  });
+  if (picksChanged && typeof saveRawMaterialPicks === 'function') saveRawMaterialPicks();
+  if (stosChanged && typeof saveRawMaterialStos === 'function') saveRawMaterialStos();
+  if (doItemsChanged && typeof saveRawMaterialDos === 'function') saveRawMaterialDos();
+  return { rollsChanged: 0, picksChanged, stosChanged, doItemsChanged };
+}
 // Garment Accessories — Receive log (separate data set from Raw Material fabric rolls; lives inside
 // the same "Receive & Pick" tab, switched via the Fabric Roll / Accessories toggle).
 const ACC_RECEIPTS_KEY = 'sto_acc_receipts_v1';
@@ -12905,12 +13090,27 @@ function pushCampaignTimelineDiffToFirebase(opts) {
     renderCloudSyncStatus();
   }).finally(() => { campaignTimelinePushInFlight = false; });
 }
+// Per Shaila (Sep 28, 2026 — "saya nak sentiasa ade,,tknk kejap2 hilang2"): this was a SEPARATE blank
+// spot from the Google-Sheets-refresh flakiness fixed above — this function runs every time Firebase's
+// realtime listener fires (attachCampaignTimelineFbListener, below), which includes this device's OWN
+// push echoing back, AND any other device/tab's sync. It used to swap campaignTimelineList wholesale
+// with whatever Firebase just sent, no matter how that snapshot got there — so a stale/partial value
+// from another device (or a brief in-between state during a multi-chunk push) could blank out fields
+// that this screen was already showing correctly, even though nothing was fetched here at all. Now
+// goes through the same field-level "don't let blank overwrite real" merge used for the Google Sheets
+// refresh (campaignTimelineMergeFetchedRows) — whatever arrives from the cloud only fills in / updates
+// real values, it never blanks something this screen already has.
 function applyCampaignTimelineServerSnapshot(remoteObj) {
   if (campaignTimelinePushInFlight) return;
   _campaignTimelineLastServerSnapshot = remoteObj || {};
   const remoteArr = Object.values(_campaignTimelineLastServerSnapshot);
-  if (stableStringify(remoteArr) === stableStringify(campaignTimelineList)) return;
-  campaignTimelineList = remoteArr;
+  // Only merge-protect when the remote side still has SOME rows — an explicit "Reset All" push (or a
+  // genuinely emptied sheet) sends an intentionally empty snapshot, and that has to go through as-is,
+  // otherwise this device would keep resurrecting every old row forever (merge treats "row missing
+  // from remote" as "keep it" — correct for a fetch glitch, wrong for a deliberate full reset).
+  const merged = (campaignTimelineList.length && remoteArr.length) ? campaignTimelineMergeFetchedRows(remoteArr, campaignTimelineList) : remoteArr;
+  if (stableStringify(merged) === stableStringify(campaignTimelineList)) return;
+  campaignTimelineList = merged;
   saveCampaignTimelineListLocal();
   const tabEl = document.getElementById('tab-production-timeline');
   if (tabEl && tabEl.classList.contains('active')) renderCampaignTimelineTab();
@@ -13038,7 +13238,7 @@ function campaignTimelineCellNum(v) {
 // which gets `rows` via XLSX's sheet_to_json) and the JSONP Google Sheets live-link (campaignTimelineFetchGvizRows,
 // which builds an equivalent `rows` array straight from Google's own gviz response — see below). Both
 // converge here so column-matching/date-parsing behaves identically regardless of source.
-function parseCampaignTimelineRows(rows, sheetLabel) {
+function parseCampaignTimelineRows(rows, sheetLabel, rawHeaderRows, deterministicHeaderRows) {
   // Find the header row by CONTENT (first row in the first 10 that has a "Series" column) instead of
   // assuming a fixed row index. The uploaded-Excel-file path has 2 title rows above the real header
   // (so header lands on row 3), but her live Google Sheet doesn't share that layout, so a hardcoded
@@ -13057,6 +13257,30 @@ function parseCampaignTimelineRows(rows, sheetLabel) {
   }
   const headerRow = rows[headerRowIdx] || [];
   const col = (name, occurrence) => campaignTimelineFindColOccurrence(headerRow, name, occurrence || 1);
+  // Optional second-opinion header source (see campaignTimelineFetchGvizRawHeaderRows) — a combined
+  // pseudo-header-row built from real, UNGLUED cell text (headers=0, so no merge-guessing involved),
+  // used ONLY to rescue a "contains" column lookup that came back -1 against the primary (gviz-merged)
+  // headerRow above. Empty/no-op when not supplied (e.g. the uploaded-file path never had this
+  // glued-label problem to begin with, since it reads real distinct rows already).
+  const combinedHeaderRow = campaignTimelineBuildCombinedHeaderRow(rawHeaderRows);
+  const findColContainsResilient = (parts) => {
+    const primary = campaignTimelineFindColContains(headerRow, parts);
+    if (primary !== -1) return primary;
+    return combinedHeaderRow.length ? campaignTimelineFindColContains(combinedHeaderRow, parts) : -1;
+  };
+  // Per Shaila (Sep 28, 2026 — "saya nak...data tak hilang macam column lain...walaupon auto refresh"):
+  // for a column that's proven itself repeatedly prone to the merge-guessing glitch (Fabric Invoice
+  // Number, and historically Batch), don't even START from the flaky merged headerRow — check the
+  // DETERMINISTIC headers=0 source (deterministicHeaderRows, real unmodified cell text — Google has
+  // nothing to guess wrong here) FIRST, and only fall back to the guess-based sources if that
+  // deterministic source is unavailable (e.g. its own retries above all failed, which needs an actual
+  // ongoing connection problem, not just an ordinary merge-guess miss).
+  const combinedDeterministicHeaderRow = campaignTimelineBuildCombinedHeaderRow(deterministicHeaderRows);
+  const findColContainsDeterministicFirst = (parts) => {
+    const det = combinedDeterministicHeaderRow.length ? campaignTimelineFindColContains(combinedDeterministicHeaderRow, parts) : -1;
+    if (det !== -1) return det;
+    return findColContainsResilient(parts);
+  };
   // Her sheet's real header is "Tailor Supplier", not a bare "Supplier" (per her screenshot, Sep 24,
   // 2026) — that exact-match `col('supplier')` was returning -1 and leaving every row's Supplier blank.
   // Contains-match on "tailor supplier" first, falling back to the old exact "supplier" match in case
@@ -13078,7 +13302,12 @@ function parseCampaignTimelineRows(rows, sheetLabel) {
     // fixes above — her live Google Sheet's multi-row header block can glue extra banner/title text
     // onto a column's merged label (see campaignTimelineFetchGvizRows), which silently fails an exact
     // "batch" === match while still containing the word "batch" somewhere in it.
-    batch: campaignTimelineFindColContains(headerRow, ['batch']),
+    // Sep 28, 2026 update: now goes through findColContainsResilient (falls back to the unglued
+    // headers=0 second-opinion row when the primary merged-label lookup misses) — the "R" issue kept
+    // recurring even after the exact->contains fix above because the miss wasn't the match TYPE, it
+    // was gviz's own merge occasionally dropping/garbling this column's label entirely on a given
+    // refresh (see campaignTimelineFetchGvizRawHeaderRows for the full explanation).
+    batch: findColContainsDeterministicFirst(['batch']),
     material: col('material'), fabricSupplier: col('fabric supplier'), color: col('color'),
     quantity: quantityFgIdx !== -1 ? quantityFgIdx : col('quantity'),
     // "Total Value" — a column she's since added to her sheet (Sep 25, 2026) holding the total FG order
@@ -13103,6 +13332,14 @@ function parseCampaignTimelineRows(rows, sheetLabel) {
     // Added per Shaila's column list (Sep 24, 2026) for the redesigned Timeline table.
     quantityFabricsCtn: campaignTimelineFindColContains(headerRow, ['quantity', 'fabrics', 'ctn']),
     quantityFabricsMeter: campaignTimelineFindColContains(headerRow, ['quantity', 'fabrics', 'meter']),
+    // Added per Shaila's request (Sep 28, 2026 — "nak tambah column 'Fabric Invoice Number'").
+    // Confirmed directly against her real sheet (fetched gviz with &headers=0) that this column's
+    // header sits as clean plain text with a section banner ("PRODUCTION DEPT. ETA FABRIC") merged as
+    // a SEPARATE cell above it — but gviz's own default header-guessing sometimes fails to carry the
+    // real "Fabric Invoice Number" text into the merged label for this column on a given refresh
+    // (Shaila: "kejap ade kejap hilang" — whole column blank, then correct on the next refresh). Goes
+    // through findColContainsResilient so a miss here falls back to the un-glued headers=0 row.
+    fabricInvoiceNumber: findColContainsDeterministicFirst(['fabric', 'invoice', 'number']),
   };
   if (idx.series === -1) throw new Error(`This file needs a "Series" column (checked sheet "${sheetLabel}").`);
   const mapped = [];
@@ -13131,6 +13368,7 @@ function parseCampaignTimelineRows(rows, sheetLabel) {
       batch: batchVal,
       material: idx.material !== -1 ? campaignTimelineCellText(row[idx.material]) : '',
       fabricSupplier: idx.fabricSupplier !== -1 ? campaignTimelineCellText(row[idx.fabricSupplier]) : '',
+      fabricInvoiceNumber: idx.fabricInvoiceNumber !== -1 ? campaignTimelineCellText(row[idx.fabricInvoiceNumber]) : '',
       color: colorVal,
       quantity: idx.quantity !== -1 ? campaignTimelineCellNum(row[idx.quantity]) : 0,
       totalValue: idx.totalValue !== -1 ? campaignTimelineCellNum(row[idx.totalValue]) : 0,
@@ -13339,9 +13577,151 @@ function campaignTimelineFetchGvizRows(url) {
     // range, no headers= param is needed at all — Google's own guess works and gives clean per-column
     // labels (see campaignTimelineFindColContainsOccurrence above for why the ETA-date columns still
     // need contains-matching even so — the banner text above them rides along in the merged label).
-    script.src = `https://docs.google.com/spreadsheets/d/${parsed.sheetId}/gviz/tq?gid=${parsed.gid}&range=A1:BZ5000&tqx=out:json;responseHandler:${cbName}`;
+    // _cb cache-busts the request — a plain URL can otherwise be served from the browser's own HTTP
+    // cache on a repeat "Refresh from Google Sheets" click instead of genuinely re-fetching, which
+    // would look exactly like the flakiness below (stale data reappearing) even though the network
+    // layer, not gviz itself, was actually at fault that time. Uses cbName (already unique per call via
+    // _campaignTimelineGvizCallbackSeq), NOT just Date.now() alone — two calls issued back-to-back
+    // (see campaignTimelineFetchGvizRowsReliable's double-fetch below) can land in the exact same
+    // millisecond, which would make Date.now() alone produce two IDENTICAL URLs; browsers can then
+    // coalesce those into a single real network request, silently defeating the whole point of fetching
+    // twice (confirmed live, Sep 28, 2026 — Shaila: "sama je asyik hilang2" right after the first
+    // version of this fix, which used Date.now() alone, shipped).
+    script.src = `https://docs.google.com/spreadsheets/d/${parsed.sheetId}/gviz/tq?gid=${parsed.gid}&range=A1:BZ5000&tqx=out:json;responseHandler:${cbName}&_cb=${Date.now()}_${cbName}`;
     document.head.appendChild(script);
   });
+}
+// Per Shaila (Sep 28, 2026 — Fabric Invoice Number column going blank on some refreshes, same root
+// cause as the earlier Batch "R" issue): confirmed directly against her real sheet (fetched the gviz
+// endpoint with &headers=0, which turns OFF Google's own header-row auto-merge) that her real header
+// text ("Fabric Invoice Number", "Batch", etc.) sits as perfectly plain, un-glued text in its own row —
+// with NO banner text riding along. The flakiness lives entirely in the DEFAULT (headers auto-detected)
+// merge above (campaignTimelineFetchGvizRows): "gviz's own header-guessing gets inconsistent" per that
+// function's own long-standing comment, and when it guesses wrong for a given column, that column's
+// merged label can come back missing the actual words we search for (e.g. just the banner text, or
+// blank), which is exactly why campaignTimelineFindColContains then returns -1 for that column and the
+// whole column reads blank for every row — not a per-row problem, a per-REFRESH header-detection miss.
+// IMPORTANT: &headers=0 can't safely replace the main fetch above wholesale — confirmed the SAME test
+// also showed Google nulling out the header TEXT of any NUMBER/DATE-typed column (e.g. "Quantity FG
+// Order pcs", "Color", "PO Date" all came back null) because with headers=0 that row is treated as
+// ordinary DATA and coerced to the column's inferred type, which text obviously fails. So this is only
+// used as a narrow, SECOND-OPINION fallback for the handful of columns matched via "contains" — used
+// only when the primary (merged-label) lookup for that specific column already resolved to -1, and only
+// pulled from a small header-only range so it's cheap and doesn't compete with the main data fetch.
+function campaignTimelineFetchGvizRawHeaderRowsOnce(url) {
+  return new Promise((resolve) => {
+    const parsed = campaignTimelineParseSheetUrl(url);
+    if (!parsed || parsed.publishedLinkError) { resolve([]); return; }
+    const cbName = `_campaignTimelineGvizHdrCb${_campaignTimelineGvizCallbackSeq++}`;
+    const script = document.createElement('script');
+    const timer = setTimeout(() => { cleanup(); resolve([]); }, 15000);
+    function cleanup() { delete window[cbName]; if (script.parentNode) script.parentNode.removeChild(script); clearTimeout(timer); }
+    window[cbName] = (gvizResponse) => {
+      cleanup();
+      try {
+        if (!gvizResponse || gvizResponse.status === 'error') { resolve([]); return; }
+        const table = gvizResponse.table;
+        const numCols = table.cols.length;
+        const rows = table.rows.map(r => {
+          const out = new Array(numCols).fill('');
+          (r.c || []).forEach((cell, i) => { if (cell) out[i] = (cell.f != null ? cell.f : (cell.v != null ? cell.v : '')); });
+          return out;
+        });
+        resolve(rows);
+      } catch (e) { resolve([]); }
+    };
+    script.onerror = () => { cleanup(); resolve([]); };
+    // Small fixed range (just the first handful of rows — title/banner/header + a token data row) is
+    // all that's needed for header-text lookup, and keeps this cheap/fast since it's an extra request
+    // fired alongside the main fetch, not a replacement for it.
+    script.src = `https://docs.google.com/spreadsheets/d/${parsed.sheetId}/gviz/tq?gid=${parsed.gid}&range=A1:BZ8&headers=0&tqx=out:json;responseHandler:${cbName}&_cb=${Date.now()}_${cbName}`;
+    document.head.appendChild(script);
+  });
+}
+// Per Shaila (Sep 28, 2026 — "saya nak column Fabric Invoice Number tu data tak hilang macam column
+// lain..walaupon auto refresh"): this is the DETERMINISTIC source (headers=0 turns off Google's own
+// guessing entirely, so the text that comes back is always the sheet's real, unmodified cell content —
+// there's nothing here for Google to "get wrong" the way it can with the merged-label guess). It's a
+// single small/cheap request though, so it can still fail from an ordinary network blip — retried a
+// few times with a short gap (same reasoning as campaignTimelineFetchGvizRowsReliable above) so a
+// passing hiccup on this one specific request doesn't waste the reliability this source is supposed to
+// provide. Returns the first attempt that actually got rows back, not a merge of several — there's
+// nothing to reconcile since a successful response here is never "partially wrong", only present or
+// absent.
+async function campaignTimelineFetchGvizRawHeaderRows(url) {
+  for (let i = 0; i < 3; i++) {
+    if (i > 0) await campaignTimelineDelay(700);
+    const rows = await campaignTimelineFetchGvizRawHeaderRowsOnce(url);
+    if (rows.length) return rows;
+  }
+  return [];
+}
+// Turns the raw multi-row header block (title row + banner row + real header row, as returned by
+// campaignTimelineFetchGvizRawHeaderRows) into ONE pseudo "header row" by joining each column's text
+// across all of those rows — e.g. column AA's cells "" / "" / "Fabric Invoice Number" join into just
+// "Fabric Invoice Number" (blank cells contribute nothing), which campaignTimelineFindColContains /
+// campaignTimelineFindColContainsOccurrence can then be reused against exactly as if it were gviz's own
+// merged label — except every word in it came from a real, unmodified cell, not a merge guess.
+function campaignTimelineBuildCombinedHeaderRow(rawRows) {
+  if (!rawRows || !rawRows.length) return [];
+  const maxCols = Math.max(...rawRows.map(r => r.length));
+  const combined = [];
+  for (let c = 0; c < maxCols; c++) {
+    combined.push(rawRows.map(r => campaignTimelineCellText(r[c])).filter(Boolean).join(' '));
+  }
+  return combined;
+}
+// Per Shaila (Sep 28, 2026 — "stop buat bende ni boleh tak,,,punca la buat Fabric Invoice Number
+// kadang hilang kadang ade"): this used to fetch the SAME sheet 5 times in a row (~1.1s apart) and vote
+// on every cell, specifically to work around gviz's header-guessing flakiness. She's right that it was
+// adding a lot of visible waiting ("attempt 4/5...") for a problem that's actually already solved a
+// different way now: findColContainsDeterministicFirst (see parseCampaignTimelineRows) resolves the
+// handful of flaky columns (Batch, Fabric Invoice Number) from campaignTimelineFetchGvizRawHeaderRows —
+// a deterministic, guess-free source — BEFORE ever looking at this merge-guessed one, and
+// campaignTimelineMergeFetchedRows (below) separately guarantees a blank in any one fetch can never
+// erase a good value already stored. Neither of those needs repeated attempts of the MAIN data fetch to
+// work. So this goes back to a single, ordinary fetch — the 5x voting was solving a problem the other
+// two fixes already cover, at the cost of a much slower, more visible refresh.
+function campaignTimelineDelay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+async function campaignTimelineFetchGvizRowsReliable(url) {
+  const rows = await campaignTimelineFetchGvizRows(url);
+  return { rows, headerCandidates: [rows[0] || []] };
+}
+// Per Shaila (Sep 28, 2026 — "saya nak kalau refresh data dalam system tak bergerak apa2 melainkan
+// dalam sheet ade perubahan"): a refresh used to FULLY REPLACE campaignTimelineList with whatever
+// just got fetched — so even with the attempt-voting above, any cell that still came back blank
+// (network hiccup, a row gviz dropped entirely, etc.) would overwrite a perfectly good existing
+// value with blank. This changes a refresh from "replace everything" to "only apply what actually
+// looks like a real change": matched row-for-row by the same stable id used for batch-linking, and
+// field-for-field — a field only updates if the newly-fetched value is non-blank; if it comes back
+// blank/zero while the system already had a real value, the OLD value is kept (treated as a fetch
+// gap, not an intentional clear in the sheet). A row that's simply missing from the new fetch
+// altogether (e.g. gviz dropped it this round) is kept as-is too, rather than deleted. Genuinely new
+// rows from the sheet still come in normally. Net effect: nothing in the system should ever go blank
+// or disappear just because one refresh had a gap — it only ever fills in / updates with real values.
+function campaignTimelineIsBlankVal(v) {
+  return v === undefined || v === null || v === '' || v === 0;
+}
+function campaignTimelineMergeFetchedRows(newRows, oldRows) {
+  const oldMap = new Map(oldRows.map(r => [r.id, r]));
+  const seenIds = new Set();
+  const merged = newRows.map(newRec => {
+    seenIds.add(newRec.id);
+    const oldRec = oldMap.get(newRec.id);
+    if (!oldRec) return newRec; // genuinely new row from the sheet
+    const combined = { ...newRec };
+    Object.keys(newRec).forEach(key => {
+      if (key === 'id') return;
+      if (campaignTimelineIsBlankVal(newRec[key]) && !campaignTimelineIsBlankVal(oldRec[key])) {
+        combined[key] = oldRec[key]; // new fetch has a gap here — keep what we already had
+      }
+    });
+    return combined;
+  });
+  // Rows that existed before but didn't come back at all in this fetch (whole row dropped) — keep
+  // them rather than silently losing them.
+  oldRows.forEach(oldRec => { if (!seenIds.has(oldRec.id)) merged.push(oldRec); });
+  return merged;
 }
 async function fetchCampaignTimelineFromGoogleSheets() {
   const statusEl = document.getElementById('campaignTimelineUploadStatus');
@@ -13364,7 +13744,12 @@ async function fetchCampaignTimelineFromGoogleSheets() {
     const errors = [];
     if (summary) {
       try {
-        let summaryRows = parseCampaignTimelineRows(await campaignTimelineFetchGvizRows(summary), 'Summary all series');
+        const [summaryFetch, summaryAuxHeaderRows] = await Promise.all([
+          campaignTimelineFetchGvizRowsReliable(summary),
+          campaignTimelineFetchGvizRawHeaderRows(summary),
+        ]);
+        const summaryHeaderRows = summaryFetch.headerCandidates.concat(summaryAuxHeaderRows);
+        let summaryRows = parseCampaignTimelineRows(summaryFetch.rows, 'Summary all series', summaryHeaderRows, summaryAuxHeaderRows);
         // Her "Summary all series" tab also lists PATAWALI rows, but they're sparse there (most
         // fields blank) — the dedicated "Patawali" sheet below has the fuller version of the same
         // rows. Per her request, when that link is filled in, skip PATAWALI here so it doesn't show
@@ -13376,15 +13761,35 @@ async function fetchCampaignTimelineFromGoogleSheets() {
       catch (e) { errors.push(`"Summary all series" link — ${e.message}`); }
     }
     if (patawali) {
-      try { mapped = mapped.concat(parseCampaignTimelineRows(await campaignTimelineFetchGvizRows(patawali), 'Patawali')); }
+      try {
+        const [patawaliFetch, patawaliAuxHeaderRows] = await Promise.all([
+          campaignTimelineFetchGvizRowsReliable(patawali),
+          campaignTimelineFetchGvizRawHeaderRows(patawali),
+        ]);
+        const patawaliHeaderRows = patawaliFetch.headerCandidates.concat(patawaliAuxHeaderRows);
+        mapped = mapped.concat(parseCampaignTimelineRows(patawaliFetch.rows, 'Patawali', patawaliHeaderRows, patawaliAuxHeaderRows));
+      }
       catch (e) { errors.push(`"Patawali" link — ${e.message}`); }
     }
     if (!mapped.length) throw new Error(errors.length ? errors.join(' | ') : 'No valid rows found from either link.');
-    campaignTimelineList = mapped;
+    // Sanity guard: if this fetch came back with far fewer rows than what's already in the system
+    // (half or less), that's a sign the fetch itself broke/timed out partway rather than the sheet
+    // genuinely losing that many rows at once — bail out and keep the existing data untouched instead
+    // of merging in a badly-incomplete result.
+    if (campaignTimelineList.length > 0 && mapped.length < campaignTimelineList.length * 0.5) {
+      throw new Error(`This fetch only returned ${formatQty(mapped.length)} row(s), far fewer than the ${formatQty(campaignTimelineList.length)} already in the system — looks like an incomplete fetch, not a real change in the sheet. Nothing was changed; please try "Refresh from Google Sheets" again.`);
+    }
+    const beforeSig = stableStringify(campaignTimelineList);
+    campaignTimelineList = campaignTimelineMergeFetchedRows(mapped, campaignTimelineList);
+    const changed = stableStringify(campaignTimelineList) !== beforeSig;
     campaignTimelineImportedAt = new Date().toISOString();
-    saveCampaignTimelineListLocal();
-    pushCampaignTimelineDiffToFirebase({ skipEmptyGuard: true });
-    statusEl.textContent = `Success: ${formatQty(mapped.length)} item(s) loaded from Google Sheets and synced.${errors.length ? ` (Warning — ${errors.join(' | ')})` : ''}`;
+    if (changed) {
+      saveCampaignTimelineListLocal();
+      pushCampaignTimelineDiffToFirebase({ skipEmptyGuard: true });
+      statusEl.textContent = `Success: ${formatQty(campaignTimelineList.length)} item(s) loaded — changes found and applied.${errors.length ? ` (Warning — ${errors.join(' | ')})` : ''}`;
+    } else {
+      statusEl.textContent = `Success: checked ${formatQty(campaignTimelineList.length)} item(s) — no changes found in the sheet, nothing was touched.${errors.length ? ` (Warning — ${errors.join(' | ')})` : ''}`;
+    }
     statusEl.className = errors.length ? 'upload-status err' : 'upload-status ok';
     renderCampaignTimelineTab();
   } catch (err) {
@@ -14578,13 +14983,17 @@ function campaignTimelineFabricGroupedRows(list) {
   const groups = new Map();
   list.forEach(rec => {
     // Per Shaila's correction (Sep 27, 2026 — "jgn buat koma,,kalau material lain buat row lain"):
-    // Material is now PART of the grouping key, not just displayed comma-joined after the fact — a row
-    // with a different Material always gets its own row, even if Series/Supplier/Delivery/Arrive match.
-    const key = [rec.series || '-', rec.material || '-', rec.fabricSupplier || '-', rec.fabricDelivery || '', rec.fabricArrive || ''].join('|');
+    // Material is part of the grouping key — a row with a different Material always gets its own row.
+    // Fabric Delivery/Arrive dates dropped from the key (Sep 28, 2026 — she found two shipments of the
+    // SAME Series+Material on different arrival dates both showing the exact same "Receive" total,
+    // since received rolls are only matched by Fabric Code + Series, not tied to a specific delivery
+    // date — there's no way to split which roll belongs to which shipment. Rather than show a
+    // misleading duplicated Receive number on two rows, per her choice ("Gabung jadi 1 row je") these
+    // now combine into ONE row — every distinct Delivery/Arrive date among them is shown together.
+    const key = [rec.series || '-', rec.material || '-', rec.fabricSupplier || '-'].join('|');
     if (!groups.has(key)) {
       groups.set(key, {
         series: rec.series, material: rec.material, fabricSupplier: rec.fabricSupplier,
-        fabricDelivery: rec.fabricDelivery, fabricArrive: rec.fabricArrive,
         ctn: 0, meter: 0, recs: [],
       });
     }
@@ -14594,11 +15003,17 @@ function campaignTimelineFabricGroupedRows(list) {
     g.recs.push(rec);
   });
   // Soonest-arriving group first (falls back to Delivery date, then Series name), same "sorted by
-  // nearest date" spirit as the rest of this tab — the per-record milestone sort doesn't apply anymore
-  // since a group can combine several original rows.
+  // nearest date" spirit as the rest of this tab. Now uses the EARLIEST distinct Arrive/Delivery date
+  // among the group's combined rows, since a group can span several dates.
+  const groupSortDate = (g) => {
+    const arrives = [...new Set(g.recs.map(r => r.fabricArrive).filter(Boolean))].sort();
+    if (arrives.length) return arrives[0];
+    const deliveries = [...new Set(g.recs.map(r => r.fabricDelivery).filter(Boolean))].sort();
+    return deliveries.length ? deliveries[0] : '';
+  };
   return [...groups.values()].sort((a, b) => {
-    const da = a.fabricArrive || a.fabricDelivery || '';
-    const db = b.fabricArrive || b.fabricDelivery || '';
+    const da = groupSortDate(a);
+    const db = groupSortDate(b);
     if (da && db) return da.localeCompare(db);
     if (da) return -1;
     if (db) return 1;
@@ -14672,9 +15087,14 @@ function renderCampaignTimelineFabricTable() {
   // Per Shaila's request (Sep 27, 2026 — "column yg kene buang Category,Official Product Name,Batch,
   // color"): those four dropped from the Fabric table — fabric isn't tracked per garment product/batch
   // the way FG is, so they weren't adding anything useful here.
+  // Fabric Invoice Number re-added (Sep 28, 2026 — "saya nak tambah column invoice no.") after being
+  // removed earlier the same day over reliability concerns — the underlying fetch was fixed in the
+  // meantime (deterministic headers=0 lookup, tried FIRST for this column instead of Google's
+  // guess-based header merge; see findColContainsDeterministicFirst / campaignTimelineFetchGvizRawHeaderRows)
+  // so it's safe to bring the column back.
   let html = `<table><thead><tr>
     <th>Series</th><th>Material</th>
-    <th>Fabric Supplier</th><th>Quantity Fabrics Ctn</th><th>Quantity Fabrics Meter</th>
+    <th>Fabric Supplier</th><th>Fabric Invoice Number</th><th>Quantity Fabrics Ctn</th><th>Quantity Fabrics Meter</th>
     <th>Receive (Ctn)</th><th>Receive (Meter)</th><th>Variance (Ctn)</th><th>Variance (Meter)</th>
     <th>Fabric Delivery</th><th>Fabric Arrive</th>
     <th>Status</th>
@@ -14691,11 +15111,16 @@ function renderCampaignTimelineFabricTable() {
     // that date has passed and it's still under — same 3-state spirit as the FG variance columns
     // elsewhere (campaignTimelineVarianceStatusFilterKey), adapted since Fabric has no "closed short"
     // flag of its own, only a date to judge "should have arrived by now" against.
+    // Group can now span several Delivery/Arrive dates (Sep 28, 2026 — combined per her "Gabung jadi 1
+    // row je" choice) — use the LATEST of them for the "should have arrived by now" judgment, so a
+    // shortfall isn't flagged red while another shipment in the group is still legitimately outstanding.
+    const allArrives = [...new Set(g.recs.map(r => r.fabricArrive).filter(Boolean))].sort();
+    const allDeliveries = [...new Set(g.recs.map(r => r.fabricDelivery).filter(Boolean))].sort();
+    const latestJudgmentDate = allArrives.length ? allArrives[allArrives.length - 1] : (allDeliveries.length ? allDeliveries[allDeliveries.length - 1] : '');
     const fabricVarianceColor = (varianceQty) => {
       if (varianceQty === 0) return '';
       if (varianceQty > 0) return 'color:var(--green);';
-      const arriveDate = g.fabricArrive || g.fabricDelivery;
-      if (arriveDate && arriveDate > todayStr()) return 'color:var(--amber);';
+      if (latestJudgmentDate && latestJudgmentDate > todayStr()) return 'color:var(--amber);';
       return 'color:var(--red);';
     };
     const ctnColor = fabricVarianceColor(varianceCtn);
@@ -14705,18 +15130,27 @@ function renderCampaignTimelineFabricTable() {
     // buat row lain"): straight from the Timeline sheet's own Material column (rec.material) — Material
     // is now part of the grouping key itself (see campaignTimelineFabricGroupedRows), so every group
     // here already has exactly one Material, no comma-joining needed.
+    // Fabric Invoice Number re-added (Sep 28, 2026) — every distinct invoice number among the rows
+    // folded into this group, comma-joined (same "isn't part of the grouping key" reasoning as before:
+    // the same Series+Material group can legitimately carry more than one invoice over time).
+    const invoiceNumbers = [...new Set(g.recs.map(r => r.fabricInvoiceNumber).filter(Boolean))].join(', ') || '-';
+    // Delivery/Arrive cells now comma-join every distinct date among the group's combined rows (there
+    // can be more than one now that different-dated shipments of the same Series+Material share a row).
+    const deliveryLabel = allDeliveries.length ? allDeliveries.map(formatDateLabel).join(', ') : '-';
+    const arriveLabel = allArrives.length ? allArrives.map(formatDateLabel).join(', ') : '-';
     html += `<tr>
       <td>${escapeHtml(g.series || '-')}</td>
       <td>${escapeHtml(g.material || '-')}</td>
       <td>${escapeHtml(g.fabricSupplier || '-')}</td>
+      <td>${escapeHtml(invoiceNumbers)}</td>
       <td>${formatQty(g.ctn)}</td>
       <td>${formatQty(g.meter)}</td>
       <td>${formatQty(receiveCtn)}</td>
       <td>${formatQty(receiveMeter)}</td>
       <td style="${ctnColor}">${formatQty(Math.abs(varianceCtn))}</td>
       <td style="${meterColor}">${formatQty(Math.abs(varianceMeter))}</td>
-      ${dateCell(g.fabricDelivery)}
-      ${dateCell(g.fabricArrive)}
+      <td>${escapeHtml(deliveryLabel)}</td>
+      <td>${escapeHtml(arriveLabel)}</td>
       <td>${campaignTimelineFabricGroupStatusBadgeHtml(g)}</td>
     </tr>`;
   });
@@ -16537,6 +16971,8 @@ document.getElementById('rmFabricName').addEventListener('change', () => {
     // it for her to fill in herself.
     const materials = campaignTimelineFabricMaterialsForSeries(sel.value);
     if (materials.length === 1) document.getElementById('rmFabricCode').value = materials[0];
+    // Invoice No. auto-fill removed along with the Fabric Invoice Number column (Sep 28, 2026 — "buang
+    // column Fabric Invoice Number") — this field goes back to manual entry only.
   }
   renderRmReceiveSummary();
 });
@@ -18014,19 +18450,43 @@ function renderRmStockSummaryTable() {
       const trimmedCode = newCode.trim();
       if (!trimmedName && !trimmedCode) { alert('Fabric Name and Fabric Code cannot both be empty.'); return; }
       let changed = 0;
+      const changedRollIds = new Set();
       rawMaterialRolls.forEach(r => {
         if ((r.fabricName || '') === (oldName || '') && (r.fabricCode || '') === (oldCode || '')) {
           r.fabricName = trimmedName;
           r.fabricCode = trimmedCode;
+          changedRollIds.add(r.id);
           changed++;
         }
       });
       if (!changed) return;
       saveRawMaterialRolls();
+      // Per Shaila's report (Sep 29, 2026 — "kenapa balance tak sama,,mntk fix kan semula" on the
+      // Finance Fabric Stock Dashboard): this rename used to touch ONLY rawMaterialRolls, leaving every
+      // already-recorded pick/STO (Roll OUT) for those same rolls carrying the OLD Fabric Name/Code
+      // forever (they store their own copy, taken at creation time — see e.g. rawMaterialPicks.push
+      // near line 19873). Finance's Roll IN vs Roll OUT matching groups by exact Fabric Name+Code
+      // string, so after a rename those OUT records silently stopped matching their own fabric's IN
+      // records — Finance then had no OUT to subtract, making it look like the whole quantity was still
+      // sitting in stock (inflated Balance) even though Raw Material's own Stock Balance page (which
+      // tracks meterRemaining directly on the roll, unaffected by this) correctly showed it used up.
+      // Propagating the same rename into every pick/STO that references one of these rolls (matched by
+      // the stable rollId, not by name) keeps Roll IN and Roll OUT under the same identity going
+      // forward, so Finance's Balance stays reconcilable with Stock Balance.
+      let picksChanged = 0, stosChanged = 0;
+      (typeof rawMaterialPicks !== 'undefined' ? rawMaterialPicks : []).forEach(p => {
+        if (changedRollIds.has(p.rollId)) { p.fabricName = trimmedName; p.fabricCode = trimmedCode; picksChanged++; }
+      });
+      (typeof rawMaterialStos !== 'undefined' ? rawMaterialStos : []).forEach(s => {
+        if (changedRollIds.has(s.rollId)) { s.fabricName = trimmedName; s.fabricCode = trimmedCode; stosChanged++; }
+      });
+      if (picksChanged && typeof saveRawMaterialPicks === 'function') saveRawMaterialPicks();
+      if (stosChanged && typeof saveRawMaterialStos === 'function') saveRawMaterialStos();
       rmStockSelectedFabricKey = null; // old key is now stale since fabricName/fabricCode changed
       renderRmStockTab();
       if (typeof renderCampaignTimelineFabricTable === 'function' && document.getElementById('campaignTimelineFabricTableWrap')) renderCampaignTimelineFabricTable();
-      alert(`Updated ${changed} roll(s) to "${trimmedName || '(blank)'}" (${trimmedCode || 'no code'}).`);
+      if (typeof renderFinanceTab === 'function' && document.getElementById('tab-finance') && document.getElementById('tab-finance').classList.contains('active')) renderFinanceTab();
+      alert(`Updated ${changed} roll(s) to "${trimmedName || '(blank)'}" (${trimmedCode || 'no code'}).${picksChanged || stosChanged ? ` Also updated ${picksChanged} pick(s) and ${stosChanged} STO record(s) so Finance's Roll IN/OUT stay matched.` : ''}`);
     });
   });
   wrap.querySelectorAll('.rm-stock-summary-row').forEach(row => {
@@ -18255,6 +18715,15 @@ document.getElementById('rmEditRollSaveBtn').addEventListener('click', () => {
   roll.batchNo = document.getElementById('rmEditBatchNo').value.trim();
   roll.invoiceNo = document.getElementById('rmEditInvoiceNo').value.trim();
   saveRawMaterialRolls();
+  // Per Shaila (Sep 29, 2026 — Finance's exported Balance sheet showing a fabric+colour still "In
+  // Stock" that should have zeroed out): this Edit Roll modal can change Fabric Name/Code, Colour
+  // Name/Code, AND Roll No. all at once, but used to only save them onto the roll itself — every
+  // pick/STO/DO already recorded against this SAME roll (linked by the roll's own stable `id`, which
+  // this form never changes) kept whatever OLD values it had, so Finance's per-fabric+colour matching
+  // (and the "Received"/Timeline matching elsewhere) could silently stop lining up for that specific
+  // roll. Propagates the fresh values into every historical record for this roll right away, same
+  // principle as the Stock Balance page's "Rename All" fix.
+  if (typeof syncRollIdentityToHistory === 'function') syncRollIdentityToHistory(roll);
   closeRmEditRollModal();
   // Also refresh Stock Balance (Sep 27, 2026 — Edit button added there too) and the Timeline Fabric
   // table/TV Dashboard, since a Fabric Name fix here directly changes the "Received"/"Check Manually"
@@ -18262,6 +18731,7 @@ document.getElementById('rmEditRollSaveBtn').addEventListener('click', () => {
   renderRmPrintTab();
   if (typeof renderRmStockTab === 'function' && document.getElementById('tab-rm-stock')) renderRmStockTab();
   if (typeof renderCampaignTimelineFabricTable === 'function' && document.getElementById('campaignTimelineFabricTableWrap')) renderCampaignTimelineFabricTable();
+  if (typeof renderFinanceTab === 'function' && document.getElementById('tab-finance') && document.getElementById('tab-finance').classList.contains('active')) renderFinanceTab();
 });
 document.getElementById('rmPrintSearchInput').addEventListener('input', renderRmPrintTab);
 document.getElementById('rmPrintHideEmptyToggle').addEventListener('change', renderRmPrintTab);
@@ -22293,23 +22763,38 @@ function financeRollInRows() {
 // Roll OUT events don't carry GSM themselves — looked up from the roll they came from. Picks
 // (cutting/production) have no destination field of their own — falls back to their "purpose"
 // text, or "Production" if even that's blank, so the export's Destination column is never empty.
+// Per Shaila (Sep 29, 2026 — first "kenapa balance tak sama", then again with "PANGKU PLAIN" right
+// after her fix-forward "Rename All" patch shipped): renaming a fabric turned out to happen from MORE
+// than one place in the app — the Stock Balance "Rename All" button, an individual roll's own Edit form,
+// and a bulk roll import/upload — and only the first of those had been taught to also update historical
+// picks/STOs. Rather than keep chasing every place a roll's Fabric Name/Code can change, Roll OUT now
+// reads the fabric identity LIVE off the roll itself (via rollId, or Roll No. as a fallback for records
+// with no rollId — see migrateSyncPickStoFabricNameFromRoll for why that fallback exists) instead of
+// trusting the pick/STO's own stored copy. A pick/STO's copy is only used if the roll it came from no
+// longer exists at all (deleted) — otherwise the roll is always the source of truth, so Finance can
+// never drift out of sync with Stock Balance again regardless of how/where a rename happens.
 function financeRollOutRows() {
   const rollMap = new Map();
-  (typeof rawMaterialRolls !== 'undefined' ? rawMaterialRolls : []).forEach(r => rollMap.set(r.id, r));
+  const rollByNo = new Map();
+  (typeof rawMaterialRolls !== 'undefined' ? rawMaterialRolls : []).forEach(r => {
+    rollMap.set(r.id, r);
+    if (r.rollNo) rollByNo.set(r.rollNo, r);
+  });
+  const resolveRoll = (rec) => (rec.rollId && rollMap.get(rec.rollId)) || (rec.rollNo && rollByNo.get(rec.rollNo)) || null;
   const rows = [];
   (typeof rawMaterialPicks !== 'undefined' ? rawMaterialPicks : []).forEach(p => {
-    const roll = rollMap.get(p.rollId);
+    const roll = resolveRoll(p);
     rows.push({
-      fabricName: p.fabricName, fabricCode: p.fabricCode, gsm: roll ? roll.gsm : '',
-      colorCode: p.colorCode, colorName: p.colorName, meter: Number(p.meterTaken) || 0,
+      fabricName: roll ? roll.fabricName : p.fabricName, fabricCode: roll ? roll.fabricCode : p.fabricCode, gsm: roll ? roll.gsm : '',
+      colorCode: roll ? roll.colorCode : p.colorCode, colorName: roll ? roll.colorName : p.colorName, meter: Number(p.meterTaken) || 0,
       date: p.date, rollNo: p.rollNo, destination: p.purpose || 'Production',
     });
   });
   (typeof rawMaterialStos !== 'undefined' ? rawMaterialStos : []).forEach(s => {
-    const roll = rollMap.get(s.rollId);
+    const roll = resolveRoll(s);
     rows.push({
-      fabricName: s.fabricName, fabricCode: s.fabricCode, gsm: roll ? roll.gsm : '',
-      colorCode: s.colorCode, colorName: s.colorName, meter: Number(s.meter) || 0,
+      fabricName: roll ? roll.fabricName : s.fabricName, fabricCode: roll ? roll.fabricCode : s.fabricCode, gsm: roll ? roll.gsm : '',
+      colorCode: roll ? roll.colorCode : s.colorCode, colorName: roll ? roll.colorName : s.colorName, meter: Number(s.meter) || 0,
       date: s.date, rollNo: s.rollNo, destination: s.destination || '',
     });
   });
@@ -22675,18 +23160,32 @@ function exportFinanceReport(selectedKeys) {
     ...outGroups.map(g => [g.fabricName, g.fabricCode, g.gsm, g.colorName, g.colorCode, g.destination, g.rolls, g.meter, g.lastDate]),
   ];
 
-  // Balance — one row per Fabric+Code+Colour (Roll IN minus Roll OUT at that granularity, no
-  // Invoice/Batch/Destination — those don't apply to a running stock figure), highest Rolls first,
-  // so "In Stock" colours naturally sit above "Out of Stock" ones.
-  const balInGroups = financeExportGroupDetailed(filterRows(financeRollInRows()), []);
-  const balOutByKey = new Map();
-  financeExportGroupDetailed(filterRows(financeRollOutRows()), []).forEach(g => balOutByKey.set(`${g.fabricName}|||${g.fabricCode}|||${g.colorCode}|||${g.colorName}`, g));
-  const balGroups = balInGroups.map(g => {
-    const out = balOutByKey.get(`${g.fabricName}|||${g.fabricCode}|||${g.colorCode}|||${g.colorName}`);
-    const rolls = g.rolls - (out ? out.rolls : 0);
-    const meter = financeRoundMeter(g.meter - (out ? out.meter : 0));
-    return { fabricName: g.fabricName, fabricCode: g.fabricCode, colorName: g.colorName, colorCode: g.colorCode, rolls, meter, status: rolls > 0 ? 'In Stock' : 'Out of Stock' };
-  }).sort((a, b) => b.rolls - a.rolls || b.meter - a.meter);
+  // Balance — one row per Fabric+Code+Colour, computed DIRECTLY from each live roll's own
+  // `meterRemaining` (grouped by its CURRENT fabric/colour identity) — the same source the live Raw
+  // Material > Stock Balance page uses — rather than re-deriving it as (Roll IN minus Roll OUT) from
+  // historical pick/STO/DO records. Those records can carry a fabric/colour identity that's stale
+  // relative to the roll (e.g. after a rename, or an edit via the "Edit Roll" modal), and when an OUT
+  // record's stale identity fails to match any IN group, an IN-minus-OUT subtraction silently leaves
+  // that meter un-subtracted — this was the exact cause of PANGKU/COFFEE showing 11 rolls / 1347.2m
+  // still "In Stock" in this sheet on Sep 29, 2026, even though the Summary sheet's overall total and
+  // the live Stock Balance page both correctly showed 0 (see Shaila's "kenapa report kat sheet balance
+  // ngan sheet summary tk sama" report). Reading meterRemaining straight off the roll sidesteps that
+  // failure mode entirely. Highest Rolls first, so "In Stock" colours naturally sit above "Out of Stock".
+  const balGroupMap = new Map();
+  (typeof rawMaterialRolls !== 'undefined' ? rawMaterialRolls : []).forEach(r => {
+    if (selectedKeys && !selectedKeys.has(`${r.fabricName || ''}|||${r.fabricCode || ''}`)) return;
+    const key = [r.fabricName || '', r.fabricCode || '', r.colorCode || '', r.colorName || ''].join('|||');
+    if (!balGroupMap.has(key)) {
+      balGroupMap.set(key, { fabricName: r.fabricName || '', fabricCode: r.fabricCode || '', colorName: r.colorName || '', colorCode: r.colorCode || '', rolls: 0, meter: 0 });
+    }
+    const g = balGroupMap.get(key);
+    const remaining = Number(r.meterRemaining) || 0;
+    if (remaining > 0) g.rolls += 1;
+    g.meter += remaining;
+  });
+  const balGroups = [...balGroupMap.values()]
+    .map(g => ({ ...g, meter: financeRoundMeter(g.meter), status: g.rolls > 0 ? 'In Stock' : 'Out of Stock' }))
+    .sort((a, b) => b.rolls - a.rolls || b.meter - a.meter);
   const balSheetRows = [
     ['Fabric', 'Fabric Code', 'Color', 'Color Code', 'Rolls', 'Balance (m)', 'Status'],
     ...balGroups.map(g => [g.fabricName, g.fabricCode, g.colorName, g.colorCode, g.rolls, g.meter, g.status]),
