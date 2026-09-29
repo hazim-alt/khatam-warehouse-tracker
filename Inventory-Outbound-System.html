@@ -1683,10 +1683,36 @@
                  an "Other" fallback for a Series not yet uploaded to Timeline. -->
             <input type="text" id="rmFabricNameOther" placeholder="Type Series/Fabric Name" style="display:none; margin-top:6px;">
           </div>
-          <div class="field"><label>Invoice No.</label><input type="text" id="rmInvoiceNo" placeholder="e.g. INV-00123"></div>
+          <div class="field">
+            <label>Invoice No.</label>
+            <select id="rmInvoiceNo"></select>
+            <!-- Per Shaila's request (Sep 29, 2026 — "untuk invoice no. tu pon patut keluar auto jugak"):
+                 same dropdown pattern as Fabric Code, listing Invoice No.s ALREADY used for this Series in
+                 her own Raw Material records (rawMaterialRolls) — NOT pulled from the Google Sheets
+                 Timeline like the old, since-removed auto-fill was (that one was the exact source of the
+                 "kadang hilang kadang ada" instability fixed earlier tonight). Auto-picks when there's
+                 exactly one on record for the Series, same as Fabric Code; "Other" fallback for a brand
+                 new invoice. -->
+            <input type="text" id="rmInvoiceNoOther" placeholder="e.g. INV-00123" style="display:none; margin-top:6px;">
+          </div>
           <div class="field"><label>Batch No.</label><input type="text" id="rmBatch" placeholder="e.g. BATCH-01"></div>
-          <div class="field"><label>Fabric Code</label><input type="text" id="rmFabricCode"></div>
-          <div class="field"><label>Date</label><input type="date" id="rmReceiveDate" readonly></div>
+          <div class="field">
+            <label>Fabric Code</label>
+            <select id="rmFabricCode"></select>
+            <!-- Per Shaila's request (Sep 29, 2026 — "macam tasor kan bnyak fabric code(material),,,boleh
+                 tak buat dropdown kat fabric code tu"): a Series like TASOR can be made of several
+                 different Materials/Fabric Codes, so this lists every distinct Material Timeline has on
+                 record for whichever Series is picked above, with an "Other" fallback for one not yet
+                 in Timeline — same pattern as the Fabric Name dropdown. Picking from a fixed list (instead
+                 of free typing) also protects against the exact fabric-identity typo/mismatch issues
+                 fixed elsewhere tonight (e.g. "PANGKU" vs "PANGKU PLAIN" silently becoming two different
+                 fabrics because a code was typed slightly differently each time). -->
+            <input type="text" id="rmFabricCodeOther" placeholder="Type Fabric Code" style="display:none; margin-top:6px;">
+          </div>
+          <!-- Per Shaila's request (Sep 29, 2026 — "date ni buat auto dan boleh adjust"): still defaults
+               to today automatically (set in renderRmReceiveTab), but no longer readonly so she can
+               backdate/adjust it herself when needed (e.g. logging a roll a day or two late). -->
+          <div class="field"><label>Date</label><input type="date" id="rmReceiveDate"></div>
           <div class="field"><label>Received By</label><input type="text" id="rmReceivedBy" readonly placeholder="(not logged in)"></div>
           <div class="field"><label>GSM</label><input type="text" id="rmGsm"></div>
           <div class="field"><label>Color Code</label><input type="text" id="rmColorCode"></div>
@@ -4846,12 +4872,14 @@ function loadData() {
   loadCampaignTimelineGsheetUrls();
   // Per Shaila's request (Sep 25, 2026 — "tkleh buat auto je teros?"): auto-refresh from her saved
   // Google Sheet link(s) once on every page load, instead of her having to remember to click "Refresh
-  // from Google Sheets" by hand every time she reopens/reloads the app. Same function the button
-  // itself calls — runs silently in the background; its own status line (under the Timeline upload
-  // section) updates once it's done. A no-op if she hasn't saved a link yet.
-  if (campaignTimelineGsheetUrls.summary || campaignTimelineGsheetUrls.patawali) {
-    fetchCampaignTimelineFromGoogleSheets();
-  }
+  // from Google Sheets" by hand every time she reopens/reloads the app.
+  // MOVED OUT of here Sep 29, 2026 (Shaila: "table fg ngan fabric ni asyik kelip2 je,,,saya nak data tu
+  // freeze"): loadData() itself isn't a one-time startup function — it's ALSO called every 10 seconds by
+  // autoSyncFromStorage() (see setInterval(autoSyncFromStorage, ...) further down), so this was firing a
+  // brand new Google Sheets network fetch every 10 seconds for as long as the app was open, each one
+  // unconditionally tearing down and rebuilding the whole Timeline table on completion — that's what was
+  // showing up as constant "blinking". The actual one-time call now lives right after the real top-level
+  // loadData() call near the bottom of the script, which only ever runs once per page load.
   // Cleans up any STO No. duplicates already sitting in storage (e.g. from two devices each adding
   // the same STO No. before they'd ever synced with each other — see backfillNaturalSyncIds above)
   // and makes sure every record has a stable id going forward, right from the moment data loads —
@@ -13238,6 +13266,9 @@ function campaignTimelineCellNum(v) {
 // which gets `rows` via XLSX's sheet_to_json) and the JSONP Google Sheets live-link (campaignTimelineFetchGvizRows,
 // which builds an equivalent `rows` array straight from Google's own gviz response — see below). Both
 // converge here so column-matching/date-parsing behaves identically regardless of source.
+// Per-sheet-label scratch space for what the most recent parse pass actually managed to resolve — see
+// the fabricInvoiceNumberFound note inside parseCampaignTimelineRows for why this exists.
+const campaignTimelineParseDiagnostics = {};
 function parseCampaignTimelineRows(rows, sheetLabel, rawHeaderRows, deterministicHeaderRows) {
   // Find the header row by CONTENT (first row in the first 10 that has a "Series" column) instead of
   // assuming a fixed row index. The uploaded-Excel-file path has 2 title rows above the real header
@@ -13341,6 +13372,15 @@ function parseCampaignTimelineRows(rows, sheetLabel, rawHeaderRows, deterministi
     // through findColContainsResilient so a miss here falls back to the un-glued headers=0 row.
     fabricInvoiceNumber: findColContainsDeterministicFirst(['fabric', 'invoice', 'number']),
   };
+  // Per Shaila (Sep 29, 2026 — Fabric Invoice Number STILL showing "-" for every row on the Summary
+  // sheet despite the column and its data both being confirmed present and well-formed there): exposes
+  // whether THIS parse pass actually found the column at all, keyed by sheet label, so
+  // fetchCampaignTimelineFromGoogleSheets can tell "column genuinely blank in the sheet" apart from
+  // "both the merged-guess AND the deterministic headers=0 fallback happened to miss it on this one
+  // attempt" (gviz's header-guessing is non-deterministic per request — see notes above — and the
+  // small headers=0 side-request can independently blip too; it's possible, if unlucky, for both to
+  // fail on the exact same refresh) and retry once more before giving up.
+  campaignTimelineParseDiagnostics[sheetLabel] = { fabricInvoiceNumberFound: idx.fabricInvoiceNumber !== -1 };
   if (idx.series === -1) throw new Error(`This file needs a "Series" column (checked sheet "${sheetLabel}").`);
   const mapped = [];
   for (let r = headerRowIdx + 1; r < rows.length; r++) {
@@ -13710,7 +13750,21 @@ function campaignTimelineMergeFetchedRows(newRows, oldRows) {
     const oldRec = oldMap.get(newRec.id);
     if (!oldRec) return newRec; // genuinely new row from the sheet
     const combined = { ...newRec };
-    Object.keys(newRec).forEach(key => {
+    // Per Shaila (Sep 29, 2026 — Fabric Invoice Number correctly showing right after a refresh, then
+    // disappearing again "tak sampai seminit" / under a minute later with no further action from her):
+    // confirmed directly in Firebase that a stale cached copy of this row doesn't merely have a BLANK
+    // fabricInvoiceNumber — the key is missing from the object entirely (it predates this field being
+    // added to the schema at all). Looping over `Object.keys(newRec)` only, as this used to, means a
+    // key that's flat-out ABSENT from the incoming record never gets visited by the loop below at all —
+    // so the blank-protection check for it never runs, and the spread `{...newRec}` above silently
+    // drops it from the merged result no matter how good `oldRec`'s value was. Looping over the UNION of
+    // keys from both records closes that gap: a missing key is treated exactly like a present-but-blank
+    // one (campaignTimelineIsBlankVal(undefined) is already true), so it's protected the same way. This
+    // fixes BOTH callers of this function — the Google Sheets refresh path AND the Firebase realtime
+    // snapshot path (applyCampaignTimelineServerSnapshot), since a stale/incomplete object can arrive
+    // from either source.
+    const allKeys = new Set([...Object.keys(newRec), ...Object.keys(oldRec)]);
+    allKeys.forEach(key => {
       if (key === 'id') return;
       if (campaignTimelineIsBlankVal(newRec[key]) && !campaignTimelineIsBlankVal(oldRec[key])) {
         combined[key] = oldRec[key]; // new fetch has a gap here — keep what we already had
@@ -13744,12 +13798,27 @@ async function fetchCampaignTimelineFromGoogleSheets() {
     const errors = [];
     if (summary) {
       try {
-        const [summaryFetch, summaryAuxHeaderRows] = await Promise.all([
-          campaignTimelineFetchGvizRowsReliable(summary),
-          campaignTimelineFetchGvizRawHeaderRows(summary),
-        ]);
-        const summaryHeaderRows = summaryFetch.headerCandidates.concat(summaryAuxHeaderRows);
-        let summaryRows = parseCampaignTimelineRows(summaryFetch.rows, 'Summary all series', summaryHeaderRows, summaryAuxHeaderRows);
+        let summaryRows;
+        // Per Shaila (Sep 29, 2026 — Fabric Invoice Number still showing "-" for every row despite the
+        // column and its data both confirmed present and well-formed in the actual sheet): the merged-
+        // guess header AND the deterministic headers=0 fallback are two SEPARATE network requests, each
+        // independently non-deterministic (gviz's own guessing can blip; the small headers=0 side-
+        // request can blip too) — it's possible, if unlucky, for BOTH to fail to find this one column
+        // on the exact same refresh, even though a moment later a fresh attempt finds it fine (already
+        // confirmed live). Up to 2 quiet attempts here — no visible "attempt X/2" text, same status
+        // line throughout — retrying only when this specific known-fragile column came back
+        // unresolved, not on every refresh regardless of outcome (that's the 5x-everything loop she
+        // already asked to have removed).
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          const [summaryFetch, summaryAuxHeaderRows] = await Promise.all([
+            campaignTimelineFetchGvizRowsReliable(summary),
+            campaignTimelineFetchGvizRawHeaderRows(summary),
+          ]);
+          const summaryHeaderRows = summaryFetch.headerCandidates.concat(summaryAuxHeaderRows);
+          summaryRows = parseCampaignTimelineRows(summaryFetch.rows, 'Summary all series', summaryHeaderRows, summaryAuxHeaderRows);
+          const diag = campaignTimelineParseDiagnostics['Summary all series'];
+          if (attempt === 2 || !diag || diag.fabricInvoiceNumberFound) break;
+        }
         // Her "Summary all series" tab also lists PATAWALI rows, but they're sparse there (most
         // fields blank) — the dedicated "Patawali" sheet below has the fuller version of the same
         // rows. Per her request, when that link is filled in, skip PATAWALI here so it doesn't show
@@ -13791,7 +13860,12 @@ async function fetchCampaignTimelineFromGoogleSheets() {
       statusEl.textContent = `Success: checked ${formatQty(campaignTimelineList.length)} item(s) — no changes found in the sheet, nothing was touched.${errors.length ? ` (Warning — ${errors.join(' | ')})` : ''}`;
     }
     statusEl.className = errors.length ? 'upload-status err' : 'upload-status ok';
-    renderCampaignTimelineTab();
+    // Per Shaila (Sep 29, 2026 — "table fg ngan fabric ni asyik kelip2 je,,,saya nak data tu freeze,,data
+    // bertukar bila ade peribahan dalam google sheet sahaja"): only re-render the Timeline tab when the
+    // fetch actually found a real change — re-rendering unconditionally on every "no changes found"
+    // check (which, see loadData() below, used to happen constantly) tore down and rebuilt the whole
+    // table for nothing, which is what looked like it was "blinking".
+    if (changed) renderCampaignTimelineTab();
   } catch (err) {
     statusEl.textContent = 'Failed to fetch from Google Sheets: ' + err.message;
     statusEl.className = 'upload-status err';
@@ -15814,6 +15888,20 @@ document.getElementById('resetRmBtn').addEventListener('click', () => {
   saveRawMaterialDos();
   setRmRollCounter(0);
   setRmStoCounter(0);
+  // Per Shaila (Sep 29, 2026, wanting a clean start after tonight's data-loss investigation): without
+  // this, the clear-to-empty above would ONLY happen locally — the periodic background sync
+  // (cloudSyncReconcile) pushes using the guarded pushCollectionDiff, which deliberately REFUSES to let
+  // an empty local array wipe an already-populated remote table (the exact safety rule documented on
+  // pushCollectionDiff itself, added after this same failure mode once emptied out the Users table).
+  // Without an explicit skipEmptyGuard push here, Firebase would still hold the OLD (pre-reset) data,
+  // and the very next realtime snapshot from it would get pulled back down and silently UN-DO this
+  // reset. Pushing explicitly, the same way the other Danger Zone resets / delete-last-record actions
+  // already do (see pushRequestStockNow, pushRollcagesNow), makes sure the clear actually sticks.
+  ['RawMaterial_Rolls', 'RawMaterial_Picks', 'RawMaterial_STOs', 'RawMaterial_DOs'].forEach(t => {
+    if (!fbDb || !SYNC_COLLECTIONS._fbListenersAttached) return;
+    const def = SYNC_COLLECTIONS.find(d => d.table === t);
+    if (def) pushCollectionDiff(def, { skipEmptyGuard: true });
+  });
   rmStockSelectedFabricKey = null;
   if (typeof rmPrintSelectedIds !== 'undefined') rmPrintSelectedIds.clear();
   if (document.getElementById('tab-rm-stock')) renderRmStockTab();
@@ -16526,7 +16614,7 @@ document.getElementById('rmNumberOfRolls').addEventListener('input', renderRmRol
 function renderRmReceiveSummary() {
   const wrap = document.getElementById('rmReceiveSummaryWrap');
   const fabricName = rmGetFabricNameValue();
-  const fabricCode = document.getElementById('rmFabricCode').value.trim();
+  const fabricCode = rmGetFabricCodeValue();
   const gsm = document.getElementById('rmGsm').value.trim();
   const colorCode = document.getElementById('rmColorCode').value.trim();
   const colorName = document.getElementById('rmColorName').value.trim();
@@ -16549,7 +16637,7 @@ function renderRmReceiveSummary() {
     <div class="rm-summary-row"><span class="rm-summary-label">Roll No.</span><span class="rm-summary-value">${rollRange}</span></div>
     <div class="rm-summary-row"><span class="rm-summary-label">Date</span><span class="rm-summary-value">${date ? formatDateLabel(date) : '-'}</span></div>
     ${document.getElementById('rmBatch').value.trim() ? `<div class="rm-summary-row"><span class="rm-summary-label">Batch</span><span class="rm-summary-value">${escapeHtml(document.getElementById('rmBatch').value.trim())}</span></div>` : ''}
-    ${document.getElementById('rmInvoiceNo').value.trim() ? `<div class="rm-summary-row"><span class="rm-summary-label">Invoice</span><span class="rm-summary-value">${escapeHtml(document.getElementById('rmInvoiceNo').value.trim())}</span></div>` : ''}
+    ${rmGetInvoiceNoValue() ? `<div class="rm-summary-row"><span class="rm-summary-label">Invoice</span><span class="rm-summary-value">${escapeHtml(rmGetInvoiceNoValue())}</span></div>` : ''}
     <hr class="rm-form-divider" style="margin:10px 0;">
     <div class="rm-summary-total"><div class="rm-summary-total-label">Total Meter</div><div class="rm-summary-total-value">${formatQty(totalMeter)} m</div></div>
   `;
@@ -16957,6 +17045,123 @@ function rmGetFabricNameValue() {
   }
   return (sel.value || '').trim();
 }
+// Per Shaila's request (Sep 29, 2026 — dropdown for Fabric Code, since a Series like TASOR can be made
+// of several different Materials): rebuilt every time the Series above changes, listing whichever
+// distinct Materials Timeline has on record for THAT series (falls back to "Other" for one not yet in
+// Timeline, or when no Series is picked at all yet). `preserveIfPresent`, when passed, keeps that value
+// selected if it's still in the new list (used when re-rendering the tab without the Series changing).
+function rmFillFabricCodeSelect(preserveIfPresent) {
+  const sel = document.getElementById('rmFabricCode');
+  const otherInput = document.getElementById('rmFabricCodeOther');
+  if (!sel) return;
+  const materials = campaignTimelineFabricMaterialsForSeries(rmGetFabricNameValue()).sort();
+  sel.innerHTML = `<option value="">Select Fabric Code…</option>` +
+    materials.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('') +
+    `<option value="__other__">Other (type manually)</option>`;
+  if (preserveIfPresent && [...sel.options].some(o => o.value === preserveIfPresent)) {
+    sel.value = preserveIfPresent;
+  } else if (preserveIfPresent) {
+    // Old value isn't one of this series' known codes (e.g. Series just changed) — fall back to typing
+    // it manually rather than silently dropping what she'd already entered.
+    sel.value = '__other__';
+    if (otherInput) otherInput.value = preserveIfPresent;
+  } else {
+    // Auto-pick when the Series has exactly ONE distinct Material — with more than one, guessing which
+    // one would be worse than leaving it for her to pick herself.
+    if (materials.length === 1) sel.value = materials[0];
+  }
+  if (otherInput) otherInput.style.display = sel.value === '__other__' ? '' : 'none';
+}
+// Reads the EFFECTIVE Fabric Code whichever way it was entered — picked from the dropdown, or typed
+// manually via the "Other" fallback — mirroring rmGetFabricNameValue() above.
+function rmGetFabricCodeValue() {
+  const sel = document.getElementById('rmFabricCode');
+  if (!sel) return '';
+  if (sel.value === '__other__') {
+    const otherInput = document.getElementById('rmFabricCodeOther');
+    return otherInput ? otherInput.value.trim() : '';
+  }
+  return (sel.value || '').trim();
+}
+document.getElementById('rmFabricCode').addEventListener('change', () => {
+  const sel = document.getElementById('rmFabricCode');
+  const otherInput = document.getElementById('rmFabricCodeOther');
+  if (sel.value === '__other__') {
+    otherInput.style.display = '';
+    otherInput.focus();
+  } else {
+    otherInput.style.display = 'none';
+    otherInput.value = '';
+  }
+  renderRmReceiveSummary();
+});
+document.getElementById('rmFabricCodeOther').addEventListener('input', renderRmReceiveSummary);
+// Per Shaila's request (Sep 29, 2026 — "untuk invoice no. tu pon patut keluar auto jugak"): distinct
+// Invoice No.s already recorded on HER OWN past Roll IN entries for a given Series — deliberately reads
+// from rawMaterialRolls (this app's own data) rather than Google Sheets Timeline, since Timeline was the
+// source of the earlier Fabric Invoice Number instability. Newest first (by createdAt) so if she ever
+// does pick from more than one, the most recent/likely one is at the top.
+// Per Shaila's request (Sep 29, 2026 — "fix kan yg invoice no. ni nak buat auto je kalau dah select
+// series,,kalau ade 2 invoice buat ade dropdown untuk pilih dulu"): PRIMARY source is now Campaign
+// Timeline's own "Fabric Invoice Number" column — the real invoice number from her supplier tracker,
+// available even for a fabric she's never physically received before (her own Roll IN history alone
+// couldn't cover that case, since a brand-new fabric has no prior rolls to look up). Timeline's
+// reliability for this exact column was the whole focus of tonight's fixes, so it's safe to lean on now.
+// Her own past Roll IN entries are kept as a supplementary/fallback source, in case an invoice was
+// logged before Timeline had it, or for a Series Timeline doesn't track.
+function rmInvoiceNosForSeries(series) {
+  if (!series) return [];
+  const invoices = [];
+  const needle = campaignTimelineNormHeader(series);
+  (typeof campaignTimelineList !== 'undefined' ? campaignTimelineList : []).forEach(rec => {
+    if (campaignTimelineNormHeader(rec.series) === needle && rec.fabricInvoiceNumber) invoices.push(rec.fabricInvoiceNumber);
+  });
+  const rolls = (typeof rawMaterialRolls !== 'undefined' ? rawMaterialRolls : [])
+    .filter(r => r.fabricName === series && r.invoiceNo)
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  rolls.forEach(r => invoices.push(r.invoiceNo));
+  return [...new Set(invoices)];
+}
+function rmFillInvoiceNoSelect(preserveIfPresent) {
+  const sel = document.getElementById('rmInvoiceNo');
+  const otherInput = document.getElementById('rmInvoiceNoOther');
+  if (!sel) return;
+  const invoices = rmInvoiceNosForSeries(rmGetFabricNameValue());
+  sel.innerHTML = `<option value="">Select Invoice No…</option>` +
+    invoices.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('') +
+    `<option value="__other__">Other (new invoice)</option>`;
+  if (preserveIfPresent && [...sel.options].some(o => o.value === preserveIfPresent)) {
+    sel.value = preserveIfPresent;
+  } else if (preserveIfPresent) {
+    sel.value = '__other__';
+    if (otherInput) otherInput.value = preserveIfPresent;
+  } else if (invoices.length === 1) {
+    sel.value = invoices[0];
+  }
+  if (otherInput) otherInput.style.display = sel.value === '__other__' ? '' : 'none';
+}
+function rmGetInvoiceNoValue() {
+  const sel = document.getElementById('rmInvoiceNo');
+  if (!sel) return '';
+  if (sel.value === '__other__') {
+    const otherInput = document.getElementById('rmInvoiceNoOther');
+    return otherInput ? otherInput.value.trim() : '';
+  }
+  return (sel.value || '').trim();
+}
+document.getElementById('rmInvoiceNo').addEventListener('change', () => {
+  const sel = document.getElementById('rmInvoiceNo');
+  const otherInput = document.getElementById('rmInvoiceNoOther');
+  if (sel.value === '__other__') {
+    otherInput.style.display = '';
+    otherInput.focus();
+  } else {
+    otherInput.style.display = 'none';
+    otherInput.value = '';
+  }
+  renderRmReceiveSummary();
+});
+document.getElementById('rmInvoiceNoOther').addEventListener('input', renderRmReceiveSummary);
 document.getElementById('rmFabricName').addEventListener('change', () => {
   const sel = document.getElementById('rmFabricName');
   const otherInput = document.getElementById('rmFabricNameOther');
@@ -16966,28 +17171,28 @@ document.getElementById('rmFabricName').addEventListener('change', () => {
   } else {
     otherInput.style.display = 'none';
     otherInput.value = '';
-    // Auto-fill Fabric Code only when the Series has exactly ONE distinct Material in Timeline — with
-    // more than one (a series can use several fabrics), guessing which one would be worse than leaving
-    // it for her to fill in herself.
-    const materials = campaignTimelineFabricMaterialsForSeries(sel.value);
-    if (materials.length === 1) document.getElementById('rmFabricCode').value = materials[0];
-    // Invoice No. auto-fill removed along with the Fabric Invoice Number column (Sep 28, 2026 — "buang
-    // column Fabric Invoice Number") — this field goes back to manual entry only.
   }
+  // Fabric Code and Invoice No. options both depend on which Series is selected, so rebuild them fresh
+  // (no preserve — a new Series' codes/invoices have nothing to do with whatever was picked for the
+  // previous one).
+  rmFillFabricCodeSelect();
+  rmFillInvoiceNoSelect();
   renderRmReceiveSummary();
 });
-document.getElementById('rmFabricNameOther').addEventListener('input', renderRmReceiveSummary);
+document.getElementById('rmFabricNameOther').addEventListener('input', () => { rmFillFabricCodeSelect(); rmFillInvoiceNoSelect(); renderRmReceiveSummary(); });
 function renderRmReceiveTab() {
   document.getElementById('rmReceiveDate').value = todayStr();
   const currentUser = getCurrentUser();
   document.getElementById('rmReceivedBy').value = currentUser ? currentUser.username : '';
   rmFillFabricNameSelect();
+  rmFillFabricCodeSelect(rmGetFabricCodeValue());
+  rmFillInvoiceNoSelect(rmGetInvoiceNoValue());
   renderRmRollListPreview();
   renderRmReceiveSummary();
 }
 document.getElementById('rmReceiveSaveBtn').addEventListener('click', () => {
   const fabricName = rmGetFabricNameValue();
-  const fabricCode = document.getElementById('rmFabricCode').value.trim();
+  const fabricCode = rmGetFabricCodeValue();
   const gsm = document.getElementById('rmGsm').value.trim();
   const colorCode = document.getElementById('rmColorCode').value.trim();
   const colorName = document.getElementById('rmColorName').value.trim();
@@ -16995,7 +17200,7 @@ document.getElementById('rmReceiveSaveBtn').addEventListener('click', () => {
   const date = document.getElementById('rmReceiveDate').value || todayStr();
   const receivedBy = document.getElementById('rmReceivedBy').value.trim();
   const batchNo = document.getElementById('rmBatch').value.trim();
-  const invoiceNo = document.getElementById('rmInvoiceNo').value.trim();
+  const invoiceNo = rmGetInvoiceNoValue();
   const notes = document.getElementById('rmReceiveNotes').value.trim();
   if (!fabricName && !fabricCode) { alert('Fill in at least Fabric Name or Fabric Code.'); return; }
   if (!invoiceNo) { alert('Fill in Invoice No.'); document.getElementById('rmInvoiceNo').focus(); return; }
@@ -30509,6 +30714,31 @@ updateDashTopbarClock();
 setInterval(updateDashTopbarClock, 1000);
 
 loadData();
+// Per Shaila's request (Sep 25, 2026 — "tkleh buat auto je teros?"): auto-refresh Timeline from her
+// saved Google Sheet link(s) once on every real page load, instead of her having to remember to click
+// "Refresh from Google Sheets" by hand. MOVED here from inside loadData() itself on Sep 29, 2026 (see
+// the comment left in loadData() for why) — this exact spot only ever runs once per page load, unlike
+// loadData() which is also called every 10s by autoSyncFromStorage(). A no-op if she hasn't saved a
+// link yet.
+if (campaignTimelineGsheetUrls.summary || campaignTimelineGsheetUrls.patawali) {
+  fetchCampaignTimelineFromGoogleSheets();
+}
+// Per Shaila (Sep 29, 2026 — "kalau nak buat kalau ade penambahan atau pembetulan atau new update dari
+// sheet auto update boleh ke?"): periodic auto-check so a genuinely new edit/addition/correction in her
+// Google Sheet reaches the app without her needing to reload the whole page or remember to click
+// "Refresh from Google Sheets" herself — safe to bring back now that a check only ever repaints the
+// Timeline tables when something ACTUALLY changed (see the `if (changed) renderCampaignTimelineTab()`
+// fix above), unlike the old every-10-seconds version that tore the table down on every single tick
+// regardless of outcome and caused the "asyik kelip2" flicker. Every 5 minutes is frequent enough to
+// feel "automatic" without hammering Google's gviz endpoint or risking the same flicker at a shorter
+// interval; fetchCampaignTimelineFromGoogleSheets() already no-ops harmlessly if a previous check is
+// still in flight or no link is saved.
+const CAMPAIGN_TIMELINE_AUTO_REFRESH_MS = 5 * 60 * 1000;
+setInterval(() => {
+  if (campaignTimelineGsheetUrls.summary || campaignTimelineGsheetUrls.patawali) {
+    fetchCampaignTimelineFromGoogleSheets();
+  }
+}, CAMPAIGN_TIMELINE_AUTO_REFRESH_MS);
 stationPresenceHeartbeat(); // refresh this device's own station presence right away, don't wait up to 60s
 renderAll();
 renderDailyTargetsInputs();
