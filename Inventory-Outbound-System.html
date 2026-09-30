@@ -1903,6 +1903,17 @@
         </div>
         <input type="text" id="rmStockDetailSearchInput" placeholder="Search Fabric Name / Code / Color / Roll No...">
         <div id="rmStockDetailFilterNote" class="data-note" style="display:none; margin-top:6px;"></div>
+        <div id="rmStockDetailBulkBar" style="display:none; align-items:center; gap:10px; flex-wrap:wrap; margin-top:8px; padding:8px 10px; background:var(--card-alt, rgba(255,255,255,0.04)); border-radius:6px;">
+          <span id="rmStockDetailBulkCount" style="font-size:12px; color:var(--text-muted);"></span>
+          <label style="display:flex; align-items:center; gap:6px; font-size:12px;">Set Received Date to
+            <input type="date" id="rmStockDetailBulkDate" style="width:auto;">
+          </label>
+          <label style="display:flex; align-items:center; gap:6px; font-size:12px;">Set Invoice No. to
+            <input type="text" id="rmStockDetailBulkInvoiceNo" placeholder="e.g. XS202607110007" style="width:auto;">
+          </label>
+          <button type="button" class="btn-primary" id="rmStockDetailBulkApplyBtn">Apply to Selected</button>
+          <button type="button" class="btn-ghost" id="rmStockDetailBulkClearBtn">Clear Selection</button>
+        </div>
         <div id="rmStockDetailTableWrap" style="margin-top:10px; max-height:600px; overflow-y:auto; overflow-x:auto;"></div>
       </div>
     </div>
@@ -3610,7 +3621,7 @@
       <div class="field full-2"><label>Notes</label><input type="text" id="rmManualNotes"></div>
     </div>
     <p style="margin:16px 0 6px; font-weight:600; font-size:13px;">Fabric Lines (one per Fabric + GSM + Colour group, matching the printed slip's rows)</p>
-    <div style="display:grid; grid-template-columns: 1.3fr 1fr 0.6fr 1.1fr 0.8fr 0.6fr 0.9fr auto; gap:6px; margin-bottom:4px; font-size:11px; color:var(--text-muted);">
+    <div style="display:grid; grid-template-columns: 1.3fr 1fr 0.6fr 1.1fr 0.8fr 0.6fr 0.9fr 32px; gap:6px; margin-bottom:4px; font-size:11px; color:var(--text-muted);">
       <span>Fabric Name</span><span>Fabric Code</span><span>GSM</span><span>Color Name</span><span>Color Code</span><span>Rolls</span><span>Total Meters</span><span></span>
     </div>
     <div id="rmManualLinesWrap"></div>
@@ -3742,6 +3753,7 @@
     </div>
     <div class="rm-form-grid rm-form-grid-4">
       <div class="field"><label>Roll No.</label><input type="text" id="rmEditRollNo"></div>
+      <div class="field"><label>Received Date</label><input type="date" id="rmEditReceivedDate"></div>
       <div class="field"><label>GSM</label><input type="text" id="rmEditGsm"></div>
       <div class="field"><label>Fabric Name</label><input type="text" id="rmEditFabricName"></div>
       <div class="field"><label>Fabric Code</label><input type="text" id="rmEditFabricCode"></div>
@@ -17016,7 +17028,9 @@ function campaignTimelineFabricMaterialsForSeries(series) {
   const needle = campaignTimelineNormHeader(series);
   const materials = new Set();
   (typeof campaignTimelineList !== 'undefined' ? campaignTimelineList : []).forEach(rec => {
-    if (campaignTimelineNormHeader(rec.series) === needle && campaignTimelineFabricRowHasDetails(rec) && rec.material) materials.add(rec.material);
+    if (campaignTimelineNormHeader(rec.series) === needle && campaignTimelineFabricRowHasDetails(rec) && rec.material) {
+      rmSplitInvoiceNumbers(rec.material).forEach(m => materials.add(m));
+    }
   });
   return [...materials];
 }
@@ -17101,6 +17115,16 @@ document.getElementById('rmFabricCodeOther').addEventListener('input', renderRmR
 // from rawMaterialRolls (this app's own data) rather than Google Sheets Timeline, since Timeline was the
 // source of the earlier Fabric Invoice Number instability. Newest first (by createdAt) so if she ever
 // does pick from more than one, the most recent/likely one is at the top.
+// Per Shaila's request (Sep 29, 2026 — "kalau macam ni ade / & means ade 2 invoice"): her Timeline sheet
+// sometimes combines TWO separate invoice numbers into one cell, joined with " / " (e.g. a Series
+// shipped in two batches that got typed as "XS202607110007 / XFS2607170022") — each half is its own
+// real, separately selectable invoice, not one combined value, so it's split apart here before it ever
+// reaches the dropdown.
+// Shared with Fabric Code below — same Timeline sheet habit of combining two real values into one cell,
+// just with "&" as the joiner there ("25Y32 & 45 RAYON") instead of "/". Splitting on both covers either.
+function rmSplitInvoiceNumbers(raw) {
+  return String(raw || '').split(/[/&]/).map(s => s.trim()).filter(Boolean);
+}
 // Per Shaila's request (Sep 29, 2026 — "fix kan yg invoice no. ni nak buat auto je kalau dah select
 // series,,kalau ade 2 invoice buat ade dropdown untuk pilih dulu"): PRIMARY source is now Campaign
 // Timeline's own "Fabric Invoice Number" column — the real invoice number from her supplier tracker,
@@ -17114,12 +17138,12 @@ function rmInvoiceNosForSeries(series) {
   const invoices = [];
   const needle = campaignTimelineNormHeader(series);
   (typeof campaignTimelineList !== 'undefined' ? campaignTimelineList : []).forEach(rec => {
-    if (campaignTimelineNormHeader(rec.series) === needle && rec.fabricInvoiceNumber) invoices.push(rec.fabricInvoiceNumber);
+    if (campaignTimelineNormHeader(rec.series) === needle && rec.fabricInvoiceNumber) invoices.push(...rmSplitInvoiceNumbers(rec.fabricInvoiceNumber));
   });
   const rolls = (typeof rawMaterialRolls !== 'undefined' ? rawMaterialRolls : [])
     .filter(r => r.fabricName === series && r.invoiceNo)
     .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-  rolls.forEach(r => invoices.push(r.invoiceNo));
+  rolls.forEach(r => invoices.push(...rmSplitInvoiceNumbers(r.invoiceNo)));
   return [...new Set(invoices)];
 }
 function rmFillInvoiceNoSelect(preserveIfPresent) {
@@ -18198,7 +18222,7 @@ function renderRmStoListTable() {
         <span class="badge ${badgeClass}">${allCompleted ? 'Completed' : 'Open'}</span>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
           ${fabricItems.some(s => isRmStoManualReconLine(s) && !s.stockDeducted) ? `<button type="button" class="btn-ghost rm-sto-deduct-now-btn" data-sto="${escapeHtml(g.stoNo)}" style="color:#e0a63c;" title="This was manually added without deducting stock — deduct it now">⚠ Deduct Stock Now</button>` : ''}
-          ${allCompleted && rmDoAlreadyExistsFor(g.stoNo) ? `<button type="button" class="btn-ghost rm-sto-print-do-btn" data-sto="${escapeHtml(g.stoNo)}" title="Reprint DO for this STO">🖨 Print DO</button>` : ''}
+          ${allCompleted ? `<button type="button" class="btn-ghost rm-sto-print-do-btn" data-sto="${escapeHtml(g.stoNo)}" title="${rmDoAlreadyExistsFor(g.stoNo) ? 'Reprint DO for this STO' : 'This STO is Completed but has no DO yet — generate and print it now'}">🖨 ${rmDoAlreadyExistsFor(g.stoNo) ? 'Print DO' : 'Generate DO'}</button>` : ''}
           <button type="button" class="btn-ghost rm-sto-edit-btn" data-sto="${escapeHtml(g.stoNo)}" title="Add or remove rolls from this STO">✎ Edit STO</button>
           <button type="button" class="btn-ghost rm-sto-delete-btn" data-sto="${escapeHtml(g.stoNo)}" style="color:#e0685c;" title="Delete this STO">🗑 Delete STO</button>
         </div>
@@ -18217,10 +18241,15 @@ function renderRmStoListTable() {
       if (icon) icon.textContent = expanded ? '▸' : '▾';
     });
   });
+  // Per Shaila (Sep 29, 2026 — "kenapa tak keluar DO sekali"): a Completed STO with no DO record yet
+  // (e.g. one of the STOs she had to manually recreate after the data-loss incident, never routed
+  // through the normal Pick-tab auto-generate flow) used to show NO button here at all — now it always
+  // shows a button once Completed, generating the DO on the spot the first time it's clicked.
   wrap.querySelectorAll('.rm-sto-print-do-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const doRec = rawMaterialDos.find(d => d.stoNo === btn.dataset.sto);
-      if (doRec) printRmDo(doRec);
+      const isNew = !rmDoAlreadyExistsFor(btn.dataset.sto);
+      createAndPrintRmDo(btn.dataset.sto);
+      if (isNew) renderRmStoListTable();
     });
   });
   wrap.querySelectorAll('.rm-sto-edit-btn').forEach(btn => {
@@ -18440,15 +18469,156 @@ document.getElementById('rmStoAddItemBtn').addEventListener('click', addRmStoIte
    lines (last one absorbs the rounding remainder so the sum always matches the slip exactly). Each
    reconstructed line's rollNo is labelled "RECON-n", never a real-looking roll number, so it's never
    mistaken for an actual physical roll later. */
+// Per Shaila (Sep 29, 2026 — "fabric name tu buat dropdown fabric yg available,,,kotak lain pon ade
+// dropdown jugak,,tapi auto match boleh tak dengan apa di select kat fabric name"): Fabric Name, Fabric
+// Code, GSM, Color Name and Color Code each get a dropdown sourced from every roll ever received
+// (not just current stock — a reconstructed STO can reference a fabric now fully used up), with an
+// "Other" fallback for anything genuinely new. Picking a Fabric Name narrows Fabric Code/GSM/Colour to
+// only what's actually been received under that name; picking a Fabric Code narrows further; picking
+// either half of a Colour pair auto-fills the other half when it's unambiguous.
+function rmManualAllFabricNames() {
+  return [...new Set((typeof rawMaterialRolls !== 'undefined' ? rawMaterialRolls : []).map(r => r.fabricName).filter(Boolean))].sort();
+}
+function rmManualFabricCodesFor(fabricName) {
+  if (!fabricName) return [];
+  return [...new Set(rawMaterialRolls.filter(r => r.fabricName === fabricName).map(r => r.fabricCode).filter(Boolean))].sort();
+}
+function rmManualGsmsFor(fabricName, fabricCode) {
+  if (!fabricName) return [];
+  return [...new Set(rawMaterialRolls.filter(r => r.fabricName === fabricName && (!fabricCode || r.fabricCode === fabricCode)).map(r => r.gsm).filter(Boolean))].sort();
+}
+function rmManualColorPairsFor(fabricName, fabricCode) {
+  if (!fabricName) return [];
+  const map = new Map();
+  rawMaterialRolls.filter(r => r.fabricName === fabricName && (!fabricCode || r.fabricCode === fabricCode)).forEach(r => {
+    if (!r.colorName && !r.colorCode) return;
+    const key = `${r.colorName || ''}|||${r.colorCode || ''}`;
+    if (!map.has(key)) map.set(key, { colorName: r.colorName || '', colorCode: r.colorCode || '' });
+  });
+  return [...map.values()].sort((a, b) => (a.colorName || a.colorCode).localeCompare(b.colorName || b.colorCode));
+}
+// Fills one row's <select> for `field`, keeping the current value selected if it's still valid, auto-
+// picking it if there's exactly one option, or falling back to "Other" (with the old value moved into
+// the free-text box) if it no longer matches anything in the new option list.
+function rmManualFillSelect(row, field, options) {
+  const sel = row.querySelector(`.rm-manual-${field}-select`);
+  const otherInput = row.querySelector(`.rm-manual-${field}-other`);
+  if (!sel) return;
+  const cur = sel.value === '__other__' ? (otherInput ? otherInput.value.trim() : '') : sel.value;
+  sel.innerHTML = `<option value="">Select…</option>` +
+    options.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('') +
+    `<option value="__other__">Other (type manually)</option>`;
+  if (cur && options.includes(cur)) {
+    sel.value = cur;
+  } else if (!cur && options.length === 1) {
+    sel.value = options[0];
+  } else if (cur) {
+    sel.value = '__other__';
+    if (otherInput) otherInput.value = cur;
+  } else {
+    sel.value = '';
+  }
+  if (otherInput) otherInput.style.display = sel.value === '__other__' ? 'block' : 'none';
+}
+function rmManualCellValue(row, field) {
+  const sel = row.querySelector(`.rm-manual-${field}-select`);
+  if (!sel) return '';
+  if (sel.value === '__other__') {
+    const otherInput = row.querySelector(`.rm-manual-${field}-other`);
+    return otherInput ? otherInput.value.trim() : '';
+  }
+  return (sel.value || '').trim();
+}
+function rmManualRefreshRowOptions(row) {
+  const fabricName = rmManualCellValue(row, 'fabric-name');
+  rmManualFillSelect(row, 'fabric-code', rmManualFabricCodesFor(fabricName));
+  const fabricCode = rmManualCellValue(row, 'fabric-code');
+  rmManualFillSelect(row, 'gsm', rmManualGsmsFor(fabricName, fabricCode));
+  const pairs = rmManualColorPairsFor(fabricName, fabricCode);
+  rmManualFillSelect(row, 'color-name', [...new Set(pairs.map(p => p.colorName).filter(Boolean))]);
+  rmManualFillSelect(row, 'color-code', [...new Set(pairs.map(p => p.colorCode).filter(Boolean))]);
+  // Per Shaila (Sep 29, 2026 — "kalau pilih color name auto keluar color code boleh ke"): also run the
+  // Name<->Code pairing right here, not just on a manual dropdown click — Fabric Name/Code changing can
+  // itself auto-pick a Colour Name above (when it's the only option), and that programmatic pick never
+  // fires a real "change" event, so without this the paired Colour Code would stay stuck on "Select…".
+  rmManualAutoPairColor(row, 'color-name', 'color-code');
+  rmManualAutoPairColor(row, 'color-code', 'color-name');
+}
+function rmManualAutoPairColor(row, changedField, otherField) {
+  const fabricName = rmManualCellValue(row, 'fabric-name');
+  const fabricCode = rmManualCellValue(row, 'fabric-code');
+  const pairs = rmManualColorPairsFor(fabricName, fabricCode);
+  const changedVal = rmManualCellValue(row, changedField);
+  if (!changedVal) return;
+  const key = changedField === 'color-name' ? 'colorName' : 'colorCode';
+  const otherKey = changedField === 'color-name' ? 'colorCode' : 'colorName';
+  // Relaxed from "must be the only match" to "just use whatever it matched to" — a Colour Name/Code
+  // recorded consistently across every roll (the normal case) always has exactly one match anyway;
+  // requiring strict uniqueness only meant a rare historical typo/inconsistency (2 different codes ever
+  // logged under the same name) silently defeated auto-fill entirely, which is exactly what happened to
+  // her "PERANG P..." colour. The most recently used pairing (last match) wins when there's more than one.
+  const matches = [...new Set(pairs.filter(p => p[key] === changedVal).map(p => p[otherKey]).filter(Boolean))];
+  if (!matches.length) return;
+  const otherSel = row.querySelector(`.rm-manual-${otherField}-select`);
+  const otherOtherInput = row.querySelector(`.rm-manual-${otherField}-other`);
+  const pick = matches[matches.length - 1];
+  if (otherSel && [...otherSel.options].some(o => o.value === pick)) {
+    otherSel.value = pick;
+    if (otherOtherInput) otherOtherInput.style.display = 'none';
+    // Per Shaila (Sep 29, 2026 — "saya dah pilih color name color code tak auto pon"): setting
+    // `.value` on the real <select> here WAS working underneath, but every <select> in this app gets
+    // wrapped by the universal dropdown-enhancer widget (search box + Confirm button UI — see "UNIVERSAL
+    // DROPDOWN ENHANCER" near the bottom of this file), whose visible toggle button only repaints via
+    // its own MutationObserver watching for childList changes (i.e. this app's usual
+    // `sel.innerHTML = ...` repopulation pattern) — a plain `.value =` assignment is invisible to it, so
+    // the underlying value WAS correct but the button kept showing the old "Select…" label. Forcing a
+    // harmless childList mutation (append+remove a comment node) makes that observer fire and repaint
+    // the widget with the value that's already set, with no risk of the recursive 'change'-event loop a
+    // dispatchEvent('change') here would have caused (color-name pairs to color-code, which is wired to
+    // pair back to color-name, and so on).
+    const marker = document.createComment('ds-sync');
+    otherSel.appendChild(marker);
+    otherSel.removeChild(marker);
+  }
+}
+function rmManualWireRow(row) {
+  ['fabric-name', 'fabric-code', 'gsm', 'color-name', 'color-code'].forEach(field => {
+    const sel = row.querySelector(`.rm-manual-${field}-select`);
+    const otherInput = row.querySelector(`.rm-manual-${field}-other`);
+    sel.addEventListener('change', () => {
+      if (otherInput) otherInput.style.display = sel.value === '__other__' ? 'block' : 'none';
+      if (field === 'fabric-name' || field === 'fabric-code') rmManualRefreshRowOptions(row);
+      if (field === 'color-name') rmManualAutoPairColor(row, 'color-name', 'color-code');
+      if (field === 'color-code') rmManualAutoPairColor(row, 'color-code', 'color-name');
+    });
+    if (otherInput && (field === 'fabric-name' || field === 'fabric-code')) {
+      otherInput.addEventListener('input', () => rmManualRefreshRowOptions(row));
+    }
+  });
+  rmManualFillSelect(row, 'fabric-name', rmManualAllFabricNames());
+  rmManualRefreshRowOptions(row);
+}
 function rmManualLineRowHtml() {
-  return `<div class="rm-manual-line-row" style="display:grid; grid-template-columns: 1.3fr 1fr 0.6fr 1.1fr 0.8fr 0.6fr 0.9fr auto; gap:6px; align-items:center; margin-bottom:6px;">
-    <input type="text" class="rm-manual-fabric-name" placeholder="e.g. PANGKU PLAIN">
-    <input type="text" class="rm-manual-fabric-code" placeholder="e.g. 26Y01">
-    <input type="text" class="rm-manual-gsm" placeholder="-">
-    <input type="text" class="rm-manual-color-name" placeholder="e.g. Dark Blue">
-    <input type="text" class="rm-manual-color-code" placeholder="e.g. 40">
-    <input type="number" min="1" class="rm-manual-rolls" placeholder="Rolls">
-    <input type="number" min="0" step="0.1" class="rm-manual-meters" placeholder="Total m">
+  // Per Shaila (Sep 29, 2026 — "ni tak ikut row bawah nya"): the grid columns were already sized
+  // identically to the header above, but the global CSS gives every bare <input> a fixed intrinsic
+  // width (plain text inputs default to the browser's ~20-character width; type=number inputs are
+  // forced to a hardcoded 90px — see the `input[type=number] { width: 90px; }` rule) which OVERRIDES
+  // the grid track's fr sizing rather than filling it, since a grid item's default min-width is its own
+  // content size, not 0. Forcing width:100% + box-sizing:border-box on every input here makes each one
+  // actually fill its column instead of keeping its own fixed size, so it lines up under the header.
+  const cellInput = (attrs) => `<input style="width:100%; min-width:0; box-sizing:border-box;" ${attrs}>`;
+  const cellSelect = (field) => `<div class="rm-manual-cell" style="min-width:0;">
+      <select class="rm-manual-${field}-select" style="width:100%; min-width:0; box-sizing:border-box;"><option value="">Select…</option><option value="__other__">Other (type manually)</option></select>
+      <input type="text" class="rm-manual-${field}-other" placeholder="Type manually" style="display:none; width:100%; min-width:0; box-sizing:border-box; margin-top:4px;">
+    </div>`;
+  return `<div class="rm-manual-line-row" style="display:grid; grid-template-columns: 1.3fr 1fr 0.6fr 1.1fr 0.8fr 0.6fr 0.9fr 32px; gap:6px; align-items:start; margin-bottom:6px;">
+    ${cellSelect('fabric-name')}
+    ${cellSelect('fabric-code')}
+    ${cellSelect('gsm')}
+    ${cellSelect('color-name')}
+    ${cellSelect('color-code')}
+    ${cellInput('type="number" min="1" class="rm-manual-rolls" placeholder="Rolls"')}
+    ${cellInput('type="number" min="0" step="0.1" class="rm-manual-meters" placeholder="Total m"')}
     <button type="button" class="icon-btn rm-manual-line-remove" title="Remove line">🗑</button>
   </div>`;
 }
@@ -18459,6 +18629,7 @@ function rmManualAddLine() {
   const row = holder.firstElementChild;
   wrap.appendChild(row);
   row.querySelector('.rm-manual-line-remove').addEventListener('click', () => row.remove());
+  rmManualWireRow(row);
 }
 document.getElementById('rmManualAddLineBtn').addEventListener('click', rmManualAddLine);
 function closeRmManualAddStoModal() { document.getElementById('rmManualAddStoModal').classList.add('hidden'); }
@@ -18492,11 +18663,11 @@ document.getElementById('rmManualAddStoSaveBtn').addEventListener('click', () =>
   if (doNo && rawMaterialDos.some(d => d.doNo === doNo)) { errEl.textContent = `DO "${doNo}" already exists.`; errEl.style.display = 'block'; return; }
   const lines = [];
   document.querySelectorAll('#rmManualLinesWrap .rm-manual-line-row').forEach(row => {
-    const fabricName = row.querySelector('.rm-manual-fabric-name').value.trim();
-    const fabricCode = row.querySelector('.rm-manual-fabric-code').value.trim();
-    const gsm = row.querySelector('.rm-manual-gsm').value.trim();
-    const colorName = row.querySelector('.rm-manual-color-name').value.trim();
-    const colorCode = row.querySelector('.rm-manual-color-code').value.trim();
+    const fabricName = rmManualCellValue(row, 'fabric-name');
+    const fabricCode = rmManualCellValue(row, 'fabric-code');
+    const gsm = rmManualCellValue(row, 'gsm');
+    const colorName = rmManualCellValue(row, 'color-name');
+    const colorCode = rmManualCellValue(row, 'color-code');
     const rolls = parseInt(row.querySelector('.rm-manual-rolls').value, 10) || 0;
     const meters = Number(row.querySelector('.rm-manual-meters').value) || 0;
     if (!fabricName || rolls <= 0 || meters <= 0) return;
@@ -18718,7 +18889,9 @@ function renderRmStockSummaryTable() {
 }
 function rmStockDetailRollRowHtml(r) {
   const empty = (Number(r.meterRemaining) || 0) <= 0;
+  const checked = rmStockDetailSelectedIds.has(r.id);
   return `<tr${empty ? ' style="opacity:0.5;"' : ''}>
+      <td style="width:28px;"><input type="checkbox" class="rm-stock-select" data-id="${escapeHtml(r.id)}" ${checked ? 'checked' : ''}></td>
       <td><strong>${escapeHtml(r.rollNo)}</strong></td>
       <td>${escapeHtml(r.fabricName || '-')}${r.fabricCode ? ` <span style="color:var(--text-muted);">(${escapeHtml(r.fabricCode)})</span>` : ''}</td>
       <td>${escapeHtml(r.colorName || r.colorCode || '-')}</td>
@@ -18731,6 +18904,10 @@ function rmStockDetailRollRowHtml(r) {
       </td>
     </tr>`;
 }
+// Per Shaila (Sep 29, 2026 — "takkan nak edit 1 per 1 roll,,nak edit bulk teros"): lets her tick a batch
+// of rolls (e.g. the whole TUAS delivery she keyed in under the wrong day) and set one Received Date on
+// all of them in a single click, instead of opening the Edit Roll modal one roll at a time.
+let rmStockDetailSelectedIds = new Set();
 // Set by clicking a fabric row in "Summary — by Fabric + Color" — narrows "Detail — by Roll" below
 // to just that fabric's individual rolls. Cleared via the "tunjuk semua" link in the filter note.
 let rmStockSelectedFabricKey = null;
@@ -18762,10 +18939,34 @@ function renderRmStockDetailTable() {
 
   list.sort((a, b) => (b.rollNo || '').localeCompare(a.rollNo || ''));
 
-  if (!list.length) { wrap.innerHTML = `<div class="empty-state">No rolls to show.</div>`; return; }
+  // Selection is by roll id, so it survives search/filter changes — but drop any id no longer visible
+  // under THIS list so the bulk bar's count never counts a roll that's currently hidden by a filter.
+  const visibleIds = new Set(list.map(r => r.id));
+  [...rmStockDetailSelectedIds].forEach(id => { if (!visibleIds.has(id)) rmStockDetailSelectedIds.delete(id); });
+
+  if (!list.length) { wrap.innerHTML = `<div class="empty-state">No rolls to show.</div>`; renderRmStockDetailBulkBar(); return; }
   wrap.innerHTML = `<table><thead><tr>
+      <th style="width:28px;"><input type="checkbox" id="rmStockSelectAllCheckbox"></th>
       <th>Roll No.</th><th>Fabric</th><th>Color</th><th>GSM</th><th>Meter</th><th>Received / Batch / Inv.</th><th></th>
     </tr></thead><tbody>${list.map(r => rmStockDetailRollRowHtml(r)).join('')}</tbody></table>`;
+
+  const selectAllCb = document.getElementById('rmStockSelectAllCheckbox');
+  if (selectAllCb) {
+    selectAllCb.checked = list.length > 0 && list.every(r => rmStockDetailSelectedIds.has(r.id));
+    selectAllCb.addEventListener('change', () => {
+      if (selectAllCb.checked) list.forEach(r => rmStockDetailSelectedIds.add(r.id));
+      else list.forEach(r => rmStockDetailSelectedIds.delete(r.id));
+      renderRmStockDetailTable();
+    });
+  }
+  wrap.querySelectorAll('.rm-stock-select').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (cb.checked) rmStockDetailSelectedIds.add(cb.dataset.id);
+      else rmStockDetailSelectedIds.delete(cb.dataset.id);
+      renderRmStockDetailBulkBar();
+      if (selectAllCb) selectAllCb.checked = list.length > 0 && list.every(r => rmStockDetailSelectedIds.has(r.id));
+    });
+  });
 
   // Edit button (Sep 27, 2026 — "macam mana saya nak tukar nama fabric ni ya?"): reuses the same Edit
   // Roll modal already wired up for the Print tab (includes a Fabric Name field), just opened from here
@@ -18780,10 +18981,48 @@ function renderRmStockDetailTable() {
       if (!confirm(`Delete roll ${roll.rollNo} (${roll.fabricName || '-'})? This action cannot be undone.`)) return;
       rawMaterialRolls = rawMaterialRolls.filter(r => r.id !== roll.id);
       saveRawMaterialRolls();
+      rmStockDetailSelectedIds.delete(roll.id);
       renderRmStockTab();
     });
   });
+  renderRmStockDetailBulkBar();
 }
+// Per Shaila (Sep 29, 2026 — bulk Received Date edit): shows/hides the bulk-action bar and keeps its
+// "N selected" count in sync with rmStockDetailSelectedIds, without needing a full table re-render.
+function renderRmStockDetailBulkBar() {
+  const bar = document.getElementById('rmStockDetailBulkBar');
+  const countEl = document.getElementById('rmStockDetailBulkCount');
+  if (!bar || !countEl) return;
+  const n = rmStockDetailSelectedIds.size;
+  bar.style.display = n > 0 ? 'flex' : 'none';
+  countEl.textContent = `${n} roll${n === 1 ? '' : 's'} selected`;
+}
+document.getElementById('rmStockDetailBulkClearBtn').addEventListener('click', () => {
+  rmStockDetailSelectedIds.clear();
+  renderRmStockDetailTable();
+});
+// Per Shaila (Sep 29, 2026 — "tambah boleh edit invoice bulk"): same bar now also carries an Invoice No.
+// field, applied alongside (or instead of) the date — whichever of the two she's actually filled in.
+document.getElementById('rmStockDetailBulkApplyBtn').addEventListener('click', () => {
+  const dateVal = document.getElementById('rmStockDetailBulkDate').value;
+  const invoiceVal = document.getElementById('rmStockDetailBulkInvoiceNo').value.trim();
+  if (!dateVal && !invoiceVal) { alert('Please fill in a Received Date and/or an Invoice No. first.'); return; }
+  if (!rmStockDetailSelectedIds.size) return;
+  const n = rmStockDetailSelectedIds.size;
+  const parts = [];
+  if (dateVal) parts.push(`Received Date to ${formatDateLabel(dateVal)}`);
+  if (invoiceVal) parts.push(`Invoice No. to ${invoiceVal}`);
+  if (!confirm(`Set ${parts.join(' and ')} for ${n} selected roll${n === 1 ? '' : 's'}?`)) return;
+  rawMaterialRolls.forEach(r => {
+    if (!rmStockDetailSelectedIds.has(r.id)) return;
+    if (dateVal) r.receivedDate = dateVal;
+    if (invoiceVal) r.invoiceNo = invoiceVal;
+  });
+  saveRawMaterialRolls();
+  rmStockDetailSelectedIds.clear();
+  document.getElementById('rmStockDetailBulkInvoiceNo').value = '';
+  renderRmStockTab();
+});
 function renderRmStockTab() { renderRmStockSummaryTable(); renderRmStockDetailTable(); }
 document.getElementById('rmStockSummarySearchInput').addEventListener('input', renderRmStockSummaryTable);
 document.getElementById('rmStockDetailSearchInput').addEventListener('input', renderRmStockDetailTable);
@@ -18877,6 +19116,7 @@ function openRmEditRollModal(rollId) {
   if (!roll) return;
   rmEditRollCurrentId = rollId;
   document.getElementById('rmEditRollNo').value = roll.rollNo || '';
+  document.getElementById('rmEditReceivedDate').value = roll.receivedDate || '';
   document.getElementById('rmEditGsm').value = roll.gsm || '';
   document.getElementById('rmEditFabricName').value = roll.fabricName || '';
   document.getElementById('rmEditFabricCode').value = roll.fabricCode || '';
@@ -18910,6 +19150,7 @@ document.getElementById('rmEditRollSaveBtn').addEventListener('click', () => {
   if (!Number.isFinite(newMeterRemaining) || newMeterRemaining < 0) { showErr('Meter Remaining is invalid.'); return; }
   if (newMeterRemaining > newMeter) { showErr('Meter Remaining cannot be greater than Total Meter.'); return; }
   roll.rollNo = newRollNo;
+  roll.receivedDate = document.getElementById('rmEditReceivedDate').value || roll.receivedDate;
   roll.gsm = document.getElementById('rmEditGsm').value.trim();
   roll.fabricName = document.getElementById('rmEditFabricName').value.trim();
   roll.fabricCode = document.getElementById('rmEditFabricCode').value.trim();
@@ -23123,9 +23364,16 @@ function renderFinanceView() {
 // whose items include at least one line of this fabric — lets the Roll OUT view show/print the
 // actual DO a fabric went out on, without duplicating any of that data here.
 function financeDosForFabric(fabricName, fabricCode) {
-  return (typeof rawMaterialDos !== 'undefined' ? rawMaterialDos : []).filter(d =>
+  const matches = (typeof rawMaterialDos !== 'undefined' ? rawMaterialDos : []).filter(d =>
     (d.items || []).some(it => it.itemType !== 'accessories' && it.fabricName === fabricName && it.fabricCode === fabricCode)
   );
+  // Per Shaila (Sep 29, 2026 — "kenapa ade double DO kt column tu"): de-dupe by DO No. before display.
+  // rawMaterialDos can end up holding 2 separate records that share the exact same doNo (e.g. one
+  // created via the normal auto-generate flow and another via a retrofit/manual path touching the same
+  // STO) — each is a real record so nothing here should silently delete one, but showing the identical
+  // DO No. twice as two buttons is never useful, so only the first occurrence is kept for display.
+  const seen = new Set();
+  return matches.filter(d => { if (seen.has(d.doNo)) return false; seen.add(d.doNo); return true; });
 }
 // Roll IN "View by Color" detail — unlike Roll OUT/Balance, this breaks each colour down further by
 // Invoice+Batch (reusing the same grouping the Export Report's Roll IN sheet uses), since Batch and
