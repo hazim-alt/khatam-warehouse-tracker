@@ -9007,6 +9007,54 @@ function syncKeyOf(record) {
   if (!record._syncId) record._syncId = genSyncId();
   return String(record._syncId);
 }
+// Per Shaila (Sep 30, 2026 — deleted ~9 old Raw Material STOs, only kept 2, then reopened the app the
+// next day to find every old one back): the local-only MERGE added above (Sep 29) protects a brand-new
+// record from being wiped by a stale remote snapshot — but it has a mirror-image blind spot: it can't
+// tell "remote still has this because I deleted it locally and the deletion never reached Firebase yet"
+// apart from "remote has this because it's a genuinely new addition from another device", so it silently
+// resurrected everything she'd deleted the moment a stale snapshot came back down. The real root cause:
+// "Delete STO" (like the other delete buttons on these 4 tables) only ever saved to localStorage and
+// left pushing the deletion up to the next periodic cloudSyncReconcile tick (every 2s) — if she closed
+// the tab/lost the page before that tick fired, the deletion never reached Firebase at all, so it was
+// still sitting there the next time the app opened and pulled a snapshot. Two-part fix: (1) every delete
+// on these tables now pushes immediately (see rmMarkDeletedAndPushNow below) instead of waiting on the
+// timer, and (2) as defense in depth for the rare case a push still doesn't land in time (offline, tab
+// killed mid-request), a short-lived "tombstone" of what was deliberately deleted is kept so a stale
+// snapshot can't quietly bring it back — it can only ever be re-added by a genuine new save.
+const RM_SYNC_TOMBSTONES_KEY = 'sto_rm_sync_tombstones_v1';
+const RM_TOMBSTONE_RETENTION_MS = 45 * 24 * 60 * 60 * 1000; // 45 days — long enough to outlast any realistic offline gap
+let rmSyncTombstones = {};
+function loadRmSyncTombstones() {
+  try { rmSyncTombstones = JSON.parse(localStorage.getItem(RM_SYNC_TOMBSTONES_KEY)) || {}; } catch (e) { rmSyncTombstones = {}; }
+}
+function saveRmSyncTombstones() { localStorage.setItem(RM_SYNC_TOMBSTONES_KEY, JSON.stringify(rmSyncTombstones)); }
+// Drops tombstones older than the retention window so this never grows unbounded.
+function rmPruneSyncTombstones() {
+  const cutoff = Date.now() - RM_TOMBSTONE_RETENTION_MS;
+  let changed = false;
+  Object.keys(rmSyncTombstones).forEach(table => {
+    Object.keys(rmSyncTombstones[table] || {}).forEach(key => {
+      if (rmSyncTombstones[table][key] < cutoff) { delete rmSyncTombstones[table][key]; changed = true; }
+    });
+  });
+  if (changed) saveRmSyncTombstones();
+}
+// Call this right after removing record(s) from one of the 4 RawMaterial_* arrays (and saving it) —
+// marks those exact records as deliberately deleted, then pushes the new (shorter) array to Firebase
+// immediately rather than waiting for the next periodic reconcile tick.
+function rmMarkDeletedAndPushNow(table, deletedSyncKeys) {
+  if (deletedSyncKeys && deletedSyncKeys.length) {
+    if (!rmSyncTombstones[table]) rmSyncTombstones[table] = {};
+    const now = Date.now();
+    deletedSyncKeys.forEach(key => { rmSyncTombstones[table][key] = now; });
+    saveRmSyncTombstones();
+  }
+  if (!fbDb || !SYNC_COLLECTIONS._fbListenersAttached) return;
+  const def = SYNC_COLLECTIONS.find(d => d.table === table);
+  if (def) pushCollectionDiff(def, { skipEmptyGuard: true });
+}
+loadRmSyncTombstones();
+rmPruneSyncTombstones();
 // Firebase Realtime Database keys can't contain '.', '#', '$', '[', ']', or '/'. None of the IDs
 // this app generates itself ever do, but this guards against a stray character (e.g. a DO number
 // with a "/" in it, if one is ever used as a raw key somewhere) from crashing a write.
@@ -9249,6 +9297,12 @@ function applyServerSnapshot(table) {
   // take one extra sync cycle to reach here if this device also has an unrelated pending local
   // addition at that exact moment — far smaller a risk than silently losing real stock records.
   if (table === 'RawMaterial_Rolls' || table === 'RawMaterial_Picks' || table === 'RawMaterial_STOs' || table === 'RawMaterial_DOs') {
+    // Drop anything she deliberately deleted here recently (see rmMarkDeletedAndPushNow above) before
+    // it gets a chance to be merged back in — without this, a remote snapshot that's simply stale
+    // (the deletion's push hasn't landed on the server yet) would look identical to "another device
+    // added this," and get silently resurrected exactly like Sep 30's STO list did.
+    const tombstones = rmSyncTombstones[table] || {};
+    if (Object.keys(tombstones).length) remoteArr = remoteArr.filter(r => !(syncKeyOf(r) in tombstones));
     const localArr = def.getArray();
     const remoteKeys = new Set(remoteArr.map(r => syncKeyOf(r)));
     const localOnly = localArr.filter(r => !remoteKeys.has(syncKeyOf(r)));
@@ -18384,10 +18438,17 @@ function renderRmStoListTable() {
         if (cap > 0) roll.meterRemaining = Math.min(roll.meterRemaining, cap);
       });
       saveRawMaterialRolls();
+      // Per Shaila (Sep 30, 2026 — deleted STOs came back the next day): record exactly what's being
+      // removed and push the deletion to Firebase right now, instead of leaving it to the next periodic
+      // sync tick (which never got a chance to fire if the tab was closed right after this click).
+      const deletedStoKeys = rawMaterialStos.filter(s => s.stoNo === stoNo).map(s => syncKeyOf(s));
+      const deletedDoKeys = rawMaterialDos.filter(d => d.stoNo === stoNo).map(d => syncKeyOf(d));
       rawMaterialStos = rawMaterialStos.filter(s => s.stoNo !== stoNo);
       rawMaterialDos = rawMaterialDos.filter(d => d.stoNo !== stoNo);
       saveRawMaterialStos();
       saveRawMaterialDos();
+      rmMarkDeletedAndPushNow('RawMaterial_STOs', deletedStoKeys);
+      rmMarkDeletedAndPushNow('RawMaterial_DOs', deletedDoKeys);
       renderRmStoListTable();
       if (typeof renderRmStockTab === 'function' && document.getElementById('tab-rm-stock')) renderRmStockTab();
       if (typeof renderRmPrintTab === 'function' && document.getElementById('tab-rm-print')) renderRmPrintTab();
@@ -19051,6 +19112,7 @@ function renderRmStockDetailTable() {
       if (!confirm(`Delete roll ${roll.rollNo} (${roll.fabricName || '-'})? This action cannot be undone.`)) return;
       rawMaterialRolls = rawMaterialRolls.filter(r => r.id !== roll.id);
       saveRawMaterialRolls();
+      rmMarkDeletedAndPushNow('RawMaterial_Rolls', [syncKeyOf(roll)]);
       rmStockDetailSelectedIds.delete(roll.id);
       renderRmStockTab();
     });
@@ -19175,6 +19237,7 @@ function renderRmPrintTab() {
       rawMaterialRolls = rawMaterialRolls.filter(r => r.id !== roll.id);
       rmPrintSelectedIds.delete(roll.id);
       saveRawMaterialRolls();
+      rmMarkDeletedAndPushNow('RawMaterial_Rolls', [syncKeyOf(roll)]);
       renderRmPrintTab();
     });
   });
