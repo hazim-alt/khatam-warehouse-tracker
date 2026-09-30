@@ -1638,6 +1638,14 @@
       </div>
       <div class="upload-status" id="rmDoImportUploadStatus"></div>
     </div>
+    <div class="card" style="margin-top:16px;">
+      <p class="rm-form-section-label" style="margin-top:0;">💾 Backup</p>
+      <span class="data-note" style="margin:0;">Downloads one file with EVERYTHING in the system (not just Raw Material) — a restore file to hand back to support if data is ever lost, not a readable report. Runs automatically once a day at 12:00 AM (as long as the app is open around then), plus once right when the app is opened if that day's backup hasn't happened yet. Click the button below anytime for an extra backup on the spot.</span>
+      <div style="display:flex; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap;">
+        <button class="btn-ghost" id="rmBackupNowBtn">💾 Backup Now</button>
+        <span class="data-note" id="rmBackupLastNote" style="margin:0;"></span>
+      </div>
+    </div>
     <div class="card" style="margin-top:16px; border-color:#e0685c;">
       <p class="rm-form-section-label" style="margin-top:0; color:#e0685c;">⚠ Danger Zone</p>
       <span class="data-note" style="margin:0;">Delete ALL Raw Material data (all rolls, STOs, DOs and Pick history) — to clear old/test data before starting fresh. This action can be undone once, right after you click it (use "↩ Undo Reset") — resetting again will lose the ability to undo the previous one.</span>
@@ -9462,6 +9470,68 @@ function saveRawMaterialRolls() { localStorage.setItem(RM_ROLLS_KEY, JSON.string
 function saveRawMaterialPicks() { localStorage.setItem(RM_PICKS_KEY, JSON.stringify(rawMaterialPicks)); }
 function saveRawMaterialStos() { localStorage.setItem(RM_STOS_KEY, JSON.stringify(rawMaterialStos)); }
 function saveRawMaterialDos() { localStorage.setItem(RM_DOS_KEY, JSON.stringify(rawMaterialDos)); }
+// Per Shaila (Sep 30, 2026 — "buat backup data setiap hari auto boleh tak?", then "saya nak buat button
+// backup,,then akan auto backup setiap 12 tengah malam"): a raw, restorable safety net, separate from the
+// human-readable "Export Report" Excel — dumps EVERYTHING in localStorage (every table this app tracks,
+// not just Raw Material, so nothing added later is ever silently left out) as one JSON file, downloaded
+// to her Downloads folder. This is a backup file to hand back to me if data is ever lost again (there's
+// no "restore" button in the app itself on purpose — an automatic restore could just as easily overwrite
+// good data with a stale backup, which is exactly the kind of silent data change she's asked never to
+// happen without her asking first).
+// `label` distinguishes what triggered it, only for the "last backup" note text (Backup Now / Auto @
+// midnight / Auto on open) — the file itself and the once-per-calendar-day guard are the same either way.
+function rmPerformBackup(label) {
+  const dump = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    dump[key] = localStorage.getItem(key);
+  }
+  const stamp = new Date();
+  const filenameDate = todayStr();
+  const blob = new Blob([JSON.stringify(dump)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `khatam-warehouse-backup-${filenameDate}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  localStorage.setItem('rmAutoBackupLastDate_v1', filenameDate);
+  localStorage.setItem('rmAutoBackupLastAt_v1', JSON.stringify({ at: stamp.toISOString(), label: label || 'Backup' }));
+  rmRenderBackupLastNote();
+}
+// Auto path: once per calendar day, either right at midnight (if the app happens to be open then — the
+// setInterval below checks every minute) or the moment the app is opened if that day's backup hasn't
+// happened yet (covers the normal case of the app not being left open through midnight). Wrapped so a
+// backup failure (e.g. localStorage briefly unavailable) never blocks the app itself from loading.
+function rmAutoBackupIfNeeded(label) {
+  try {
+    const today = todayStr();
+    if (localStorage.getItem('rmAutoBackupLastDate_v1') === today) return;
+    rmPerformBackup(label || 'Auto backup');
+  } catch (e) { /* never let a backup failure block the app */ }
+}
+function rmRenderBackupLastNote() {
+  const el = document.getElementById('rmBackupLastNote');
+  if (!el) return;
+  let info = null;
+  try { info = JSON.parse(localStorage.getItem('rmAutoBackupLastAt_v1') || 'null'); } catch (e) { info = null; }
+  if (!info || !info.at) { el.textContent = 'No backup yet.'; return; }
+  const d = new Date(info.at);
+  const timeLabel = isNaN(d.getTime()) ? info.at : d.toLocaleString();
+  el.textContent = `Last backup: ${timeLabel} (${info.label || 'Backup'})`;
+}
+const rmBackupNowBtnEl = document.getElementById('rmBackupNowBtn');
+if (rmBackupNowBtnEl) rmBackupNowBtnEl.addEventListener('click', () => rmPerformBackup('Backup Now'));
+// Checks every minute for the clock crossing into a new calendar day — fires the backup the first time
+// it notices, then the once-per-day date guard in rmAutoBackupIfNeeded stops it firing again until the
+// NEXT midnight. Only actually backs up right at/just after 00:00 if the app is open at that moment;
+// the on-open call elsewhere covers days the app wasn't left open through midnight.
+setInterval(() => {
+  const now = new Date();
+  if (now.getHours() === 0 && now.getMinutes() === 0) rmAutoBackupIfNeeded('Auto @ midnight');
+}, 60 * 1000);
 // One-time self-healing migration (per Shaila's request, Sep 23, 2026): "Manually Add STO/DO" used to
 // label reconstructed lines "RECON-1".."RECON-N" starting over at 1 for EVERY colour line, so two
 // different colours in the same STO landed on the identical roll-no. string. The Finance tab's
@@ -30988,6 +31058,8 @@ setInterval(() => {
   }
 }, CAMPAIGN_TIMELINE_AUTO_REFRESH_MS);
 stationPresenceHeartbeat(); // refresh this device's own station presence right away, don't wait up to 60s
+rmRenderBackupLastNote();
+rmAutoBackupIfNeeded('Auto on open');
 renderAll();
 renderDailyTargetsInputs();
 renderCampaignModeBadge();
