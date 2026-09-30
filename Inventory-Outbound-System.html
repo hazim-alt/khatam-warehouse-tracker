@@ -9520,10 +9520,37 @@ function loadRawMaterialData() {
   try { rawMaterialStos = JSON.parse(localStorage.getItem(RM_STOS_KEY)) || []; } catch (e) { rawMaterialStos = []; }
   try { rawMaterialDos = JSON.parse(localStorage.getItem(RM_DOS_KEY)) || []; } catch (e) { rawMaterialDos = []; }
 }
-function saveRawMaterialRolls() { localStorage.setItem(RM_ROLLS_KEY, JSON.stringify(rawMaterialRolls)); }
-function saveRawMaterialPicks() { localStorage.setItem(RM_PICKS_KEY, JSON.stringify(rawMaterialPicks)); }
-function saveRawMaterialStos() { localStorage.setItem(RM_STOS_KEY, JSON.stringify(rawMaterialStos)); }
-function saveRawMaterialDos() { localStorage.setItem(RM_DOS_KEY, JSON.stringify(rawMaterialDos)); }
+// Per Shaila (Sep 30, 2026 — browser Console showing repeated "QuotaExceededError... exceeded the
+// quota" while saving Raw Material data): the app's storage (localStorage) filled up, and every plain
+// `localStorage.setItem(...)` call on these 4 tables was throwing uncaught, silently — the in-memory
+// data still looked right on screen, but nothing after that point was actually being saved at all,
+// which is far more dangerous than an error message, since there's no visible sign anything is wrong
+// until the next reload wipes out everything unsaved. This wrapper catches that specific failure and
+// shows a persistent on-screen banner (instead of a console error only she'd have to know to look for),
+// so a full-storage situation is impossible to miss going forward.
+function safeLocalStorageSet(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (e) {
+    if (e && (e.name === 'QuotaExceededError' || e.code === 22)) {
+      rmShowStorageFullBanner();
+    }
+    return false;
+  }
+}
+function rmShowStorageFullBanner() {
+  if (document.getElementById('rmStorageFullBanner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'rmStorageFullBanner';
+  banner.style.cssText = 'position:fixed; top:0; left:0; right:0; z-index:99999; background:#7a1f1f; color:#fff; padding:10px 16px; font-size:13px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.4);';
+  banner.innerHTML = `⚠ Storan browser PENUH — perubahan terbaru TIDAK tersimpan. Sila maklumkan support / clear ruang storan segera. <button type="button" style="margin-left:10px; padding:2px 10px; border:none; border-radius:4px; cursor:pointer;" onclick="this.parentElement.remove()">Tutup</button>`;
+  document.body.appendChild(banner);
+}
+function saveRawMaterialRolls() { return safeLocalStorageSet(RM_ROLLS_KEY, JSON.stringify(rawMaterialRolls)); }
+function saveRawMaterialPicks() { return safeLocalStorageSet(RM_PICKS_KEY, JSON.stringify(rawMaterialPicks)); }
+function saveRawMaterialStos() { return safeLocalStorageSet(RM_STOS_KEY, JSON.stringify(rawMaterialStos)); }
+function saveRawMaterialDos() { return safeLocalStorageSet(RM_DOS_KEY, JSON.stringify(rawMaterialDos)); }
 // Per Shaila (Sep 30, 2026 — "buat backup data setiap hari auto boleh tak?", then "saya nak buat button
 // backup,,then akan auto backup setiap 12 tengah malam"): a raw, restorable safety net, separate from the
 // human-readable "Export Report" Excel — dumps EVERYTHING in localStorage (every table this app tracks,
