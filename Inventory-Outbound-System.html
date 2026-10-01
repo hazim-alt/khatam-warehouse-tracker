@@ -9251,13 +9251,18 @@ function applyServerSnapshot(table) {
     const localTombstones = rmSyncTombstones[table] || {};
     const sharedTombstones = (fbSharedRmTombstones && fbSharedRmTombstones[table]) || {};
     const tombstoneKeys = new Set([...Object.keys(localTombstones), ...Object.keys(sharedTombstones).map(k => k)]);
-    if (tombstoneKeys.size) remoteArr = remoteArr.filter(r => !tombstoneKeys.has(fbSafeKey(syncKeyOf(r))) && !tombstoneKeys.has(syncKeyOf(r)));
+    // "Reset All Raw Material Data" (Danger Zone) stamps this instead of enumerating every wiped key —
+    // see that handler for why. Anything created before the reset is treated as tombstoned, regardless
+    // of key, so a device with a huge stale local array can't resurrect it piecemeal after a full wipe.
+    const resetCutoff = (fbSharedRmTombstones && fbSharedRmTombstones.__resetCutoff) || 0;
+    const isTombstoned = (r) => tombstoneKeys.has(fbSafeKey(syncKeyOf(r))) || tombstoneKeys.has(syncKeyOf(r)) || (resetCutoff && (r.createdAt || 0) < resetCutoff);
+    if (tombstoneKeys.size || resetCutoff) remoteArr = remoteArr.filter(r => !isTombstoned(r));
     let localArr = def.getArray();
-    if (tombstoneKeys.size) {
-      const cleanedLocal = localArr.filter(r => !tombstoneKeys.has(fbSafeKey(syncKeyOf(r))) && !tombstoneKeys.has(syncKeyOf(r)));
-      // Self-heal: if this device's own array still had tombstoned records lingering (e.g. it never
-      // personally deleted them but another device did), drop them locally too instead of waiting for
-      // them to keep getting filtered out of every snapshot forever.
+    if (tombstoneKeys.size || resetCutoff) {
+      const cleanedLocal = localArr.filter(r => !isTombstoned(r));
+      // Self-heal: if this device's own array still had tombstoned/reset-wiped records lingering (e.g.
+      // it never personally deleted them but another device did, or missed a reset), drop them locally
+      // too instead of waiting for them to keep getting filtered out of every snapshot forever.
       if (cleanedLocal.length !== localArr.length) { localArr = cleanedLocal; def.setArray(localArr); }
     }
     const remoteKeys = new Set(remoteArr.map(r => syncKeyOf(r)));
@@ -15961,6 +15966,17 @@ document.getElementById('resetRmBtn').addEventListener('click', async () => {
     try {
       await Promise.all(['RawMaterial_Rolls', 'RawMaterial_Picks', 'RawMaterial_STOs', 'RawMaterial_DOs'].map(t => fbDb.ref(t).set(null)));
       ['RawMaterial_Rolls', 'RawMaterial_Picks', 'RawMaterial_STOs', 'RawMaterial_DOs'].forEach(t => { fbLastServerSnapshot[t] = {}; });
+      // Per Shaila (Oct 1, 2026 — even after this fix, a device still running the OLD app file kept
+      // pushing its entire stale local copy back up within seconds of every delete, because its own
+      // merge logic has no concept of "this was deliberately wiped" and just sees "server is missing
+      // records I have locally, must be my own unsynced additions, re-add them"): a per-key tombstone
+      // list doesn't fully solve a mass wipe like this one — there could be thousands of old keys to
+      // enumerate. Instead, stamp a single "reset cutoff" timestamp; any device running the UPDATED file
+      // (see applyServerSnapshot's RawMaterial_* merge block above) will drop ANY record older than this
+      // cutoff, local or remote, no matter how large its stale local array is or whether that exact key
+      // was ever individually tombstoned. A device still running the OLD file won't know about this and
+      // can still resurrect data until it reloads this file — there's no way around that from here.
+      await fbDb.ref(RM_SHARED_TOMBSTONES_TABLE + '/__resetCutoff').set(Date.now());
     } catch (err) {
       alert('Local data was cleared, but failed to clear it on Firebase (so it may come back on other devices): ' + err.message + '\n\nCheck your internet connection and try the reset again.');
     }
