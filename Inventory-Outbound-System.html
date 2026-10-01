@@ -16497,6 +16497,7 @@ function createAndPrintRmDo(stoNo) {
         return { itemType: 'fabric', rollNo: s.rollNo, fabricName: s.fabricName, fabricCode: s.fabricCode, gsm: roll ? roll.gsm : '', colorCode: s.colorCode, colorName: s.colorName, meter: s.meter };
       }),
       createdDate: date,
+      createdAt: Date.now(),
     };
     rawMaterialDos.push(doRec);
     saveRawMaterialDos();
@@ -18089,7 +18090,7 @@ function createRmStoFromForm() {
         // cartonId/cartonNo only present when this item was auto-picked from a physical carton
         // (see addRmStoAccessoriesItem) — loose/no-carton items simply omit them.
         cartonId: item.cartonId || '', cartonNo: item.cartonNo || '',
-        destination, date, status: 'Open', notes
+        destination, date, status: 'Open', notes, createdAt: Date.now()
       });
       return;
     }
@@ -18100,7 +18101,7 @@ function createRmStoFromForm() {
       rawMaterialStos.push({
         id: genRmId(), stoNo, itemType: 'fabric', rollId: roll.id, rollNo: roll.rollNo,
         fabricName: roll.fabricName, fabricCode: roll.fabricCode, colorCode: roll.colorCode, colorName: roll.colorName,
-        meter, destination, date, status: 'Open', notes
+        meter, destination, date, status: 'Open', notes, createdAt: Date.now()
       });
     });
   });
@@ -18388,7 +18389,7 @@ document.getElementById('rmStoEditAddBtn').addEventListener('click', () => {
       fabricName: roll.fabricName, fabricCode: roll.fabricCode, colorCode: roll.colorCode, colorName: roll.colorName,
       meter: Number(roll.meterRemaining) || 0,
       destination: rmStoEditingMeta.destination, date: rmStoEditingMeta.date, notes: rmStoEditingMeta.notes,
-      status: 'Open'
+      status: 'Open', createdAt: Date.now()
     });
   });
   saveRawMaterialStos();
@@ -18650,7 +18651,7 @@ document.getElementById('rmManualAddStoSaveBtn').addEventListener('click', () =>
       rawMaterialStos.push({
         id: genRmId(), stoNo, itemType: 'fabric', rollId: null, rollNo,
         fabricName: line.fabricName, fabricCode: line.fabricCode, colorCode: line.colorCode, colorName: line.colorName,
-        meter, destination, date, status: 'Completed', notes,
+        meter, destination, date, status: 'Completed', notes, createdAt: Date.now(),
         // Tags this as a reconstructed line (not a real scanned pick) and records whether the stock
         // deduction actually happened at creation time — lets the STO card offer a one-time "Deduct
         // Stock Now" retrofit button (see renderRmStoListTable) if she forgot to tick the checkbox
@@ -18675,7 +18676,7 @@ document.getElementById('rmManualAddStoSaveBtn').addEventListener('click', () =>
   saveRawMaterialStos();
   if (deductStock) saveRawMaterialRolls();
   if (doNo) {
-    rawMaterialDos.push({ doNo, stoNo, destination, date, notes, items: doItems, createdDate: date });
+    rawMaterialDos.push({ doNo, stoNo, destination, date, notes, items: doItems, createdDate: date, createdAt: Date.now() });
     saveRawMaterialDos();
   }
 
@@ -20611,7 +20612,7 @@ function upsertRmStoImportRows(importRows) {
       id: genRmId(), stoNo, rollId: roll ? roll.id : null, rollNo: row.rollNo || (roll ? roll.rollNo : ''),
       fabricName: roll ? roll.fabricName : '', fabricCode: roll ? roll.fabricCode : '',
       colorCode: roll ? roll.colorCode : '', colorName: roll ? roll.colorName : '',
-      meter: row.meter, destination: row.destination, date: row.date, pickedBy: row.pickedBy, status: row.status, notes: row.notes
+      meter: row.meter, destination: row.destination, date: row.date, pickedBy: row.pickedBy, status: row.status, notes: row.notes, createdAt: Date.now()
     });
     added++;
   });
@@ -20735,6 +20736,7 @@ function upsertRmDoImportRows(importRows) {
         return { itemType: 'fabric', rollNo: s.rollNo, fabricName: s.fabricName, fabricCode: s.fabricCode, gsm: roll ? roll.gsm : '', colorCode: s.colorCode, colorName: s.colorName, meter: s.meter };
       }),
       createdDate: date,
+      createdAt: Date.now(),
     });
     added++;
   });
