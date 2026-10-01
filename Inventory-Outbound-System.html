@@ -8967,9 +8967,36 @@ function rmMarkDeletedAndPushNow(table, deletedSyncKeys) {
   if (!fbDb || !SYNC_COLLECTIONS._fbListenersAttached) return;
   const def = SYNC_COLLECTIONS.find(d => d.table === table);
   if (def) pushCollectionDiff(def, { skipEmptyGuard: true });
+  // Per Shaila (Oct 1, 2026 — 252 "ghost" duplicates kept coming back no matter how many times they
+  // were deleted, with a DIFFERENT subset still present each time): root cause found — rmSyncTombstones
+  // above is saved to THIS device's localStorage only. Any OTHER device/tab that still has the deleted
+  // record sitting in its own local RawMaterial_* array (loaded before the delete happened, or just
+  // never refreshed) has no way of knowing it was deliberately deleted, so applyServerSnapshot's
+  // "local record missing from remote = must be a not-yet-synced local addition" merge logic (below)
+  // re-pushes it right back up the moment that device's realtime listener or reconcile tick fires —
+  // completely automatically, with nobody touching that device. Fix: also push these same deleted keys
+  // to a small SHARED Firebase table so every device (not just the one that clicked delete) can see
+  // "this was intentionally removed" and exclude it from that merge — see fbSharedRmTombstones below.
+  if (fbDb && deletedSyncKeys && deletedSyncKeys.length) {
+    const now = Date.now();
+    const sharedUpdate = {};
+    deletedSyncKeys.forEach(key => { sharedUpdate[`${table}/${fbSafeKey(key)}`] = now; });
+    fbDb.ref(RM_SHARED_TOMBSTONES_TABLE).update(sharedUpdate).catch(() => {});
+  }
 }
 loadRmSyncTombstones();
 rmPruneSyncTombstones();
+// Shared (cross-device) counterpart to rmSyncTombstones above. Structure: { [table]: { [safeKey]: deletedAtMs } }.
+// Populated by a realtime listener (attachRmSharedTombstoneListener, attached at startup alongside the other
+// collection listeners) so every device learns about every other device's deliberate deletions, not just its own.
+const RM_SHARED_TOMBSTONES_TABLE = 'RawMaterial_SharedTombstones';
+let fbSharedRmTombstones = {};
+function attachRmSharedTombstoneListener() {
+  if (!fbDb) return;
+  fbDb.ref(RM_SHARED_TOMBSTONES_TABLE).on('value', snapshot => {
+    fbSharedRmTombstones = snapshot.val() || {};
+  }, () => {});
+}
 // Firebase Realtime Database keys can't contain '.', '#', '$', '[', ']', or '/'. None of the IDs
 // this app generates itself ever do, but this guards against a stray character (e.g. a DO number
 // with a "/" in it, if one is ever used as a raw key somewhere) from crashing a write.
@@ -9216,9 +9243,23 @@ function applyServerSnapshot(table) {
     // it gets a chance to be merged back in — without this, a remote snapshot that's simply stale
     // (the deletion's push hasn't landed on the server yet) would look identical to "another device
     // added this," and get silently resurrected exactly like Sep 30's STO list did.
-    const tombstones = rmSyncTombstones[table] || {};
-    if (Object.keys(tombstones).length) remoteArr = remoteArr.filter(r => !(syncKeyOf(r) in tombstones));
-    const localArr = def.getArray();
+    // Per Shaila (Oct 1, 2026): combine THIS device's own tombstones with the shared (cross-device) ones
+    // from fbSharedRmTombstones — a record tombstoned on ANY device must be excluded here, not just one
+    // tombstoned locally, otherwise a device that never performed the delete itself (and so has nothing
+    // in its own rmSyncTombstones) sees the record vanish from the remote snapshot, assumes it's its own
+    // not-yet-synced local addition, and re-pushes it right back up. See rmMarkDeletedAndPushNow above.
+    const localTombstones = rmSyncTombstones[table] || {};
+    const sharedTombstones = (fbSharedRmTombstones && fbSharedRmTombstones[table]) || {};
+    const tombstoneKeys = new Set([...Object.keys(localTombstones), ...Object.keys(sharedTombstones).map(k => k)]);
+    if (tombstoneKeys.size) remoteArr = remoteArr.filter(r => !tombstoneKeys.has(fbSafeKey(syncKeyOf(r))) && !tombstoneKeys.has(syncKeyOf(r)));
+    let localArr = def.getArray();
+    if (tombstoneKeys.size) {
+      const cleanedLocal = localArr.filter(r => !tombstoneKeys.has(fbSafeKey(syncKeyOf(r))) && !tombstoneKeys.has(syncKeyOf(r)));
+      // Self-heal: if this device's own array still had tombstoned records lingering (e.g. it never
+      // personally deleted them but another device did), drop them locally too instead of waiting for
+      // them to keep getting filtered out of every snapshot forever.
+      if (cleanedLocal.length !== localArr.length) { localArr = cleanedLocal; def.setArray(localArr); }
+    }
     const remoteKeys = new Set(remoteArr.map(r => syncKeyOf(r)));
     const localOnly = localArr.filter(r => !remoteKeys.has(syncKeyOf(r)));
     if (localOnly.length) {
@@ -20922,6 +20963,7 @@ async function initialCloudSync() {
     SYNC_COLLECTIONS.forEach(attachCollectionListener);
     attachSettingsListener();
     attachPostponedDoNosListener();
+    attachRmSharedTombstoneListener();
     SYNC_COLLECTIONS._fbListenersAttached = true;
   }
   if (!cloudSyncReconcileTimer) cloudSyncReconcileTimer = setInterval(cloudSyncReconcile, CLOUD_SYNC_RECONCILE_MS);
