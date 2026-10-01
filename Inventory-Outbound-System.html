@@ -1285,7 +1285,6 @@
     </div>
     <button class="tab-btn" data-tab="staff-schedule">Staff Schedule</button>
     <button class="tab-btn" data-tab="item-master">Item Master List</button>
-    <button class="tab-btn" data-tab="sku-price">SKU Price List</button>
     <button class="tab-btn" data-tab="stock-available">Available Stock</button>
     <button class="tab-btn" data-tab="finance">Finance</button>
     <button class="tab-btn" data-tab="request-stock">Request Stock</button>
@@ -1648,9 +1647,8 @@
     </div>
     <div class="card" style="margin-top:16px; border-color:#e0685c;">
       <p class="rm-form-section-label" style="margin-top:0; color:#e0685c;">⚠ Danger Zone</p>
-      <span class="data-note" style="margin:0;">Delete ALL Raw Material data (all rolls, STOs, DOs and Pick history) — to clear old/test data before starting fresh. This action can be undone once, right after you click it (use "↩ Undo Reset") — resetting again will lose the ability to undo the previous one.</span>
+      <span class="data-note" style="margin:0;">Delete ALL Raw Material data (all rolls, STOs, DOs and Pick history) on EVERY account/device — to clear old/test data before starting fresh. PERMANENT — no backup is kept and this cannot be undone.</span>
       <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
-        <button class="btn-ghost" id="undoResetRmBtn" style="display:none;">↩ Undo Reset</button>
         <button class="btn-ghost" id="resetRmBtn" style="color:#e0685c;">🗑 Reset All Raw Material Data</button>
       </div>
     </div>
@@ -1866,25 +1864,6 @@
         <div class="data-note full-2" id="rmStoItemAccHint" style="margin-top:-6px; display:none;"></div>
       </div>
       <button type="button" class="btn-primary" id="rmStoCreateBtn" style="width:100%; margin-top:14px;">Create STO</button>
-    </div>
-    <div class="card" style="margin-top:16px;">
-      <p class="rm-form-section-label" style="margin-top:0;">Bulk Add Items (Excel/CSV)</p>
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-        <span class="data-note" style="margin:0;">Fill in STO No./Destination/Date above as usual, then upload this file to add many items to "Items To Pick" at once (no need to pick one by one). The system auto-picks rolls by Fabric Name + Color Code (lowest Roll No. first).</span>
-        <button type="button" class="btn-ghost" id="downloadRmStoQtyTemplateBtn">⬇ Download Template</button>
-      </div>
-      <div class="dropzone" id="rmStoQtyDropzone">
-        <div class="dropzone-icon">⬆</div>
-        <div class="upload-row">
-          <label class="upload-btn-label">
-            Choose File
-            <input type="file" id="rmStoQtyFileInput" accept=".csv,.xlsx,.xls">
-          </label>
-          <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx file here</span>
-        </div>
-        <div class="upload-hint" style="margin-top:10px;">Columns: Fabric Name, Color Code, Qty.</div>
-      </div>
-      <div class="upload-status" id="rmStoQtyUploadStatus"></div>
     </div>
     <div class="card" style="margin-top:16px;">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
@@ -2617,31 +2596,19 @@
     <p class="section-title">Item Master List</p>
     <div class="card">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-        <span class="data-note" style="margin:0;">Upload the Item Master export (must have a "SKU" column; the "SKU Description", "Item Group", "Item Brand", "Item Size", "Item Color", "Active?" &amp; "Item UOM" columns — if present — will also be used). This list is the SKU reference for the whole system, and auto-syncs to ALL accounts/computers (like other data in this system) — no need to re-upload on another computer.</span>
+        <span class="data-note" style="margin:0;">Link one Google Sheet TAB per Campaign Year (must have a "SKU" column; "SKU Description", "Item Group", "Item Brand", "Item Size", "Item Color", "Active?" &amp; "Item UOM" columns — if present — will also be used). Every row from a tab is tagged with that tab's own Year automatically — no need for a "Campaign Year" column in the sheet itself. Saved links sync to every account/computer. This reads the sheets live each time you click Refresh — nothing is stored here, so it doesn't add to Firebase storage/bandwidth.</span>
         <span id="itemMasterStatusNote" class="data-note" style="margin:0; white-space:nowrap;"></span>
       </div>
-      <div style="display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; margin-bottom:12px;">
-        <div class="field" style="margin:0;">
-          <label>Campaign Year for this upload (optional)</label>
-          <input type="text" id="itemMasterUploadYearInput" placeholder="e.g. 2026" list="itemMasterYearDatalist" style="width:140px;">
-        </div>
-        <div class="field" style="margin:0;">
-          <label>Upload mode</label>
-          <select id="itemMasterUploadModeSelect" style="width:auto;">
-            <option value="add">➕ Add / update these items (keep the rest)</option>
-            <option value="replace">🔁 Replace whole list</option>
-          </select>
-        </div>
+      <div id="itemMasterGsheetLinksWrap" style="display:flex; flex-direction:column; gap:8px;"></div>
+      <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+        <button type="button" class="btn-ghost" id="itemMasterGsheetAddRowBtn">+ Add Year</button>
+        <button type="button" class="btn-ghost" id="itemMasterGsheetSaveBtn">Save Links</button>
+        <button type="button" class="btn-primary" id="itemMasterGsheetFetchBtn">Refresh from Google Sheets</button>
       </div>
-      <div class="data-note" style="margin:0 0 10px;">Want to upload by campaign year separately? Split the SKUs into separate files first (one file per year), fill in "Campaign Year" above for each upload, then use "Add / update" mode (not "Replace") so the new upload ADDS to the existing list instead of replacing it outright.</div>
-      <div class="dropzone" id="itemMasterDropzone">
-        <div class="dropzone-icon">⬆</div>
-        <div class="upload-row">
-          <label class="upload-btn-label">
-            Choose File
-            <input type="file" id="itemMasterFileInput" accept=".csv,.xlsx,.xls">
-          </label>
-          <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx / .xls file here</span>
+      <div style="margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.08);">
+        <p class="data-note" style="margin:0 0 8px;">Optional: one shared tab with "SKU" + "Price" columns for ALL years (so you don't need to repeat prices per year) — link it here instead of adding a Price column to every year's tab.</p>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="text" id="itemMasterPriceGsheetUrl" placeholder="Google Sheets share link for the SKU/Price tab" style="flex:1;">
         </div>
       </div>
       <div class="upload-status" id="itemMasterUploadStatus"></div>
@@ -2664,6 +2631,7 @@
           <div class="field"><label>Size</label><input type="text" id="itemMasterFormSize"></div>
           <div class="field"><label>Color</label><input type="text" id="itemMasterFormColor"></div>
           <div class="field"><label>UOM</label><input type="text" id="itemMasterFormUom"></div>
+          <div class="field"><label>Price</label><input type="text" id="itemMasterFormPrice" placeholder="e.g. 89.90"></div>
           <div class="field"><label>Campaign Year</label><input type="text" id="itemMasterFormCampaignYear" placeholder="e.g. 2026" list="itemMasterYearDatalist"></div>
           <div class="field" style="display:flex; align-items:flex-end;"><label style="display:flex; align-items:center; gap:6px; font-weight:400; cursor:pointer;"><input type="checkbox" id="itemMasterFormActive" checked> Active</label></div>
         </div>
@@ -2698,86 +2666,20 @@
     </div>
   </section>
 
-  <section class="tab-panel" id="tab-sku-price">
-    <p class="section-title">SKU Price List</p>
-    <div class="card">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-        <span class="data-note" style="margin:0;">Upload a simple SKU + Price file (2 columns only — needs a "SKU" column and a "Price" column; header names are matched loosely, case-insensitive). Kept in its own storage (same IndexedDB approach as Item Master List), separate from the Item Master upload, so a big price file never touches or disturbs the SKUs you've already uploaded there by Campaign Year.</span>
-        <span id="skuPriceStatusNote" class="data-note" style="margin:0; white-space:nowrap;"></span>
-      </div>
-      <div style="display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; margin-bottom:12px;">
-        <div class="field" style="margin:0;">
-          <label>Upload mode</label>
-          <select id="skuPriceUploadModeSelect" style="width:auto;">
-            <option value="add">➕ Add / update these SKUs (keep the rest)</option>
-            <option value="replace">🔁 Replace whole list</option>
-          </select>
-        </div>
-        <button type="button" class="btn-ghost" id="downloadSkuPriceTemplateBtn">⬇ Download Template</button>
-      </div>
-      <div class="dropzone" id="skuPriceDropzone">
-        <div class="dropzone-icon">⬆</div>
-        <div class="upload-row">
-          <label class="upload-btn-label">
-            Choose File
-            <input type="file" id="skuPriceFileInput" accept=".csv,.xlsx,.xls">
-          </label>
-          <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx / .xls file here</span>
-        </div>
-      </div>
-      <div class="upload-status" id="skuPriceUploadStatus"></div>
-    </div>
-
-    <div class="card" style="margin-top:16px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
-        <p class="section-title" style="margin:0;">Price List</p>
-        <button type="button" class="btn-primary" id="skuPriceAddBtn">+ Add SKU</button>
-      </div>
-
-      <div id="skuPriceFormWrap" class="card" style="display:none; margin-bottom:14px; background:rgba(255,255,255,0.03);">
-        <p class="section-title" id="skuPriceFormTitle" style="margin-top:0;">Add SKU Price</p>
-        <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:10px;">
-          <div class="field"><label>SKU</label><input type="text" id="skuPriceFormSku"></div>
-          <div class="field"><label>Price</label><input type="text" id="skuPriceFormPrice" placeholder="e.g. 89.90"></div>
-        </div>
-        <div style="display:flex; gap:8px; margin-top:14px;">
-          <button type="button" class="btn-primary" id="skuPriceFormSaveBtn">Save</button>
-          <button type="button" class="btn-ghost" id="skuPriceFormCancelBtn">Cancel</button>
-        </div>
-      </div>
-
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-        <input type="text" id="skuPriceSearchInput" placeholder="Search SKU..." style="flex:1; min-width:220px;">
-      </div>
-      <div id="skuPriceTableWrap" class="scroll-table"></div>
-      <div id="skuPricePaginationWrap" style="display:flex; align-items:center; justify-content:center; gap:10px; margin-top:12px;"></div>
-    </div>
-
-    <div class="card" style="margin-top:16px; border-color:#e0685c;">
-      <p class="rm-form-section-label" style="margin-top:0; color:#e0685c;">⚠ Danger Zone</p>
-      <span class="data-note" style="margin:0;">Delete ALL SKU Price List data — to clear old/test data before starting fresh.</span>
-      <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
-        <button class="btn-ghost" id="resetSkuPriceBtn" style="color:#e0685c;">🗑 Reset SKU Price List</button>
-      </div>
-    </div>
-  </section>
 
   <section class="tab-panel" id="tab-stock-available">
     <p class="section-title">Available Stock</p>
     <div class="card">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-        <span class="data-note" style="margin:0;">Upload the Inventory Balance report export (needs "SKU", "Item Group", "Item Brand", "Zone" &amp; "Total Qty" columns). Grouped by SKU, with each Zone/boutique becoming its own column. Color &amp; Size are pulled automatically from Item Master List by SKU. "Unused Product" &amp; "China Rewash" zones are auto-excluded. Each upload FULLY REPLACES the existing list (a fresh snapshot, not additive) — cloud-synced automatically, so every account/device picks it up on its own.</span>
+        <span class="data-note" style="margin:0;">Link a Google Sheet tab (needs "SKU", "Item Group", "Item Brand", "Zone" &amp; "Total Qty" columns — one row per SKU per Zone). Grouped by SKU, with each Zone/boutique becoming its own column. Color &amp; Size are pulled automatically from Item Master List by SKU. "Unused Product" &amp; "China Rewash" zones are auto-excluded. Clicking Refresh FULLY REPLACES the existing list (a fresh snapshot, not additive) — cloud-synced automatically, so every account/device picks it up on its own. Nothing is stored here except the tiny link itself, so it doesn't add to Firebase storage/bandwidth.</span>
         <span id="stockAvailableStatusNote" class="data-note" style="margin:0; white-space:nowrap;"></span>
       </div>
-      <div class="dropzone" id="stockAvailableDropzone">
-        <div class="dropzone-icon">⬆</div>
-        <div class="upload-row">
-          <label class="upload-btn-label">
-            Choose File
-            <input type="file" id="stockAvailableFileInput" accept=".csv,.xlsx,.xls">
-          </label>
-          <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx / .xls file here</span>
-        </div>
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+        <input type="text" id="stockAvailableGsheetUrl" placeholder="Google Sheets share link" style="flex:1;">
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button type="button" class="btn-ghost" id="stockAvailableGsheetSaveBtn">Save Link</button>
+        <button type="button" class="btn-primary" id="stockAvailableGsheetFetchBtn">Refresh from Google Sheets</button>
       </div>
       <div class="upload-status" id="stockAvailableUploadStatus"></div>
     </div>
@@ -5411,8 +5313,6 @@ function updateResetUndoButtons() {
   if (undoTripBtn) undoTripBtn.style.display = localStorage.getItem(TRIP_SCHEDULE_RESET_SNAPSHOT_KEY) ? '' : 'none';
   const undoInboundStoBtn = document.getElementById('undoResetInboundStoBtn');
   if (undoInboundStoBtn) undoInboundStoBtn.style.display = localStorage.getItem(INBOUND_STO_RESET_SNAPSHOT_KEY) ? '' : 'none';
-  const undoRmBtn = document.getElementById('undoResetRmBtn');
-  if (undoRmBtn) undoRmBtn.style.display = localStorage.getItem(RM_RESET_SNAPSHOT_KEY) ? '' : 'none';
   const undoItemMasterBtn = document.getElementById('undoResetItemMasterBtn');
   if (undoItemMasterBtn) undoItemMasterBtn.style.display = localStorage.getItem(ITEM_MASTER_HAS_BACKUP_KEY) ? '' : 'none';
 }
@@ -5640,7 +5540,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'fleet-trips' || btn.dataset.tab === 'fleet-board' || btn.dataset.tab === 'fleet-driver-trip') renderFleetTab();
     if (btn.dataset.tab === 'staff-schedule') { renderStaffRosterList(); renderStaffScheduleGrid(); }
     if (btn.dataset.tab === 'item-master') renderItemMasterTab();
-    if (btn.dataset.tab === 'sku-price') renderSkuPriceTab();
     if (btn.dataset.tab === 'stock-available') { renderStockAvailableTab(); refreshStockAvailableFromServer(); }
     if (btn.dataset.tab === 'production-summary') renderProductionSummaryTab();
     if (btn.dataset.tab === 'production-stock-balance') renderProductionStockBalanceTab();
@@ -8656,7 +8555,6 @@ const PERMISSION_TABS = [
   { id: 'team-printers', label: 'Printers (Team Setup)' },
   { id: 'staff-schedule', label: 'Staff Schedule' },
   { id: 'item-master', label: 'Item Master List' },
-  { id: 'sku-price', label: 'SKU Price List' },
   { id: 'stock-available', label: 'Available Stock' },
   { id: 'production-summary', label: 'Summary Dashboard (Production)' },
   { id: 'production-stock-balance', label: 'Stock Balance (Production)' },
@@ -8714,7 +8612,7 @@ function applyUserPermissions(user) {
   // team, not just this user's own work — Admin/Team Lead only, even for a non-admin who's been
   // granted the surrounding tab (Progress Board / Trip Schedule) itself.
   const isAdminUser = !!(user && user.isAdmin);
-  ['resetProgressBtn', 'undoResetProgressBtn', 'resetFleetTripsBtn', 'undoResetTripBtn', 'resetInboundStoBtn', 'undoResetInboundStoBtn', 'resetRmBtn', 'undoResetRmBtn', 'resetItemMasterBtn', 'undoResetItemMasterBtn', 'resetStockAvailableBtn'].forEach(id => {
+  ['resetProgressBtn', 'undoResetProgressBtn', 'resetFleetTripsBtn', 'undoResetTripBtn', 'resetInboundStoBtn', 'undoResetInboundStoBtn', 'resetRmBtn', 'resetItemMasterBtn', 'undoResetItemMasterBtn', 'resetStockAvailableBtn'].forEach(id => {
     const btn = document.getElementById(id);
     if (btn) btn.style.display = isAdminUser ? '' : 'none';
   });
@@ -9384,7 +9282,7 @@ function attachPostponedDoNosListener() {
 // in the file would throw "Cannot access before initialization". Calling this only from inside the
 // functions below (which only ever run after the whole script has finished loading) avoids that.
 function syncSettingsKeys() {
-  return [SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, STICKER_KEY, DAILY_TARGETS_KEY, CAMPAIGN_MODE_KEY, DAILY_TARGETS_CAMPAIGN_SNAPSHOT_KEY, INBOUND_ALERT_SETTINGS_KEY, EMAILJS_SETTINGS_KEY, ADMIN_PASSWORD_KEY, PACKING_STATION_RR_KEY, STAFF_SCHEDULE_KEY, STATION_PRESENCE_KEY, REQ_STOCK_TEMPLATE_KEY, ITEM_MASTER_IMPORTED_AT_KEY, CAMPAIGN_TIMELINE_GSHEET_URLS_KEY, PRODUCTION_SUMMARY_SUPPLIER_LOCATIONS_KEY];
+  return [SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, STICKER_KEY, DAILY_TARGETS_KEY, CAMPAIGN_MODE_KEY, DAILY_TARGETS_CAMPAIGN_SNAPSHOT_KEY, INBOUND_ALERT_SETTINGS_KEY, EMAILJS_SETTINGS_KEY, ADMIN_PASSWORD_KEY, PACKING_STATION_RR_KEY, STAFF_SCHEDULE_KEY, STATION_PRESENCE_KEY, REQ_STOCK_TEMPLATE_KEY, ITEM_MASTER_IMPORTED_AT_KEY, CAMPAIGN_TIMELINE_GSHEET_URLS_KEY, PRODUCTION_SUMMARY_SUPPLIER_LOCATIONS_KEY, ITEM_MASTER_GSHEET_LINKS_KEY, ITEM_MASTER_PRICE_GSHEET_URL_KEY, STOCK_AVAILABLE_GSHEET_URL_KEY];
 }
 const FB_SETTINGS_TABLE = 'AppSettings';
 function pushSettingsDiff() {
@@ -9455,6 +9353,10 @@ function applySettingsSnapshot() {
     renderItemMasterStatusNote();
     loadCampaignTimelineGsheetUrls();
     renderCampaignTimelineGsheetInputs();
+    loadItemMasterGsheetLinks();
+    renderItemMasterGsheetInput();
+    { const pEl = document.getElementById('itemMasterPriceGsheetUrl'); if (pEl) pEl.value = localStorage.getItem(ITEM_MASTER_PRICE_GSHEET_URL_KEY) || ''; }
+    { const saEl = document.getElementById('stockAvailableGsheetUrl'); if (saEl) saEl.value = localStorage.getItem(STOCK_AVAILABLE_GSHEET_URL_KEY) || ''; }
     // Supplier Locations (Team Setup — Sep 28, 2026: "saya dah update ni,,tapi kat device/acount lain
     // takde") — was plain localStorage-only before, never reaching other devices/accounts at all.
     // Refresh both places that read this map: the Team Setup editor itself, and the Summary Dashboard's
@@ -10311,6 +10213,90 @@ function renderItemMasterStatusNote() {
   el.textContent = `${formatQty(itemMasterList.length)} item loaded${dateLabel ? ` (${dateLabel})` : ''}.`;
 }
 
+// Shared by both the file-upload path (processUploadedItemMasterFile) and the Google Sheets
+// live-link path (fetchItemMasterFromGoogleSheets) — takes objRows (array of {header: value}
+// objects, however they were produced) and does the actual matching/upsert/save. Returns a status
+// message string (throws on hard errors) so both callers can just report it.
+// opts.yearOverride: tags every row from THIS call with that Campaign Year (used by the per-tab
+// Google Sheets refresh below — each linked tab has its own Year, so every row from it is tagged
+// with that tab's Year regardless of anything in the sheet itself). opts.skipSave: batches multiple
+// calls (one per linked tab) into a single save/push at the end instead of one per tab.
+async function applyItemMasterObjRows(objRows, opts) {
+  opts = opts || {};
+  if (!objRows.length) throw new Error('No data rows found.');
+  const headerKeys = Object.keys(objRows[0]);
+  const findKey = (name) => headerKeys.find(k => k.trim().toLowerCase() === name);
+  const findKeyContains = (name) => headerKeys.find(k => k.trim().toLowerCase().includes(name));
+  const skuKey = findKey('sku');
+  const descKey = findKey('sku description');
+  const groupKey = findKey('item group');
+  const brandKey = findKey('item brand');
+  const sizeKey = findKey('item size');
+  const colorKey = findKey('item color');
+  const activeKey = findKey('active?');
+  const uomKey = findKey('item uom');
+  const yearKey = findKey('campaign year') || findKey('year');
+  const priceKey = findKey('price') || findKeyContains('price');
+  if (!skuKey) throw new Error('This needs a "SKU" column.');
+  const yearOverride = (opts.yearOverride || '').trim();
+  const existingBySku = new Map(itemMasterList.map(it => [(it.sku || '').trim().toUpperCase(), it]));
+  const seen = new Set();
+  const mapped = [];
+  const priceMapped = [];
+  objRows.forEach(r => {
+    const sku = String(r[skuKey] || '').trim();
+    if (!sku || seen.has(sku.toUpperCase())) return;
+    seen.add(sku.toUpperCase());
+    const existing = existingBySku.get(sku.toUpperCase());
+    mapped.push({
+      id: existing ? existing.id : genItemMasterId(),
+      sku,
+      description: descKey ? String(r[descKey] || '').trim() : '',
+      itemGroup: groupKey ? String(r[groupKey] || '').trim() : '',
+      itemBrand: brandKey ? String(r[brandKey] || '').trim() : '',
+      itemSize: sizeKey ? String(r[sizeKey] || '').trim() : '',
+      itemColor: colorKey ? String(r[colorKey] || '').trim() : '',
+      active: activeKey ? String(r[activeKey] || '').trim().toLowerCase() !== 'no' : true,
+      uom: uomKey ? String(r[uomKey] || '').trim() : '',
+      campaignYear: yearOverride || (yearKey ? String(r[yearKey] || '').trim() : '') || (existing ? existing.campaignYear || '' : ''),
+    });
+    if (priceKey) {
+      const priceVal = String(r[priceKey] == null ? '' : r[priceKey]).trim();
+      if (priceVal !== '') priceMapped.push({ sku: sku.toUpperCase(), price: priceVal });
+    }
+  });
+  if (!mapped.length) throw new Error('No valid rows (all SKUs blank?).');
+  await itemMasterBulkPut(mapped);
+  const byId = new Map(itemMasterList.map(it => [it.id, it]));
+  mapped.forEach(it => byId.set(it.id, it));
+  itemMasterList = [...byId.values()];
+  // If the same sheet also has a "Price" column, piggyback the prices into the SKU Price List
+  // store too — this is what lets her keep price in the same per-year tab instead of a separate
+  // SKU Price List sheet/upload (her request: "malas nak bnyak2 tab").
+  if (priceMapped.length) {
+    await skuPriceBulkPut(priceMapped);
+    const priceBySku = new Map(skuPriceList.map(it => [it.sku, it]));
+    priceMapped.forEach(it => priceBySku.set(it.sku, it));
+    skuPriceList = [...priceBySku.values()];
+  }
+  if (!opts.skipSave) {
+    itemMasterImportedAt = new Date().toISOString();
+    localStorage.setItem(ITEM_MASTER_IMPORTED_AT_KEY, itemMasterImportedAt);
+    pushItemMasterDiffToFirebase();
+    pushSettingsDiff();
+    itemMasterPage = 0;
+    renderItemMasterTab();
+    if (priceMapped.length) {
+      skuPriceImportedAt = new Date().toISOString();
+      localStorage.setItem(SKU_PRICE_IMPORTED_AT_KEY, skuPriceImportedAt);
+      pushSkuPriceDiffToFirebase();
+      skuPricePage = 0;
+      renderSkuPriceTab();
+    }
+  }
+  const droppedCount = objRows.length - mapped.length;
+  return `${formatQty(mapped.length)} item(s) added/updated${yearOverride ? ` — tagged Campaign Year "${yearOverride}"` : ''}${priceMapped.length ? ` + ${formatQty(priceMapped.length)} price(s) updated` : ''}${droppedCount > 0 ? ` (${formatQty(droppedCount)} duplicate/blank SKU row(s) dropped)` : ''}.`;
+}
 function processUploadedItemMasterFile(file) {
   const statusEl = document.getElementById('itemMasterUploadStatus');
   statusEl.textContent = 'Processing file... (large list, may take a few seconds)';
@@ -10329,68 +10315,10 @@ function processUploadedItemMasterFile(file) {
         objRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
       }
       if (!objRows.length) throw new Error('File is empty / has no data.');
-      const headerKeys = Object.keys(objRows[0]);
-      const findKey = (name) => headerKeys.find(k => k.trim().toLowerCase() === name);
-      const skuKey = findKey('sku');
-      const descKey = findKey('sku description');
-      const groupKey = findKey('item group');
-      const brandKey = findKey('item brand');
-      const sizeKey = findKey('item size');
-      const colorKey = findKey('item color');
-      const activeKey = findKey('active?');
-      const uomKey = findKey('item uom');
-      const yearKey = findKey('campaign year') || findKey('year');
-      if (!skuKey) throw new Error('This file needs a "SKU" column.');
-      const uploadMode = document.getElementById('itemMasterUploadModeSelect').value; // 'add' | 'replace'
-      const yearOverride = (document.getElementById('itemMasterUploadYearInput').value || '').trim();
-      // Priority for each row's Campaign Year: the "Campaign Year for this upload" box (if she typed
-      // one) > a Campaign Year/Year column in the file itself > whatever this SKU was already tagged
-      // as in the CURRENT list (so re-uploading a refreshed export, with neither, doesn't wipe tags).
-      const existingBySku = new Map(itemMasterList.map(it => [(it.sku || '').trim().toUpperCase(), it]));
-      // Her export commonly has exact-duplicate rows (same SKU repeated) — dedupe, keep first seen.
-      const seen = new Set();
-      const mapped = [];
-      objRows.forEach(r => {
-        const sku = String(r[skuKey] || '').trim();
-        if (!sku || seen.has(sku.toUpperCase())) return;
-        seen.add(sku.toUpperCase());
-        const existing = existingBySku.get(sku.toUpperCase());
-        mapped.push({
-          // In "Add / update" mode, reuse the existing item's id when this SKU is already in the
-          // list, so the upsert overwrites it in place instead of creating a duplicate row.
-          id: (uploadMode === 'add' && existing) ? existing.id : genItemMasterId(),
-          sku,
-          description: descKey ? String(r[descKey] || '').trim() : '',
-          itemGroup: groupKey ? String(r[groupKey] || '').trim() : '',
-          itemBrand: brandKey ? String(r[brandKey] || '').trim() : '',
-          itemSize: sizeKey ? String(r[sizeKey] || '').trim() : '',
-          itemColor: colorKey ? String(r[colorKey] || '').trim() : '',
-          active: activeKey ? String(r[activeKey] || '').trim().toLowerCase() !== 'no' : true,
-          uom: uomKey ? String(r[uomKey] || '').trim() : '',
-          campaignYear: yearOverride || (yearKey ? String(r[yearKey] || '').trim() : '') || (existing ? existing.campaignYear || '' : ''),
-        });
-      });
-      if (!mapped.length) throw new Error('No valid rows (all SKUs blank?).');
-      statusEl.textContent = `Saving ${formatQty(mapped.length)} item(s) to storage...`;
-      if (uploadMode === 'replace') {
-        await itemMasterReplaceAll(mapped);
-        itemMasterList = mapped;
-      } else {
-        await itemMasterBulkPut(mapped);
-        const byId = new Map(itemMasterList.map(it => [it.id, it]));
-        mapped.forEach(it => byId.set(it.id, it));
-        itemMasterList = [...byId.values()];
-      }
-      itemMasterImportedAt = new Date().toISOString();
-      localStorage.setItem(ITEM_MASTER_IMPORTED_AT_KEY, itemMasterImportedAt);
-      pushItemMasterDiffToFirebase();
-      pushSettingsDiff();
-      itemMasterPage = 0;
-      const droppedCount = objRows.length - mapped.length;
-      const modeLabel = uploadMode === 'replace' ? 'loaded (old list replaced)' : 'added/updated (other items in the list kept)';
-      statusEl.textContent = `Success: ${formatQty(mapped.length)} item(s) ${modeLabel}${yearOverride ? ` — tagged Campaign Year "${yearOverride}"` : ''}${droppedCount > 0 ? ` (${formatQty(droppedCount)} duplicate/blank SKU row(s) dropped)` : ''}.`;
+      statusEl.textContent = `Saving ${formatQty(objRows.length)} item(s) to storage...`;
+      const msg = await applyItemMasterObjRows(objRows);
+      statusEl.textContent = msg;
       statusEl.className = 'upload-status ok';
-      renderItemMasterTab();
     } catch (err) {
       statusEl.textContent = 'Failed to process file: ' + err.message;
       statusEl.className = 'upload-status err';
@@ -10400,23 +10328,189 @@ function processUploadedItemMasterFile(file) {
   if (ext === 'csv') reader.readAsText(file);
   else reader.readAsArrayBuffer(file);
 }
-document.getElementById('itemMasterFileInput').addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  processUploadedItemMasterFile(file);
-  e.target.value = '';
+// ---- Item Master List Google Sheets live-link (reuses campaignTimelineFetchGvizRows, which is
+// generic — just takes a Sheets URL and returns [headerRow, ...dataRows] — so the same live-fetch
+// mechanism Campaign Timeline uses is shared here rather than duplicated). This is the low-bandwidth
+// alternative to the Firebase-synced upload above: the sheet is only fetched on demand (button click),
+// nothing is stored in Firebase for it beyond the tiny saved URL. ----
+// One {year, url} entry per Campaign Year — each points at a DIFFERENT TAB of her Google Sheet
+// (or different sheets entirely), so she can organize by year exactly like she used to with
+// separate upload files, without needing a "Campaign Year" column inside the sheet itself.
+const ITEM_MASTER_GSHEET_LINKS_KEY = 'sto_item_master_gsheet_links_v1';
+const ITEM_MASTER_PRICE_GSHEET_URL_KEY = 'sto_item_master_price_gsheet_url_v1';
+let itemMasterGsheetLinks = []; // [{ year, url }]
+function loadItemMasterGsheetLinks() {
+  try { itemMasterGsheetLinks = JSON.parse(localStorage.getItem(ITEM_MASTER_GSHEET_LINKS_KEY)) || []; }
+  catch (e) { itemMasterGsheetLinks = []; }
+  if (!itemMasterGsheetLinks.length) itemMasterGsheetLinks = [{ year: '', url: '' }];
+}
+function saveItemMasterGsheetLinksToStorage() { localStorage.setItem(ITEM_MASTER_GSHEET_LINKS_KEY, JSON.stringify(itemMasterGsheetLinks)); }
+function renderItemMasterGsheetInput() {
+  const wrap = document.getElementById('itemMasterGsheetLinksWrap');
+  if (!wrap) return;
+  wrap.innerHTML = itemMasterGsheetLinks.map((link, i) => `
+    <div style="display:flex; gap:8px; align-items:center;">
+      <input type="text" class="im-gsheet-year" data-i="${i}" placeholder="Year e.g. 2026" value="${(link.year || '').replace(/"/g, '&quot;')}" style="width:140px;">
+      <input type="text" class="im-gsheet-url" data-i="${i}" placeholder="Google Sheets share link for this year's tab" value="${(link.url || '').replace(/"/g, '&quot;')}" style="flex:1;">
+      <button type="button" class="btn-ghost im-gsheet-remove" data-i="${i}" title="Remove this year">✕</button>
+    </div>
+  `).join('');
+  wrap.querySelectorAll('.im-gsheet-remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      itemMasterGsheetLinks.splice(Number(btn.dataset.i), 1);
+      if (!itemMasterGsheetLinks.length) itemMasterGsheetLinks = [{ year: '', url: '' }];
+      renderItemMasterGsheetInput();
+    });
+  });
+}
+function readItemMasterGsheetInputsIntoState() {
+  const wrap = document.getElementById('itemMasterGsheetLinksWrap');
+  if (!wrap) return;
+  const years = [...wrap.querySelectorAll('.im-gsheet-year')];
+  const urls = [...wrap.querySelectorAll('.im-gsheet-url')];
+  itemMasterGsheetLinks = years.map((yEl, i) => ({ year: yEl.value.trim(), url: (urls[i] ? urls[i].value.trim() : '') }));
+}
+// Converts the [headerRow, ...dataRows] shape gviz gives us into the {header: value} object shape
+// applyItemMasterObjRows (and the file-upload path) already expects.
+function sheetRowsToObjRows(rows) {
+  if (!rows || !rows.length) return [];
+  const header = rows[0];
+  return rows.slice(1)
+    .filter(r => r.some(v => String(v ?? '').trim() !== ''))
+    .map(r => { const o = {}; header.forEach((h, i) => { o[h] = r[i] ?? ''; }); return o; });
+}
+async function fetchItemMasterFromGoogleSheets() {
+  const statusEl = document.getElementById('itemMasterUploadStatus');
+  readItemMasterGsheetInputsIntoState();
+  const links = itemMasterGsheetLinks.filter(l => l.url);
+  if (!links.length) {
+    statusEl.textContent = 'No Google Sheet link saved yet — add a Year + link above and click "Save Links" first.';
+    statusEl.className = 'upload-status err';
+    return;
+  }
+  const noYear = links.find(l => !l.year);
+  if (noYear) {
+    statusEl.textContent = 'Every linked row needs a Year filled in (that\'s how each tab gets tagged) — fill it in and Save Links again.';
+    statusEl.className = 'upload-status err';
+    return;
+  }
+  let totalAdded = 0;
+  let totalPriced = 0;
+  const skuPriceCountBefore = skuPriceList.length;
+  const errors = [];
+  for (const link of links) {
+    statusEl.textContent = `Fetching Campaign Year "${link.year}" from Google Sheets...`;
+    statusEl.className = 'upload-status';
+    try {
+      const rows = await simpleGvizFetchRows(link.url);
+      const objRows = sheetRowsToObjRows(rows);
+      if (!objRows.length) { errors.push(`${link.year}: sheet has no data rows`); continue; }
+      const headerKeysCheck = Object.keys(objRows[0]);
+      const hasPriceCol = headerKeysCheck.some(k => k.trim().toLowerCase().includes('price'));
+      await applyItemMasterObjRows(objRows, { yearOverride: link.year, skipSave: true });
+      totalAdded += objRows.length;
+      if (hasPriceCol) totalPriced += objRows.length;
+    } catch (err) {
+      errors.push(`${link.year}: ${err.message}`);
+    }
+  }
+  // Optional shared SKU/Price tab (one tab covering ALL years, instead of a Price column per year).
+  const priceUrl = (document.getElementById('itemMasterPriceGsheetUrl').value || '').trim();
+  let sharedPriceCount = 0;
+  let sharedPriceError = '';
+  if (priceUrl) {
+    statusEl.textContent = 'Fetching shared SKU/Price tab from Google Sheets...';
+    statusEl.className = 'upload-status';
+    try {
+      sharedPriceCount = await fetchSharedSkuPriceTab(priceUrl);
+      totalPriced += sharedPriceCount;
+    } catch (err) {
+      sharedPriceError = err.message;
+      errors.push(`Price tab: ${err.message}`);
+    }
+  }
+  // One save/push at the end covers every tab fetched above (skipSave:true on each individual call).
+  itemMasterImportedAt = new Date().toISOString();
+  localStorage.setItem(ITEM_MASTER_IMPORTED_AT_KEY, itemMasterImportedAt);
+  pushItemMasterDiffToFirebase();
+  pushSettingsDiff();
+  itemMasterPage = 0;
+  renderItemMasterTab();
+  // If any tab (or the shared price tab) had prices, upsert those into the SKU Price List store too
+  // (skipSave just deferred the Firebase push/render, done here once for everything together).
+  if (skuPriceList.length !== skuPriceCountBefore || totalPriced > 0) {
+    skuPriceImportedAt = new Date().toISOString();
+    localStorage.setItem(SKU_PRICE_IMPORTED_AT_KEY, skuPriceImportedAt);
+    pushSkuPriceDiffToFirebase();
+    skuPricePage = 0;
+    renderSkuPriceTab();
+  }
+  const priceNote = totalPriced > 0 ? ` (incl. ${formatQty(totalPriced)} price(s))` : '';
+  if (errors.length) {
+    statusEl.textContent = `Done with issues — ${formatQty(totalAdded)} row(s) processed${priceNote}. Problems: ${errors.join('; ')}`;
+    statusEl.className = 'upload-status err';
+  } else {
+    statusEl.textContent = `Success: ${formatQty(totalAdded)} row(s) processed across ${links.length} year(s)${priceNote}.`;
+    statusEl.className = 'upload-status ok';
+  }
+}
+// Fetches a single Google Sheet tab that has just "SKU" + "Price" columns (no per-year info needed
+// since it's meant to cover every year at once) and upserts it straight into the SKU Price List
+// store. Returns how many price rows were processed.
+async function fetchSharedSkuPriceTab(url) {
+  const rows = await simpleGvizFetchRows(url);
+  const objRows = sheetRowsToObjRows(rows);
+  if (!objRows.length) throw new Error('sheet has no data rows');
+  const headerKeys = Object.keys(objRows[0]);
+  const findKey = (name) => headerKeys.find(k => k.trim().toLowerCase() === name);
+  const findKeyContains = (name) => headerKeys.find(k => k.trim().toLowerCase().includes(name));
+  const skuKey = findKey('sku') || findKeyContains('sku');
+  const priceKey = findKey('price') || findKeyContains('price');
+  if (!skuKey) throw new Error('needs a "SKU" column');
+  if (!priceKey) throw new Error('needs a "Price" column');
+  const seen = new Set();
+  const mapped = [];
+  objRows.forEach(r => {
+    const skuRaw = String(r[skuKey] || '').trim();
+    if (!skuRaw) return;
+    const sku = skuRaw.toUpperCase();
+    if (seen.has(sku)) return;
+    seen.add(sku);
+    const priceVal = String(r[priceKey] == null ? '' : r[priceKey]).trim();
+    if (priceVal === '') return;
+    mapped.push({ sku, price: priceVal });
+  });
+  if (!mapped.length) throw new Error('no valid SKU/Price rows found');
+  await skuPriceBulkPut(mapped);
+  const bySku = new Map(skuPriceList.map(it => [it.sku, it]));
+  mapped.forEach(it => bySku.set(it.sku, it));
+  skuPriceList = [...bySku.values()];
+  return mapped.length;
+}
+function saveItemMasterPriceGsheetUrlToStorage() {
+  localStorage.setItem(ITEM_MASTER_PRICE_GSHEET_URL_KEY, (document.getElementById('itemMasterPriceGsheetUrl').value || '').trim());
+}
+document.getElementById('itemMasterGsheetAddRowBtn').addEventListener('click', () => {
+  readItemMasterGsheetInputsIntoState();
+  itemMasterGsheetLinks.push({ year: '', url: '' });
+  renderItemMasterGsheetInput();
 });
-const itemMasterDropzone = document.getElementById('itemMasterDropzone');
-['dragenter', 'dragover'].forEach(evtName => {
-  itemMasterDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); itemMasterDropzone.classList.add('dragover'); });
+document.getElementById('itemMasterGsheetSaveBtn').addEventListener('click', () => {
+  readItemMasterGsheetInputsIntoState();
+  saveItemMasterGsheetLinksToStorage();
+  saveItemMasterPriceGsheetUrlToStorage();
+  pushSettingsDiff();
+  const statusEl = document.getElementById('itemMasterUploadStatus');
+  statusEl.textContent = 'Google Sheet link(s) saved — click "Refresh from Google Sheets" to load data now.';
+  statusEl.className = 'upload-status ok';
 });
-['dragleave', 'drop'].forEach(evtName => {
-  itemMasterDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); itemMasterDropzone.classList.remove('dragover'); });
-});
-itemMasterDropzone.addEventListener('drop', (e) => {
-  const file = e.dataTransfer.files && e.dataTransfer.files[0];
-  if (file) processUploadedItemMasterFile(file);
-});
+document.getElementById('itemMasterGsheetFetchBtn').addEventListener('click', fetchItemMasterFromGoogleSheets);
+loadItemMasterGsheetLinks();
+document.getElementById('itemMasterPriceGsheetUrl').value = localStorage.getItem(ITEM_MASTER_PRICE_GSHEET_URL_KEY) || '';
+// File-upload dropzone (Choose File / drag&drop) removed from the UI (Sep 30, 2026, per Shaila —
+// switching Item Master List to the Google Sheets live-link above to cut Firebase bandwidth).
+// processUploadedItemMasterFile itself is left in place (harmless, unused) in case a file-upload
+// path is ever wanted again — nothing above still calls it.
 
 /* ---- Item List table: search + Active-only filter + pagination (list can run to tens of
    thousands of rows — rendering all of it at once would freeze the browser) + add/edit/delete ---- */
@@ -10488,8 +10582,10 @@ function renderItemMasterTable() {
   if (itemMasterPage < 0) itemMasterPage = 0;
   const pageItems = list.slice(itemMasterPage * ITEM_MASTER_PAGE_SIZE, (itemMasterPage + 1) * ITEM_MASTER_PAGE_SIZE);
 
-  let html = `<table><thead><tr><th>SKU</th><th>Description</th><th>Group</th><th>Brand</th><th>Size</th><th>Color</th><th>UOM</th><th>Campaign Year</th><th>Status</th><th></th></tr></thead><tbody>`;
+  const priceBySku = new Map(skuPriceList.map(p => [(p.sku || '').trim().toUpperCase(), p.price]));
+  let html = `<table><thead><tr><th>SKU</th><th>Description</th><th>Group</th><th>Brand</th><th>Size</th><th>Color</th><th>UOM</th><th>Price</th><th>Campaign Year</th><th>Status</th><th></th></tr></thead><tbody>`;
   pageItems.forEach(it => {
+    const price = priceBySku.get((it.sku || '').trim().toUpperCase());
     html += `<tr>
       <td class="mono-name">${escapeHtml(it.sku)}</td>
       <td>${escapeHtml(it.description || '-')}</td>
@@ -10498,6 +10594,7 @@ function renderItemMasterTable() {
       <td>${escapeHtml(it.itemSize || '-')}</td>
       <td>${escapeHtml(it.itemColor || '-')}</td>
       <td>${escapeHtml(it.uom || '-')}</td>
+      <td>${price != null && price !== '' ? 'RM ' + escapeHtml(price) : '-'}</td>
       <td>${escapeHtml(it.campaignYear || '-')}</td>
       <td><span class="badge ${it.active ? 'badge-green' : 'badge-gray'}">${it.active ? 'Active' : 'Inactive'}</span></td>
       <td style="white-space:nowrap;">
@@ -10549,6 +10646,7 @@ function openItemMasterForm(id) {
   document.getElementById('itemMasterFormSize').value = it ? it.itemSize : '';
   document.getElementById('itemMasterFormColor').value = it ? it.itemColor : '';
   document.getElementById('itemMasterFormUom').value = it ? it.uom : '';
+  { const existingPrice = it ? skuPriceList.find(p => (p.sku || '').trim().toUpperCase() === (it.sku || '').trim().toUpperCase()) : null; document.getElementById('itemMasterFormPrice').value = existingPrice ? existingPrice.price : ''; }
   document.getElementById('itemMasterFormCampaignYear').value = it ? (it.campaignYear || '') : '';
   document.getElementById('itemMasterFormActive').checked = it ? !!it.active : true;
   document.getElementById('itemMasterFormWrap').style.display = '';
@@ -10589,6 +10687,24 @@ async function saveItemMasterForm() {
     return;
   }
   pushItemMasterDiffToFirebase();
+  // Price lives in the separate SKU Price List store (shown as a column here, but kept in its own
+  // module so the existing SKU Price List tab/exports keep working) — upsert it alongside the item.
+  const priceVal = document.getElementById('itemMasterFormPrice').value.trim();
+  const skuUpper = sku.toUpperCase();
+  if (priceVal !== '') {
+    const priceItem = { sku: skuUpper, price: priceVal };
+    try {
+      await skuPricePutOne(priceItem);
+      const bySku = new Map(skuPriceList.map(p => [p.sku, p]));
+      bySku.set(skuUpper, priceItem);
+      skuPriceList = [...bySku.values()];
+      skuPriceImportedAt = new Date().toISOString();
+      localStorage.setItem(SKU_PRICE_IMPORTED_AT_KEY, skuPriceImportedAt);
+      pushSkuPriceDiffToFirebase();
+    } catch (err) {
+      alert('Item saved, but failed to save its price: ' + err.message);
+    }
+  }
   closeItemMasterForm();
   renderItemMasterTab();
 }
@@ -10598,6 +10714,7 @@ function renderItemMasterTab() {
   renderItemMasterKpis();
   renderItemMasterYearFilterOptions();
   renderItemMasterTable();
+  renderItemMasterGsheetInput();
 }
 // Applies to the current SEARCH-filtered set (search + Active-only — deliberately ignores the Year
 // dropdown itself, so she can re-tag/correct items regardless of what they're currently tagged as),
@@ -10872,107 +10989,6 @@ function skuPriceNumeric(price) {
   const num = Number(raw.replace(/[^0-9.\-]/g, ''));
   return isNaN(num) ? 0 : num;
 }
-function renderSkuPriceStatusNote() {
-  const el = document.getElementById('skuPriceStatusNote');
-  if (!el) return;
-  if (!skuPriceList.length) { el.textContent = 'No SKU Price List uploaded yet.'; return; }
-  const dateLabel = skuPriceImportedAt ? formatDateLabel(skuPriceImportedAt.slice(0, 10)) : '';
-  el.textContent = `${formatQty(skuPriceList.length)} SKU price(s) loaded${dateLabel ? ` (${dateLabel})` : ''}.`;
-}
-function processUploadedSkuPriceFile(file) {
-  const statusEl = document.getElementById('skuPriceUploadStatus');
-  statusEl.textContent = 'Processing file... (large list, may take a few seconds)';
-  statusEl.className = 'upload-status';
-  const ext = file.name.split('.').pop().toLowerCase();
-  const reader = new FileReader();
-  reader.onload = async (evt) => {
-    try {
-      let objRows = [];
-      if (ext === 'csv') {
-        const text = String(evt.target.result).replace(/^﻿/, '');
-        objRows = parseCsv(text);
-      } else {
-        const wb = XLSX.read(evt.target.result, { type: 'array' });
-        const sheet = wb.Sheets[wb.SheetNames[0]];
-        objRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-      }
-      if (!objRows.length) throw new Error('File is empty / has no data.');
-      const headerKeys = Object.keys(objRows[0]);
-      const findKey = (name) => headerKeys.find(k => k.trim().toLowerCase() === name);
-      // Exact match first ("SKU", "Price"), then fall back to a contains-match (e.g. "SKU Code",
-      // "SKU No.", "Item SKU", "Selling Price", "Unit Price") — same lesson learned from her Tailor
-      // Supplier / Quantity FG headers elsewhere in this file not being an exact match either.
-      const findKeyContains = (name) => headerKeys.find(k => k.trim().toLowerCase().includes(name));
-      const skuKey = findKey('sku') || findKeyContains('sku');
-      const priceKey = findKey('price') || findKeyContains('price');
-      if (!skuKey) throw new Error(`This file needs a "SKU" column. Columns found: ${headerKeys.join(', ')}`);
-      if (!priceKey) throw new Error(`This file needs a "Price" column. Columns found: ${headerKeys.join(', ')}`);
-      const uploadMode = document.getElementById('skuPriceUploadModeSelect').value; // 'add' | 'replace'
-      const seen = new Set();
-      const mapped = [];
-      objRows.forEach(r => {
-        const skuRaw = String(r[skuKey] || '').trim();
-        if (!skuRaw) return;
-        const sku = skuRaw.toUpperCase();
-        if (seen.has(sku)) return; // dedupe exact-duplicate rows, keep first seen
-        seen.add(sku);
-        mapped.push({ sku, price: String(r[priceKey] == null ? '' : r[priceKey]).trim() });
-      });
-      if (!mapped.length) throw new Error('No valid rows (all SKUs blank?).');
-      statusEl.textContent = `Saving ${formatQty(mapped.length)} SKU price(s) to storage...`;
-      if (uploadMode === 'replace') {
-        await skuPriceReplaceAll(mapped);
-        skuPriceList = mapped;
-      } else {
-        await skuPriceBulkPut(mapped);
-        const bySku = new Map(skuPriceList.map(it => [it.sku, it]));
-        mapped.forEach(it => bySku.set(it.sku, it));
-        skuPriceList = [...bySku.values()];
-      }
-      skuPriceImportedAt = new Date().toISOString();
-      localStorage.setItem(SKU_PRICE_IMPORTED_AT_KEY, skuPriceImportedAt);
-      skuPricePage = 0;
-      const droppedCount = objRows.length - mapped.length;
-      const modeLabel = uploadMode === 'replace' ? 'loaded (old list replaced)' : 'added/updated (other SKUs kept)';
-      statusEl.textContent = `Success: ${formatQty(mapped.length)} SKU price(s) ${modeLabel}${droppedCount > 0 ? ` (${formatQty(droppedCount)} duplicate/blank row(s) dropped)` : ''}.`;
-      statusEl.className = 'upload-status ok';
-      renderSkuPriceTab();
-      pushSkuPriceDiffToFirebase();
-    } catch (err) {
-      statusEl.textContent = 'Failed to process file: ' + err.message;
-      statusEl.className = 'upload-status err';
-    }
-  };
-  reader.onerror = () => { statusEl.textContent = 'Failed to read file.'; statusEl.className = 'upload-status err'; };
-  if (ext === 'csv') reader.readAsText(file);
-  else reader.readAsArrayBuffer(file);
-}
-document.getElementById('skuPriceFileInput').addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  processUploadedSkuPriceFile(file);
-  e.target.value = '';
-});
-const skuPriceDropzone = document.getElementById('skuPriceDropzone');
-['dragenter', 'dragover'].forEach(evtName => {
-  skuPriceDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); skuPriceDropzone.classList.add('dragover'); });
-});
-['dragleave', 'drop'].forEach(evtName => {
-  skuPriceDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); skuPriceDropzone.classList.remove('dragover'); });
-});
-skuPriceDropzone.addEventListener('drop', (e) => {
-  const file = e.dataTransfer.files && e.dataTransfer.files[0];
-  if (file) processUploadedSkuPriceFile(file);
-});
-document.getElementById('downloadSkuPriceTemplateBtn').addEventListener('click', () => {
-  const wsData = [['SKU', 'Price'], ['ABC-001-S', '89.90']];
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-  ws['!cols'] = [{ wch: 20 }, { wch: 12 }];
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'SKU Price');
-  XLSX.writeFile(wb, 'sku_price_list_template.xlsx');
-});
-
 // Per Shaila's request (Sep 25, 2026 — "buat la RMxx,,,kalau no je tak cantik"): display-only currency
 // formatting — the stored value stays exactly as uploaded (so re-exporting/editing never loses
 // precision or an already-formatted string), this just dresses up a plain number for the table. Any
@@ -10988,128 +11004,12 @@ function skuPriceFormatDisplay(price) {
   // Timeline's Total/Receive/Balance Value columns, Summary Dashboard's Value KPIs).
   return isNaN(num) ? raw : `RM${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
-/* ---- SKU Price List table: search + pagination (list can run to tens of thousands of rows) + add/edit/delete ---- */
+// Kept as a no-op (rather than deleted outright) because many call sites elsewhere still call
+// renderSkuPriceTab() after touching skuPriceList (Item Master's Google Sheets refresh, manual
+// Add/Edit Item, cloud sync, etc.) — the SKU Price List tab itself was removed (price now lives
+// inline as a column in Item Master List), so there's nothing left to render here.
 let skuPricePage = 0;
-const SKU_PRICE_PAGE_SIZE = 50;
-let skuPriceEditSku = null; // which row (by sku) the form is currently editing, null = adding new
-function skuPriceFilteredList() {
-  const search = (document.getElementById('skuPriceSearchInput').value || '').trim().toLowerCase();
-  let list = skuPriceList;
-  if (search) list = list.filter(it => (it.sku || '').toLowerCase().includes(search));
-  return list;
-}
-function renderSkuPriceTable() {
-  const wrap = document.getElementById('skuPriceTableWrap');
-  const pagWrap = document.getElementById('skuPricePaginationWrap');
-  const list = skuPriceFilteredList();
-  if (!list.length) {
-    wrap.innerHTML = `<div class="empty-state">${skuPriceList.length ? 'No SKU matches the search.' : 'No SKU Price List uploaded yet.'}</div>`;
-    pagWrap.innerHTML = '';
-    return;
-  }
-  const totalPages = Math.max(1, Math.ceil(list.length / SKU_PRICE_PAGE_SIZE));
-  if (skuPricePage >= totalPages) skuPricePage = totalPages - 1;
-  if (skuPricePage < 0) skuPricePage = 0;
-  const pageItems = list.slice(skuPricePage * SKU_PRICE_PAGE_SIZE, (skuPricePage + 1) * SKU_PRICE_PAGE_SIZE);
-
-  let html = `<table><thead><tr><th>SKU</th><th>Price</th><th></th></tr></thead><tbody>`;
-  pageItems.forEach(it => {
-    html += `<tr>
-      <td class="mono-name">${escapeHtml(it.sku)}</td>
-      <td>${escapeHtml(skuPriceFormatDisplay(it.price))}</td>
-      <td style="white-space:nowrap;">
-        <button type="button" class="btn-ghost sku-price-edit-btn" data-sku="${escapeHtml(it.sku)}">✎</button>
-        <button type="button" class="btn-ghost sku-price-delete-btn" data-sku="${escapeHtml(it.sku)}" style="color:#e0685c;">🗑</button>
-      </td>
-    </tr>`;
-  });
-  html += `</tbody></table>`;
-  wrap.innerHTML = html;
-
-  pagWrap.innerHTML = `
-    <button type="button" class="btn-ghost" id="skuPricePrevPageBtn" ${skuPricePage === 0 ? 'disabled' : ''}>&#8249; Prev</button>
-    <span class="data-note" style="margin:0;">Page ${skuPricePage + 1} / ${totalPages} — ${formatQty(list.length)} SKU</span>
-    <button type="button" class="btn-ghost" id="skuPriceNextPageBtn" ${skuPricePage >= totalPages - 1 ? 'disabled' : ''}>Next &#8250;</button>
-  `;
-  document.getElementById('skuPricePrevPageBtn').addEventListener('click', () => { skuPricePage--; renderSkuPriceTable(); });
-  document.getElementById('skuPriceNextPageBtn').addEventListener('click', () => { skuPricePage++; renderSkuPriceTable(); });
-
-  wrap.querySelectorAll('.sku-price-edit-btn').forEach(btn => {
-    btn.addEventListener('click', () => openSkuPriceForm(btn.dataset.sku));
-  });
-  wrap.querySelectorAll('.sku-price-delete-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const it = skuPriceList.find(x => x.sku === btn.dataset.sku);
-      if (!it) return;
-      if (!confirm(`Delete price for SKU "${it.sku}"?`)) return;
-      try {
-        await skuPriceDeleteOne(it.sku);
-      } catch (err) {
-        alert('Failed to delete this SKU: ' + err.message);
-        return;
-      }
-      skuPriceList = skuPriceList.filter(x => x.sku !== it.sku);
-      renderSkuPriceTab();
-      pushSkuPriceDiffToFirebase();
-    });
-  });
-}
-function openSkuPriceForm(sku) {
-  skuPriceEditSku = sku || null;
-  const it = sku ? skuPriceList.find(x => x.sku === sku) : null;
-  document.getElementById('skuPriceFormTitle').textContent = it ? `Edit Price — ${it.sku}` : 'Add SKU Price';
-  document.getElementById('skuPriceFormSku').value = it ? it.sku : '';
-  document.getElementById('skuPriceFormSku').disabled = !!it; // SKU is the storage key — editing it in place would orphan the old record, so it's locked once created (delete + re-add instead)
-  document.getElementById('skuPriceFormPrice').value = it ? it.price : '';
-  document.getElementById('skuPriceFormWrap').style.display = '';
-  document.getElementById('skuPriceFormSku').focus();
-}
-function closeSkuPriceForm() {
-  skuPriceEditSku = null;
-  document.getElementById('skuPriceFormSku').disabled = false;
-  document.getElementById('skuPriceFormWrap').style.display = 'none';
-}
-async function saveSkuPriceForm() {
-  const skuRaw = document.getElementById('skuPriceFormSku').value.trim();
-  if (!skuRaw) { alert('SKU is required.'); return; }
-  const sku = skuRaw.toUpperCase();
-  if (!skuPriceEditSku && skuPriceList.some(it => it.sku === sku)) { alert(`SKU "${skuRaw}" already exists — edit it instead.`); return; }
-  const item = { sku, price: document.getElementById('skuPriceFormPrice').value.trim() };
-  try {
-    await skuPricePutOne(item);
-  } catch (err) {
-    alert('Failed to save this SKU price: ' + err.message);
-    return;
-  }
-  const idx = skuPriceList.findIndex(x => x.sku === sku);
-  if (idx >= 0) skuPriceList[idx] = item; else skuPriceList.push(item);
-  closeSkuPriceForm();
-  renderSkuPriceTab();
-  pushSkuPriceDiffToFirebase();
-}
-function renderSkuPriceTab() {
-  renderSkuPriceStatusNote();
-  renderSkuPriceTable();
-}
-document.getElementById('skuPriceSearchInput').addEventListener('input', () => { skuPricePage = 0; renderSkuPriceTable(); });
-document.getElementById('skuPriceAddBtn').addEventListener('click', () => openSkuPriceForm(null));
-document.getElementById('skuPriceFormCancelBtn').addEventListener('click', closeSkuPriceForm);
-document.getElementById('skuPriceFormSaveBtn').addEventListener('click', saveSkuPriceForm);
-document.getElementById('resetSkuPriceBtn').addEventListener('click', async () => {
-  if (!confirm(`Delete ALL SKU Price List data (${formatQty(skuPriceList.length)} SKU)? This cannot be undone.`)) return;
-  try {
-    await skuPriceReplaceAll([]);
-  } catch (err) {
-    alert('Failed to reset SKU Price List: ' + err.message);
-    return;
-  }
-  skuPriceList = [];
-  skuPriceImportedAt = '';
-  localStorage.removeItem(SKU_PRICE_IMPORTED_AT_KEY);
-  skuPricePage = 0;
-  renderSkuPriceTab();
-  pushSkuPriceDiffToFirebase();
-});
+function renderSkuPriceTab() {}
 
 /* ==================== Stock Available (finished goods on-hand snapshot, by SKU × Zone) ====================
    She uploads the "Inventory Balance ... Summary Report" export straight in — a long/tall report
@@ -11130,6 +11030,7 @@ document.getElementById('resetSkuPriceBtn').addEventListener('click', async () =
    local-only data over the cloud is the right call — so that whole class of bug is designed out from
    day one instead of needing to be found and patched later. */
 const STOCK_AVAILABLE_IMPORTED_AT_KEY = 'sto_stock_available_imported_at_v1';
+const STOCK_AVAILABLE_GSHEET_URL_KEY = 'sto_stock_available_gsheet_url_v1';
 // Per-device column order preference for the boutique/zone columns — a display preference, not
 // data, so it's plain localStorage rather than anything cloud-synced.
 const STOCK_AVAILABLE_COL_ORDER_KEY = 'sto_stock_available_col_order_v1';
@@ -11314,78 +11215,56 @@ setInterval(checkStockAvailableAutoReset, 5 * 60 * 1000);
 // currently in use — always excluded on import. Duplicated inline inside the Worker source below
 // (a Worker can't see this page's globals).
 const STOCK_AVAILABLE_EXCLUDED_ZONES = ['UNUSED PRODUCT', 'CHINA REWASH'];
-const STOCK_AVAILABLE_WORKER_SRC = `
-self.importScripts('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
-self.postMessage({ libLoaded: true });
-var STOCK_AVAILABLE_EXCLUDED_ZONES = ['UNUSED PRODUCT', 'CHINA REWASH'];
-function parseCsvRows(text) {
-  var rows = [];
-  var row = [], field = '', inQuotes = false;
-  for (var i = 0; i < text.length; i++) {
-    var c = text[i];
-    if (inQuotes) {
-      if (c === '"') {
-        if (text[i+1] === '"') { field += '"'; i++; }
-        else inQuotes = false;
-      } else field += c;
-    } else {
-      if (c === '"') inQuotes = true;
-      else if (c === ',') { row.push(field); field = ''; }
-      else if (c === '\\n') { row.push(field); rows.push(row); row = []; field = ''; }
-      else if (c === '\\r') { /* skip */ }
-      else field += c;
-    }
+let stockAvailableUploadInFlight = false;
+// ---- Stock Available Google Sheets live-link (reuses simpleGvizFetchRows, same low-bandwidth idea
+// as Item Master List / SKU Price — the sheet is fetched live on demand, nothing stored in Firebase
+// beyond the tiny saved URL). Single link, no per-year split, since this is a daily snapshot that
+// fully replaces the list anyway (same "Total Qty" long-format layout as the file upload: one row
+// per SKU per Zone, grouped/pivoted here exactly like processUploadedStockAvailableFile does). ----
+async function fetchStockAvailableFromGoogleSheets() {
+  const statusEl = document.getElementById('stockAvailableUploadStatus');
+  if (stockAvailableUploadInFlight) {
+    statusEl.textContent = 'Still finishing the previous upload/refresh — please wait for it to complete first.';
+    statusEl.className = 'upload-status err';
+    return;
   }
-  if (field.length || row.length) { row.push(field); rows.push(row); }
-  return rows;
-}
-function genStockAvailableId() { return 'sa_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
-self.onmessage = function(e) {
+  const url = (document.getElementById('stockAvailableGsheetUrl').value || '').trim();
+  if (!url) {
+    statusEl.textContent = 'No Google Sheet link saved yet — paste a link above and click "Save Link" first.';
+    statusEl.className = 'upload-status err';
+    return;
+  }
+  stockAvailableUploadInFlight = true;
+  statusEl.textContent = 'Fetching from Google Sheets...';
+  statusEl.className = 'upload-status';
   try {
-    var ext = e.data.ext, buffer = e.data.buffer, text = e.data.text;
-    var rows = [];
-    if (ext === 'csv') {
-      rows = parseCsvRows(String(text).replace(/^\\uFEFF/, ''));
-    } else {
-      var wb = XLSX.read(buffer, { type: 'array' });
-      var sheet = wb.Sheets[wb.SheetNames[0]];
-      rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-    }
-    if (!rows.length) throw new Error('File is empty / has no data.');
-    // This report has clean, stable column headers (unlike a positional-guess format) — find each
-    // one by exact (case-insensitive) name instead of guessing by position.
-    var header = rows[0].map(function(h) { return String(h || '').trim().toLowerCase(); });
-    var skuIdx = header.indexOf('sku');
-    if (skuIdx === -1) throw new Error('This file needs a "SKU" column.');
-    var groupIdx = header.indexOf('item group');
-    var brandIdx = header.indexOf('item brand');
-    var zoneIdx = header.indexOf('zone');
-    var qtyIdx = header.indexOf('total qty');
-    if (qtyIdx === -1) throw new Error('This file needs a "Total Qty" column.');
-    var dataRows = rows.slice(1);
-    var excludedCount = 0;
-    var bySku = new Map();
-    dataRows.forEach(function(r) {
+    const rows = await simpleGvizFetchRows(url);
+    if (!rows.length) throw new Error('Sheet has no data rows.');
+    const header = rows[0].map(h => String(h || '').trim().toLowerCase());
+    const skuIdx = header.indexOf('sku');
+    if (skuIdx === -1) throw new Error('This sheet needs a "SKU" column.');
+    const groupIdx = header.indexOf('item group');
+    const brandIdx = header.indexOf('item brand');
+    const zoneIdx = header.indexOf('zone');
+    const qtyIdx = header.indexOf('total qty');
+    if (qtyIdx === -1) throw new Error('This sheet needs a "Total Qty" column.');
+    const dataRows = rows.slice(1);
+    let excludedCount = 0;
+    const bySku = new Map();
+    dataRows.forEach(r => {
       if (!r || !r.length) return;
-      var sku = String(r[skuIdx] || '').trim();
+      const sku = String(r[skuIdx] || '').trim();
       if (!sku) return;
-      var zone = zoneIdx > -1 ? String(r[zoneIdx] || '').trim() : '';
-      var zoneUpper = zone.toUpperCase();
-      if (STOCK_AVAILABLE_EXCLUDED_ZONES.some(function(x) { return zoneUpper.includes(x); })) { excludedCount++; return; }
-      // Real exports from this report have shown an extra unlabeled column squeezed in right before
-      // "Total Qty" (every data row one field longer than the header row declares) — trusting the
-      // header-declared qty position in that case reads an empty phantom cell instead of the real
-      // number, silently turning every quantity into 0. Total Qty is reliably the LAST column in the
-      // row regardless of exactly where that phantom column sits, so prefer that whenever a row is
-      // longer than the header — a row matching the header length exactly still uses the declared index.
-      var effectiveQtyIdx = (r.length > header.length) ? (r.length - 1) : qtyIdx;
-      var qty = parseFloat(r[effectiveQtyIdx]) || 0;
-      var skuUpper = sku.toUpperCase();
-      var rec = bySku.get(skuUpper);
+      const zone = zoneIdx > -1 ? String(r[zoneIdx] || '').trim() : '';
+      const zoneUpper = zone.toUpperCase();
+      if (STOCK_AVAILABLE_EXCLUDED_ZONES.some(x => zoneUpper.includes(x))) { excludedCount++; return; }
+      const qty = parseFloat(r[qtyIdx]) || 0;
+      const skuUpper = sku.toUpperCase();
+      let rec = bySku.get(skuUpper);
       if (!rec) {
         rec = {
           id: genStockAvailableId(),
-          sku: sku,
+          sku,
           itemGroup: groupIdx > -1 ? String(r[groupIdx] || '').trim() : '',
           itemBrand: brandIdx > -1 ? String(r[brandIdx] || '').trim() : '',
           qtyByLocation: {},
@@ -11394,138 +11273,48 @@ self.onmessage = function(e) {
       }
       rec.qtyByLocation[zone] = (rec.qtyByLocation[zone] || 0) + qty;
     });
-    var mapped = Array.from(bySku.values());
-    self.postMessage({ ok: true, mapped: mapped, excludedCount: excludedCount });
+    const mapped = Array.from(bySku.values());
+    if (!mapped.length) throw new Error('No valid rows (all SKUs blank, or all rows excluded?).');
+    // Color & Size aren't in this report — pull them from Item Master List by SKU, same as the file-upload path.
+    mapped.forEach(rec => {
+      const im = itemMasterLookupBySku(rec.sku);
+      rec.itemColor = (im && im.itemColor) || '';
+      rec.itemSize = (im && im.itemSize) || '';
+    });
+    stockAvailableList = mapped;
+    stockAvailableImportedAt = new Date().toISOString();
+    localStorage.setItem(STOCK_AVAILABLE_IMPORTED_AT_KEY, stockAvailableImportedAt);
+    pushStockAvailableDiffToFirebase();
+    stockAvailablePage = 0;
+    const zoneCount = new Set(mapped.flatMap(it => Object.keys(it.qtyByLocation || {}).filter(Boolean))).size;
+    const successLine = `Success: ${formatQty(mapped.length)} SKU${zoneCount ? ` across ${formatQty(zoneCount)} boutique/zone(s)` : ''} loaded and synced${excludedCount > 0 ? ` — ${formatQty(excludedCount)} "Unused Product"/"China Rewash" row(s) dropped` : ''}.`;
+    statusEl.textContent = `${successLine} Saving a local backup copy in the background…`;
+    statusEl.className = 'upload-status ok';
+    renderStockAvailableTab();
+    stockAvailableLocalSaveInFlight = true;
+    stockAvailableReplaceAll(mapped, (done, total) => {
+      statusEl.textContent = `${successLine} Saving local backup copy: ${formatQty(done)} / ${formatQty(total)}…`;
+    }).then(() => {
+      statusEl.textContent = successLine;
+    }).catch(e => {
+      console.error('stockAvailableReplaceAll (background save) failed', e);
+      statusEl.textContent = `${successLine} (Local backup copy on this device had an issue — cloud sync already succeeded, everyone else is fine; this device may just need a Sync Now / refresh to re-pull it.)`;
+    }).finally(() => { stockAvailableLocalSaveInFlight = false; stockAvailableUploadInFlight = false; });
   } catch (err) {
-    self.postMessage({ ok: false, error: (err && err.message) || String(err) });
-  }
-};
-`;
-let stockAvailableWorker = null;
-function stockAvailableParseInWorker(ext, buffer, text) {
-  return new Promise((resolve, reject) => {
-    if (!stockAvailableWorker) {
-      const blob = new Blob([STOCK_AVAILABLE_WORKER_SRC], { type: 'application/javascript' });
-      stockAvailableWorker = new Worker(URL.createObjectURL(blob));
-    }
-    const worker = stockAvailableWorker;
-    let settled = false;
-    let timeoutId = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      worker.removeEventListener('message', onMessage);
-      worker.removeEventListener('error', onError);
-      worker.terminate();
-      stockAvailableWorker = null;
-      reject(new Error('Taking too long (45s+) — likely a slow/blocked internet connection while loading a required library. Check your connection and try uploading again.'));
-    }, 45000);
-    const onMessage = (e) => {
-      if (settled) return;
-      if (e.data && e.data.libLoaded) {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => {
-          if (settled) return;
-          settled = true;
-          worker.removeEventListener('message', onMessage);
-          worker.removeEventListener('error', onError);
-          worker.terminate();
-          stockAvailableWorker = null;
-          reject(new Error('Taking way too long (10min+) to process this file — it may be corrupted, or an unusual format. Try re-saving/re-exporting the file and uploading again.'));
-        }, 600000);
-        return;
-      }
-      settled = true;
-      clearTimeout(timeoutId);
-      worker.removeEventListener('message', onMessage);
-      worker.removeEventListener('error', onError);
-      if (e.data && e.data.ok) resolve({ mapped: e.data.mapped, excludedCount: e.data.excludedCount });
-      else reject(new Error((e.data && e.data.error) || 'Failed to process file.'));
-    };
-    const onError = (e) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timeoutId);
-      worker.removeEventListener('message', onMessage);
-      worker.removeEventListener('error', onError);
-      reject(new Error(e.message || 'Worker error while processing file.'));
-    };
-    worker.addEventListener('message', onMessage);
-    worker.addEventListener('error', onError);
-    worker.postMessage({ ext, buffer, text }, buffer ? [buffer] : []);
-  });
-}
-let stockAvailableUploadInFlight = false;
-function processUploadedStockAvailableFile(file) {
-  const statusEl = document.getElementById('stockAvailableUploadStatus');
-  if (stockAvailableUploadInFlight) {
-    statusEl.textContent = 'Still finishing the previous upload — please wait for it to complete before uploading again.';
+    statusEl.textContent = 'Failed to fetch from Google Sheets: ' + err.message;
     statusEl.className = 'upload-status err';
-    return;
+    stockAvailableUploadInFlight = false;
   }
-  stockAvailableUploadInFlight = true;
-  statusEl.textContent = 'Processing file... (large list, may take a few seconds)';
-  statusEl.className = 'upload-status';
-  const ext = file.name.split('.').pop().toLowerCase();
-  const reader = new FileReader();
-  reader.onload = async (evt) => {
-    try {
-      const { mapped, excludedCount } = await stockAvailableParseInWorker(
-        ext, ext === 'csv' ? null : evt.target.result, ext === 'csv' ? evt.target.result : null
-      );
-      if (!mapped.length) throw new Error('No valid rows (all SKUs blank, or all rows excluded?).');
-      // Color & Size aren't in this report — pull them from Item Master List by SKU. Main-thread only
-      // (the Worker can't see itemMasterList), so this happens here, right after parsing.
-      mapped.forEach(rec => {
-        const im = itemMasterLookupBySku(rec.sku);
-        rec.itemColor = (im && im.itemColor) || '';
-        rec.itemSize = (im && im.itemSize) || '';
-      });
-      stockAvailableList = mapped;
-      stockAvailableImportedAt = new Date().toISOString();
-      localStorage.setItem(STOCK_AVAILABLE_IMPORTED_AT_KEY, stockAvailableImportedAt);
-      pushStockAvailableDiffToFirebase();
-      stockAvailablePage = 0;
-      const zoneCount = new Set(mapped.flatMap(it => Object.keys(it.qtyByLocation || {}).filter(Boolean))).size;
-      const successLine = `Success: ${formatQty(mapped.length)} SKU${zoneCount ? ` across ${formatQty(zoneCount)} boutique/zone(s)` : ''} loaded and synced${excludedCount > 0 ? ` — ${formatQty(excludedCount)} "Unused Product"/"China Rewash" row(s) dropped` : ''}.`;
-      statusEl.textContent = `${successLine} Saving a local backup copy in the background…`;
-      statusEl.className = 'upload-status ok';
-      renderStockAvailableTab();
-      stockAvailableLocalSaveInFlight = true;
-      stockAvailableReplaceAll(mapped, (done, total) => {
-        statusEl.textContent = `${successLine} Saving local backup copy: ${formatQty(done)} / ${formatQty(total)}…`;
-      }).then(() => {
-        statusEl.textContent = successLine;
-      }).catch(e => {
-        console.error('stockAvailableReplaceAll (background save) failed', e);
-        statusEl.textContent = `${successLine} (Local backup copy on this device had an issue — cloud sync already succeeded, everyone else is fine; this device may just need a Sync Now / refresh to re-pull it.)`;
-      }).finally(() => { stockAvailableLocalSaveInFlight = false; stockAvailableUploadInFlight = false; });
-    } catch (err) {
-      statusEl.textContent = 'Failed to process file: ' + err.message;
-      statusEl.className = 'upload-status err';
-      stockAvailableUploadInFlight = false;
-    }
-  };
-  reader.onerror = () => { statusEl.textContent = 'Failed to read file.'; statusEl.className = 'upload-status err'; stockAvailableUploadInFlight = false; };
-  if (ext === 'csv') reader.readAsText(file);
-  else reader.readAsArrayBuffer(file);
 }
-document.getElementById('stockAvailableFileInput').addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  processUploadedStockAvailableFile(file);
-  e.target.value = '';
+document.getElementById('stockAvailableGsheetSaveBtn').addEventListener('click', () => {
+  localStorage.setItem(STOCK_AVAILABLE_GSHEET_URL_KEY, (document.getElementById('stockAvailableGsheetUrl').value || '').trim());
+  pushSettingsDiff();
+  const statusEl = document.getElementById('stockAvailableUploadStatus');
+  statusEl.textContent = 'Google Sheet link saved — click "Refresh from Google Sheets" to load data now.';
+  statusEl.className = 'upload-status ok';
 });
-const stockAvailableDropzone = document.getElementById('stockAvailableDropzone');
-['dragenter', 'dragover'].forEach(evtName => {
-  stockAvailableDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); stockAvailableDropzone.classList.add('dragover'); });
-});
-['dragleave', 'drop'].forEach(evtName => {
-  stockAvailableDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); stockAvailableDropzone.classList.remove('dragover'); });
-});
-stockAvailableDropzone.addEventListener('drop', (e) => {
-  const file = e.dataTransfer.files && e.dataTransfer.files[0];
-  if (file) processUploadedStockAvailableFile(file);
-});
+document.getElementById('stockAvailableGsheetFetchBtn').addEventListener('click', fetchStockAvailableFromGoogleSheets);
+document.getElementById('stockAvailableGsheetUrl').value = localStorage.getItem(STOCK_AVAILABLE_GSHEET_URL_KEY) || '';
 
 /* ---- Stock List: search + Brand/Group/Color/Size filter + pagination + pivot table by zone ---- */
 let stockAvailablePage = 0;
@@ -13794,6 +13583,57 @@ function campaignTimelineFetchGvizRows(url) {
     document.head.appendChild(script);
   });
 }
+// Simpler counterpart to campaignTimelineFetchGvizRows, for sheets with a normal SINGLE plain header
+// row (Item Master / SKU Price / Available Stock links) rather than Timeline's multi-row title+banner
+// block. Explicitly passes headers=1 so Google treats row 1 as the header deterministically — without
+// it, gviz's own auto-guess (which campaignTimelineFetchGvizRows relies on, tuned for Timeline's messy
+// multi-row case) can decide there's NO header row at all when every column is plain text with no
+// type difference from the data rows below (confirmed against Shaila's real Item Master sheet, Sep 30,
+// 2026 — "needs a SKU column" even though row 1 clearly says "SKU"): every table.cols[].label comes
+// back blank in that case, since gviz never identified a header row to pull labels from.
+function simpleGvizFetchRows(url) {
+  return new Promise((resolve, reject) => {
+    const parsed = campaignTimelineParseSheetUrl(url);
+    if (parsed && parsed.publishedLinkError) {
+      reject(new Error('That\'s an old "Publish to web" link — paste the normal Share link instead (File > Share, "Anyone with the link" - Viewer, copy link).'));
+      return;
+    }
+    if (!parsed) {
+      reject(new Error('Not a recognizable Google Sheets link — paste the normal link from the Share button (contains "docs.google.com/spreadsheets/d/..."), not the "Publish to web" link.'));
+      return;
+    }
+    const cbName = `_campaignTimelineGvizCb${_campaignTimelineGvizCallbackSeq++}`;
+    const script = document.createElement('script');
+    const timer = setTimeout(() => { cleanup(); reject(new Error('Timed out — check your internet connection and that the sheet is shared as "Anyone with the link" (Viewer).')); }, 15000);
+    function cleanup() { delete window[cbName]; if (script.parentNode) script.parentNode.removeChild(script); clearTimeout(timer); }
+    window[cbName] = (gvizResponse) => {
+      cleanup();
+      try {
+        if (!gvizResponse || gvizResponse.status === 'error') {
+          const detail = gvizResponse && gvizResponse.errors && gvizResponse.errors[0] && gvizResponse.errors[0].detailed_message;
+          reject(new Error((detail || 'Google rejected the request.') + ' Make sure the sheet is shared as "Anyone with the link" (Viewer) and the tab/gid is correct.'));
+          return;
+        }
+        const table = gvizResponse.table;
+        const numCols = table.cols.length;
+        // headers=1 in the request below makes Google use row 1's literal text as the label — no
+        // auto-guessing, so col.label is reliably populated even for an all-text single-header sheet.
+        const headerLabelRow = table.cols.map(c => c.label || '');
+        const dataRows = table.rows.map(r => {
+          const out = new Array(numCols).fill('');
+          (r.c || []).forEach((cell, i) => { if (cell) out[i] = (cell.f != null ? cell.f : (cell.v != null ? cell.v : '')); });
+          return out;
+        });
+        resolve([headerLabelRow, ...dataRows]);
+      } catch (e) {
+        reject(new Error('Unexpected response from Google Sheets: ' + e.message));
+      }
+    };
+    script.onerror = () => { cleanup(); reject(new Error('Could not reach Google Sheets — check your internet connection and the link.')); };
+    script.src = `https://docs.google.com/spreadsheets/d/${parsed.sheetId}/gviz/tq?gid=${parsed.gid}&range=A1:BZ5000&headers=1&tqx=out:json;responseHandler:${cbName}&_cb=${Date.now()}_${cbName}`;
+    document.head.appendChild(script);
+  });
+}
 // Per Shaila (Sep 28, 2026 — Fabric Invoice Number column going blank on some refreshes, same root
 // cause as the earlier Batch "R" issue): confirmed directly against her real sheet (fetched the gviz
 // endpoint with &headers=0, which turns OFF Google's own header-row auto-merge) that her real header
@@ -16027,20 +15867,17 @@ function accPhotoForName(name) {
 }
 
 // "Reset All Raw Material Data" (Import Data tab, Danger Zone) — wipes every roll/STO/DO/Pick record
-// in one go, for clearing out test/old data before starting fresh. Same snapshot+undo pattern as the
-// Progress Board / Trip Schedule / Inbound STO resets elsewhere (see updateResetUndoButtons) — Admin/
-// Team Lead-only (see applyUserPermissions), one level of undo, cleared once a further reset happens.
-const RM_RESET_SNAPSHOT_KEY = 'sto_rm_reset_snapshot_v1';
-document.getElementById('resetRmBtn').addEventListener('click', () => {
-  if (!confirm('Delete ALL Raw Material data — all rolls, STOs, DOs and Pick history? Roll No./STO No. counters will also reset to 0. This action can be undone once right after this ("Undo Reset") — resetting again will lose the earlier undo chance.')) return;
-  localStorage.setItem(RM_RESET_SNAPSHOT_KEY, JSON.stringify({
-    rolls: JSON.parse(JSON.stringify(rawMaterialRolls)),
-    picks: JSON.parse(JSON.stringify(rawMaterialPicks)),
-    stos: JSON.parse(JSON.stringify(rawMaterialStos)),
-    dos: JSON.parse(JSON.stringify(rawMaterialDos)),
-    rollCounter: localStorage.getItem(RM_ROLL_COUNTER_KEY),
-    stoCounter: localStorage.getItem(RM_STO_COUNTER_KEY),
-  }));
+// in one go, for clearing out test/old data before starting fresh. Admin/Team Lead-only (see
+// applyUserPermissions). Per Shaila (Oct 1, 2026 — "saya nak...tak simpan data raw material yg
+// lama,,faham tak?"): deliberately NO snapshot/undo kept this time (unlike Progress Board / Trip
+// Schedule / Item Master resets elsewhere) — once this runs, the old data is gone for good, on
+// every account/device, with no "Undo Reset" safety net at all.
+document.getElementById('resetRmBtn').addEventListener('click', async () => {
+  if (!confirm('Delete ALL Raw Material data — all rolls, STOs, DOs and Pick history — on EVERY account/device? Roll No./STO No. counters will also reset to 0. This is PERMANENT — no backup is kept and this CANNOT be undone.')) return;
+  const btn = document.getElementById('resetRmBtn');
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Clearing...';
   rawMaterialRolls = [];
   rawMaterialPicks = [];
   rawMaterialStos = [];
@@ -16051,49 +15888,33 @@ document.getElementById('resetRmBtn').addEventListener('click', () => {
   saveRawMaterialDos();
   setRmRollCounter(0);
   setRmStoCounter(0);
-  // Per Shaila (Sep 29, 2026, wanting a clean start after tonight's data-loss investigation): without
-  // this, the clear-to-empty above would ONLY happen locally — the periodic background sync
-  // (cloudSyncReconcile) pushes using the guarded pushCollectionDiff, which deliberately REFUSES to let
-  // an empty local array wipe an already-populated remote table (the exact safety rule documented on
-  // pushCollectionDiff itself, added after this same failure mode once emptied out the Users table).
-  // Without an explicit skipEmptyGuard push here, Firebase would still hold the OLD (pre-reset) data,
-  // and the very next realtime snapshot from it would get pulled back down and silently UN-DO this
-  // reset. Pushing explicitly, the same way the other Danger Zone resets / delete-last-record actions
-  // already do (see pushRequestStockNow, pushRollcagesNow), makes sure the clear actually sticks.
-  ['RawMaterial_Rolls', 'RawMaterial_Picks', 'RawMaterial_STOs', 'RawMaterial_DOs'].forEach(t => {
-    if (!fbDb || !SYNC_COLLECTIONS._fbListenersAttached) return;
-    const def = SYNC_COLLECTIONS.find(d => d.table === t);
-    if (def) pushCollectionDiff(def, { skipEmptyGuard: true });
-  });
+  // Per Shaila (Oct 1, 2026 — reset wasn't actually sticking on Firebase, roll numbers kept
+  // continuing from the old sequence instead of starting back at R-0001): the previous approach here
+  // (pushCollectionDiff via SYNC_COLLECTIONS, guarded by `_fbListenersAttached`) could silently no-op
+  // if this device's startup cloud sync hadn't finished attaching listeners yet — the local arrays
+  // went empty, but Firebase itself never got the delete, so the very next realtime snapshot (or this
+  // device's own reconcile tick moments later) pulled the OLD data straight back down, undoing the
+  // reset invisibly. Now this talks to Firebase DIRECTLY with `.set(null)` on each table — guaranteed
+  // to actually clear the server regardless of listener/reconcile timing — and `await`s all four
+  // before touching anything else, so there's no window left for a stale read to resurrect it.
+  // `fbLastServerSnapshot` is updated to match so the normal diff-based sync (reconcile / other
+  // devices' listeners) doesn't get confused about what's now on the server.
+  if (fbDb) {
+    try {
+      await Promise.all(['RawMaterial_Rolls', 'RawMaterial_Picks', 'RawMaterial_STOs', 'RawMaterial_DOs'].map(t => fbDb.ref(t).set(null)));
+      ['RawMaterial_Rolls', 'RawMaterial_Picks', 'RawMaterial_STOs', 'RawMaterial_DOs'].forEach(t => { fbLastServerSnapshot[t] = {}; });
+    } catch (err) {
+      alert('Local data was cleared, but failed to clear it on Firebase (so it may come back on other devices): ' + err.message + '\n\nCheck your internet connection and try the reset again.');
+    }
+  }
+  btn.disabled = false;
+  btn.textContent = originalLabel;
   rmStockSelectedFabricKey = null;
   if (typeof rmPrintSelectedIds !== 'undefined') rmPrintSelectedIds.clear();
   if (document.getElementById('tab-rm-stock')) renderRmStockTab();
   if (document.getElementById('tab-rm-print')) renderRmPrintTab();
   if (document.getElementById('tab-rm-sto')) renderRmStoTab();
   if (document.getElementById('tab-rm-receive-pick')) { renderRmReceiveTab(); renderRmPickTab(); }
-  updateResetUndoButtons();
-});
-document.getElementById('undoResetRmBtn').addEventListener('click', () => {
-  const raw = localStorage.getItem(RM_RESET_SNAPSHOT_KEY);
-  if (!raw) return;
-  if (!confirm('Undo the last Raw Material data reset? All rolls, STOs, DOs, Picks and counters will be restored to how they were before that reset.')) return;
-  const snap = JSON.parse(raw);
-  rawMaterialRolls = snap.rolls || [];
-  rawMaterialPicks = snap.picks || [];
-  rawMaterialStos = snap.stos || [];
-  rawMaterialDos = snap.dos || [];
-  saveRawMaterialRolls();
-  saveRawMaterialPicks();
-  saveRawMaterialStos();
-  saveRawMaterialDos();
-  localStorage.setItem(RM_ROLL_COUNTER_KEY, snap.rollCounter !== null && snap.rollCounter !== undefined ? snap.rollCounter : '0');
-  localStorage.setItem(RM_STO_COUNTER_KEY, snap.stoCounter !== null && snap.stoCounter !== undefined ? snap.stoCounter : '0');
-  localStorage.removeItem(RM_RESET_SNAPSHOT_KEY);
-  if (document.getElementById('tab-rm-stock')) renderRmStockTab();
-  if (document.getElementById('tab-rm-print')) renderRmPrintTab();
-  if (document.getElementById('tab-rm-sto')) renderRmStoTab();
-  if (document.getElementById('tab-rm-receive-pick')) { renderRmReceiveTab(); renderRmPickTab(); }
-  updateResetUndoButtons();
 });
 
 function getRmRollCounter() { return Math.max(0, Number(localStorage.getItem(RM_ROLL_COUNTER_KEY)) || 0); }
@@ -18211,111 +18032,6 @@ function createRmStoFromForm() {
   destSelect.value = '';
   renderRmStoTab();
 }
-// Bulk ADD ITEMS (not full STOs) from a spreadsheet — appends to the same rmStoDraftItems list
-// the manual Fabric/Colour/Quantity "+ Add Item" button uses, so she still fills STO No./
-// Destination/Date once in the form and clicks "Create STO" once at the end. Matches rolls by
-// Fabric Name + Color Code only (her template's exact 2 columns), lowest Roll No. first.
-function parseRmStoQtyImportSheet(sheetRows) {
-  const out = [];
-  sheetRows.slice(1).forEach(r => {
-    if (!r || !r.some(v => String(v ?? '').trim() !== '')) return;
-    const fabricName = String(r[0] ?? '').trim();
-    const colorCode = String(r[1] ?? '').trim();
-    const qty = Math.max(0, Math.floor(Number(r[2]) || 0));
-    if (!fabricName || !qty) return;
-    out.push({ fabricName, colorCode, qty });
-  });
-  return out;
-}
-function upsertRmStoQtyImportRows(importRows) {
-  let addedItems = 0, skippedNoMatch = 0, skippedNoStock = 0;
-  importRows.forEach(row => {
-    const draftedIds = rmStoDraftedRollIds();
-    const matches = rawMaterialRolls.filter(r =>
-      (Number(r.meterRemaining) || 0) > 0 && !draftedIds.has(r.id) &&
-      (r.fabricName || '').trim().toLowerCase() === row.fabricName.toLowerCase() &&
-      (r.colorCode || '').trim().toLowerCase() === row.colorCode.toLowerCase()
-    ).sort((a, b) => (a.rollNo || '').localeCompare(b.rollNo || ''));
-    if (!matches.length) { skippedNoMatch++; return; }
-    if (matches.length < row.qty) { skippedNoStock++; return; }
-    const picked = matches.slice(0, row.qty);
-    rmStoDraftItems.push({
-      fabricName: picked[0].fabricName, fabricCode: picked[0].fabricCode, colorCode: picked[0].colorCode, colorName: picked[0].colorName,
-      rollIds: picked.map(r => r.id), rollNos: picked.map(r => r.rollNo),
-      totalMeter: Math.round(picked.reduce((sum, r) => sum + (Number(r.meterRemaining) || 0), 0) * 100) / 100
-    });
-    addedItems++;
-  });
-  return { addedItems, skippedNoMatch, skippedNoStock };
-}
-function processUploadedRmStoQtyFile(file) {
-  const statusEl = document.getElementById('rmStoQtyUploadStatus');
-  statusEl.textContent = 'Processing file...';
-  statusEl.className = 'upload-status';
-  const ext = file.name.split('.').pop().toLowerCase();
-  const reader = new FileReader();
-  reader.onload = (evt) => {
-    try {
-      let sheetRows = [];
-      if (ext === 'csv') {
-        const text = String(evt.target.result).replace(/^﻿/, '');
-        sheetRows = parseCsvRows(text);
-      } else {
-        const wb = XLSX.read(evt.target.result, { type: 'array' });
-        const sheet = wb.Sheets[wb.SheetNames[0]];
-        sheetRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-      }
-      const mapped = parseRmStoQtyImportSheet(sheetRows);
-      const { addedItems, skippedNoMatch, skippedNoStock } = upsertRmStoQtyImportRows(mapped);
-      let msg = `Success: ${addedItems} item(s) added to Items To Pick below.`;
-      if (skippedNoMatch) msg += ` ${skippedNoMatch} row(s) skipped (no roll found for that Fabric Name + Color Code).`;
-      if (skippedNoStock) msg += ` ${skippedNoStock} row(s) skipped (not enough stock).`;
-      statusEl.textContent = msg;
-      statusEl.className = 'upload-status ok';
-      renderRmStoForm();
-    } catch (err) {
-      statusEl.textContent = 'Failed to process file: ' + err.message;
-      statusEl.className = 'upload-status err';
-    }
-  };
-  reader.onerror = () => { statusEl.textContent = 'Failed to read file.'; statusEl.className = 'upload-status err'; };
-  if (ext === 'csv') reader.readAsText(file);
-  else reader.readAsArrayBuffer(file);
-}
-document.getElementById('rmStoQtyFileInput').addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  processUploadedRmStoQtyFile(file);
-  e.target.value = '';
-});
-const rmStoQtyDropzone = document.getElementById('rmStoQtyDropzone');
-['dragenter', 'dragover'].forEach(evtName => {
-  rmStoQtyDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); rmStoQtyDropzone.classList.add('dragover'); });
-});
-['dragleave', 'drop'].forEach(evtName => {
-  rmStoQtyDropzone.addEventListener(evtName, (e) => { e.preventDefault(); e.stopPropagation(); rmStoQtyDropzone.classList.remove('dragover'); });
-});
-rmStoQtyDropzone.addEventListener('drop', (e) => {
-  const file = e.dataTransfer.files && e.dataTransfer.files[0];
-  if (file) processUploadedRmStoQtyFile(file);
-});
-document.getElementById('downloadRmStoQtyTemplateBtn').addEventListener('click', () => {
-  const wsData = [
-    ['Fabric Name', 'Color Code', 'Qty'],
-    ['Cotton Voile', 'RED01', 5],
-    ['Satin Silk', 'BLU02', 3],
-  ];
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-  ws['!cols'] = [{ wch: 18 }, { wch: 14 }, { wch: 8 }];
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'STO Items');
-  XLSX.writeFile(wb, 'raw_material_sto_items_template.xlsx');
-});
-// Detects a line created by "Manually Add STO/DO" (see below) by its rollNo pattern rather than the
-// source/stockDeducted tags alone — a record created before those tags existed (like Shaila's very
-// first recreated STO, WH-SAMIM-PANGKU-170926) has rollId:null and rollNo like "RECON-3" but no
-// `source` field at all, so relying only on `source === 'manual-recon'` would silently hide the
-// "Deduct Stock Now" retrofit button for exactly the records that need it most.
 function isRmStoManualReconLine(s) { return s.rollId == null && /^RECON-/.test(s.rollNo || ''); }
 // Groups the flat rawMaterialStos records (one per roll) by STO No. into a single card per STO —
 // she doesn't want to see the same STO No. repeated once per roll it contains.
