@@ -8947,6 +8947,23 @@ function rmMarkDeletedAndPushNow(table, deletedSyncKeys) {
     deletedSyncKeys.forEach(key => { rmSyncTombstones[table][key] = now; });
     saveRmSyncTombstones();
   }
+  // Per Shaila (Oct 1, 2026 — 257 "ghost" duplicate rolls found, every one created by a resurrection
+  // under the "Phantom" account): the old `_fbListenersAttached` guard here could silently skip this
+  // push if startup cloud sync hadn't finished attaching listeners yet when a delete happened — the
+  // record vanished locally but Firebase never got the delete, so a later snapshot pulled it straight
+  // back. Same root cause as the Reset All Raw Material Data bug fixed earlier today. Now this talks to
+  // Firebase directly for the exact keys being deleted (a `.update()` with each key set to null, same
+  // as a normal diff push but guaranteed to run regardless of listener/reconcile timing) instead of
+  // only going through pushCollectionDiff (kept as the catch-up path for everything else that changed).
+  if (fbDb && deletedSyncKeys && deletedSyncKeys.length) {
+    const directDelete = {};
+    deletedSyncKeys.forEach(key => { directDelete[fbSafeKey(key)] = null; });
+    fbDb.ref(table).update(directDelete).catch(e => {
+      cloudSyncStatus = 'error';
+      cloudSyncLastError = `${table} (delete): ${(e && e.message) || e}`;
+      renderCloudSyncStatus();
+    });
+  }
   if (!fbDb || !SYNC_COLLECTIONS._fbListenersAttached) return;
   const def = SYNC_COLLECTIONS.find(d => d.table === table);
   if (def) pushCollectionDiff(def, { skipEmptyGuard: true });
