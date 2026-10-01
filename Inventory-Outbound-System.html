@@ -9254,8 +9254,13 @@ function applyServerSnapshot(table) {
     // "Reset All Raw Material Data" (Danger Zone) stamps this instead of enumerating every wiped key —
     // see that handler for why. Anything created before the reset is treated as tombstoned, regardless
     // of key, so a device with a huge stale local array can't resurrect it piecemeal after a full wipe.
+    // NOTE: RawMaterial_STOs/DOs records don't always carry a numeric `createdAt` (DOs use a
+    // business-date string field instead) — only apply the cutoff to records that actually HAVE one,
+    // otherwise a brand new DO created after the reset (which also lacks createdAt) would be wrongly
+    // treated as "older than the reset" and hidden forever. Records without createdAt only ever get
+    // excluded via the per-key tombstone list above, same as before this cutoff feature existed.
     const resetCutoff = (fbSharedRmTombstones && fbSharedRmTombstones.__resetCutoff) || 0;
-    const isTombstoned = (r) => tombstoneKeys.has(fbSafeKey(syncKeyOf(r))) || tombstoneKeys.has(syncKeyOf(r)) || (resetCutoff && (r.createdAt || 0) < resetCutoff);
+    const isTombstoned = (r) => tombstoneKeys.has(fbSafeKey(syncKeyOf(r))) || tombstoneKeys.has(syncKeyOf(r)) || (resetCutoff && typeof r.createdAt === 'number' && r.createdAt < resetCutoff);
     if (tombstoneKeys.size || resetCutoff) remoteArr = remoteArr.filter(r => !isTombstoned(r));
     let localArr = def.getArray();
     if (tombstoneKeys.size || resetCutoff) {
