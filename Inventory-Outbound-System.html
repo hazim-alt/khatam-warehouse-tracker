@@ -17704,7 +17704,9 @@ function scanRmPickRoll() {
   item.date = date;
   if (notes) item.notes = notes;
   saveRawMaterialRolls();
+  pushRmTableNow('RawMaterial_Rolls');
   saveRawMaterialStos();
+  pushRmTableNow('RawMaterial_STOs');
 
   rmPickMatchedItemId = item.id;
   resultEl.textContent = `✓ ${item.rollNo} — ${item.fabricName || ''} (${item.colorName || item.colorCode || ''}) sent & saved.`;
@@ -18106,6 +18108,7 @@ function createRmStoFromForm() {
     });
   });
   saveRawMaterialStos();
+  pushRmTableNow('RawMaterial_STOs');
   rmStoDraftItems = [];
   stoNoInput.value = '';
   notesInput.value = '';
@@ -18233,7 +18236,9 @@ function renderRmStoListTable() {
         });
         items.forEach(s => { s.stockDeducted = true; });
         saveRawMaterialRolls();
+        pushRmTableNow('RawMaterial_Rolls');
         saveRawMaterialStos();
+        pushRmTableNow('RawMaterial_STOs');
         renderRmStoListTable();
         if (typeof renderRmStockTab === 'function' && document.getElementById('tab-rm-stock')) renderRmStockTab();
         if (typeof renderRmPrintTab === 'function' && document.getElementById('tab-rm-print')) renderRmPrintTab();
@@ -18261,6 +18266,7 @@ function renderRmStoListTable() {
         if (cap > 0) roll.meterRemaining = Math.min(roll.meterRemaining, cap);
       });
       saveRawMaterialRolls();
+      pushRmTableNow('RawMaterial_Rolls');
       // Per Shaila (Sep 30, 2026 — deleted STOs came back the next day): record exactly what's being
       // removed and push the deletion to Firebase right now, instead of leaving it to the next periodic
       // sync tick (which never got a chance to fire if the tab was closed right after this click).
@@ -18674,10 +18680,12 @@ document.getElementById('rmManualAddStoSaveBtn').addEventListener('click', () =>
     }
   });
   saveRawMaterialStos();
-  if (deductStock) saveRawMaterialRolls();
+  pushRmTableNow('RawMaterial_STOs');
+  if (deductStock) { saveRawMaterialRolls(); pushRmTableNow('RawMaterial_Rolls'); }
   if (doNo) {
     rawMaterialDos.push({ doNo, stoNo, destination, date, notes, items: doItems, createdDate: date, createdAt: Date.now() });
     saveRawMaterialDos();
+    pushRmTableNow('RawMaterial_DOs');
   }
 
   closeRmManualAddStoModal();
@@ -20499,7 +20507,9 @@ function upsertRmPickImportRows(importRows) {
     added++;
   });
   saveRawMaterialRolls();
+  pushRmTableNow('RawMaterial_Rolls');
   saveRawMaterialPicks();
+  pushRmTableNow('RawMaterial_Picks');
   return { added, skippedNoRoll };
 }
 function processUploadedRmPickFile(file) {
@@ -20618,7 +20628,9 @@ function upsertRmStoImportRows(importRows) {
   });
   setRmStoCounter(counter);
   saveRawMaterialRolls();
+  pushRmTableNow('RawMaterial_Rolls');
   saveRawMaterialStos();
+  pushRmTableNow('RawMaterial_STOs');
   return { added, skippedNoRoll };
 }
 function processUploadedRmStoFile(file) {
@@ -23740,6 +23752,21 @@ function pushRequestStockNow() { if (!fbDb || !SYNC_COLLECTIONS._fbListenersAtta
 // Called from saveRollcages() itself (see that function's comment) so every local rollcage change
 // reaches Firebase immediately instead of waiting for the next ~2s cloudSyncReconcile tick.
 function pushRollcagesNow() { if (!fbDb || !SYNC_COLLECTIONS._fbListenersAttached) return; const def = SYNC_COLLECTIONS.find(d => d.table === 'Rollcages'); if (def) pushCollectionDiff(def, { skipEmptyGuard: true }); }
+// Per Shaila (Oct 2, 2026 — stock deduction on a manually-reconstructed STO vanished after a refresh):
+// applyServerSnapshot's merge protection for RawMaterial_Rolls/STOs/DOs only guards records that are
+// MISSING entirely from the incoming remote snapshot (a brand-new local addition) — it does NOT guard
+// a field-level edit (e.g. meterRemaining going down) on a record that already exists on the server
+// with an older value. If a reload's initial fetch lands before the periodic ~2s cloudSyncReconcile
+// tick has had a chance to push that edit, the stale remote value silently overwrites the local one
+// and the edit is lost for good (no error, nothing left locally to retry). Calling this immediately
+// after every save that changes one of these 4 tables shrinks that race window from "up to ~2s, or
+// longer under load" down to "one network round-trip", the same fix already applied to deletes via
+// rmMarkDeletedAndPushNow above.
+function pushRmTableNow(table) {
+  if (!fbDb || !SYNC_COLLECTIONS._fbListenersAttached) return;
+  const def = SYNC_COLLECTIONS.find(d => d.table === table);
+  if (def) pushCollectionDiff(def, { skipEmptyGuard: true });
+}
 // Returns true/false instead of throwing — requests now carry a base64 PDF attachment (see
 // REQ_STOCK_ATTACHMENT_MAX_BYTES), and localStorage has a hard ~5-10MB quota per origin shared with
 // everything else this app stores there. Enough attachments piling up (e.g. from repeat testing) can
