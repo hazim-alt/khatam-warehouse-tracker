@@ -9472,12 +9472,12 @@ function attachSettingsListener() {
  *  - Every roll gets one globally-unique, sequential Roll No. (RL-00001, RL-00002, ...) generated at
  *    Receive time — never reused, so History/Stock Balance can always trace it back to its batch.
  */
-const RM_ROLLS_KEY = 'sto_rm_rolls_v1';
-const RM_PICKS_KEY = 'sto_rm_picks_v1';
-const RM_STOS_KEY = 'sto_rm_stos_v1';
+const RM_ROLLS_KEY = 'sto_rm_rolls_v2';
+const RM_PICKS_KEY = 'sto_rm_picks_v2';
+const RM_STOS_KEY = 'sto_rm_stos_v2';
 const RM_ROLL_COUNTER_KEY = 'sto_rm_roll_counter_v1';
 const RM_STO_COUNTER_KEY = 'sto_rm_sto_counter_v1';
-const RM_DOS_KEY = 'sto_rm_dos_v1';
+const RM_DOS_KEY = 'sto_rm_dos_v2';
 
 let rawMaterialRolls = []; // [{ id, rollNo, fabricName, fabricCode, gsm, colorCode, colorName, meter, meterRemaining, receivedDate, notes, createdAt }]
 let rawMaterialPicks = []; // [{ id, rollId, rollNo, fabricName, fabricCode, colorCode, colorName, meterTaken, purpose, date }]
