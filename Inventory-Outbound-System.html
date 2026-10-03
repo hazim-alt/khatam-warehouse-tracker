@@ -231,7 +231,7 @@
 
   .tab-panel { display: none; }
   .tab-panel.active { display: block; animation: tabPanelIn 0.32s cubic-bezier(0.22, 1, 0.36, 1); }
-  #tab-dashboard.active { display: flex; flex-direction: column; height: calc((100vh - 88px) / var(--dash-zoom, 1)); overflow: hidden; zoom: 1; --dash-zoom: 1; }
+  #tab-dashboard.active { display: flex; flex-direction: column; height: calc((100vh - 88px) / var(--dash-zoom, 1)); overflow-y: auto; zoom: 1; --dash-zoom: 1; }
   /* Per Shaila's request (Sep 28, 2026 — "buat full macam dalam slide dashboard tu"): the Production
      tab version of Release Calendar fills the available viewport height the same way the TV Dashboard
      slide does (#tab-dashboard.active above), instead of sitting at its own small content height with
@@ -279,30 +279,33 @@
      regardless of how much wider dash-topbar-right (slide nav + dropdown + button) is than the
      logo on the left — flex space-between with an auto-margin middle child can't do that since it
      just splits the LEFTOVER space, which isn't symmetric when the two ends differ in width. */
-  .dash-topbar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin-bottom: 14px; flex-shrink: 0; gap: 10px; }
+  .dash-topbar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin-bottom: 8px; flex-shrink: 0; gap: 10px; }
   .dash-topbar-brand { display: flex; align-items: center; justify-self: start; }
-  .dash-topbar-brand img { height: 34px; width: auto; display: block; }
+  .dash-topbar-brand img { height: 24px; width: auto; display: block; }
   .dash-topbar-right { display: flex; align-items: center; gap: 16px; justify-self: end; flex-wrap: wrap; }
   /* Live digital clock + day/date card — sits centered between the logo and the slide/display
      controls, so it's always visible no matter which Dashboard slide (Outbound/Inbound/Fleet) is
      showing, which is the point on a TV/big-screen view. Ticks every second via setInterval
-     (see updateDashTopbarClock). */
+     (see updateDashTopbarClock).
+     Per Shaila (Oct 3, 2026 — "yg atas ni kecik kan sikit"): shrunk the whole top bar (logo, clock,
+     duty bar) to free up more vertical room for the actual slide content below, since this strip is
+     shared across every Dashboard slide, not just Inbound. */
   .dash-topbar-clock {
     justify-self: center; display: flex; flex-direction: column; align-items: center;
-    padding: 6px 26px; border: 1px solid rgba(199,155,74,0.35); border-radius: 10px;
+    padding: 3px 16px; border: 1px solid rgba(199,155,74,0.35); border-radius: 8px;
     background: linear-gradient(180deg, rgba(199,155,74,0.10), rgba(199,155,74,0.02));
   }
   .dash-clock-time {
-    font-family: Georgia, serif; font-size: 28px; font-weight: 700; letter-spacing: 0.06em;
+    font-family: Georgia, serif; font-size: 18px; font-weight: 700; letter-spacing: 0.06em;
     color: var(--gold); line-height: 1.15; font-variant-numeric: tabular-nums;
   }
   .dash-clock-date {
-    font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-    color: var(--text-muted); margin-top: 2px;
+    font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--text-muted); margin-top: 1px;
   }
-  .dash-duty-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 18px; margin: 0 0 14px; padding: 8px 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; flex-shrink: 0; }
+  .dash-duty-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 18px; margin: 0 0 8px; padding: 4px 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; flex-shrink: 0; }
   .dash-duty-bar:empty { display: none; }
-  .dash-duty-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+  .dash-duty-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); }
   .dash-duty-item strong { color: var(--text); font-weight: 700; }
   .dash-duty-divider { width: 1px; align-self: stretch; background: var(--border); }
 
@@ -478,6 +481,111 @@
   .dash-slide[data-slide="inbound"] .scroll-table,
   .dash-slide[data-slide="outbound"] .scroll-table { max-height: 170px; }
 
+  /* ---- Outbound TV dashboard redesign (Oct 3, 2026 — same approved visual language as the Inbound
+     redesign below: 4 KPI cards, Open STOs by Boutique bar-list + Top 5 Oldest Overdue STOs side by
+     side, restyled Next to Pick / Needs Immediate Attention panels, compact Rollcage/Trolley Usage
+     stat). Scoped entirely to [data-slide="outbound"] so nothing else is affected; reuses the same
+     --card/--border/--gold/--text-muted/--red/--amber/--green variables as Inbound instead of
+     inventing new colors — classes mirror .inb-* 1:1 under an .outb- prefix. ---- */
+  .dash-slide[data-slide="outbound"] .outb-kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; flex-shrink: 0; }
+  .dash-slide[data-slide="outbound"] .outb-kpi-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; position: relative; display: flex; flex-direction: column; }
+  .dash-slide[data-slide="outbound"] .outb-kpi-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .dash-slide[data-slide="outbound"] .outb-kpi-label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+  .dash-slide[data-slide="outbound"] .outb-kpi-num { font-family: Georgia, 'Times New Roman', serif; font-size: 30px; line-height: 1.1; margin: 6px 0 4px; color: var(--text); }
+  .dash-slide[data-slide="outbound"] .outb-kpi-num.small { font-size: 22px; }
+  .dash-slide[data-slide="outbound"] .outb-kpi-sub { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+  .dash-slide[data-slide="outbound"] .outb-kpi-sub b { color: var(--text); }
+
+  .dash-slide[data-slide="outbound"] .outb-mid-row,
+  .dash-slide[data-slide="outbound"] .outb-row2 { display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px; margin-bottom: 14px; align-items: stretch; }
+  .dash-slide[data-slide="outbound"] .outb-panel { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; min-height: 0; }
+  .dash-slide[data-slide="outbound"] .outb-panel-title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold); font-weight: 700; margin: 0 0 10px; flex-shrink: 0; }
+  .dash-slide[data-slide="outbound"] .outb-panel-title .n { color: var(--text-muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+  .dash-slide[data-slide="outbound"] .outb-boutique-rows { display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow-y: auto; }
+  .dash-slide[data-slide="outbound"] .outb-boutique-row { display: grid; grid-template-columns: 150px 1fr 30px; align-items: center; gap: 8px; font-size: 11px; }
+  .dash-slide[data-slide="outbound"] .outb-boutique-name { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dash-slide[data-slide="outbound"] .outb-bbar { display: flex; height: 12px; border-radius: 3px; overflow: hidden; background: var(--border); }
+  .dash-slide[data-slide="outbound"] .outb-seg-late { background: var(--red); }
+  .dash-slide[data-slide="outbound"] .outb-seg-soon { background: var(--amber); }
+  .dash-slide[data-slide="outbound"] .outb-seg-ok { background: var(--green); }
+  /* Oct 3, 2026 — plain single-colour bar for the simplified "summary by boutique" view (no more
+     Late/Due Soon/Normal split here, see renderOutboundBoutiqueRows). */
+  .dash-slide[data-slide="outbound"] .outb-seg-plain { background: var(--red); }
+  .dash-slide[data-slide="outbound"] .outb-btotal { text-align: right; color: var(--text-muted); }
+  .dash-slide[data-slide="outbound"] .outb-legend { display: flex; gap: 12px; margin-top: 10px; font-size: 10px; color: var(--text-muted); flex-wrap: wrap; flex-shrink: 0; }
+  .dash-slide[data-slide="outbound"] .outb-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .dash-slide[data-slide="outbound"] .outb-legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+  /* Oct 3, 2026 — "Next to Pick" restyled from a table into a compact card strip, same visual
+     language as the Inbound slide's FG Arriving Soon strip (.inb-fg-*). */
+  .dash-slide[data-slide="outbound"] .outb-nxt-strip { display: flex; gap: 10px; flex-wrap: wrap; flex: 1; min-height: 0; align-items: stretch; }
+  .dash-slide[data-slide="outbound"] .outb-nxt-card { flex: 1; min-width: 160px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 7px; padding: 9px 11px; display: flex; flex-direction: column; justify-content: center; }
+  .dash-slide[data-slide="outbound"] .outb-nxt-top { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-muted); gap: 6px; }
+  .dash-slide[data-slide="outbound"] .outb-nxt-sto-no { color: var(--gold); font-weight: 700; white-space: nowrap; }
+  .dash-slide[data-slide="outbound"] .outb-nxt-boutique { font-size: 12px; color: var(--text); margin: 4px 0 2px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dash-slide[data-slide="outbound"] .outb-nxt-qty { font-size: 11px; color: var(--text-muted); }
+
+  .dash-slide[data-slide="outbound"] .outb-days-bold { font-family: Georgia, serif; font-weight: 700; font-size: 14px; color: var(--red); }
+  .dash-slide[data-slide="outbound"] .outb-rollcage-stat { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .dash-slide[data-slide="outbound"] .outb-rollcage-num { font-family: Georgia, serif; font-size: 26px; color: var(--text); }
+  .dash-slide[data-slide="outbound"] .outb-rollcage-label { font-size: 11px; color: var(--text-muted); }
+  .dash-slide[data-slide="outbound"] .outb-rollcage-list { font-size: 10.5px; color: var(--text-muted); margin-top: 8px; line-height: 1.6; }
+
+  /* ---- Inbound TV dashboard redesign (Oct 3, 2026 — approved mockup: 4 KPI cards, Open STOs by
+     Boutique bar-list + Top Critical STOs side by side, Garment Batches Needing Attention table,
+     FG Arriving Soon card strip). Scoped entirely to [data-slide="inbound"] so nothing else is
+     affected; reuses the app's existing --card/--border/--gold/--text-muted/--red/--amber/--green
+     variables and the global .badge/.card/table styles instead of inventing new colors. ---- */
+  .dash-slide[data-slide="inbound"] .inb-kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; flex-shrink: 0; }
+  .dash-slide[data-slide="inbound"] .inb-kpi-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; position: relative; display: flex; flex-direction: column; }
+  .dash-slide[data-slide="inbound"] .inb-kpi-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .dash-slide[data-slide="inbound"] .inb-kpi-label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+  .dash-slide[data-slide="inbound"] .inb-kpi-num { font-family: Georgia, 'Times New Roman', serif; font-size: 30px; line-height: 1.1; margin: 6px 0 4px; color: var(--text); }
+  .dash-slide[data-slide="inbound"] .inb-kpi-num.small { font-size: 22px; }
+  .dash-slide[data-slide="inbound"] .inb-kpi-sub { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+  .dash-slide[data-slide="inbound"] .inb-kpi-sub b { color: var(--text); }
+  .dash-slide[data-slide="inbound"] .inb-progress-track { height: 7px; background: var(--border); border-radius: 4px; margin: 8px 0 6px; overflow: hidden; flex-shrink: 0; }
+  .dash-slide[data-slide="inbound"] .inb-progress-fill { height: 100%; border-radius: 4px; }
+
+  .dash-slide[data-slide="inbound"] .inb-mid-row { display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px; margin-bottom: 14px; align-items: stretch; }
+  .dash-slide[data-slide="inbound"] .inb-panel { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; min-height: 0; }
+  .dash-slide[data-slide="inbound"] .inb-panel-title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold); font-weight: 700; margin: 0 0 10px; flex-shrink: 0; }
+  .dash-slide[data-slide="inbound"] .inb-panel-title .n { color: var(--text-muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+  .dash-slide[data-slide="inbound"] .inb-boutique-rows { display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow-y: auto; }
+  .dash-slide[data-slide="inbound"] .inb-boutique-row { display: grid; grid-template-columns: 150px 1fr 30px; align-items: center; gap: 8px; font-size: 11px; }
+  .dash-slide[data-slide="inbound"] .inb-boutique-name { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dash-slide[data-slide="inbound"] .inb-bbar { display: flex; height: 12px; border-radius: 3px; overflow: hidden; background: var(--border); }
+  .dash-slide[data-slide="inbound"] .inb-seg-critical { background: var(--red); }
+  .dash-slide[data-slide="inbound"] .inb-seg-warning { background: var(--amber); }
+  .dash-slide[data-slide="inbound"] .inb-seg-ok { background: var(--green); }
+  .dash-slide[data-slide="inbound"] .inb-seg-aged { background: repeating-linear-gradient(45deg, var(--text-muted) 0 4px, #5a5648 4px 8px); }
+  .dash-slide[data-slide="inbound"] .inb-btotal { text-align: right; color: var(--text-muted); }
+  .dash-slide[data-slide="inbound"] .inb-legend { display: flex; gap: 12px; margin-top: 10px; font-size: 10px; color: var(--text-muted); flex-wrap: wrap; flex-shrink: 0; }
+  .dash-slide[data-slide="inbound"] .inb-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .dash-slide[data-slide="inbound"] .inb-legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+
+  .dash-slide[data-slide="inbound"] .inb-bucket-row { display: flex; gap: 8px; margin-top: 10px; flex-shrink: 0; }
+  .dash-slide[data-slide="inbound"] .inb-bucket { flex: 1; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; text-align: center; }
+  .dash-slide[data-slide="inbound"] .inb-bucket .bn { font-family: Georgia, serif; font-size: 17px; color: var(--text); }
+  .dash-slide[data-slide="inbound"] .inb-bucket .bl { font-size: 9px; color: var(--text-muted); margin-top: 2px; }
+  .dash-slide[data-slide="inbound"] .inb-footnote { font-size: 10px; color: var(--text-muted); margin-top: 8px; line-height: 1.5; flex-shrink: 0; }
+  .dash-slide[data-slide="inbound"] .inb-footnote b { color: var(--amber); }
+
+  .dash-slide[data-slide="inbound"] .inb-gbar { width: 80px; height: 6px; border-radius: 4px; background: var(--border); overflow: hidden; display: inline-block; vertical-align: middle; }
+  .dash-slide[data-slide="inbound"] .inb-gbar i { display: block; height: 100%; }
+
+  .dash-slide[data-slide="inbound"] .inb-fg-strip { display: flex; gap: 10px; overflow-x: auto; }
+  .dash-slide[data-slide="inbound"] .inb-fg-card { flex: 1; min-width: 150px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 7px; padding: 9px 11px; }
+  .dash-slide[data-slide="inbound"] .inb-fg-top { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-muted); gap: 6px; }
+  .dash-slide[data-slide="inbound"] .inb-fg-arrival { color: var(--gold); font-weight: 700; white-space: nowrap; }
+  .dash-slide[data-slide="inbound"] .inb-fg-product { font-size: 12px; color: var(--text); margin: 4px 0 2px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dash-slide[data-slide="inbound"] .inb-fg-qty { font-size: 11px; color: var(--text-muted); }
+
+  .dash-slide[data-slide="inbound"] .inb-days-bold { font-family: Georgia, serif; font-weight: 700; font-size: 14px; color: var(--red); }
+  .dash-slide[data-slide="inbound"] .inb-days-bold.warn { color: var(--amber); }
+  .dash-slide[data-slide="inbound"] .inb-garment-panel-wrap { margin-bottom: 14px; }
+
   /* Fleet slide's "Today's Trips" table lists every registered boutique as its own row — on a
      real TV this can be close to 20 rows, so it gets the same compact treatment as the
      inbound/outbound slides (denser KPI cards, tighter row height) specifically so a full day's
@@ -516,10 +624,6 @@
     position: sticky; left: 0; background: var(--card); z-index: 2; text-align: left;
   }
   .stock-available-pivot-table thead th.sap-sku { z-index: 3; }
-  #lateStoListWrap table { font-size: 11px; }
-  #lateStoListWrap th, #lateStoListWrap td { padding: 6px 8px; }
-  #lateStoListWrap .mono-name { font-weight: 600; font-size: 11px; }
-
   .badge { display: inline-block; padding: 3px 10px; border-radius: 3px; font-size: 11px; font-weight: 700; white-space: nowrap; }
   .delivered-do-link, .delivered-sto-link {
     background: none; border: none; padding: 0; margin: 0; font: inherit; color: var(--blue);
@@ -1323,80 +1427,47 @@
       <div class="dash-slide active" data-slide="outbound">
         <p class="section-title" id="outboundDashTitle">Outbound Performance Summary</p>
         <div class="dash-duty-bar" id="dashDutyBarOutbound"></div>
-        <div class="kpi-grid" id="kpiGrid"></div>
 
-        <div class="charts-row">
-          <div class="chart-card">
-            <h3>STO Status</h3>
-            <div style="display:flex; gap:16px; align-items:stretch;">
-              <div class="chart-wrap" style="flex:0 0 auto; width:150px;"><canvas id="statusChart"></canvas></div>
-              <div style="flex:1; min-width:0;">
-                <div class="data-note" style="margin:0 0 6px;">Top 3 late</div>
-                <div id="lateStoListWrap" class="scroll-table" style="max-height:none; overflow:visible;"></div>
-              </div>
-            </div>
+        <!-- Oct 3, 2026 redesign (same approved visual language as the Inbound slide redesign, see
+             that slide's markup/JS comments for the full history): replaced the old plain 4-KPI row +
+             STO Status/Boutique donut+bar charts + Picker/Packing Target Progress charts with 4 new
+             KPI cards (Active STOs, Oldest Overdue STO, Pick→Pack→Ship Pipeline, On-Time vs Late %),
+             a boutique bar-list / Top 5 Oldest Overdue STOs side-by-side row, and restyled Next to
+             Pick / Needs Immediate Attention / Rollcage Usage panels — see renderOutboundKpis/
+             renderOutboundBoutiqueRows/renderOutboundTopOverdue/renderNextToPick/renderUrgent/
+             renderRollcageUsageBoards in JS. renderPickerTargetProgress/renderPickerLowestList/
+             renderPackerTargetProgress/renderStationTargetProgress still exist (still used by Team
+             Setup's Pickers/Packing Stations tabs) but now no-op harmlessly since their target
+             elements no longer exist on this slide — same pattern as renderReceiveStationTargetProgress
+             on the Inbound side. -->
+        <div class="outb-kpi-row">
+          <div class="outb-kpi-card" id="outboundKpiCardActive"></div>
+          <div class="outb-kpi-card" id="outboundKpiCardOldest"></div>
+          <div class="outb-kpi-card" id="outboundKpiCardPipeline"></div>
+          <div class="outb-kpi-card" id="outboundKpiCardOnTime"></div>
+        </div>
+
+        <div class="outb-mid-row">
+          <div class="outb-panel">
+            <p class="outb-panel-title" id="outboundBoutiquePanelTitle">Open STOs by Boutique</p>
+            <div class="outb-boutique-rows" id="outboundBoutiqueRows"></div>
           </div>
-          <div class="chart-card">
-            <h3>STO Count by Boutique</h3>
-            <div class="chart-wrap"><canvas id="butikChart"></canvas></div>
+          <div class="outb-panel">
+            <p class="outb-panel-title" id="outboundOverduePanelTitle">Top 5 Oldest Overdue STOs</p>
+            <div id="outboundOverdueWrap" class="scroll-table" style="max-height:260px; flex:1; min-height:0;"></div>
           </div>
         </div>
 
-        <div class="charts-row">
-          <div class="chart-card">
-            <h3>Picker Target Progress (Total)</h3>
-            <div style="display:flex; gap:16px; align-items:stretch;">
-              <div style="display:flex; flex-direction:column; align-items:center; flex:0 0 auto; width:150px;">
-                <div class="chart-wrap" style="position:relative; width:150px; height:150px;">
-                  <canvas id="pickerTargetChart"></canvas>
-                  <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
-                    <div id="pickerTargetPctText" style="font-size:20px; font-weight:700; font-family:Georgia, serif;">—</div>
-                  </div>
-                </div>
-                <div id="pickerTargetQtyText" style="font-size:10px; color:var(--text-muted); margin-top:6px; text-align:center; padding:0 6px;">No targets set</div>
-              </div>
-              <div style="flex:1; min-width:0;">
-                <div class="data-note" style="margin:0 0 6px;">Top 3 lowest today</div>
-                <div id="pickerLowestListWrap" class="scroll-table" style="max-height:none; overflow:visible;"></div>
-              </div>
-            </div>
-          </div>
-          <div class="chart-card">
-            <h3>Packing Target Progress (Total)</h3>
-            <div style="display:flex; gap:16px; align-items:stretch;">
-              <div style="display:flex; flex-direction:column; align-items:center; flex:0 0 auto; width:110px;">
-                <div class="chart-wrap" style="position:relative; width:110px; height:110px;">
-                  <canvas id="packerTargetChart"></canvas>
-                  <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
-                    <div id="packerTargetPctText" style="font-size:16px; font-weight:700; font-family:Georgia, serif;">—</div>
-                  </div>
-                </div>
-                <div id="packerTargetQtyText" style="font-size:9px; color:var(--text-muted); margin-top:6px; text-align:center; padding:0 4px;">No target set</div>
-              </div>
-              <div class="chart-wrap" style="position:relative; flex:1; min-width:0;">
-                <canvas id="stationTargetChart"></canvas>
-                <div id="stationTargetEmpty" class="empty-state" style="position:absolute; inset:0; display:none; align-items:center; justify-content:center; padding:0 16px;">No packing station targets set yet — set them in Team Setup.</div>
-              </div>
-            </div>
+        <div class="outb-row2" style="grid-template-columns: 1fr;">
+          <div class="outb-panel">
+            <p class="outb-panel-title">Next to Pick</p>
+            <div id="nextToPickWrap" class="outb-nxt-strip"></div>
           </div>
         </div>
 
-        <div class="charts-row dash-tables-row">
-          <div>
-            <p class="section-title">Next to Pick</p>
-            <div class="card"><div id="nextToPickWrap" class="scroll-table"></div></div>
-          </div>
-          <div>
-            <p class="section-title">Needs Immediate Attention</p>
-            <div class="card"><div id="urgentWrap" class="scroll-table"></div></div>
-          </div>
-        </div>
-
-        <div class="charts-row dash-tables-row" style="grid-template-columns: 1fr; margin-bottom:0;">
-          <div>
-            <p class="section-title">Rollcage / Trolley Usage</p>
-            <div class="card"><div id="rollcageUsageWrapOutbound" class="scroll-table"></div></div>
-          </div>
+        <div class="outb-panel" style="flex:1; min-height:0;">
+          <p class="outb-panel-title">Rollcage / Trolley Usage</p>
+          <div id="rollcageUsageWrapOutbound"></div>
         </div>
       </div>
 
@@ -1404,82 +1475,46 @@
         <p class="section-title" id="inboundDashTitle">Inbound Performance Summary</p>
         <div class="dash-duty-bar" id="dashDutyBarInbound"></div>
 
-        <div class="charts-row kpi-row" style="grid-template-columns: 1fr 1fr; align-items:start;">
-          <div>
-            <p class="section-title" style="margin-top:0;">STO From Boutique</p>
-            <div class="kpi-grid" id="inboundKpiGrid" style="margin-bottom:0;"></div>
-          </div>
-          <div>
-            <p class="section-title" style="margin-top:0;">Garment Order</p>
-            <div class="kpi-grid" id="garmentKpiGrid" style="margin-bottom:0;"></div>
-          </div>
+        <!-- Oct 3, 2026 redesign (approved mockup, per Shaila — "ade yg tak perlu ade"): replaced the
+             old 2-grid KPI row + 2 Chart.js donut cards + Receive Station Target chart with 4 plain
+             KPI cards, a boutique bar-list / Top Critical STOs side-by-side row, a richer Garment
+             Batches Needing Attention table, and a compact FG Arriving Soon card strip — see
+             renderInboundKpis/renderInboundCharts/renderGarmentProgressChart/renderInboundTargetProgress/
+             renderInboundUrgent/renderGarmentNeedsAttention/renderInboundDashFgArrivingSoon in JS. -->
+        <div class="inb-kpi-row">
+          <div class="inb-kpi-card" id="inboundKpiCardCritical"></div>
+          <div class="inb-kpi-card" id="inboundKpiCardOldest"></div>
+          <div class="inb-kpi-card" id="inboundKpiCardReceived"></div>
+          <div class="inb-kpi-card" id="inboundKpiCardGarment"></div>
         </div>
 
-        <div class="charts-row" style="grid-template-columns: repeat(2, 1fr);">
-          <div class="chart-card">
-            <h3>Inbound STO Count by Boutique</h3>
-            <div class="chart-wrap"><canvas id="inboundButikChart"></canvas></div>
-          </div>
-          <div class="chart-card">
-            <h3>Garment Order Receiving Progress</h3>
-            <div style="display:flex; gap:16px; align-items:center; justify-content:center; height:100%;">
-              <div class="chart-wrap" style="position:relative; flex:0 0 auto; width:130px; height:130px;">
-                <canvas id="garmentProgressChart"></canvas>
-                <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
-                  <div id="garmentProgressPctText" style="font-size:22px; font-weight:700; font-family:Georgia, serif;">—</div>
-                </div>
-              </div>
-              <div id="garmentProgressQtyText" style="flex:0 0 auto; font-size:12px; color:var(--text-muted); line-height:1.7;">No garment orders yet</div>
+        <div class="inb-mid-row">
+          <div class="inb-panel">
+            <p class="inb-panel-title" id="inboundBoutiquePanelTitle">Open STOs by Boutique</p>
+            <div class="inb-boutique-rows" id="inboundBoutiqueRows"></div>
+            <div class="inb-legend">
+              <span><i style="background:var(--red);"></i>Critical (urgent)</span>
+              <span><i style="background:var(--amber);"></i>Warning (urgent)</span>
+              <span><i style="background:var(--green);"></i>Normal (urgent)</span>
+              <span><i style="background:repeating-linear-gradient(45deg,var(--text-muted) 0 3px,#5a5648 3px 6px);"></i>Aged return / recall / unused</span>
             </div>
           </div>
-        </div>
-
-        <div class="charts-row" style="grid-template-columns: 1fr;">
-          <div class="chart-card">
-            <h3>Receive Station Target Progress</h3>
-            <div style="display:flex; gap:16px; align-items:stretch;">
-              <div style="display:flex; flex-direction:column; align-items:center; flex:0 0 auto; width:100px;">
-                <div class="chart-wrap" style="position:relative; width:100px; height:100px;">
-                  <canvas id="inboundTargetChart"></canvas>
-                  <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
-                    <div id="inboundTargetPctText" style="font-size:14px; font-weight:700; font-family:Georgia, serif;">—</div>
-                  </div>
-                </div>
-                <div id="inboundTargetQtyText" style="font-size:9px; color:var(--text-muted); margin-top:6px; text-align:center; padding:0 3px;">No target set</div>
-              </div>
-              <div class="chart-wrap" style="position:relative; flex:1; min-width:0;">
-                <canvas id="receiveStationTargetChart"></canvas>
-                <div id="receiveStationTargetEmpty" class="empty-state" style="position:absolute; inset:0; display:none; align-items:center; justify-content:center; padding:0 16px;">No receive station targets set yet — set them in Team Setup.</div>
-              </div>
-            </div>
+          <div class="inb-panel">
+            <p class="inb-panel-title" id="inboundCriticalPanelTitle">Top Critical STOs</p>
+            <div id="inboundUrgentWrap" class="scroll-table" style="max-height:260px; flex:1; min-height:0;"></div>
+            <div class="inb-bucket-row" id="inboundCriticalBuckets"></div>
+            <div class="inb-footnote" id="inboundCriticalFootnote"></div>
           </div>
         </div>
 
-        <!-- Per Shaila's request (Sep 28, 2026 — "kecikkan sikit show 5 row je dan top 5 sahaja"):
-             this row no longer grows to fill leftover space (flex:0 0 auto overrides the generic
-             .dash-slide.active > .charts-row.dash-tables-row flex:1 rule) — it's now the FG Arriving
-             Soon row below that grows instead, since Critical STOs is capped to its top 5 in JS
-             (renderInboundUrgent) and doesn't need extra room. -->
-        <div class="charts-row dash-tables-row" style="margin-bottom:0; flex:0 0 auto; min-height:0;">
-          <div>
-            <p class="section-title">Critical STOs From Boutique</p>
-            <div class="card"><div id="inboundUrgentWrap" class="scroll-table" style="max-height:220px; flex:0 0 auto;"></div></div>
-          </div>
-          <div>
-            <p class="section-title">Garment Batches Needing Attention</p>
-            <div class="card"><div id="garmentNeedsAttentionWrap" class="scroll-table" style="max-height:220px; flex:0 0 auto;"></div></div>
-          </div>
+        <div class="inb-panel inb-garment-panel-wrap">
+          <p class="inb-panel-title" id="garmentAttentionPanelTitle">Garment Batches Needing Attention</p>
+          <div id="garmentNeedsAttentionWrap" class="scroll-table" style="max-height:230px;"></div>
         </div>
 
-        <!-- Per Shaila's request (Sep 27, 2026 — "'FG Arriving Soon' letak bawah sekali,,buat macam
-             Fabric Arriving Soon kt slide raw material summary tu,,tapi jgn buat besar sgt"): same
-             full-width single-card layout as the Raw Material slide's Fabric Arriving Soon, but WITHOUT
-             that slide's enlarged min-height override — kept at the normal compact scroll-table size. -->
-        <div class="charts-row dash-tables-row" style="margin-bottom:0; grid-template-columns: 1fr;">
-          <div>
-            <p class="section-title">FG Arriving Soon</p>
-            <div class="card"><div id="inboundDashFgArrivingSoonWrap" class="scroll-table"></div></div>
-          </div>
+        <div class="inb-panel" style="flex:1; min-height:0;">
+          <p class="inb-panel-title">FG Arriving Soon <span class="n">(next 2 weeks, from Campaign Timeline)</span></p>
+          <div class="inb-fg-strip" id="inboundDashFgArrivingSoonWrap"></div>
         </div>
       </div>
 
@@ -4699,8 +4734,10 @@ function inboundBacklogQty() {
 
 let records = [];
 let sla = { default: 3, byButik: {} };
-let statusChart = null;
-let butikChart = null;
+// statusChart/butikChart (STO Status donut + STO Count by Boutique bar) removed in the Oct 3, 2026
+// Outbound TV dashboard redesign — replaced by the outb-kpi-row cards and the Open STOs by Boutique
+// bar-list (renderOutboundBoutiqueRows). No other code referenced these canvases/vars, so both the
+// Chart.js instances and their render function (renderCharts) were removed outright rather than guarded.
 
 const TRACKED_STATUS = 'Active';
 
@@ -5809,7 +5846,13 @@ setInterval(autoSyncFromStorage, AUTO_SYNC_INTERVAL_MS);
    the one currently showing, and only if the table actually has more rows than fit. ---------- */
 const DASH_AUTOSCROLL_SLIDE_BY_ID = {
   nextToPickWrap: 'outbound', urgentWrap: 'outbound',
-  inboundUrgentWrap: 'inbound', garmentNeedsAttentionWrap: 'inbound',
+  // Per Shaila (Oct 3, 2026): Top Critical STOs is now capped to top 5 and must stay still (removed
+  // from this list) — only the boutique bar-list scrolls, since it can have more boutiques than fit.
+  inboundBoutiqueRows: 'inbound', garmentNeedsAttentionWrap: 'inbound',
+  // Outbound slide redesign, same Oct 3, 2026 approved mockup: "Open STOs by Boutique" bar-list can
+  // have more boutiques than fit on screen, so it scrolls — but outboundOverdueWrap (Top 5 Oldest
+  // Overdue STOs) is deliberately NOT in this list, same "tak bergerak" rule as its Inbound sibling.
+  outboundBoutiqueRows: 'outbound',
   // rmDashRecentFabricStoWrap/rmDashRecentAccStoWrap removed Sep 27, 2026 (see renderRawMaterialDashTable)
   // — replaced by rmDashFabricArrivingSoonWrap, which gets the same auto-scroll treatment.
   fleetDashTodayWrap: 'fleet', rmDashFabricArrivingSoonWrap: 'raw-material',
@@ -5859,81 +5902,200 @@ Object.keys(DASH_AUTOSCROLL_SLIDE_BY_ID).forEach(id => {
 });
 
 /* ---------- Dashboard ---------- */
-function renderKpis() {
-  // "Active" here means still in progress (progress !== 'Shipped'/DO Issued) — not every STO record
-  // ever created. Previously this counted records.length outright, which included records already
-  // shipped/DO-issued long ago, so the number never went down even as batches finished. "UNUSED
-  // PRODUCT" / "CHINA REWASH ITEM" internal buckets are excluded here too (see senaraiIsExcludedBoutique).
-  const outboundRecords = records.filter(r => !senaraiIsExcludedBoutique(r.toWarehouse));
-  const total = outboundRecords.filter(r => r.progress !== 'Shipped').length;
-  const amarans = outboundRecords.map(computeAmaran);
-  const count = (a) => amarans.filter(x => x === a).length;
-  const lewat = count('LATE');
-  const akan = count('Due Soon');
-  const ok = count('OK');
-
-  const cards = [
-    { num: total, label: 'Total Active STO', cls: '' },
-    { num: lewat, label: 'Late STO', cls: 'red' },
-    { num: akan, label: 'Due Soon (≤2 days)', cls: 'amber' },
-    { num: ok, label: 'STO Normal (safe)', cls: 'green' },
-  ];
-  document.getElementById('kpiGrid').innerHTML = cards.map(c =>
-    `<div class="kpi-card ${c.cls}"><div class="kpi-num">${c.num}</div><div class="kpi-label">${c.label}</div></div>`
-  ).join('');
+// Active (not-yet-shipped) outbound STOs, same "real boutique" exclusion as the STO List/Kanban/KPI
+// cards always used (senaraiIsExcludedBoutique drops the internal UNUSED PRODUCT / CHINA REWASH ITEM
+// buckets). Shared by every card/panel below so "active" means the same thing everywhere on this slide.
+function outboundActiveRecords() {
+  return records.filter(r => !senaraiIsExcludedBoutique(r.toWarehouse) && r.progress !== 'Shipped');
 }
 
-function renderCharts() {
-  // Same "not a real boutique" exclusion as the STO List / Kanban / KPI cards.
-  const outboundRecords = records.filter(r => !senaraiIsExcludedBoutique(r.toWarehouse));
-  const amarans = outboundRecords.map(computeAmaran);
-  const statusCounts = {
-    'Late': amarans.filter(a => a === 'LATE').length,
-    'Due Soon': amarans.filter(a => a === 'Due Soon').length,
-    'Normal': amarans.filter(a => a === 'OK').length,
-  };
-  const statusCtx = document.getElementById('statusChart').getContext('2d');
-  if (statusChart) statusChart.destroy();
-  statusChart = new Chart(statusCtx, {
-    type: 'doughnut',
-    data: {
-      labels: Object.keys(statusCounts),
-      datasets: [{ data: Object.values(statusCounts), backgroundColor: ['#e2685f','#dba63f','#4bb583'], borderWidth: 0 }]
-    },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } } }
-  });
+// Oct 3, 2026 redesign — 4 KPI cards replacing the old plain Total/Late/Due Soon/Normal row:
+// 1) Active STOs (of all STOs ever created for real boutiques), 2) Oldest Overdue STO (real days-late,
+// not just a Late/Not-Late flag — same philosophy as the Inbound "Oldest Urgent STO" card, since every
+// active STO being flagged "Late" under the existing 3-way split makes that split alone not very
+// useful), 3) Pick→Pack→Ship Pipeline (real stage counts from the existing progress field/PROGRESS_
+// OPTIONS — Active/Picking/Packing/Packed — no invented stages), 4) On-Time vs Late % from the same
+// computeAmaran/computeDueDate SLA logic the rest of the app already uses.
+function renderOutboundKpis() {
+  const active = outboundActiveRecords();
+  const classified = active.map(r => ({ r, amaran: computeAmaran(r), due: computeDueDate(r) }));
 
-  const butikCounts = {};
-  outboundRecords.forEach(r => { const b = r.toWarehouse || 'No Boutique'; butikCounts[b] = (butikCounts[b] || 0) + 1; });
-  const butikCtx = document.getElementById('butikChart').getContext('2d');
-  if (butikChart) butikChart.destroy();
-  butikChart = new Chart(butikCtx, {
-    type: 'bar',
-    data: { labels: Object.keys(butikCounts), datasets: [{ data: Object.values(butikCounts), backgroundColor: '#c79b4a', borderRadius: 3 }] },
-    options: {
-      responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true, ticks: { precision: 0, font: { size: 11 } } }, x: { ticks: { font: { size: 10 } } } }
+  // Per Shaila (Oct 3, 2026 — "53 of 53 tapi berkurang kalau dah siap issued do"): the denominator is
+  // the CURRENT working batch only (the createdDate(s) seen among today's still-active STOs), not every
+  // STO ever created — so old, already-Shipped STOs from weeks back don't get folded in (that was the
+  // earlier "yg lepas jgn la massukkan" complaint). As STOs from THIS batch get shipped one by one, the
+  // numerator (active) drops while the denominator (this batch's total, active+shipped) stays fixed —
+  // e.g. starts "53 of 53", becomes "52 of 53" once the first one ships. A STO shipped from an OLDER,
+  // different-dated batch never affects this number at all.
+  const activeBatchDates = new Set(active.map(r => r.createdDate).filter(Boolean));
+  const allNonTest = records.filter(r => !senaraiIsExcludedBoutique(r.toWarehouse));
+  const batchTotal = activeBatchDates.size
+    ? allNonTest.filter(r => activeBatchDates.has(r.createdDate)).length
+    : active.length;
+
+  const activeCard = document.getElementById('outboundKpiCardActive');
+  if (activeCard) {
+    activeCard.innerHTML = `
+      <div class="outb-kpi-top"><div class="outb-kpi-label">Active STOs</div></div>
+      <div class="outb-kpi-num">${active.length}<span style="font-size:16px; color:var(--text-muted);"> of ${batchTotal}</span></div>
+      <div class="outb-kpi-sub">Today's batch &mdash; still waiting to be shipped out</div>
+    `;
+  }
+
+  const late = classified
+    .filter(x => x.amaran === 'LATE')
+    .sort((a, b) => daysDiffFromToday(a.due) - daysDiffFromToday(b.due)); // most overdue (most negative days left) first
+  const oldestCard = document.getElementById('outboundKpiCardOldest');
+  if (oldestCard) {
+    if (!late.length) {
+      oldestCard.innerHTML = `
+        <div class="outb-kpi-top"><div class="outb-kpi-label">Oldest Overdue STO</div></div>
+        <div class="outb-kpi-num">&mdash;</div>
+        <div class="outb-kpi-sub">No overdue STOs right now.</div>
+      `;
+    } else {
+      const oldest = late[0];
+      const daysLate = Math.abs(daysDiffFromToday(oldest.due));
+      oldestCard.innerHTML = `
+        <div class="outb-kpi-top"><div class="outb-kpi-label">Oldest Overdue STO</div></div>
+        <div class="outb-kpi-num" style="color:var(--red);">${daysLate}<span style="font-size:16px; color:var(--text-muted);"> days late</span></div>
+        <div class="outb-kpi-sub"><b>${escapeHtml(oldest.r.orderNumber)}</b><br>${escapeHtml(oldest.r.toWarehouse || '-')} &middot; ${formatQty(oldest.r.totalOrderQty)} pcs</div>
+      `;
     }
-  });
+  }
+
+  // Real stage counts off the existing progress field (PROGRESS_OPTIONS: Active, Picking, Packing,
+  // Packed, Shipped) — "not started" = still Active, "ready" = Packed (packed & waiting to ship;
+  // Shipped records are excluded from "active" entirely, same as the rest of this slide).
+  const notStarted = active.filter(r => (r.progress || 'Active') === 'Active').length;
+  const picking = active.filter(r => r.progress === 'Picking').length;
+  const packing = active.filter(r => r.progress === 'Packing').length;
+  const ready = active.filter(r => r.progress === 'Packed').length;
+  const pipelineCard = document.getElementById('outboundKpiCardPipeline');
+  if (pipelineCard) {
+    pipelineCard.innerHTML = `
+      <div class="outb-kpi-top"><div class="outb-kpi-label">Pick &rarr; Pack &rarr; Ship Pipeline</div></div>
+      <div class="outb-kpi-num small">${active.length}<span style="font-size:14px; color:var(--text-muted);"> active</span></div>
+      <div class="outb-kpi-sub"><b>${notStarted}</b> not started &middot; <b>${picking}</b> picking<br><b>${packing}</b> packing &middot; <b>${ready}</b> packed, ready to ship</div>
+    `;
+  }
+
+  const onTimeCount = classified.filter(x => x.amaran !== 'LATE').length;
+  const lateCount = classified.length - onTimeCount;
+  const onTimePct = classified.length ? Math.round((onTimeCount / classified.length) * 100) : 100;
+  const onTimeCard = document.getElementById('outboundKpiCardOnTime');
+  if (onTimeCard) {
+    const color = onTimePct >= 80 ? 'var(--green)' : onTimePct >= 50 ? 'var(--amber)' : 'var(--red)';
+    onTimeCard.innerHTML = `
+      <div class="outb-kpi-top"><div class="outb-kpi-label">On-Time vs Late</div></div>
+      <div class="outb-kpi-num" style="color:${color};">${onTimePct}<span style="font-size:16px; color:var(--text-muted);">%</span></div>
+      <div class="outb-kpi-sub"><b>${onTimeCount}</b> within SLA &middot; <b>${lateCount}</b> past due date, of ${classified.length} active STO${classified.length === 1 ? '' : 's'}</div>
+    `;
+  }
 }
 
-// Surfaces the 3 most overdue Active STOs — a quick glance at what needs picking/handling first,
-// sitting right beside the aggregate STO Status donut. Reuses the exact same Late classification
-// (computeAmaran) and due-date math as the rest of the dashboard (Next to Pick, Urgent list), just
-// narrowed to LATE only (not Due Soon) and capped at the worst 3 by days overdue.
-function renderLateStoList() {
-  const wrap = document.getElementById('lateStoListWrap');
-  const late = records
-    .filter(r => !senaraiIsExcludedBoutique(r.toWarehouse))
-    .map(r => ({ r, a: computeAmaran(r), due: computeDueDate(r) }))
-    .filter(x => x.a === 'LATE')
-    .sort((x, y) => daysDiffFromToday(x.due) - daysDiffFromToday(y.due)) // most overdue (most negative days left) first
-    .slice(0, 3);
-  if (!late.length) { wrap.innerHTML = `<div class="empty-state">No late STOs.</div>`; return; }
-  let html = `<table><thead><tr><th>STO No.</th><th>Boutique</th><th>Days Late</th></tr></thead><tbody>`;
+// "Open STOs by Boutique" bar-list (mid-row left panel) — plain HTML/CSS horizontal bars (not
+// Chart.js), segmented Late/Due Soon/Normal by computeAmaran, same pattern as the Inbound slide's
+// boutique bar-list (just a 3-way split here, not 4-way — Outbound has no "aged return" concept).
+// Only active (not-yet-shipped) records count, boutiques with nothing open are dropped entirely, and
+// boutiques are sorted worst-first (late desc, then due-soon desc, then total desc).
+// Per Shaila (Oct 3, 2026 — "khatam boutique , buang je,,,sbb macam panjang", then "khatam store
+// kekal kan"): strips the repetitive "KHATAM BOUTIQUE, " / "KHATAM HEADQUARTER - " prefix for display
+// only (the TV bar list has little horizontal room, so names were getting truncated with "...") but
+// deliberately LEAVES "KHATAM STORE, " untouched, since that's a different, meaningful location (not
+// just a repeated brand prefix) she wants kept visible. The full original name is still kept in the
+// row's title/tooltip attribute regardless.
+function outboundBoutiqueShortName(name) {
+  return String(name || '').replace(/^KHATAM\s*(BOUTIQUE|HEADQUARTER)\s*[,-]\s*/i, '').trim() || name;
+}
+function renderOutboundBoutiqueRows() {
+  const active = outboundActiveRecords();
+  const byBoutique = {};
+  active.forEach(r => {
+    const name = r.toWarehouse || 'No Boutique';
+    if (!byBoutique[name]) byBoutique[name] = { late: 0, soon: 0, ok: 0 };
+    const a = computeAmaran(r);
+    if (a === 'LATE') byBoutique[name].late++;
+    else if (a === 'Due Soon') byBoutique[name].soon++;
+    else byBoutique[name].ok++;
+  });
+  const boutiques = Object.keys(byBoutique)
+    .map(name => { const c = byBoutique[name]; return { name, ...c, total: c.late + c.soon + c.ok }; })
+    .filter(b => b.total > 0)
+    .sort((a, b) => (b.late - a.late) || (b.soon - a.soon) || (b.total - a.total));
+
+  const titleEl = document.getElementById('outboundBoutiquePanelTitle');
+  if (titleEl) {
+    titleEl.innerHTML = `Open STOs by Boutique <span class="n">(${boutiques.length} boutique${boutiques.length === 1 ? '' : 's'} &middot; ${active.length} open STO${active.length === 1 ? '' : 's'})</span>`;
+  }
+
+  const wrap = document.getElementById('outboundBoutiqueRows');
+  if (!wrap) return;
+  if (!boutiques.length) {
+    wrap.innerHTML = `<div class="empty-state">No open STOs for any boutique — everything is shipped.</div>`;
+    return;
+  }
+  // Per Shaila (Oct 3, 2026 — "simple kan lagi, buat macam summary by butik je"): dropped the
+  // Late/Due Soon/Normal colour-segmented bar in favour of a plain name + count summary row, with just
+  // one subtle gold bar (proportional to that boutique's share of the total open STOs) for a quick
+  // at-a-glance read, instead of the more detailed severity breakdown.
+  const maxTotal = Math.max(...boutiques.map(b => b.total));
+  wrap.innerHTML = boutiques.map(b => {
+    const barWidthPct = maxTotal > 0 ? (b.total / maxTotal) * 100 : 0;
+    return `
+      <div class="outb-boutique-row">
+        <div class="outb-boutique-name" title="${escapeHtml(b.name)}">${escapeHtml(outboundBoutiqueShortName(b.name))}</div>
+        <div class="outb-bbar" style="width:${barWidthPct}%;"><div class="outb-seg-plain" style="width:100%;"></div></div>
+        <div class="outb-btotal">${b.total}</div>
+      </div>`;
+  }).join('');
+}
+
+// Right panel of the mid-row: "Top 5 Oldest Overdue STOs" — STATIC table, same reasoning/instruction
+// as the Inbound slide's Top Critical STOs ("top critical sto tu kalau boleh tak bergerak dan show top
+// 5 je"): capped to exactly 5 rows and deliberately kept OUT of DASH_AUTOSCROLL_SLIDE_BY_ID so it never
+// scrolls — only the boutique bar-list (left) scrolls on this slide.
+// Per Shaila (Oct 3, 2026 — "yang ni buat macam summary je...buat by boutique"): was one row per
+// overdue STO, which meant a boutique with several late STOs (e.g. 3 separate Avenue K rows) ate up
+// most of the 5 slots and other overdue boutiques never showed at all. Now grouped one row per
+// BOUTIQUE instead: qty/STO count are summed, "days late" shown is that boutique's single oldest
+// (worst) STO, and the "worst representative" STO No. is shown so she can still jump straight to it.
+function renderOutboundTopOverdue() {
+  const active = outboundActiveRecords();
+  const late = active
+    .map(r => ({ r, due: computeDueDate(r), amaran: computeAmaran(r) }))
+    .filter(x => x.amaran === 'LATE');
+
+  const byBoutique = {};
   late.forEach(({ r, due }) => {
+    const name = r.toWarehouse || 'No Boutique';
     const daysLate = Math.abs(daysDiffFromToday(due));
-    html += `<tr><td class="mono-name">${escapeHtml(r.orderNumber)}</td><td>${escapeHtml(r.toWarehouse || '-')}</td><td>${daysLate}</td></tr>`;
+    if (!byBoutique[name]) byBoutique[name] = { name, stoCount: 0, qty: 0, worstDays: -1, worstStoNo: '' };
+    const b = byBoutique[name];
+    b.stoCount++;
+    b.qty += Number(r.totalOrderQty) || 0;
+    if (daysLate > b.worstDays) { b.worstDays = daysLate; b.worstStoNo = r.orderNumber; }
+  });
+  const boutiques = Object.values(byBoutique).sort((a, b) => b.worstDays - a.worstDays);
+
+  const titleEl = document.getElementById('outboundOverduePanelTitle');
+  if (titleEl) titleEl.innerHTML = `Top 5 Oldest Overdue Boutiques <span class="n">(${late.length} overdue STO${late.length === 1 ? '' : 's'} total)</span>`;
+
+  const wrap = document.getElementById('outboundOverdueWrap');
+  if (!wrap) return;
+  const shown = boutiques.slice(0, 5);
+  if (!shown.length) {
+    wrap.innerHTML = `<div class="empty-state">No overdue STOs. Everything is on schedule.</div>`;
+    return;
+  }
+  let html = `<table><thead><tr><th>Boutique</th><th>Overdue STOs</th><th>Qty</th><th>Oldest</th></tr></thead><tbody>`;
+  shown.forEach(b => {
+    html += `<tr>
+      <td title="${escapeHtml(b.name)}">${escapeHtml(outboundBoutiqueShortName(b.name))}</td>
+      <td class="mono-name">${b.stoCount} (worst: ${escapeHtml(b.worstStoNo)})</td>
+      <td>${formatQty(b.qty)}</td>
+      <td><span class="outb-days-bold">${b.worstDays}d</span></td>
+    </tr>`;
   });
   html += `</tbody></table>`;
   wrap.innerHTML = html;
@@ -5946,7 +6108,13 @@ function renderUrgent() {
     .filter(x => x.a === 'LATE' || x.a === 'Due Soon')
     .sort((x, y) => daysDiffFromToday(x.due) - daysDiffFromToday(y.due));
 
+  // Oct 3, 2026 redesign: this panel moved into the new outb-panel styling (matches Garment Batches
+  // Needing Attention on the Inbound slide) — title now shows a live count, same convention.
+  const titleEl = document.getElementById('outboundUrgentPanelTitle');
+  if (titleEl) titleEl.innerHTML = `Needs Immediate Attention <span class="n">(${urgent.length} late or at-risk)</span>`;
+
   const wrap = document.getElementById('urgentWrap');
+  if (!wrap) return;
   if (!urgent.length) { wrap.innerHTML = `<div class="empty-state">No late or at-risk STOs. Everything is under control.</div>`; return; }
 
   let html = `<table><thead><tr><th>STO No.</th><th>Boutique</th><th>Qty</th><th>Due Date</th><th>Days Left</th><th>Alert</th></tr></thead><tbody>`;
@@ -5976,19 +6144,17 @@ function renderNextToPick() {
     .sort((x, y) => (AMARAN_RANK[x.a] - AMARAN_RANK[y.a]) || (daysDiffFromToday(x.due) - daysDiffFromToday(y.due)));
 
   const wrap = document.getElementById('nextToPickWrap');
+  if (!wrap) return;
   if (!queue.length) { wrap.innerHTML = `<div class="empty-state">Nothing waiting to be picked — every STO has already started picking.</div>`; return; }
 
-  let html = `<table><thead><tr><th>#</th><th>STO No.</th><th>Boutique</th><th>Qty</th></tr></thead><tbody>`;
-  queue.forEach(({ r, a, due }, i) => {
-    html += `<tr>
-      <td class="mono-name">${i + 1}</td>
-      <td class="mono-name">${escapeHtml(r.orderNumber)}</td>
-      <td>${escapeHtml(r.toWarehouse || '-')}</td>
-      <td>${formatQty(r.totalOrderQty)}</td>
-    </tr>`;
-  });
-  html += `</tbody></table>`;
-  wrap.innerHTML = html;
+  // Oct 3, 2026 redesign: card strip (matches Inbound's FG Arriving Soon strip) instead of a table,
+  // capped to the top 6 so the TV doesn't show an endless row of cards (per Shaila: "show 5 atau 6 pon cukup").
+  wrap.innerHTML = queue.slice(0, 6).map(({ r }, i) => `
+    <div class="outb-nxt-card">
+      <div class="outb-nxt-top"><span>#${i + 1}</span><span class="outb-nxt-sto-no">${escapeHtml(r.orderNumber)}</span></div>
+      <div class="outb-nxt-boutique" title="${escapeHtml(r.toWarehouse || '-')}">${escapeHtml(r.toWarehouse || '-')}</div>
+      <div class="outb-nxt-qty">${formatQty(r.totalOrderQty)} pcs</div>
+    </div>`).join('');
 }
 
 // Progress-toward-target color coding for the TV dashboard: green once the daily pcs target is
@@ -6014,6 +6180,12 @@ let pickerTargetChart = null;
 // individual picker targets — a stable, predictable department-level number that doesn't shift
 // just because someone forgot to set (or changed) their own personal target.
 function renderPickerTargetProgress() {
+  // Oct 3, 2026 Outbound TV dashboard redesign dropped this chart from the slide entirely (not part
+  // of the approved layout) — its canvas/text elements were removed from that slide's markup. This
+  // function is still called from Team Setup's Pickers tab (picker add/remove/target-save flows), so
+  // it stays defined and just no-ops harmlessly now that its target elements are gone, instead of
+  // throwing — same pattern as renderReceiveStationTargetProgress on the Inbound side.
+  if (!document.getElementById('pickerTargetChart')) return;
   const totalAchieved = pickerTodayTotalQty();
   // Campaign Mode OFF means the target fields in Team Setup are inactive/hidden entirely (per their
   // own label text), even if a number is still saved in them — so only read the saved figure when
@@ -6067,6 +6239,9 @@ function renderPickerTargetProgress() {
 // the ones most likely to need a nudge); the list is simply the bottom 3 by qty ascending.
 function renderPickerLowestList() {
   const wrap = document.getElementById('pickerLowestListWrap');
+  // Same Oct 3, 2026 redesign note as renderPickerTargetProgress above — this list's wrap element no
+  // longer exists on the Outbound slide, so no-op rather than throw when called from Team Setup.
+  if (!wrap) return;
   // Excluded pickers (e.g. a Merchandise Picker) don't belong on a "who still needs to pick more
   // baju today" nudge list, so they're filtered out entirely rather than just showing 0.
   const dashboardPickers = pickers.filter(p => !p.excludeFromDashboard);
@@ -6097,6 +6272,10 @@ let stationTargetChart = null;
 // breakdown (unlike Picker, which is a single combined total) since comparing stations against
 // each other is the point here.
 function renderStationTargetProgress() {
+  // Same Oct 3, 2026 redesign note as renderPickerTargetProgress — this chart's canvas was removed
+  // from the Outbound slide; still called from Team Setup's Packing Stations tab, so no-op instead
+  // of throwing once the element is gone.
+  if (!document.getElementById('stationTargetChart')) return;
   const today = todayStr();
   // When every registered station is OFF, there's no meaningful per-station breakdown to show —
   // collapse into a single "General" bar against the OVERALL (un-split) target instead of a wall
@@ -6246,7 +6425,7 @@ function renderPackerTargetProgress() {
   });
 }
 
-function renderDashboard() { renderDashDutyBarOutbound(); renderKpis(); renderCharts(); renderLateStoList(); renderPickerTargetProgress(); renderPickerLowestList(); renderPackerTargetProgress(); renderStationTargetProgress(); renderNextToPick(); renderUrgent(); }
+function renderDashboard() { renderDashDutyBarOutbound(); renderOutboundKpis(); renderOutboundBoutiqueRows(); renderOutboundTopOverdue(); renderNextToPick(); renderUrgent(); renderRollcageUsageBoards(); }
 
 // Today's date + who's on duty as PIC / Backup PIC, shown at the top of EACH module's own Dashboard
 // slide (Outbound slide shows Outbound's PIC/Backup, Inbound slide shows Inbound's) rather than one
@@ -8179,28 +8358,30 @@ document.getElementById('rollcageStatusSaveBtn').addEventListener('click', () =>
 
 // "Rollcage / Trolley Usage" widget — shown on the Outbound dashboard slide (removed from the
 // Inbound slide per Shaila's request, Sep 27, 2026 — "buang card ... Rollcage / Trolley Usage").
-// Only rollcages currently IN USE are listed — free ones stay out of sight so the dashboard only
-// shows something when there's actually something to look at.
+// Oct 3, 2026 redesign: restyled from a full table into the same compact "X of Y in use" stat style
+// as the rest of the redesigned slide, since rollcage tracking is genuinely used (real putaway jobs
+// via rollcageInUseByDetail) but doesn't need a whole panel's worth of table — the in-use detail list
+// still shows underneath in small text so nothing real is lost, just de-emphasized.
 function renderRollcageUsageBoards() {
   const html = (() => {
     if (!rollcages.length) {
-      return `<div class="empty-state">No rollcages/trolleys registered yet — add them in Team Setup > Rollcages / Trolleys.</div>`;
+      return `<div class="empty-state">No rollcages/trolleys registered yet — add them in Team Setup &gt; Rollcages / Trolleys.</div>`;
     }
     const inUseRows = rollcages
       .map(rc => ({ rc, detail: rollcageInUseByDetail(rc.name, null) }))
       .filter(x => x.detail);
+    const statHtml = `
+      <div class="outb-rollcage-stat">
+        <div class="outb-rollcage-num">${inUseRows.length} <span style="font-size:14px; color:var(--text-muted);">of ${rollcages.length}</span></div>
+        <div class="outb-rollcage-label">rollcages / trolleys in use</div>
+      </div>`;
     if (!inUseRows.length) {
-      return `<div class="empty-state">All rollcages/trolleys are free right now.</div>`;
+      return statHtml + `<div class="outb-rollcage-list">All rollcages/trolleys are free right now.</div>`;
     }
-    let t = `<table><thead><tr><th>Rollcage No.</th><th>In use by</th></tr></thead><tbody>`;
-    inUseRows.forEach(({ rc, detail }) => {
-      t += `<tr>
-        <td>${escapeHtml(rc.name)}</td>
-        <td>${escapeHtml(detail.orderNumber)} — ${escapeHtml(detail.source)}</td>
-      </tr>`;
-    });
-    t += `</tbody></table>`;
-    return t;
+    const list = inUseRows.map(({ rc, detail }) =>
+      `${escapeHtml(rc.name)}: ${escapeHtml(detail.orderNumber)} &mdash; ${escapeHtml(detail.source)}`
+    ).join(' &middot; ');
+    return statHtml + `<div class="outb-rollcage-list">${list}</div>`;
   })();
   ['rollcageUsageWrapOutbound'].forEach(id => {
     const wrap = document.getElementById(id);
@@ -29907,6 +30088,20 @@ function inboundComputeAmaran(rec) {
 }
 const INBOUND_AMARAN_RANK = { CRITICAL: 0, WARNING: 1, OK: 2, Done: 3 };
 
+// HEURISTIC ONLY (Oct 3, 2026 — Inbound TV dashboard redesign): there is no dedicated field on an
+// Inbound STO record marking it as a return / recall / unused-stock / defect transfer rather than a
+// genuine "boutique needs more stock" urgent transfer — those just happen to get created with
+// telltale words in the STO No. itself (e.g. "BG - WH - DEFFECT - (21/09/2026)"). This guesses from
+// that free-text order number so the "Critical STOs" KPI / Top Critical STOs table can separate
+// genuinely urgent transfers from aged return-style backlog that isn't actually time-pressured the
+// same way. It's a guess, not an official classification — a boutique STO that happens to mention
+// one of these words for an unrelated reason would be mis-bucketed, and one that doesn't mention any
+// of them but IS a return would be missed.
+function inboundIsReturnLike(rec) {
+  const s = String(rec.orderNumber || '').toUpperCase();
+  return ['DEFECT', 'DEFFECT', 'RECALL', 'UNUSED'].some(kw => s.includes(kw));
+}
+
 // Same Warning/Critical concept as STO From Boutique, but its own separate thresholds and its
 // own clock — days since the batch's Order Date, and it stops counting (shows "Done") once every
 // SKU in the batch is Complete (including SKUs closed short).
@@ -30563,65 +30758,117 @@ function renderInboundKanban() {
   });
 }
 
-/* ---------- Inbound Dashboard slide ---------- */
+/* ---------- Inbound Dashboard slide (redesigned Oct 3, 2026 — see approved mockup) ---------- */
+// Card A (Critical STOs) + Card B (Oldest Urgent STO). "Genuinely urgent" excludes aged
+// return/recall/unused/defect records (inboundIsReturnLike heuristic) — those are tracked
+// separately (see renderInboundCharts' boutique bars and renderInboundUrgent's footnote) since
+// they aren't time-pressured the same way a boutique actually waiting for stock is.
 function renderInboundKpis() {
   const openList = inboundRecords.filter(r => (r.progress || 'Active') !== 'Complete');
-  const amarans = openList.map(inboundComputeAmaran);
-  const count = (a) => amarans.filter(x => x === a).length;
-  const cards = [
-    { num: openList.length, label: 'Total Inbound STO (open)', cls: '' },
-    { num: count('CRITICAL'), label: 'Critical', cls: 'red' },
-    { num: count('WARNING'), label: 'Warning', cls: 'amber' },
-    { num: count('OK'), label: 'Normal (safe)', cls: 'green' },
-  ];
-  document.getElementById('inboundKpiGrid').innerHTML = cards.map(c =>
-    `<div class="kpi-card ${c.cls}"><div class="kpi-num">${c.num}</div><div class="kpi-label">${c.label}</div></div>`
-  ).join('');
+  const classified = openList.map(r => ({
+    r,
+    aged: inboundIsReturnLike(r),
+    amaran: inboundComputeAmaran(r),
+    waiting: inboundDaysWaiting(r)
+  }));
+  const agedCount = classified.filter(x => x.aged).length;
+  const genuineCritical = classified
+    .filter(x => !x.aged && x.amaran === 'CRITICAL')
+    .sort((a, b) => (b.waiting || 0) - (a.waiting || 0));
+
+  const criticalCard = document.getElementById('inboundKpiCardCritical');
+  if (criticalCard) {
+    criticalCard.innerHTML = `
+      <div class="inb-kpi-top">
+        <div class="inb-kpi-label">Critical STOs</div>
+        <span class="badge badge-red">&#9888; Critical</span>
+      </div>
+      <div class="inb-kpi-num">${genuineCritical.length}</div>
+      <div class="inb-kpi-sub">Urgent transfers &gt; ${inboundAlertSettings.sto.criticalDays} days waiting<br>+<b>${agedCount}</b> aged returns (recall / unused / defect) tracked separately below</div>
+    `;
+  }
+
+  const oldestCard = document.getElementById('inboundKpiCardOldest');
+  if (oldestCard) {
+    if (!genuineCritical.length) {
+      oldestCard.innerHTML = `
+        <div class="inb-kpi-top"><div class="inb-kpi-label">Oldest Urgent STO</div></div>
+        <div class="inb-kpi-num">&mdash;</div>
+        <div class="inb-kpi-sub">No genuinely urgent transfers open right now.</div>
+      `;
+    } else {
+      const oldest = genuineCritical[0];
+      oldestCard.innerHTML = `
+        <div class="inb-kpi-top"><div class="inb-kpi-label">Oldest Urgent STO</div></div>
+        <div class="inb-kpi-num">${oldest.waiting === null ? '-' : oldest.waiting}<span style="font-size:16px; color:var(--text-muted);"> days</span></div>
+        <div class="inb-kpi-sub"><b>${escapeHtml(oldest.r.orderNumber)}</b><br>${escapeHtml(oldest.r.fromBoutique || '-')} &middot; ${formatQty(oldest.r.totalOrderQty)} pcs &middot; created ${formatDateLabel(oldest.r.createdDate)}</div>
+      `;
+    }
+  }
 }
 
-// Separate KPI row for Garment Order — its own Critical/Warning/Normal counts, kept apart from
-// STO From Boutique's since they're different workflows with different alert thresholds.
-function renderGarmentKpis() {
-  const openBatches = garmentOrders.filter(b => garmentBatchStatus(b) !== 'Complete');
-  const amarans = openBatches.map(garmentComputeAmaran);
-  const count = (a) => amarans.filter(x => x === a).length;
-  const cards = [
-    { num: openBatches.length, label: 'Total Garment Batches (open)', cls: '' },
-    { num: count('CRITICAL'), label: 'Critical', cls: 'red' },
-    { num: count('WARNING'), label: 'Warning', cls: 'amber' },
-    { num: count('OK'), label: 'Normal (safe)', cls: 'green' },
-  ];
-  document.getElementById('garmentKpiGrid').innerHTML = cards.map(c =>
-    `<div class="kpi-card ${c.cls}"><div class="kpi-num">${c.num}</div><div class="kpi-label">${c.label}</div></div>`
-  ).join('');
-}
-
-let inboundButikChart = null;
-// Per Shaila's request (Sep 27, 2026 — "buang card sto status ... kt inbound dashboard"): the STO
-// Status donut (Active/On Progress/Complete breakdown) was removed from the Inbound slide, so this
-// no longer builds/destroys that chart — inboundButikChart (Inbound STO Count by Boutique) stays.
+// "Open STOs by Boutique" bar-list (mid-row left panel) — plain HTML/CSS horizontal bars (not
+// Chart.js) so each boutique's bar can be segmented Critical/Warning/Normal (genuinely urgent, by
+// inboundComputeAmaran) plus a separate hatched "Aged" segment (inboundIsReturnLike heuristic).
+// Only OPEN (not-yet-Complete) records count, boutiques with nothing open are dropped entirely, and
+// boutiques are sorted worst-first (critical desc, then warning, then total).
 function renderInboundCharts() {
-  const butikCounts = {};
-  inboundRecords.forEach(r => { const b = r.fromBoutique || 'No Boutique'; butikCounts[b] = (butikCounts[b] || 0) + 1; });
-  const butikCtx = document.getElementById('inboundButikChart').getContext('2d');
-  if (inboundButikChart) inboundButikChart.destroy();
-  inboundButikChart = new Chart(butikCtx, {
-    type: 'bar',
-    data: { labels: Object.keys(butikCounts), datasets: [{ data: Object.values(butikCounts), backgroundColor: '#c79b4a', borderRadius: 3 }] },
-    options: {
-      responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true, ticks: { precision: 0, font: { size: 11 } } }, x: { ticks: { font: { size: 10 } } } }
+  const openList = inboundRecords.filter(r => (r.progress || 'Active') !== 'Complete');
+  const byBoutique = {};
+  openList.forEach(r => {
+    const name = r.fromBoutique || 'No Boutique';
+    if (!byBoutique[name]) byBoutique[name] = { critical: 0, warning: 0, ok: 0, aged: 0 };
+    if (inboundIsReturnLike(r)) {
+      byBoutique[name].aged++;
+    } else {
+      const a = inboundComputeAmaran(r);
+      if (a === 'CRITICAL') byBoutique[name].critical++;
+      else if (a === 'WARNING') byBoutique[name].warning++;
+      else byBoutique[name].ok++;
     }
   });
+  const boutiques = Object.keys(byBoutique)
+    .map(name => { const c = byBoutique[name]; return { name, ...c, total: c.critical + c.warning + c.ok + c.aged }; })
+    .filter(b => b.total > 0)
+    .sort((a, b) => (b.critical - a.critical) || (b.warning - a.warning) || (b.total - a.total));
+
+  const titleEl = document.getElementById('inboundBoutiquePanelTitle');
+  if (titleEl) {
+    titleEl.innerHTML = `Open STOs by Boutique <span class="n">(${boutiques.length} boutique${boutiques.length === 1 ? '' : 's'} &middot; ${openList.length} open STO${openList.length === 1 ? '' : 's'})</span>`;
+  }
+
+  const wrap = document.getElementById('inboundBoutiqueRows');
+  if (!wrap) return;
+  if (!boutiques.length) {
+    wrap.innerHTML = `<div class="empty-state">No open STOs from any boutique — everything is clear.</div>`;
+    return;
+  }
+  const maxTotal = Math.max(...boutiques.map(b => b.total));
+  wrap.innerHTML = boutiques.map(b => {
+    const segs = [
+      { cls: 'inb-seg-critical', v: b.critical },
+      { cls: 'inb-seg-warning', v: b.warning },
+      { cls: 'inb-seg-ok', v: b.ok },
+      { cls: 'inb-seg-aged', v: b.aged },
+    ];
+    const barWidthPct = maxTotal > 0 ? (b.total / maxTotal) * 100 : 0;
+    const inner = segs.filter(s => s.v > 0).map(s => `<div class="${s.cls}" style="width:${(s.v / b.total) * 100}%;" title="${s.v}"></div>`).join('');
+    return `
+      <div class="inb-boutique-row">
+        <div class="inb-boutique-name" title="${escapeHtml(b.name)}">${escapeHtml(b.name)}</div>
+        <div class="inb-bbar" style="width:${barWidthPct}%;">${inner}</div>
+        <div class="inb-btotal">${b.total}</div>
+      </div>`;
+  }).join('');
 }
 
-let garmentProgressChart = null;
-// Cumulative pcs received vs pcs ordered across every SKU in every Garment Order batch — there's
-// no daily target here (Garment Order isn't a daily-quota thing like Pickers/Stations), so this
-// is a running "how much of what's expected has actually arrived" read.
-// "Short" = pcs from SKUs closed via "Close Short" (physical delivery came up short, the rest is
-// never coming) — kept as its own ring segment (distinct color) instead of blending into either
-// Received or Remaining, since it's neither: it's a permanent gap, not something still pending.
+// Card D (Garment Order Received) — cumulative pcs received vs pcs ordered across every SKU in
+// every Garment Order batch. There's no daily target here (Garment Order isn't a daily-quota thing
+// like Pickers/Stations), so this is a running "how much of what's expected has actually arrived"
+// read. "Short" = pcs from SKUs closed via "Close Short" (physical delivery came up short, the rest
+// is never coming) — surfaced as its own figure since it's a permanent gap, not pending stock.
+// Oct 3, 2026 redesign: this used to drive a Chart.js doughnut (garmentProgressChart canvas) — now
+// renders straight into the Card D KPI card instead, same totals computation reused as-is.
 function renderGarmentProgressChart() {
   let totalOrder = 0, totalReceived = 0, totalShort = 0;
   // Merchandise/Accessories SKU lines are excluded here too — same rule as the Inbound
@@ -30634,52 +30881,38 @@ function renderGarmentProgressChart() {
     totalReceived += received;
     if (s.closedShort) totalShort += Math.max(0, order - received);
   }));
+  const pendingBatches = garmentOrders.filter(b => garmentBatchStatus(b) !== 'Complete').length;
 
-  const pctText = document.getElementById('garmentProgressPctText');
-  const qtyText = document.getElementById('garmentProgressQtyText');
-  const canvas = document.getElementById('garmentProgressChart');
+  const card = document.getElementById('inboundKpiCardGarment');
+  if (!card) return;
 
   if (!totalOrder) {
-    pctText.textContent = '—';
-    pctText.style.color = '';
-    qtyText.textContent = 'No garment orders yet.';
-    if (garmentProgressChart) { garmentProgressChart.destroy(); garmentProgressChart = null; }
+    card.innerHTML = `
+      <div class="inb-kpi-top"><div class="inb-kpi-label">Garment Order Received</div></div>
+      <div class="inb-kpi-num">&mdash;</div>
+      <div class="inb-kpi-sub">No garment orders yet.</div>
+    `;
     return;
   }
 
-  const rawPct = Math.round((totalReceived / totalOrder) * 100);
-  const color = targetBarHex(rawPct);
-  pctText.textContent = rawPct + '%';
-  pctText.style.color = color;
-  // Side panel breakdown (instead of cramming it under the % inside the ring) — one line per
-  // segment, color-dotted to match the ring, so Short doesn't get lost in a single run-on sentence.
-  qtyText.innerHTML = `
-    <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;"><span style="width:8px; height:8px; border-radius:50%; background:${KPI_COLOR_HEX.blue}; flex:0 0 auto;"></span>${formatQty(totalReceived)} / ${formatQty(totalOrder)} pcs received</div>
-    ${totalShort ? `<div style="display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; border-radius:50%; background:${KPI_COLOR_HEX.red}; flex:0 0 auto;"></span>${formatQty(totalShort)} pcs short</div>` : ''}
+  const rawPct = (totalReceived / totalOrder) * 100;
+  const color = targetBarHex(Math.round(rawPct));
+  card.innerHTML = `
+    <div class="inb-kpi-top"><div class="inb-kpi-label">Garment Order Received</div></div>
+    <div class="inb-kpi-num" style="color:${color};">${rawPct.toFixed(1)}<span style="font-size:18px; color:var(--text-muted);">%</span></div>
+    <div class="inb-kpi-sub"><b>${formatQty(totalReceived)}</b> / ${formatQty(totalOrder)} pcs received &nbsp;&middot;&nbsp; <b>${pendingBatches}</b> batch${pendingBatches === 1 ? '' : 'es'} pending${totalShort ? ` &nbsp;&middot;&nbsp; <b>${formatQty(totalShort)}</b> pcs closed short` : ''}</div>
   `;
-
-  const receivedData = Math.min(totalReceived, totalOrder);
-  const remainingData = Math.max(0, totalOrder - totalReceived - totalShort);
-
-  if (garmentProgressChart) garmentProgressChart.destroy();
-  garmentProgressChart = new Chart(canvas.getContext('2d'), {
-    type: 'doughnut',
-    data: {
-      labels: ['Received', 'Short', 'Remaining'],
-      datasets: [{ data: [receivedData, totalShort, remainingData], backgroundColor: [KPI_COLOR_HEX.blue, KPI_COLOR_HEX.red, KPI_COLOR_HEX.track], borderWidth: 0 }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false, cutout: '75%',
-      plugins: {
-        legend: { display: false },
-        tooltip: { enabled: true, callbacks: { label: (ctx) => `${ctx.label}: ${formatQty(ctx.parsed)} pcs` } }
-      }
-    }
-  });
 }
 
 let receiveStationTargetChart = null;
+// Oct 3, 2026 redesign: the approved mockup drops this per-station breakdown chart from the Inbound
+// TV slide entirely (not part of the new layout). The canvas/empty-state elements it targets were
+// removed from that slide's markup — but this function is ALSO called from Team Setup save handlers
+// and the Receive Station add/remove flows (outside the dashboard), so the function itself stays
+// (and still gets called from there) and just no-ops harmlessly once its target elements are gone,
+// instead of throwing.
 function renderReceiveStationTargetProgress() {
+  if (!document.getElementById('receiveStationTargetChart')) return;
   const today = todayStr();
   // When every registered station is OFF, there's no meaningful per-station breakdown to show —
   // collapse into a single "General" bar (summed across all stations) against the OVERALL
@@ -30785,50 +31018,109 @@ function renderReceiveStationTargetProgress() {
   });
 }
 
+// Right panel of the mid-row: "Top Critical STOs" table (genuinely urgent only — aged
+// return/recall/unused/defect records are excluded via inboundIsReturnLike, same heuristic as
+// renderInboundKpis/renderInboundCharts), plus the 3 day-bucket counts and the footnote explaining
+// the aged-backlog split. Per Shaila (Oct 3, 2026 — "top critical sto tu kalau boleh tak bergerak
+// dan show top 5 je"): capped to exactly the top 5 longest-waiting (was 8) and deliberately kept OUT
+// of DASH_AUTOSCROLL_SLIDE_BY_ID so this panel stays still — only "Open STOs by Boutique" scrolls now.
 function renderInboundUrgent() {
-  // Per Shaila's request (Sep 28, 2026 — "kecikkan sikit show 5 row je dan top 5 sahaja"): capped to
-  // the top 5 longest-waiting Critical STOs instead of the full (scrollable) list — already sorted
-  // worst-waiting-first, so .slice(0, 5) is exactly "the 5 most urgent".
-  const urgent = inboundRecords
-    .map(r => ({ r, a: inboundComputeAmaran(r), waiting: inboundDaysWaiting(r) }))
-    .filter(x => x.a === 'CRITICAL')
-    .sort((x, y) => (y.waiting || 0) - (x.waiting || 0))
-    .slice(0, 5);
+  const criticalDays = inboundAlertSettings.sto.criticalDays;
+  const openList = inboundRecords.filter(r => (r.progress || 'Active') !== 'Complete');
+  const classified = openList.map(r => ({ r, aged: inboundIsReturnLike(r), amaran: inboundComputeAmaran(r), waiting: inboundDaysWaiting(r) }));
+  const agedCount = classified.filter(x => x.aged).length;
+  const genuineCritical = classified
+    .filter(x => !x.aged && x.amaran === 'CRITICAL')
+    .sort((a, b) => (b.waiting || 0) - (a.waiting || 0));
+
+  const titleEl = document.getElementById('inboundCriticalPanelTitle');
+  if (titleEl) titleEl.innerHTML = `Top Critical STOs <span class="n">(urgent transfers only, ${genuineCritical.length} found)</span>`;
 
   const wrap = document.getElementById('inboundUrgentWrap');
-  if (!urgent.length) { wrap.innerHTML = `<div class="empty-state">No critical STOs. Everything is under control.</div>`; return; }
+  const shown = genuineCritical.slice(0, 5);
+  if (wrap) {
+    if (!shown.length) {
+      wrap.innerHTML = `<div class="empty-state">No critical STOs. Everything is under control.</div>`;
+    } else {
+      let html = `<table><thead><tr><th>Boutique</th><th>STO No.</th><th>Qty</th><th>Waiting</th></tr></thead><tbody>`;
+      shown.forEach(({ r, waiting }) => {
+        html += `<tr>
+          <td>${escapeHtml(r.fromBoutique || '-')}</td>
+          <td class="mono-name">${escapeHtml(r.orderNumber)}</td>
+          <td>${formatQty(r.totalOrderQty)}</td>
+          <td><span class="inb-days-bold">${waiting === null ? '-' : waiting + 'd'}</span></td>
+        </tr>`;
+      });
+      html += `</tbody></table>`;
+      wrap.innerHTML = html;
+    }
+  }
 
-  let html = `<table><thead><tr><th>STO No.</th><th>From Boutique</th><th>Qty</th><th>Days Waiting</th><th>Alert</th></tr></thead><tbody>`;
-  urgent.forEach(({ r, a, waiting }) => {
-    html += `<tr>
-      <td class="mono-name">${escapeHtml(r.orderNumber)}</td>
-      <td>${escapeHtml(r.fromBoutique || '-')}</td>
-      <td>${formatQty(r.totalOrderQty)}</td>
-      <td>${waiting === null ? '-' : waiting}</td>
-      <td><span class="badge ${amaranBadgeClass(a)}">${amaranLabel(a)}</span></td>
-    </tr>`;
-  });
-  html += `</tbody></table>`;
-  wrap.innerHTML = html;
+  // Bucket boundaries scale off the SAME critical-day threshold shown in the Critical STOs KPI
+  // card (inboundAlertSettings.sto.criticalDays) rather than a separately invented cutoff — bucket 1
+  // starts right after it, each later bucket doubles the previous one's width (matches the approved
+  // mockup's 11-20 / 21-40 / 40+ example at the default 10-day threshold).
+  const bucketsEl = document.getElementById('inboundCriticalBuckets');
+  if (bucketsEl) {
+    const b1 = genuineCritical.filter(x => x.waiting > criticalDays && x.waiting <= criticalDays * 2).length;
+    const b2 = genuineCritical.filter(x => x.waiting > criticalDays * 2 && x.waiting <= criticalDays * 4).length;
+    const b3 = genuineCritical.filter(x => x.waiting > criticalDays * 4).length;
+    bucketsEl.innerHTML = `
+      <div class="inb-bucket"><div class="bn">${b1}</div><div class="bl">${criticalDays + 1}&ndash;${criticalDays * 2} days</div></div>
+      <div class="inb-bucket"><div class="bn">${b2}</div><div class="bl">${criticalDays * 2 + 1}&ndash;${criticalDays * 4} days</div></div>
+      <div class="inb-bucket"><div class="bn">${b3}</div><div class="bl">${criticalDays * 4}+ days</div></div>
+    `;
+  }
+
+  const footEl = document.getElementById('inboundCriticalFootnote');
+  if (footEl) {
+    footEl.innerHTML = agedCount
+      ? `Only <b>${genuineCritical.length}</b> genuine urgent transfer${genuineCritical.length === 1 ? '' : 's'} ${genuineCritical.length === 1 ? 'is' : 'are'} open right now — the rest of the ${openList.length}-item backlog (${agedCount} STO${agedCount === 1 ? '' : 's'}) are aged return / recall / unused / defect items, shown separately above.`
+      : `All ${openList.length} open STO${openList.length === 1 ? '' : 's'} right now are genuine urgent transfers — no aged return / recall / unused / defect items in the backlog.`;
+  }
 }
 
+// "Garment Batches Needing Attention" — reuses garmentBatchStatus/garmentComputeAmaran/
+// garmentDaysWaiting/garmentBatchTotals exactly as before. Oct 3, 2026 redesign: switched the
+// open/done split from receiving-status-only (status !== 'Complete') to the full amaran (!== 'Done',
+// which also requires putaway to be finished) so "fully received & put away" in the heading matches
+// what the badge actually means, and restyled as a richer table (inline progress bar + Order Date +
+// Garment/Supplier) instead of the old compact 4-column one. Still shows nothing extra when every
+// batch is done — just the one reassuring line, same as before.
 function renderGarmentNeedsAttention() {
-  const rows = garmentOrders
-    .map(b => ({ b, status: garmentBatchStatus(b), amaran: garmentComputeAmaran(b), waiting: garmentDaysWaiting(b), totals: garmentBatchTotals(b) }))
-    .filter(x => x.status !== 'Complete')
+  const all = garmentOrders.map(b => ({
+    b, status: garmentBatchStatus(b), amaran: garmentComputeAmaran(b),
+    waiting: garmentDaysWaiting(b), totals: garmentBatchTotals(b)
+  }));
+  const openRows = all
+    .filter(x => x.amaran !== 'Done')
     .sort((x, y) => (GARMENT_AMARAN_RANK[x.amaran] - GARMENT_AMARAN_RANK[y.amaran]) || ((y.waiting || 0) - (x.waiting || 0)));
+  const doneCount = all.length - openRows.length;
+  const criticalCount = openRows.filter(x => x.amaran === 'CRITICAL').length;
+  const warningCount = openRows.filter(x => x.amaran === 'WARNING').length;
+  const onPaceCount = openRows.filter(x => x.amaran === 'OK').length;
+
+  const titleEl = document.getElementById('garmentAttentionPanelTitle');
+  if (titleEl) {
+    titleEl.innerHTML = `Garment Batches Needing Attention <span class="n">(${criticalCount} critical &middot; ${warningCount} warning &middot; ${onPaceCount} on-pace, of ${openRows.length} open batch${openRows.length === 1 ? '' : 'es'} — ${doneCount} batch${doneCount === 1 ? '' : 'es'} fully received &amp; put away)</span>`;
+  }
 
   const wrap = document.getElementById('garmentNeedsAttentionWrap');
-  if (!rows.length) { wrap.innerHTML = `<div class="empty-state">No pending garment batches — everything received.</div>`; return; }
+  if (!wrap) return;
+  if (!openRows.length) { wrap.innerHTML = `<div class="empty-state">No pending garment batches — everything received and put away.</div>`; return; }
 
-  let html = `<table><thead><tr><th>Batch No.</th><th>Order Date</th><th>Received / Order</th><th>Status</th><th>Alert</th></tr></thead><tbody>`;
-  rows.forEach(({ b, status, amaran, totals }) => {
+  const barColor = (a) => a === 'CRITICAL' ? KPI_COLOR_HEX.red : a === 'WARNING' ? KPI_COLOR_HEX.amber : KPI_COLOR_HEX.green;
+  let html = `<table><thead><tr><th>Batch No.</th><th>Garment / Supplier</th><th>Order Date</th><th>Received / Order</th><th>Progress</th><th>Status</th><th>Alert</th></tr></thead><tbody>`;
+  openRows.forEach(({ b, status, amaran, waiting, totals }) => {
+    const pct = totals.qtyOrder > 0 ? Math.min(100, Math.round((totals.qtyReceived / totals.qtyOrder) * 100)) : 0;
     html += `<tr>
       <td class="mono-name">${escapeHtml(b.batchNo)}</td>
+      <td>${escapeHtml(b.garmentName || '-')}</td>
       <td>${formatDateLabel(b.orderDate)}</td>
       <td>${formatQty(totals.qtyReceived)} / ${formatQty(totals.qtyOrder)}</td>
+      <td><span class="inb-gbar"><i style="width:${pct}%; background:${barColor(amaran)};"></i></span> ${pct}%</td>
       <td><span class="badge ${garmentStatusBadgeClass(status)}">${status}</span></td>
-      <td><span class="badge ${amaranBadgeClass(amaran)}">${amaranLabel(amaran)}</span></td>
+      <td><span class="badge ${amaranBadgeClass(amaran)}">${amaranLabel(amaran)}</span> <span style="color:var(--text-muted); font-size:10.5px;">${waiting === null ? '' : `(${waiting}d)`}</span></td>
     </tr>`;
   });
   html += `</tbody></table>`;
@@ -30841,10 +31133,13 @@ function renderGarmentNeedsAttention() {
 // shortcut) was removed along with its card, so the whole render function + its dropdown/button
 // listeners are gone too — nothing else referenced garmentDoActualChart or its helpers.
 
-let inboundTargetChart = null;
-// Same "single overall department target" pattern as renderPickerTargetProgress — uses the Daily
-// Targets (Overall) Inbound value, not a sum of individual receive station targets. Achieved qty
-// combines boutique-STO receiving with garment order receiving, same as the per-station chart.
+// Card C (Received Today) — same "single overall department target" pattern as
+// renderPickerTargetProgress: uses the Daily Targets (Overall) Inbound value (Campaign Mode ON),
+// or the live order backlog as a stand-in target (Campaign Mode OFF, same as before). Achieved qty
+// combines boutique-STO receiving with garment order receiving. Oct 3, 2026 redesign: this used to
+// drive a Chart.js donut (inboundTargetChart canvas) — now renders into Card C as a progress bar,
+// same totalAchieved/totalTarget/usingBacklog computation reused as-is. The "pace" badge is just a
+// label on top of the same rawPct this function already computed, not a new metric.
 function renderInboundTargetProgress() {
   const totalAchieved = inboundTodayTotalQty();
   // Campaign Mode OFF => ignore whatever's saved in Team Setup entirely, same rule as
@@ -30856,46 +31151,57 @@ function renderInboundTargetProgress() {
     usingBacklog = true;
   }
 
-  const pctText = document.getElementById('inboundTargetPctText');
-  const qtyText = document.getElementById('inboundTargetQtyText');
-  const canvas = document.getElementById('inboundTargetChart');
-  if (!canvas) return;
+  const card = document.getElementById('inboundKpiCardReceived');
+  if (!card) return;
+
+  // Last logged receiving date across both STO and Garment receiving — purely informational, shown
+  // under the progress bar regardless of which target branch applies.
+  const stoDates = inboundRecords.map(r => r.receivingCompletedDate).filter(Boolean);
+  const garmentDates = garmentReceiveLogs.map(l => l.date).filter(Boolean);
+  const lastDate = [...stoDates, ...garmentDates].sort().pop();
+  const lastLine = lastDate ? `Last logged receiving: ${formatDateLabel(lastDate)}` : 'No receiving logged yet.';
 
   if (!totalTarget) {
-    pctText.textContent = '—';
-    pctText.style.color = '';
-    qtyText.textContent = campaignMode ? 'No overall inbound target set yet — set it in Team Setup.' : 'No receiving backlog right now.';
-    if (inboundTargetChart) { inboundTargetChart.destroy(); inboundTargetChart = null; }
+    card.innerHTML = `
+      <div class="inb-kpi-top">
+        <div class="inb-kpi-label">Received Today</div>
+        <span class="badge badge-gray">No activity yet today</span>
+      </div>
+      <div class="inb-kpi-num small">0 <span style="font-size:14px; color:var(--text-muted);">/ 0 pcs</span></div>
+      <div class="inb-progress-track"><div class="inb-progress-fill" style="width:0%; background:var(--text-muted);"></div></div>
+      <div class="inb-kpi-sub">${campaignMode ? 'No overall inbound target set yet — set it in Team Setup.' : 'No receiving backlog right now.'}<br>${lastLine}</div>
+    `;
     return;
   }
 
   const rawPct = Math.round((totalAchieved / totalTarget) * 100);
   const displayPct = Math.min(100, rawPct);
   const color = targetBarHex(rawPct);
-  pctText.textContent = rawPct + '%';
-  pctText.style.color = color;
-  qtyText.textContent = usingBacklog
-    ? `${formatQty(totalAchieved)} / ${formatQty(totalTarget)} pcs (current order backlog)`
-    : `${formatQty(totalAchieved)} / ${formatQty(totalTarget)} pcs today`;
+  let badgeCls = 'badge-amber', badgeLabel = 'Behind pace';
+  if (totalAchieved <= 0) { badgeCls = 'badge-gray'; badgeLabel = 'No activity yet today'; }
+  else if (rawPct >= 100) { badgeCls = 'badge-green'; badgeLabel = 'Ahead of pace'; }
+  else if (rawPct < 50) { badgeCls = 'badge-red'; badgeLabel = 'Behind pace'; }
 
-  if (inboundTargetChart) inboundTargetChart.destroy();
-  inboundTargetChart = new Chart(canvas.getContext('2d'), {
-    type: 'doughnut',
-    data: {
-      labels: ['Achieved', 'Remaining'],
-      datasets: [{ data: [displayPct, 100 - displayPct], backgroundColor: [color, KPI_COLOR_HEX.track], borderWidth: 0 }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false, cutout: '75%',
-      plugins: { legend: { display: false }, tooltip: { enabled: false } }
-    }
-  });
+  const sourceLabel = usingBacklog
+    ? 'Target = live order backlog (Campaign Mode is OFF, no fixed daily target set)'
+    : 'Target = Campaign Mode fixed daily target (Team Setup)';
+
+  card.innerHTML = `
+    <div class="inb-kpi-top">
+      <div class="inb-kpi-label">Received Today</div>
+      <span class="badge ${badgeCls}">${escapeHtml(badgeLabel)}</span>
+    </div>
+    <div class="inb-kpi-num small">${formatQty(totalAchieved)} <span style="font-size:14px; color:var(--text-muted);">/ ${formatQty(totalTarget)} pcs</span></div>
+    <div class="inb-progress-track"><div class="inb-progress-fill" style="width:${displayPct}%; background:${color};"></div></div>
+    <div class="inb-kpi-sub">${sourceLabel}<br>${lastLine}</div>
+  `;
 }
 
-// Per Shaila's request (Sep 27, 2026 — "card yang ni kecikkan sikit then tambah card untuk 'FG
-// Arriving Soon'"): soonest Shipment 1/2 arrivals from Timeline, via the shared
-// campaignTimelineArrivingSoonHtml helper (the Campaign Timeline slide that originally had this
-// widget was later removed entirely — Sep 28, 2026 "boleh delete slide ni").
+// FG Arriving Soon card strip — Oct 3, 2026 redesign: restyled from the shared
+// campaignTimelineArrivingSoonHtml table helper into a compact horizontal strip of small cards
+// (matches the approved mockup), reading the SAME underlying data via
+// campaignTimelineArrivingSoonGroups directly (soonest Shipment 1/2 arrivals from Timeline, capped
+// to the next 2 weeks) rather than rewriting the underlying arriving-soon logic.
 function renderInboundDashFgArrivingSoon() {
   const wrap = document.getElementById('inboundDashFgArrivingSoonWrap');
   if (!wrap) return;
@@ -30903,12 +31209,30 @@ function renderInboundDashFgArrivingSoon() {
     wrap.innerHTML = `<div class="empty-state">No Timeline data uploaded yet — upload the campaign tracker file in Production &gt; Timeline.</div>`;
     return;
   }
-  wrap.innerHTML = campaignTimelineArrivingSoonHtml(campaignTimelineList, ['ship1Arrive', 'ship2Arrive'], { product: true, qty: true, supplierField: 'supplier', supplierLabel: 'Tailor Supplier', fieldLabels: { ship1Arrive: 'Shipment 1', ship2Arrive: 'Shipment 2' }, fgStatusColor: true, weeksAhead: 2 });
+  const groups = campaignTimelineArrivingSoonGroups(campaignTimelineList, ['ship1Arrive', 'ship2Arrive'], 2);
+  const entries = [];
+  groups.forEach(g => entries.push(...g.recs));
+  if (!entries.length) {
+    wrap.innerHTML = `<div class="empty-state">Nothing arriving in the next 2 weeks.</div>`;
+    return;
+  }
+  wrap.innerHTML = entries.map(entry => {
+    const rec = entry.rec;
+    const d = new Date(entry.iso + 'T00:00:00');
+    const dayLabel = isNaN(d) ? formatDateLabel(entry.iso) : d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
+    const qty = Number(rec.quantity) || 0;
+    const product = campaignTimelineProductLabel(rec);
+    return `
+      <div class="inb-fg-card">
+        <div class="inb-fg-top"><span>${escapeHtml(rec.supplier || '-')}</span><span class="inb-fg-arrival">${escapeHtml(dayLabel)}</span></div>
+        <div class="inb-fg-product" title="${escapeHtml(product)}">${escapeHtml(product)}</div>
+        <div class="inb-fg-qty">${formatQty(qty)} pcs</div>
+      </div>`;
+  }).join('');
 }
 function renderInboundDashboard() {
   renderDashDutyBarInbound();
   renderInboundKpis();
-  renderGarmentKpis();
   renderInboundCharts();
   renderGarmentProgressChart();
   renderInboundTargetProgress();
