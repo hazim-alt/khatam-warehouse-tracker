@@ -39,6 +39,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
+<script>try{var _m=localStorage.getItem("khatam_theme");var _r=document.documentElement;if(_m==="light"){_r.setAttribute("data-theme","light");}else if(_m==="custom"){var _s=JSON.parse(localStorage.getItem("khatam_theme_vars")||"null");if(_s){_r.setAttribute("data-theme","light");_r.setAttribute("data-theme-bg",_s.bg);if(_s.sb==="light")_r.setAttribute("data-sidebar","light");for(var _k in _s.vars)_r.style.setProperty(_k,_s.vars[_k]);}}}catch(e){}</script>
 <style>
   :root {
     color-scheme: dark;
@@ -61,6 +62,14 @@
     --gray-bg: #332c27;
     --purple: #b18cf0;
     --purple-bg: #2b2440;
+    --input-bg: #1e1a17;
+    --input-border: #4a4038;
+    --panel-deep: #14110f;
+    --disabled-bg: #2a2420;
+    --lane-bg: #201b18;
+    --switch-track: #3a332c;
+    --overlay-soft: rgba(255,255,255,0.03);
+    --overlay-mid: rgba(255,255,255,0.05);
   }
   * { box-sizing: border-box; }
   html, body { overflow-x: hidden; }
@@ -476,6 +485,37 @@
      besarkan lagi sikit ke bawah") the floor for this slide's Fabric Arriving Soon box is raised
      directly to comfortably fit ~5-6 rows. */
   .dash-slide[data-slide="raw-material"].active > .charts-row.dash-tables-row { min-height: 360px; }
+
+  /* Oct 4, 2026 — Raw Material slide redesign (`.rm-*`), same look as `.outb-*` / `.inb-*`. */
+  .dash-slide[data-slide="raw-material"] .rm-kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; flex-shrink: 0; }
+  .dash-slide[data-slide="raw-material"] .rm-kpi-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; }
+  .dash-slide[data-slide="raw-material"] .rm-kpi-label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+  .dash-slide[data-slide="raw-material"] .rm-kpi-num { font-family: Georgia, 'Times New Roman', serif; font-size: 30px; line-height: 1.1; margin: 6px 0 4px; color: var(--text); }
+  .dash-slide[data-slide="raw-material"] .rm-kpi-sub { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+  .dash-slide[data-slide="raw-material"] .rm-kpi-sub b { color: var(--text); }
+  .dash-slide[data-slide="raw-material"] .rm-track { height: 7px; background: var(--border); border-radius: 4px; margin: 6px 0; overflow: hidden; }
+  .dash-slide[data-slide="raw-material"] .rm-track > div { height: 100%; border-radius: 4px; }
+  .dash-slide[data-slide="raw-material"] .rm-mid-row { display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px; margin-bottom: 14px; align-items: stretch; flex: 1 0 auto; min-height: 280px; }
+  .dash-slide[data-slide="raw-material"] .rm-panel { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; min-height: 0; }
+  .dash-slide[data-slide="raw-material"] .rm-panel-title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold); font-weight: 700; margin: 0 0 10px; flex-shrink: 0; }
+  .dash-slide[data-slide="raw-material"] .rm-panel-title .n { color: var(--text-muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .dash-slide[data-slide="raw-material"] .rm-stock-rows { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; justify-content: space-between; gap: 4px; overflow-y: auto; }
+  .dash-slide[data-slide="raw-material"] .rm-stock-row { display: grid; grid-template-columns: 170px 1fr 120px; align-items: center; gap: 8px; font-size: 12px; flex: 1 1 auto; max-height: 44px; }
+  .dash-slide[data-slide="raw-material"] .rm-stock-name { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dash-slide[data-slide="raw-material"] .rm-stock-bar { height: 14px; border-radius: 3px; background: var(--border); overflow: hidden; }
+  .dash-slide[data-slide="raw-material"] .rm-stock-bar > div { height: 100%; }
+  .dash-slide[data-slide="raw-material"] .rm-stock-val { text-align: right; color: var(--text-muted); white-space: nowrap; }
+  .dash-slide[data-slide="raw-material"] .rm-stock-val b { color: var(--text); }
+  .dash-slide[data-slide="raw-material"] .rm-legend { display: flex; gap: 12px; margin-top: 10px; font-size: 10px; color: var(--text-muted); flex-wrap: wrap; flex-shrink: 0; }
+  .dash-slide[data-slide="raw-material"] .rm-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .dash-slide[data-slide="raw-material"] .rm-legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+  .dash-slide[data-slide="raw-material"] .rm-strip { display: flex; gap: 10px; flex-wrap: wrap; }
+  .dash-slide[data-slide="raw-material"] .rm-card { flex: 1; min-width: 190px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 7px; padding: 9px 11px; }
+  .dash-slide[data-slide="raw-material"] .rm-card-top { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-muted); gap: 6px; }
+  .dash-slide[data-slide="raw-material"] .rm-card-top .hl { color: var(--gold); font-weight: 700; white-space: nowrap; }
+  .dash-slide[data-slide="raw-material"] .rm-card-main { font-size: 12px; color: var(--text); margin: 4px 0 2px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dash-slide[data-slide="raw-material"] .rm-card-sub { font-size: 11px; color: var(--text-muted); }
+  .dash-slide[data-slide="raw-material"] .rm-empty { font-size: 12px; color: var(--text-muted); padding: 6px 2px; }
   .dash-slide[data-slide="inbound"] .card,
   .dash-slide[data-slide="outbound"] .card { padding: 14px; }
   .dash-slide[data-slide="inbound"] .scroll-table,
@@ -502,10 +542,21 @@
   .dash-slide[data-slide="outbound"] .outb-panel-title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold); font-weight: 700; margin: 0 0 10px; flex-shrink: 0; }
   .dash-slide[data-slide="outbound"] .outb-panel-title .n { color: var(--text-muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
 
-  .dash-slide[data-slide="outbound"] .outb-boutique-rows { display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow-y: auto; }
-  .dash-slide[data-slide="outbound"] .outb-boutique-row { display: grid; grid-template-columns: 150px 1fr 30px; align-items: center; gap: 8px; font-size: 11px; }
+  /* Oct 4, 2026 — mid-row panels grow with the screen height (min 260px, else fill the empty space
+     below the slide) so the TV doesn't end with a big blank gap (per Shaila). */
+  /* Oct 4, 2026 (2nd pass, "penuh dan padat") — instead of guessing a height, the mid-row now GROWS to
+     absorb whatever vertical space is left in the slide (.dash-slide.active is a flex column), and the
+     lists inside stretch to fill their panels: boutique rows spread evenly, overdue table rows share
+     the extra height. min-height keeps it usable in a small windowed view (slide scrolls there). */
+  .dash-slide[data-slide="outbound"] .outb-mid-row { flex: 1 0 auto; min-height: 300px; }
+  .dash-slide[data-slide="outbound"] .outb-boutique-rows { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; max-height: none; justify-content: space-between; gap: 4px; overflow-y: auto; }
+  .dash-slide[data-slide="outbound"] .outb-boutique-row { flex: 1 1 auto; max-height: 44px; }
+  .dash-slide[data-slide="outbound"] #outboundOverdueWrap { max-height: none !important; }
+  .dash-slide[data-slide="outbound"] #outboundOverdueWrap table { height: 100%; }
+  .dash-slide[data-slide="outbound"] #outboundOverdueWrap td { padding-top: 12px; padding-bottom: 12px; }
+  .dash-slide[data-slide="outbound"] .outb-boutique-row { display: grid; grid-template-columns: 150px 1fr 30px; align-items: center; gap: 8px; font-size: 12px; }
   .dash-slide[data-slide="outbound"] .outb-boutique-name { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .dash-slide[data-slide="outbound"] .outb-bbar { display: flex; height: 12px; border-radius: 3px; overflow: hidden; background: var(--border); }
+  .dash-slide[data-slide="outbound"] .outb-bbar { display: flex; height: 14px; border-radius: 3px; overflow: hidden; background: var(--border); }
   .dash-slide[data-slide="outbound"] .outb-seg-late { background: var(--red); }
   .dash-slide[data-slide="outbound"] .outb-seg-soon { background: var(--amber); }
   .dash-slide[data-slide="outbound"] .outb-seg-ok { background: var(--green); }
@@ -523,6 +574,14 @@
   .dash-slide[data-slide="outbound"] .outb-nxt-top { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-muted); gap: 6px; }
   .dash-slide[data-slide="outbound"] .outb-nxt-sto-no { color: var(--gold); font-weight: 700; white-space: nowrap; }
   .dash-slide[data-slide="outbound"] .outb-nxt-boutique { font-size: 12px; color: var(--text); margin: 4px 0 2px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dash-slide[data-slide="outbound"] .outb-bucket-row { display: flex; gap: 8px; margin-top: 10px; flex-shrink: 0; }
+  .dash-slide[data-slide="outbound"] .outb-bucket { flex: 1; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; text-align: center; }
+  .dash-slide[data-slide="outbound"] .outb-bucket .bn { font-family: Georgia, serif; font-size: 17px; color: var(--text); }
+  .dash-slide[data-slide="outbound"] .outb-bucket .bl { font-size: 9px; color: var(--text-muted); margin-top: 2px; }
+  .dash-slide[data-slide="outbound"] .outb-footnote { font-size: 10px; color: var(--text-muted); margin-top: 8px; line-height: 1.5; flex-shrink: 0; }
+  .dash-slide[data-slide="outbound"] .outb-footnote b { color: var(--amber); }
+  .dash-slide[data-slide="outbound"] .outb-perf-track { height: 7px; background: var(--border); border-radius: 4px; margin: 6px 0 6px; overflow: hidden; }
+  .dash-slide[data-slide="outbound"] .outb-perf-fill { height: 100%; border-radius: 4px; }
   .dash-slide[data-slide="outbound"] .outb-nxt-qty { font-size: 11px; color: var(--text-muted); }
 
   .dash-slide[data-slide="outbound"] .outb-days-bold { font-family: Georgia, serif; font-weight: 700; font-size: 14px; color: var(--red); }
@@ -645,10 +704,10 @@
   select.role-select.badge-gray { background: var(--gray-bg); color: #cfc4b7; }
   select.role-select.badge-gold { background: rgba(199,155,74,0.18); color: var(--gold); }
   select.role-select.badge-purple { background: var(--purple-bg); color: var(--purple); }
-  select.role-select option { background: #2a231c; color: #f1e9dd; font-weight: 500; }
+  select.role-select option { background: var(--input-bg); color: var(--text); font-weight: 500; }
 
   .dropzone {
-    border: 2px dashed #4a4038; border-radius: 8px; padding: 22px; text-align: center;
+    border: 2px dashed var(--input-border); border-radius: 8px; padding: 22px; text-align: center;
     transition: border-color 0.15s, background 0.15s; margin-bottom: 14px;
   }
   .dropzone.dragover { border-color: var(--navy); background: var(--blue-bg); }
@@ -666,7 +725,7 @@
   .upload-status.err { color: var(--red); }
 
   .field label { display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; }
-  input, select, textarea { padding: 8px 10px; border: 1px solid #4a4038; border-radius: 4px; font-size: 13px; background: #1e1a17; color: var(--text); font-family: inherit; }
+  input, select, textarea { padding: 8px 10px; border: 1px solid var(--input-border); border-radius: 4px; font-size: 13px; background: var(--input-bg); color: var(--text); font-family: inherit; }
   input:focus, select:focus, textarea:focus { outline: none; border-color: var(--navy); }
   input[type=number] { width: 90px; }
 
@@ -677,12 +736,12 @@
 
   button { cursor: pointer; border: none; border-radius: 4px; font-size: 13px; }
   .btn-primary { background: var(--navy); color: #fff; padding: 9px 18px; font-weight: 700; }
-  .btn-primary:disabled { background: #4a4038; color: var(--text-muted); cursor: not-allowed; opacity: 0.7; }
+  .btn-primary:disabled { background: var(--input-border); color: var(--text-muted); cursor: not-allowed; opacity: 0.7; }
   /* Deliberately styled unlike any other modal button (gold fill, extra left margin) so it can't
      be mistaken for — or misclicked instead of — the neighboring Cancel/Save buttons. */
   .btn-dispatch { background: var(--gold); color: #241f1c; padding: 9px 18px; font-weight: 800; border-radius: 4px; margin-left: 18px; letter-spacing: 0.02em; }
   .btn-dispatch:hover { background: #d6ac5c; }
-  .btn-dispatch:disabled { background: #4a4038; color: var(--text-muted); cursor: not-allowed; opacity: 0.7; }
+  .btn-dispatch:disabled { background: var(--input-border); color: var(--text-muted); cursor: not-allowed; opacity: 0.7; }
   .btn-primary:hover { background: var(--navy-light); }
   .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 8px 14px; font-weight: 600; }
   .btn-ghost:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -708,8 +767,8 @@
      native open/close toggle without needing JS to manage outside-click handling. */
   .manpower-dropdown { position: relative; display: block; width: 100%; }
   .manpower-dropdown summary {
-    list-style: none; cursor: pointer; padding: 8px 10px; border: 1px solid #4a4038; border-radius: 4px;
-    background: #1e1a17; color: var(--text); font-size: 13px; min-height: 17px; user-select: none;
+    list-style: none; cursor: pointer; padding: 8px 10px; border: 1px solid var(--input-border); border-radius: 4px;
+    background: var(--input-bg); color: var(--text); font-size: 13px; min-height: 17px; user-select: none;
   }
   .manpower-dropdown summary::-webkit-details-marker { display: none; }
   .manpower-dropdown summary::after { content: '▾'; float: right; color: var(--text-muted); margin-left: 8px; }
@@ -734,13 +793,13 @@
   .rollcage-chip-remove:hover { color: var(--red); }
 
   .sla-input { width: 70px; text-align: center; }
-  .sla-input:disabled { background: #2a2420; color: var(--text-muted); }
-  .field input:disabled { background: #2a2420; color: var(--text-muted); cursor: not-allowed; }
+  .sla-input:disabled { background: var(--disabled-bg); color: var(--text-muted); }
+  .field input:disabled { background: var(--disabled-bg); color: var(--text-muted); cursor: not-allowed; }
   .driver-password-cell { display: flex; align-items: center; gap: 6px; }
   .driver-password-cell input { flex: 1; }
   .day-chips { display: flex; gap: 4px; flex-wrap: wrap; }
   .day-chip {
-    border: 1px solid #4a4038; background: #1e1a17; color: var(--text-muted);
+    border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-muted);
     font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 20px; cursor: pointer;
   }
   .day-chip:hover { border-color: var(--navy); }
@@ -827,7 +886,7 @@
     padding: 12px;
     min-height: 120px;
   }
-  .kanban-col-lane { background: #201b18; }
+  .kanban-col-lane { background: var(--lane-bg); }
   .kanban-col.dragover { border-color: var(--navy); background: var(--blue-bg); }
   .kanban-col-header {
     font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700;
@@ -839,7 +898,7 @@
   }
   .kc-col-filter {
     width: 100%; padding: 5px 8px; font-size: 11px; margin-bottom: 8px;
-    border: 1px solid #4a4038; border-radius: 4px; background: #1e1a17;
+    border: 1px solid var(--input-border); border-radius: 4px; background: var(--input-bg);
   }
   .kc-col-filter:focus { outline: none; border-color: var(--navy); }
   .kc-col-selectall {
@@ -1083,11 +1142,11 @@
   .sticker-form-grid input { width: 100%; }
   .sticker-form-grid textarea {
     width: 100%; font-family: inherit; resize: vertical; min-height: 46px;
-    padding: 8px 10px; border: 1px solid #4a4038; border-radius: 4px; font-size: 13px; color: var(--text); background: #1e1a17;
+    padding: 8px 10px; border: 1px solid var(--input-border); border-radius: 4px; font-size: 13px; color: var(--text); background: var(--input-bg);
   }
   .sticker-form-grid textarea:focus { outline: none; border-color: var(--navy); }
 
-  .sticker-preview-wrap { display: flex; justify-content: center; margin-bottom: 18px; overflow-x: auto; padding: 14px; background: #14110f; border-radius: 8px; }
+  .sticker-preview-wrap { display: flex; justify-content: center; margin-bottom: 18px; overflow-x: auto; padding: 14px; background: var(--panel-deep); border-radius: 8px; }
 
   .sticker-label {
     width: 150mm; height: 100mm; flex-shrink: 0;
@@ -1162,7 +1221,7 @@
   .rm-summary-total-label { font-size: 10.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
   .rm-summary-total-value { font-size: 28px; font-weight: 800; color: var(--gold); font-family: Georgia, serif; }
 
-  .do-preview-wrap { display: flex; justify-content: center; margin-bottom: 18px; overflow-x: auto; padding: 14px; background: #14110f; border-radius: 8px; }
+  .do-preview-wrap { display: flex; justify-content: center; margin-bottom: 18px; overflow-x: auto; padding: 14px; background: var(--panel-deep); border-radius: 8px; }
   .do-doc {
     width: 210mm; min-height: 297mm; flex-shrink: 0;
     background: #fff; padding: 15mm; box-shadow: 0 2px 10px rgba(0,0,0,0.15);
@@ -1197,6 +1256,84 @@
   @media print {
     body * { visibility: hidden; }
   }
+  /* ===== Light theme (Oct 4, 2026 — "mode terang atau gelap", whole app) =====
+     Toggled by html[data-theme="light"] (set by applyTheme(), remembered in localStorage). Everything
+     in the app already reads these CSS variables, so this block just re-maps them. The sidebar and the
+     primary (navy) buttons deliberately stay dark-brown with white text — same brand look in both modes. */
+  html[data-theme="light"] {
+    color-scheme: light;
+    /* "Light coffee": the dark theme's coffee-brown family, lightened — latte page, cream-coffee cards,
+       a medium-roast sidebar, espresso text. Same warm tone as dark mode, just bright. */
+    --navy: #6a4630;
+    --navy-light: #835c43;
+    --gold: #7d5a24;
+    --bg: #d2b894;
+    --card: #e2cdad;
+    --border: #bda37c;
+    --text: #3a281a;
+    --text-muted: #62492f;
+    --red: #b25544;
+    --red-bg: #e0c6b0;
+    --amber: #94682a;
+    --amber-bg: #e4d0a0;
+    --green: #3f7a58;
+    --green-bg: #ccd8b4;
+    --blue: #43648c;
+    --blue-bg: #c3cfd6;
+    --gray-bg: #cdb48f;
+    --purple: #6c5190;
+    --purple-bg: #d6c9df;
+    --input-bg: #efdcc0;
+    --input-border: #a98760;
+    --panel-deep: #c2a37b;
+    --disabled-bg: #d9c4a2;
+    --lane-bg: #cfb590;
+    --switch-track: #b99a70;
+    --overlay-soft: rgba(60,30,5,0.09);
+    --overlay-mid: rgba(60,30,5,0.15);
+  }
+  /* Sidebar for the light / custom themes. Every colour reads a --sb-* variable (set by the theme engine
+     for custom palettes) and falls back to the built-in "light coffee" look. */
+  html[data-theme="light"] aside.sidebar { background: var(--navy); color: var(--sb-text,#fbeedb); border-right: none; box-shadow: 2px 0 12px rgba(60,35,15,0.22); --text: var(--sb-text,#fbeedb); --text-muted: var(--sb-muted,#ecd6b8); --border: var(--sb-border,rgba(251,238,219,0.30)); --gold: var(--sb-accent,#f1d089); --card: var(--sb-card,#593a27); --red: #ffb8a8; --green: #bfe8c9; --amber: #ffdc92; --input-bg: var(--sb-card,#593a27); --input-border: var(--sb-border,#b08f6e); }
+  html[data-theme="light"] .brand-block { border-bottom-color: var(--sb-border,rgba(251,238,219,0.25)); }
+  html[data-theme="light"] .brand-eyebrow, html[data-theme="light"] .sidebar-date { color: var(--sb-muted,#ecd6b8); }
+  html[data-theme="light"] .dash-topbar-brand img { filter: invert(1) sepia(0.7) saturate(1.5) brightness(0.32); }
+  html[data-theme-bg="dark"] .dash-topbar-brand img { filter: none !important; }
+  html[data-sidebar="light"] .brand-logo { filter: invert(1) sepia(0.7) saturate(1.5) brightness(0.32); }
+  html[data-theme="light"] nav.tabs button { color: var(--sb-text,#fbeedb); }
+  html[data-theme="light"] nav.tabs button:hover:not(.active) { color: var(--sb-text,#fff); background: linear-gradient(90deg, var(--sb-hover,rgba(255,255,255,0.16)), transparent); box-shadow: -2px 3px 10px rgba(50,28,10,0.20); }
+  html[data-theme="light"] nav.tabs button.active { color: var(--sb-text,#fff); background: linear-gradient(90deg, var(--sb-active,rgba(241,208,137,0.40)), transparent 70%); border-left-color: var(--sb-accent,#f1d089); box-shadow: 0 4px 14px rgba(50,28,10,0.20); }
+  html[data-theme="light"] .nav-group-toggle { color: var(--sb-muted,#ecd6b8); }
+  html[data-theme="light"] .nav-group-toggle:hover, html[data-theme="light"] .nav-group-toggle:hover .nav-group-chevron { color: var(--sb-text,#fff); }
+  html[data-theme="light"] .nav-group { border-left-color: var(--sb-border,rgba(241,208,137,0.45)); }
+  html[data-theme="light"] .sidebar-collapse-btn { background: var(--sb-hover,rgba(255,255,255,0.16)); border-color: var(--sb-border,rgba(255,255,255,0.35)); color: var(--sb-text,#fbeedb); box-shadow: 0 1px 3px rgba(50,28,10,0.25); }
+  html[data-theme="light"] .sidebar-collapse-btn:hover { background: var(--sb-active,rgba(255,255,255,0.28)); color: var(--sb-text,#fff); }
+  html[data-theme="light"] .sidebar-expand-btn { background: var(--navy); border-color: var(--sb-border,rgba(255,255,255,0.35)); color: var(--sb-text,#fbeedb); box-shadow: 0 2px 6px rgba(50,28,10,0.35); }
+  html[data-theme="light"] #sidebarSyncBar { border-top-color: var(--sb-border,rgba(251,238,219,0.25)) !important; }
+  html[data-theme="light"] aside.sidebar .btn-ghost { color: var(--sb-text,#fbeedb); border-color: var(--sb-border,rgba(251,238,219,0.40)); }
+  html[data-theme="light"] aside.sidebar .btn-ghost:hover { color: var(--sb-text,#fff); border-color: var(--sb-accent,#f1d089); }
+  html[data-theme="light"] main .btn-ghost { color: var(--text); }
+  html[data-theme="light"] main .btn-ghost:hover { color: var(--red); }
+  html[data-theme="light"] .badge-gray, html[data-theme="light"] select.role-select.badge-gray { color: var(--text-muted); }
+  html[data-theme="light"] .dash-duty-bar,
+  html[data-theme="light"] .report-module-box,
+  html[data-theme="light"] .dash-slide .rm-card,
+  html[data-theme="light"] .dash-slide .outb-nxt-card,
+  html[data-theme="light"] .dash-slide .outb-bucket,
+  html[data-theme="light"] .dash-slide .inb-bucket,
+  html[data-theme="light"] .dash-slide .inb-fg-card,
+  html[data-theme="light"] #itemMasterFormWrap { background: var(--overlay-soft) !important; }
+  html[data-theme="light"] tr:hover,
+  html[data-theme="light"] .manpower-check-row:hover { background: var(--overlay-mid); }
+  html[data-theme="light"] .report-detail-table tbody tr:nth-child(even) { background: var(--overlay-soft); }
+  html[data-theme="light"] .report-target-box .kpi-card { background: var(--overlay-soft); }
+  html[data-theme="light"] .table-group-header td { background: var(--overlay-mid) !important; }
+  html[data-theme="light"] #rmStockDetailBulkBar, html[data-theme="light"] #priceTagDoSelectionBar { background: var(--overlay-soft) !important; }
+  html[data-theme="light"] .dash-slide[data-slide="inbound"] .inb-seg-aged { background: repeating-linear-gradient(45deg, var(--text-muted) 0 4px, var(--border) 4px 8px); }
+  html[data-theme="light"] .btn-dispatch, html[data-theme="light"] .fleet-dest-chip.selected { color: #fff; }
+  html[data-theme="light"] .kc-label-btn:hover, html[data-theme="light"] .kc-do-btn:hover { color: #fff; }
+  html[data-theme="light"] .theme-toggle-btn { color: var(--text); }
+  .theme-toggle-btn { cursor: pointer; }
 </style>
 </head>
 <body>
@@ -1318,6 +1455,7 @@
     <span id="loginStatusText"></span>
     <button type="button" class="btn-ghost" id="logoutBtn" style="padding:4px 10px; font-size:11px;">Logout</button>
   </div>
+  <button type="button" class="btn-ghost" id="themePanelBtnSidebar" style="width:100%; text-align:left; padding:4px 10px; font-size:11px; margin:0 0 6px;" title="Choose a theme or make your own colours">&#127912; Theme&hellip;</button>
   <button type="button" class="btn-ghost" id="deviceStationBtn" style="width:100%; text-align:left; padding:4px 10px; font-size:11px; margin:0 0 10px;">📍 <span id="deviceStationBtnLabel">This device's station: — none —</span></button>
   <nav class="tabs">
     <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
@@ -1420,6 +1558,7 @@
           <option value="auto">Display Size: Auto</option>
           <option value="large">Display Size: Large (TV)</option>
         </select>
+        <button type="button" class="btn-ghost" id="themePanelBtnDash" title="Choose a theme or make your own colours">&#127912; Theme</button>
         <button type="button" class="btn-ghost" id="dashFullscreenBtn">&#9974; Full Screen</button>
       </div>
     </div>
@@ -1455,7 +1594,16 @@
           <div class="outb-panel">
             <p class="outb-panel-title" id="outboundOverduePanelTitle">Top 5 Oldest Overdue STOs</p>
             <div id="outboundOverdueWrap" class="scroll-table" style="max-height:260px; flex:1; min-height:0;"></div>
+            <div class="outb-bucket-row" id="outboundOverdueBuckets"></div>
+            <div class="outb-footnote" id="outboundOverdueFootnote"></div>
           </div>
+        </div>
+
+        <div class="outb-kpi-row">
+          <div class="outb-kpi-card" id="outboundPerfCardPicked"></div>
+          <div class="outb-kpi-card" id="outboundPerfCardPacked"></div>
+          <div class="outb-kpi-card" id="outboundPerfCardLag"></div>
+          <div class="outb-kpi-card" id="outboundPerfCardCycle"></div>
         </div>
 
         <div class="outb-row2" style="grid-template-columns: 1fr;">
@@ -1465,10 +1613,6 @@
           </div>
         </div>
 
-        <div class="outb-panel" style="flex:1; min-height:0;">
-          <p class="outb-panel-title">Rollcage / Trolley Usage</p>
-          <div id="rollcageUsageWrapOutbound"></div>
-        </div>
       </div>
 
       <div class="dash-slide" data-slide="inbound">
@@ -1520,7 +1664,8 @@
 
       <div class="dash-slide" data-slide="fleet">
         <p class="section-title" id="fleetDashTitle">Fleet Schedule Summary</p>
-        <div class="kpi-grid" id="fleetDashKpiGrid"></div>
+        <!-- Oct 4, 2026 (per Shaila: "card ni semua buang"): the 6 status KPI cards (DO Issued /
+             Scheduled / Out of Delivery / Delivered / Reschedule / No Trip) removed from this slide. -->
 
         <div class="charts-row dash-tables-row" style="grid-template-columns: 1fr; margin-bottom:0;">
           <div>
@@ -1533,54 +1678,48 @@
       <div class="dash-slide" data-slide="raw-material">
         <p class="section-title" id="rmDashTitle">Raw Material Summary</p>
         <div class="dash-duty-bar" id="dashDutyBarRawMaterial"></div>
-        <div class="kpi-grid" id="rmDashKpiGrid" style="grid-template-columns: repeat(6, 1fr);"></div>
 
-        <div class="charts-row" style="grid-template-columns: repeat(3, 1fr); margin-bottom:12px;">
-          <div class="chart-card">
-            <h3>STO Status</h3>
-            <div style="display:flex; flex-direction:row; align-items:flex-start; gap:14px;">
-              <div style="display:flex; flex-direction:column; align-items:center; flex:0 0 auto;">
-                <div class="chart-wrap" style="position:relative; width:100px; height:100px;">
-                  <canvas id="rmDashStatusChart"></canvas>
-                  <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
-                    <div id="rmDashStatusPct" style="font-size:18px; font-weight:700; font-family:Georgia, serif; white-space:nowrap;">—</div>
-                  </div>
-                </div>
-                <div id="rmDashStatusLegend" style="font-size:10px; color:var(--text-muted); margin-top:6px; text-align:center;"></div>
-              </div>
-              <div id="rmDashPendingStoWrap" style="flex:1; min-width:0; font-size:10px; color:var(--text-muted);"></div>
+        <!-- Oct 4, 2026 redesign (same visual language as the Inbound/Outbound slide redesigns, `.rm-*`
+             classes): 4 KPI cards, a Fabric Stock Balance bar-list / Price Tag Pending Series row that
+             grows to fill the slide, a Pending STOs card strip and a Fabric Arriving Soon card strip.
+             Replaces the old 6 KPI tiles + 3 Chart.js donut/bar cards + Fabric Arriving Soon table.
+             See renderRawMaterialDashKpis/StockRows/PriceTagPendingList/PendingStoList/DashTable in JS. -->
+        <div class="rm-kpi-row">
+          <div class="rm-kpi-card" id="rmKpiCardFabric"></div>
+          <div class="rm-kpi-card" id="rmKpiCardSto"></div>
+          <div class="rm-kpi-card" id="rmKpiCardPriceTag"></div>
+          <div class="rm-kpi-card" id="rmKpiCardLow"></div>
+        </div>
+
+        <div class="rm-mid-row">
+          <div class="rm-panel">
+            <p class="rm-panel-title" id="rmStockPanelTitle">Fabric Stock Balance</p>
+            <div class="rm-stock-rows" id="rmDashStockRows"></div>
+            <div class="rm-legend">
+              <span><i style="background:var(--green);"></i>In stock</span>
+              <span><i style="background:var(--amber);"></i>Low (&le; 20% of received)</span>
+              <span><i style="background:var(--border);"></i>Out of stock</span>
             </div>
           </div>
-          <div class="chart-card">
-            <h3>RM STO Count by Destination</h3>
-            <div class="chart-wrap" style="height:110px;"><canvas id="rmDashDestChart"></canvas></div>
-          </div>
-          <div class="chart-card">
-            <h3>Price Tag Print Progress</h3>
-            <div style="display:flex; flex-direction:row; align-items:flex-start; gap:14px;">
-              <div style="display:flex; flex-direction:column; align-items:center; flex:0 0 auto;">
-                <div class="chart-wrap" style="position:relative; width:100px; height:100px;">
-                  <canvas id="rmDashPriceTagChart"></canvas>
-                  <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
-                    <div id="rmDashPriceTagPct" style="font-size:18px; font-weight:700; font-family:Georgia, serif; white-space:nowrap;">—</div>
-                  </div>
-                </div>
-                <div id="rmDashPriceTagLegend" style="font-size:10px; color:var(--text-muted); margin-top:6px; text-align:center;"></div>
-              </div>
-              <div id="rmDashPriceTagPendingWrap" style="flex:1; min-width:0; font-size:10px; color:var(--text-muted);"></div>
+          <div class="rm-panel">
+            <p class="rm-panel-title" id="rmAccPanelTitle">Accessories Balance</p>
+            <div class="rm-stock-rows" id="rmDashAccessoriesWrap"></div>
+            <div class="rm-legend">
+              <span><i style="background:var(--green);"></i>In stock</span>
+              <span><i style="background:var(--amber);"></i>Low</span>
+              <span><i style="background:var(--red);"></i>Out of stock</span>
             </div>
           </div>
         </div>
 
-        <!-- Per Shaila's request (Sep 27, 2026 — "ni buang ganti kan dengan 'Fabric Arriving Soon'"):
-             both Fabric Roll Stock and Accessories Stock removed from this slide, replaced with one
-             full-width Fabric Arriving Soon panel (same widget/data as the Campaign Timeline slide's
-             own Fabric Arriving Soon — see renderRawMaterialDashFabricArrivingSoon). -->
-        <div class="charts-row dash-tables-row" style="margin-bottom:0; grid-template-columns: 1fr;">
-          <div>
-            <p class="section-title">Fabric Arriving Soon</p>
-            <div class="card"><div id="rmDashFabricArrivingSoonWrap" class="scroll-table"></div></div>
-          </div>
+        <div class="rm-panel" style="margin-bottom:14px; flex-shrink:0;">
+          <p class="rm-panel-title" id="rmPendingStoPanelTitle">Pending STOs</p>
+          <div class="rm-strip" id="rmDashPendingStoWrap"></div>
+        </div>
+
+        <div class="rm-panel" style="flex-shrink:0;">
+          <p class="rm-panel-title" id="rmArrivingPanelTitle">Fabric Arriving Soon</p>
+          <div class="rm-strip" id="rmDashFabricArrivingSoonWrap"></div>
         </div>
       </div>
 
@@ -2888,7 +3027,7 @@
         <p class="section-title" style="margin:0;" id="campaignTimelineTableSectionTitle">Finished Goods (FG)</p>
         <div id="campaignTimelineTableSwitchToggle" style="display:flex; align-items:center; gap:9px; cursor:pointer; user-select:none;">
           <span class="ctt-switch-label" data-table="fg" style="font-size:13px; font-weight:600; transition:color .15s;">Finished Goods (FG)</span>
-          <span style="position:relative; width:38px; height:20px; border-radius:999px; background:#3a332c; border:1px solid #4a4038; flex-shrink:0;">
+          <span style="position:relative; width:38px; height:20px; border-radius:999px; background:var(--switch-track); border:1px solid var(--input-border); flex-shrink:0;">
             <span id="campaignTimelineTableSwitchThumb" style="position:absolute; top:1px; left:1px; width:16px; height:16px; border-radius:50%; background:var(--gold); transition:left .15s;"></span>
           </span>
           <span class="ctt-switch-label" data-table="fabric" style="font-size:13px; font-weight:600; transition:color .15s;">Fabric</span>
@@ -3373,7 +3512,7 @@
     <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
       <button type="button" class="btn-ghost" id="stickerToggleAllPreviewBtn">👁 View All Cartons</button>
     </div>
-    <div id="stickerAllPreviewWrap" style="display:none; max-height:560px; overflow-y:auto; overflow-x:auto; margin-bottom:14px; padding:14px; background:#14110f; border-radius:8px; flex-direction:column; align-items:center;"></div>
+    <div id="stickerAllPreviewWrap" style="display:none; max-height:560px; overflow-y:auto; overflow-x:auto; margin-bottom:14px; padding:14px; background:var(--panel-deep); border-radius:8px; flex-direction:column; align-items:center;"></div>
 
     <div class="sticker-preview-wrap">
       <div class="sticker-label" id="stickerLabel">
@@ -5855,7 +5994,7 @@ const DASH_AUTOSCROLL_SLIDE_BY_ID = {
   outboundBoutiqueRows: 'outbound',
   // rmDashRecentFabricStoWrap/rmDashRecentAccStoWrap removed Sep 27, 2026 (see renderRawMaterialDashTable)
   // — replaced by rmDashFabricArrivingSoonWrap, which gets the same auto-scroll treatment.
-  fleetDashTodayWrap: 'fleet', rmDashFabricArrivingSoonWrap: 'raw-material',
+  fleetDashTodayWrap: 'fleet', rmDashStockRows: 'raw-material', rmDashAccessoriesWrap: 'raw-material',
   // FG Arriving Soon card added to the Inbound slide (Sep 27, 2026 — "tambah card untuk 'FG Arriving
   // Soon'"), same auto-scroll treatment as its Campaign Timeline slide counterpart.
   inboundDashFgArrivingSoonWrap: 'inbound'
@@ -6078,6 +6217,26 @@ function renderOutboundTopOverdue() {
   });
   const boutiques = Object.values(byBoutique).sort((a, b) => b.worstDays - a.worstDays);
 
+  // Day-late buckets + footnote under the table (same pattern as Inbound's Top Critical STOs panel).
+  // Counts are per STO (not per boutique) so they add up to the "overdue STOs total" in the title.
+  const lateDays = late.map(x => Math.abs(daysDiffFromToday(x.due)));
+  const bucketsEl = document.getElementById('outboundOverdueBuckets');
+  if (bucketsEl) {
+    const b1 = lateDays.filter(d => d <= 3).length;
+    const b2 = lateDays.filter(d => d >= 4 && d <= 7).length;
+    const b3 = lateDays.filter(d => d >= 8).length;
+    bucketsEl.innerHTML = `
+      <div class="outb-bucket"><div class="bn">${b1}</div><div class="bl">1&ndash;3 days late</div></div>
+      <div class="outb-bucket"><div class="bn">${b2}</div><div class="bl">4&ndash;7 days late</div></div>
+      <div class="outb-bucket"><div class="bn">${b3}</div><div class="bl">8+ days late</div></div>`;
+  }
+  const footEl = document.getElementById('outboundOverdueFootnote');
+  if (footEl) {
+    footEl.innerHTML = late.length
+      ? `<b>${late.length}</b> of ${active.length} active STO${active.length === 1 ? ' is' : 's are'} overdue, across <b>${boutiques.length}</b> boutique${boutiques.length === 1 ? '' : 's'}. Table shows the 5 boutiques with the oldest overdue STO.`
+      : `No overdue STOs &mdash; all ${active.length} active STO${active.length === 1 ? ' is' : 's are'} on schedule.`;
+  }
+
   const titleEl = document.getElementById('outboundOverduePanelTitle');
   if (titleEl) titleEl.innerHTML = `Top 5 Oldest Overdue Boutiques <span class="n">(${late.length} overdue STO${late.length === 1 ? '' : 's'} total)</span>`;
 
@@ -6137,6 +6296,75 @@ function renderUrgent() {
 // each group sorted by due date ascending — so whoever's on the TV screen knows exactly which
 // boutique/STO to grab next without digging through the full STO List.
 const AMARAN_RANK = { LATE: 0, 'Due Soon': 1, OK: 2, Done: 3 };
+// Oct 4, 2026 — Pick & Pack performance cards on the Outbound slide. Picked/Packed Today reuse the
+// SAME target rule the old donuts used (Campaign Mode ON -> fixed Team Setup target; OFF -> live
+// backlog + achieved-today), so numbers match Team Setup. Lag/Cycle are averages over STOs packed in
+// the last 7 days vs the 7 days before (only records that actually have both dates).
+function renderOutboundPerformance() {
+  const perfCard = (id, label, numHtml, subHtml, pct, color) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const bar = pct === null ? '' : `<div class="outb-perf-track"><div class="outb-perf-fill" style="width:${Math.min(100, pct)}%; background:${color};"></div></div>`;
+    el.innerHTML = `
+      <div class="outb-kpi-top"><div class="outb-kpi-label">${label}</div></div>
+      <div class="outb-kpi-num">${numHtml}</div>
+      ${bar}
+      <div class="outb-kpi-sub">${subHtml}</div>`;
+  };
+  const targetCard = (id, label, achieved, fixedTarget, backlog) => {
+    let target = campaignMode ? (Number(fixedTarget) || 0) : 0;
+    let usingBacklog = false;
+    if (!target && !campaignMode) { target = backlog + achieved; usingBacklog = true; }
+    if (!target) {
+      perfCard(id, label, `<span style="color:var(--text-muted);">&mdash;</span>`,
+        campaignMode ? 'No daily target set in Team Setup.' : `<b>0</b> / 0 pcs (nothing waiting right now)`, null);
+      return;
+    }
+    const rawPct = Math.round((achieved / target) * 100);
+    const color = targetBarHex(rawPct);
+    perfCard(id, label,
+      `<span style="color:${color};">${rawPct}%</span>`,
+      `<b>${formatQty(achieved)}</b> / ${formatQty(target)} pcs ${usingBacklog ? '(today\'s backlog)' : 'today'}`,
+      rawPct, color);
+  };
+  targetCard('outboundPerfCardPicked', 'Picked Today', pickerTodayTotalQty(), campaignMode ? effectiveDailyTarget('picker') : 0, pickerBacklogQty());
+  targetCard('outboundPerfCardPacked', 'Packed Today', packerTodayTotalQty(), campaignMode ? effectiveDailyTarget('packer') : 0,
+    // Packing can only start once picking is done, so the packing "backlog" is just STOs already
+    // picked but not yet packed (not every STO in the system) — nothing picked yet => 0 / 0.
+    records.filter(r => r.pickingCompletedDate && !r.packingCompletedDate && !senaraiIsExcludedBoutique(r.toWarehouse))
+      .reduce((s, r) => s + (parseFloat(r.totalOrderQty) || 0), 0));
+
+  const today = todayStr();
+  const from7 = addDays(today, -6), from14 = addDays(today, -13), prevEnd = addDays(today, -7);
+  const valid = records.filter(r => !senaraiIsExcludedBoutique(r.toWarehouse) && r.packingCompletedDate);
+  const thisWk = valid.filter(r => r.packingCompletedDate >= from7 && r.packingCompletedDate <= today);
+  const prevWk = valid.filter(r => r.packingCompletedDate >= from14 && r.packingCompletedDate <= prevEnd);
+  const avg = (arr, fn) => {
+    const v = arr.map(fn).filter(d => d !== null && d >= 0);
+    return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+  };
+  const trend = (cur, prev) => {
+    if (cur === null || prev === null) return '';
+    const d = Math.round((cur - prev) * 10) / 10;
+    if (d === 0) return ' &middot; same as last week';
+    // lower = faster = better
+    return ` &middot; <span style="color:${d < 0 ? 'var(--green)' : 'var(--red)'};">${d < 0 ? '&#9660;' : '&#9650;'} ${Math.abs(d)}d vs last week</span>`;
+  };
+  const fmt1 = v => (Math.round(v * 10) / 10).toString();
+
+  const lag = avg(thisWk, r => daysBetweenIso(r.pickingCompletedDate, r.packingCompletedDate));
+  const lagPrev = avg(prevWk, r => daysBetweenIso(r.pickingCompletedDate, r.packingCompletedDate));
+  perfCard('outboundPerfCardLag', 'Pick &rarr; Pack Lag',
+    lag === null ? '&mdash;' : `${fmt1(lag)}<span style="font-size:16px; color:var(--text-muted);"> days</span>`,
+    lag === null ? 'No STOs packed in the last 7 days.' : `Avg wait between picked and packed &middot; last 7 days${trend(lag, lagPrev)}`, null);
+
+  const cyc = avg(thisWk, r => daysBetweenIso(r.createdDate, r.packingCompletedDate));
+  const cycPrev = avg(prevWk, r => daysBetweenIso(r.createdDate, r.packingCompletedDate));
+  perfCard('outboundPerfCardCycle', 'Avg Cycle Time',
+    cyc === null ? '&mdash;' : `${fmt1(cyc)}<span style="font-size:16px; color:var(--text-muted);"> days</span>`,
+    cyc === null ? 'No STOs packed in the last 7 days.' : `STO created &rarr; packed &middot; ${thisWk.length} STOs, last 7 days${trend(cyc, cycPrev)}`, null);
+}
+
 function renderNextToPick() {
   const queue = records
     .filter(r => (r.progress || 'Active') === 'Active' && !senaraiIsExcludedBoutique(r.toWarehouse))
@@ -6425,7 +6653,7 @@ function renderPackerTargetProgress() {
   });
 }
 
-function renderDashboard() { renderDashDutyBarOutbound(); renderOutboundKpis(); renderOutboundBoutiqueRows(); renderOutboundTopOverdue(); renderNextToPick(); renderUrgent(); renderRollcageUsageBoards(); }
+function renderDashboard() { renderDashDutyBarOutbound(); renderOutboundKpis(); renderOutboundBoutiqueRows(); renderOutboundTopOverdue(); renderNextToPick(); renderOutboundPerformance(); renderUrgent(); renderRollcageUsageBoards(); }
 
 // Today's date + who's on duty as PIC / Backup PIC, shown at the top of EACH module's own Dashboard
 // slide (Outbound slide shows Outbound's PIC/Backup, Inbound slide shows Inbound's) rather than one
@@ -9738,6 +9966,11 @@ function rmPerformBackup(label) {
 // happened yet (covers the normal case of the app not being left open through midnight). Wrapped so a
 // backup failure (e.g. localStorage briefly unavailable) never blocks the app itself from loading.
 function rmAutoBackupIfNeeded(label) {
+  // Oct 4, 2026 (per Shaila: "tak perlu buat auto dah... saya jadi rimas"): automatic backups are OFF —
+  // the Save-As popup kept interrupting her. Only the manual "Backup Now" button downloads a backup now.
+  // Set to true to bring the daily auto backup back.
+  const AUTO_BACKUP_ENABLED = false;
+  if (!AUTO_BACKUP_ENABLED) return;
   try {
     const today = todayStr();
     if (localStorage.getItem('rmAutoBackupLastDate_v1') === today) return;
@@ -12196,16 +12429,16 @@ function renderPscfFilterBar(wrapId, fields, filtersObj, onApply, rows) {
       }).join('');
       return `<div class="field pscf-field" data-key="${field.key}" style="margin:0; min-width:180px; position:relative;">
         <label style="font-size:12px;">${escapeHtml(field.label)}</label>
-        <button type="button" class="pscf-toggle" style="width:100%; text-align:left; padding:8px 10px; border:1px solid #4a4038; border-radius:4px; font-size:13px; background:#1e1a17; color:var(--text); font-family:inherit; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:6px;">
+        <button type="button" class="pscf-toggle" style="width:100%; text-align:left; padding:8px 10px; border:1px solid var(--input-border); border-radius:4px; font-size:13px; background:var(--input-bg); color:var(--text); font-family:inherit; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:6px;">
           <span class="pscf-toggle-label" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(toggleLabelFor(field))}</span><span>▾</span>
         </button>
-        <div class="pscf-panel" style="display:none; position:absolute; z-index:50; top:100%; left:0; right:0; min-width:220px; max-height:300px; overflow-y:auto; background:#1e1a17; border:1px solid #4a4038; border-radius:4px; margin-top:4px; box-shadow:0 6px 16px rgba(0,0,0,0.5);">
-          <div style="padding:8px 8px 4px; position:sticky; top:0; background:#1e1a17;">
-            <input type="text" class="pscf-search" placeholder="Search..." style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #4a4038; border-radius:4px; font-size:12px; background:#12100e; color:var(--text); font-family:inherit;">
+        <div class="pscf-panel" style="display:none; position:absolute; z-index:50; top:100%; left:0; right:0; min-width:220px; max-height:300px; overflow-y:auto; background:var(--input-bg); border:1px solid var(--input-border); border-radius:4px; margin-top:4px; box-shadow:0 6px 16px rgba(0,0,0,0.5);">
+          <div style="padding:8px 8px 4px; position:sticky; top:0; background:var(--input-bg);">
+            <input type="text" class="pscf-search" placeholder="Search..." style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid var(--input-border); border-radius:4px; font-size:12px; background:#12100e; color:var(--text); font-family:inherit;">
           </div>
           <div class="pscf-options">${optionsHtml}</div>
           <div class="pscf-empty" style="display:none; padding:10px; font-size:12px; opacity:0.6;">No matches.</div>
-          <div style="display:flex; gap:6px; padding:8px 10px; border-top:1px solid #4a4038; position:sticky; bottom:0; background:#1e1a17;">
+          <div style="display:flex; gap:6px; padding:8px 10px; border-top:1px solid var(--input-border); position:sticky; bottom:0; background:var(--input-bg);">
             <button type="button" class="btn-ghost pscf-clear" style="flex:1; font-size:12px; padding:6px;">Clear</button>
             <button type="button" class="btn-primary pscf-confirm" style="flex:1; font-size:12px; padding:6px;">Confirm</button>
           </div>
@@ -12522,7 +12755,7 @@ function renderProductionSummaryReceivingTable() {
     totalVarianceValue += r.varianceValue;
   });
   const totalVarianceColor = totalVariance === 0 ? '' : (totalVariance > 0 ? 'color:var(--green);' : 'color:var(--red);');
-  html += `</tbody><tfoot><tr style="font-weight:700; border-top:2px solid #4a4038;">
+  html += `</tbody><tfoot><tr style="font-weight:700; border-top:2px solid var(--input-border);">
     <td colspan="5">GRAND TOTAL</td>
     <td>${formatQty(totalQtyOrder)}</td>
     <td>${formatQty(totalQtyReceived)}</td>
@@ -12635,7 +12868,7 @@ function renderProductionSummaryWrap() {
       <p class="section-title" style="margin:0;">${productionSummaryActiveSubTable === 'receiving' ? 'Summary Receiving' : 'Summary Collection Status'}</p>
       <div id="pscfSwitchToggle" style="display:flex; align-items:center; gap:9px; cursor:pointer; user-select:none;">
         <span class="pscf-switch-label" data-table="collection" style="font-size:13px; font-weight:600; transition:color .15s; color:${productionSummaryActiveSubTable !== 'receiving' ? 'var(--gold)' : 'var(--text-dim, #9a8f83)'};">Collection Status</span>
-        <span class="pscf-switch-track" style="position:relative; width:38px; height:20px; border-radius:999px; background:#3a332c; border:1px solid #4a4038; flex-shrink:0;">
+        <span class="pscf-switch-track" style="position:relative; width:38px; height:20px; border-radius:999px; background:var(--switch-track); border:1px solid var(--input-border); flex-shrink:0;">
           <span class="pscf-switch-thumb" style="position:absolute; top:1px; left:${productionSummaryActiveSubTable === 'receiving' ? '19px' : '1px'}; width:16px; height:16px; border-radius:50%; background:var(--gold); transition:left .15s;"></span>
         </span>
         <span class="pscf-switch-label" data-table="receiving" style="font-size:13px; font-weight:600; transition:color .15s; color:${productionSummaryActiveSubTable === 'receiving' ? 'var(--gold)' : 'var(--text-dim, #9a8f83)'};">Receiving</span>
@@ -14865,11 +15098,11 @@ function campaignTimelineWireCascadingLink(seriesSelectOrig, itemContainerOrig, 
   // Same look-and-feel as every other <select> in the app (see the global `input, select, textarea`
   // rule) so this reads as "just another dropdown" rather than a bespoke widget.
   itemContainer.innerHTML = `
-    <button type="button" class="tl-ms-toggle" style="width:100%; text-align:left; padding:8px 10px; border:1px solid #4a4038; border-radius:4px; font-size:13px; background:#1e1a17; color:var(--text); font-family:inherit; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:6px;">
+    <button type="button" class="tl-ms-toggle" style="width:100%; text-align:left; padding:8px 10px; border:1px solid var(--input-border); border-radius:4px; font-size:13px; background:var(--input-bg); color:var(--text); font-family:inherit; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:6px;">
       <span class="tl-ms-toggle-label" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">-- Not linked --</span>
       <span style="flex-shrink:0; opacity:0.7;">▾</span>
     </button>
-    <div class="tl-ms-panel" style="display:none; position:fixed; z-index:9999; max-height:260px; overflow-y:auto; overflow-x:hidden; box-sizing:border-box; background:#1e1a17; border:1px solid #4a4038; border-radius:4px; box-shadow:0 6px 16px rgba(0,0,0,0.5);"></div>
+    <div class="tl-ms-panel" style="display:none; position:fixed; z-index:9999; max-height:260px; overflow-y:auto; overflow-x:hidden; box-sizing:border-box; background:var(--input-bg); border:1px solid var(--input-border); border-radius:4px; box-shadow:0 6px 16px rgba(0,0,0,0.5);"></div>
   `;
   const toggle = itemContainer.querySelector('.tl-ms-toggle');
   const toggleLabel = itemContainer.querySelector('.tl-ms-toggle-label');
@@ -23180,7 +23413,8 @@ function renderFleetDashKpis() {
     { num: countFor('Reschedule'), label: 'Reschedule', cls: 'red' },
     { num: countFor('No Trip'), label: 'No Trip', cls: 'gray' },
   ];
-  document.getElementById('fleetDashKpiGrid').innerHTML = cards.map(c =>
+  const grid = document.getElementById('fleetDashKpiGrid');
+  if (grid) grid.innerHTML = cards.map(c =>
     `<div class="kpi-card ${c.cls}"><div class="kpi-num">${c.num}</div><div class="kpi-label">${c.label}</div></div>`
   ).join('');
 }
@@ -23246,21 +23480,130 @@ function renderRawMaterialDashKpis() {
   const completedStoCount = groups.length - activeStoCount;
   const doToday = dos.filter(d => d.createdDate === today).length;
   const picksToday = picks.filter(p => p.date === today).length;
-  const cards = [
-    { num: rollsInStock, label: 'Rolls In Stock', cls: 'blue' },
-    { num: `${formatQty(meterRemaining)} m`, label: 'Meter Remaining (Total)', cls: '' },
-    { num: activeStoCount, label: 'Active STO', cls: 'amber' },
-    { num: completedStoCount, label: 'Completed STO', cls: 'green' },
-    { num: doToday, label: 'DO Issued Today', cls: 'purple' },
-    { num: picksToday, label: 'Picks Today', cls: '' },
-  ];
-  document.getElementById('rmDashKpiGrid').innerHTML = cards.map(c =>
-    `<div class="kpi-card ${c.cls}"><div class="kpi-num">${c.num}</div><div class="kpi-label">${c.label}</div></div>`
-  ).join('');
+  // Oct 4, 2026 redesign: 4 `.rm-kpi-card`s (Fabric On Hand / STO Status / Price Tag Print / Low Stock)
+  // instead of the old 6 plain tiles. Price Tag printing is shown here now (it used to be a donut card).
+  const fabrics = rmDashFabricStock();
+  const withStock = fabrics.filter(f => f.remaining > 0);
+  const low = fabrics.filter(f => f.status === 'low');
+  const out = fabrics.filter(f => f.status === 'out');
+  const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+
+  set('rmKpiCardFabric', `
+    <div class="rm-kpi-label">Fabric On Hand</div>
+    <div class="rm-kpi-num">${formatQty(Math.round(meterRemaining))}<span style="font-size:16px; color:var(--text-muted);"> m</span></div>
+    <div class="rm-kpi-sub"><b>${rollsInStock}</b> rolls in stock<br><b>${withStock.length}</b> of ${fabrics.length} fabrics have stock</div>`);
+
+  set('rmKpiCardSto', `
+    <div class="rm-kpi-label">Active STOs</div>
+    <div class="rm-kpi-num" style="color:${activeStoCount ? 'var(--amber)' : 'var(--green)'};">${activeStoCount}</div>
+    <div class="rm-kpi-sub"><b>${completedStoCount}</b> completed &middot; <b>${doToday}</b> DO issued today<br><b>${picksToday}</b> picks today</div>`);
+
+  const ptLines = typeof priceTagStickers !== 'undefined' ? priceTagStickers : [];
+  let ptPlanned = 0, ptPrinted = 0;
+  ptLines.forEach(l => {
+    ptPlanned += Number(l.quantity) || 0;
+    ptPrinted += Math.min(Number(l.printedQty) || 0, Number(l.quantity) || 0);
+  });
+  if (!ptPlanned) {
+    set('rmKpiCardPriceTag', `
+      <div class="rm-kpi-label">Price Tag Print</div>
+      <div class="rm-kpi-num"><span style="color:var(--text-muted);">&mdash;</span></div>
+      <div class="rm-kpi-sub">No Price Tag checklist yet.</div>`);
+  } else {
+    const ptPct = Math.round((ptPrinted / ptPlanned) * 100);
+    const ptColor = targetBarHex(ptPct);
+    set('rmKpiCardPriceTag', `
+      <div class="rm-kpi-label">Price Tag Print</div>
+      <div class="rm-kpi-num" style="color:${ptColor};">${ptPct}<span style="font-size:16px; color:var(--text-muted);">%</span></div>
+      <div class="rm-track"><div style="width:${Math.min(100, ptPct)}%; background:${ptColor};"></div></div>
+      <div class="rm-kpi-sub"><b>${formatQty(ptPrinted)}</b> / ${formatQty(ptPlanned)} pcs printed</div>`);
+  }
+
+  const lowNames = low.slice(0, 3).map(f => escapeHtml(f.name)).join(', ');
+  set('rmKpiCardLow', `
+    <div class="rm-kpi-label">Low Stock Fabrics</div>
+    <div class="rm-kpi-num" style="color:${low.length ? 'var(--amber)' : 'var(--green)'};">${low.length}</div>
+    <div class="rm-kpi-sub">${low.length ? `${lowNames}${low.length > 3 ? ` +${low.length - 3} more` : ''}` : 'No fabric is running low.'}<br><b>${out.length}</b> fabric${out.length === 1 ? '' : 's'} fully sent out</div>`);
+}
+
+// Per-fabric stock roll-up for the Raw Material slide: one row per Fabric Name + Fabric Code, summing
+// every received roll. Status uses the SAME rule as rmDashStockStatusBadge (out = nothing left,
+// low = at/under 20% of what was ever received, else in stock).
+function rmDashFabricStock() {
+  const rolls = typeof rawMaterialRolls !== 'undefined' ? rawMaterialRolls : [];
+  const map = new Map();
+  rolls.forEach(r => {
+    const name = [r.fabricName, r.fabricCode].filter(Boolean).join(' ') || 'Unknown';
+    if (!map.has(name)) map.set(name, { name, received: 0, remaining: 0, rollsInStock: 0, rollsTotal: 0 });
+    const f = map.get(name);
+    const rem = Number(r.meterRemaining) || 0;
+    f.received += Number(r.meter) || 0;
+    f.remaining += rem;
+    f.rollsTotal++;
+    if (rem > 0) f.rollsInStock++;
+  });
+  return [...map.values()].map(f => {
+    let status = 'ok';
+    if (f.remaining <= 0) status = 'out';
+    else if (f.received > 0 && (f.remaining / f.received) * 100 <= 20) status = 'low';
+    return { ...f, status };
+  }).sort((a, b) => b.remaining - a.remaining || a.name.localeCompare(b.name));
+}
+
+// Accessories stock cards (Oct 4, 2026 — "accessories tkde?"). Balance = everything received
+// (accessoriesReceipts) minus what's been physically sent (Completed accessories STO lines), the same
+// rule as productionAccessoriesQty. Lowest balance first so shortages are visible at a glance.
+function renderRawMaterialDashAccessories() {
+  const wrap = document.getElementById('rmDashAccessoriesWrap');
+  if (!wrap) return;
+  const receipts = typeof accessoriesReceipts !== 'undefined' ? accessoriesReceipts : [];
+  const names = [...new Set(receipts.map(r => r.name).filter(Boolean))];
+  const items = names.map(name => {
+    const received = receipts.filter(r => r.name === name).reduce((s, r) => s + (Number(r.qty) || 0), 0);
+    const balance = productionAccessoriesQty(name);
+    let status = 'ok';
+    if (balance <= 0) status = 'out';
+    else if (received > 0 && (balance / received) * 100 <= 20) status = 'low';
+    return { name, received, balance, status };
+  }).sort((a, b) => a.balance - b.balance || a.name.localeCompare(b.name));
+  const titleEl = document.getElementById('rmAccPanelTitle');
+  const attention = items.filter(i => i.status !== 'ok').length;
+  if (titleEl) titleEl.innerHTML = `Accessories Balance <span class="n">(${items.length} item${items.length === 1 ? '' : 's'}${attention ? ` &middot; ${attention} low / out` : ''})</span>`;
+  if (!items.length) { wrap.innerHTML = `<div class="rm-empty">No accessories received yet.</div>`; return; }
+  const accent = { ok: 'var(--green)', low: 'var(--amber)', out: 'var(--red)' };
+  // Bar-list (matches Fabric Stock Balance): biggest balance first, bar = balance vs the largest one.
+  const sorted = items.slice().sort((a, b) => b.balance - a.balance || a.name.localeCompare(b.name));
+  const max = Math.max(...sorted.map(i => i.balance), 1);
+  wrap.innerHTML = sorted.map(i => `
+    <div class="rm-stock-row" style="grid-template-columns: 150px 1fr 130px;">
+      <div class="rm-stock-name" title="${escapeHtml(i.name)}">${escapeHtml(i.name)}</div>
+      <div class="rm-stock-bar"><div style="width:${Math.max(0, i.balance) / max * 100}%; background:${accent[i.status]};"></div></div>
+      <div class="rm-stock-val">${i.status === 'out' ? 'Out' : `<b>${formatQty(i.balance)}</b> / ${formatQty(i.received)}`}</div>
+    </div>`).join('');
+}
+
+function renderRawMaterialDashStockRows() {
+  const wrap = document.getElementById('rmDashStockRows');
+  if (!wrap) return;
+  const fabrics = rmDashFabricStock();
+  const titleEl = document.getElementById('rmStockPanelTitle');
+  if (titleEl) titleEl.innerHTML = `Fabric Stock Balance <span class="n">(${fabrics.filter(f => f.remaining > 0).length} of ${fabrics.length} fabrics in stock)</span>`;
+  if (!fabrics.length) { wrap.innerHTML = `<div class="rm-empty">No fabric rolls received yet.</div>`; return; }
+  const max = Math.max(...fabrics.map(f => f.remaining), 1);
+  const colorOf = { ok: 'var(--green)', low: 'var(--amber)', out: 'var(--border)' };
+  wrap.innerHTML = fabrics.map(f => `
+    <div class="rm-stock-row">
+      <div class="rm-stock-name" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</div>
+      <div class="rm-stock-bar"><div style="width:${(f.remaining / max) * 100}%; background:${colorOf[f.status]};"></div></div>
+      <div class="rm-stock-val">${f.status === 'out' ? 'Out' : `<b>${formatQty(Math.round(f.remaining))} m</b> &middot; ${f.rollsInStock} roll${f.rollsInStock === 1 ? '' : 's'}`}</div>
+    </div>`).join('');
 }
 
 let rmDashDestChart = null;
 function renderRawMaterialDashCharts() {
+  // Oct 4, 2026 redesign removed the donut/bar canvases from the Raw Material slide (replaced by
+  // `.rm-*` cards/bars) — kept defined but no-ops when its canvases are gone.
+  if (!document.getElementById('rmDashStatusChart')) return;
   const groups = rmStoGroupsByStoNo();
   const activeStoCount = groups.filter(g => !g.items.every(s => s.status === 'Completed')).length;
   const completedStoCount = groups.length - activeStoCount;
@@ -23328,7 +23671,43 @@ function renderRawMaterialDashTable() {
     wrap.innerHTML = `<div class="empty-state">No Timeline data uploaded yet — upload the campaign tracker file in Production &gt; Timeline.</div>`;
     return;
   }
-  wrap.innerHTML = campaignTimelineArrivingSoonHtml(campaignTimelineList, 'fabricArrive', { product: false, qty: true, qtyField: 'quantityFabricsCtn', materialField: 'material', supplierField: 'fabricSupplier', mergeSameSeries: true });
+  // Oct 4, 2026 redesign: compact card strip (same data/grouping as before — Series + Material +
+  // Supplier + Date merged, Ctn summed) instead of the table. Green = already received in Raw
+  // Material, amber = "check manually" (same two signals the old table rows used).
+  const groups = campaignTimelineArrivingSoonGroups(campaignTimelineList, 'fabricArrive', 2);
+  const entries = [];
+  groups.forEach(g => entries.push(...g.recs));
+  const titleEl = document.getElementById('rmArrivingPanelTitle');
+  const merged = new Map();
+  entries.forEach(entry => {
+    const rec = entry.rec;
+    const key = [rec.series || '', rec.material || '', rec.fabricSupplier || '', entry.iso].join('|');
+    if (!merged.has(key)) merged.set(key, { rec, iso: entry.iso, count: 0, ctn: 0 });
+    const m = merged.get(key);
+    m.count++;
+    m.ctn += Number(rec.quantityFabricsCtn) || 0;
+  });
+  const list = [...merged.values()];
+  if (titleEl) titleEl.innerHTML = `Fabric Arriving Soon <span class="n">(next 2 weeks, from Campaign Timeline${list.length ? ` &middot; ${list.length}` : ''})</span>`;
+  if (!list.length) {
+    wrap.innerHTML = `<div class="rm-empty">Nothing arriving in the next 2 weeks.</div>`;
+    return;
+  }
+  wrap.innerHTML = list.slice(0, 6).map(m => {
+    const rec = m.rec;
+    const d = new Date(m.iso + 'T00:00:00');
+    const dayLabel = isNaN(d) ? formatDateLabel(m.iso) : d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
+    const received = rec.material ? campaignTimelineFabricRolls(rec.material, rec.series).length > 0 : false;
+    const check = rec.material && !received ? campaignTimelineFabricRolls(rec.material).length > 0 : false;
+    const accent = received ? 'var(--green)' : (check ? 'var(--amber)' : 'var(--gold)');
+    const label = [rec.series, rec.material].filter(Boolean).join(' · ') || '-';
+    return `
+      <div class="rm-card" style="border-left:3px solid ${accent};">
+        <div class="rm-card-top"><span>${escapeHtml(rec.fabricSupplier || '-')}</span><span class="hl">${escapeHtml(dayLabel)}</span></div>
+        <div class="rm-card-main" title="${escapeHtml(label)}">${escapeHtml(label)}</div>
+        <div class="rm-card-sub">${formatQty(m.ctn)} ctn${m.count > 1 ? ` &middot; ×${m.count}` : ''}${received ? ' &middot; received' : (check ? ' &middot; check manually' : '')}</div>
+      </div>`;
+  }).join('');
 }
 
 /* ================= Finance — Fabric Stock Dashboard =================
@@ -24762,24 +25141,23 @@ function renderRawMaterialPendingStoList() {
   const pending = rmStoGroupsByStoNo()
     .filter(g => !g.items.every(s => s.status === 'Completed'))
     .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-  // "Pending STO (n)" header always shows, even at 0 — so the card doesn't look broken/empty when
-  // there's nothing pending, it just reads "Pending STO (0)" with a short confirmation line below.
-  const header = `<div style="font-weight:700; color:var(--text); margin-bottom:4px;">Pending STO (${pending.length})</div>`;
-  if (!pending.length) { wrap.innerHTML = header + `<div>No pending STO 🎉</div>`; return; }
-  const top5 = pending.slice(0, 5);
-  // Narrow column (sits beside the donut now, not below it) — stack STO No. above destination/date
-  // instead of one wide row, so it doesn't get squeezed/wrap awkwardly.
-  wrap.innerHTML = header +
-    top5.map(g => `
-      <div style="padding:3px 0; border-top:1px solid rgba(255,255,255,0.08);">
-        <div class="mono-name" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(g.stoNo)}</div>
-        <div style="display:flex; justify-content:space-between; gap:6px;">
-          <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(g.destination || '-')}</span>
-          <span style="flex:0 0 auto;">${formatDateLabel(g.date)}</span>
-        </div>
-      </div>
-    `).join('') +
-    (pending.length > 5 ? `<div style="text-align:center; margin-top:4px;">+${pending.length - 5} more</div>` : '');
+  // Oct 4, 2026 redesign: card strip (oldest-first, capped at 6) instead of the narrow text list
+  // beside the old donut. Shows a clear "all done" line when nothing is pending.
+  const titleEl = document.getElementById('rmPendingStoPanelTitle');
+  if (titleEl) titleEl.innerHTML = `Pending STOs <span class="n">(${pending.length} not yet fully sent)</span>`;
+  if (!pending.length) { wrap.innerHTML = `<div class="rm-empty" style="color:var(--green);">&#10003; No pending STO &mdash; everything has been picked and sent.</div>`; return; }
+  const today = todayStr();
+  wrap.innerHTML = pending.slice(0, 6).map(g => {
+    const fabricItems = g.items.filter(s => s.itemType !== 'accessories');
+    const meters = fabricItems.reduce((s, x) => s + (Number(x.meter) || 0), 0);
+    const waited = daysBetweenIso(g.date, today);
+    return `
+      <div class="rm-card">
+        <div class="rm-card-top"><span>${escapeHtml(g.destination || '-')}</span><span class="hl">${waited === null ? '-' : waited + 'd waiting'}</span></div>
+        <div class="rm-card-main mono-name" title="${escapeHtml(g.stoNo)}">${escapeHtml(g.stoNo)}</div>
+        <div class="rm-card-sub">${g.items.length} line${g.items.length === 1 ? '' : 's'}${meters ? ` &middot; ${formatQty(Math.round(meters))} m` : ''} &middot; ${formatDateLabel(g.date)}</div>
+      </div>`;
+  }).join('');
 }
 
 // Same idea as the STO Status donut's "Pending STO" list alongside it — Series ranked by how many
@@ -24802,25 +25180,27 @@ function renderPriceTagPendingList() {
     g.printedQty += printed;
   });
   const pending = [...groups.values()].filter(g => g.printedQty < g.totalQty).sort((a, b) => (b.totalQty - b.printedQty) - (a.totalQty - a.printedQty));
-  const header = `<div style="font-weight:700; color:var(--text); margin-bottom:4px;">Pending Series (${pending.length})</div>`;
-  if (!pending.length) { wrap.innerHTML = header + `<div>No pending print 🎉</div>`; return; }
-  const top5 = pending.slice(0, 5);
-  wrap.innerHTML = header +
-    top5.map(g => `
-      <div style="padding:3px 0; border-top:1px solid rgba(255,255,255,0.08);">
-        <div class="mono-name" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(g.series)}</div>
-        <div style="display:flex; justify-content:space-between; gap:6px;">
-          <span>${g.doneLines} / ${g.totalLines} SKU</span>
-          <span style="flex:0 0 auto;">${formatQty(g.printedQty)} / ${formatQty(g.totalQty)} pcs</span>
-        </div>
-      </div>
-    `).join('') +
-    (pending.length > 5 ? `<div style="text-align:center; margin-top:4px;">+${pending.length - 5} more</div>` : '');
+  // Oct 4, 2026 redesign: bar-list (printed share of each pending Series, most unprinted pcs first)
+  // in the right half of the mid-row, instead of the narrow text list beside the old donut.
+  const titleEl = document.getElementById('rmPriceTagPanelTitle');
+  if (titleEl) titleEl.innerHTML = `Price Tag &mdash; Pending Series <span class="n">(${pending.length} not fully printed)</span>`;
+  if (!pending.length) { wrap.innerHTML = `<div class="rm-empty" style="color:var(--green);">&#10003; ${ptLines.length ? 'All price tags printed.' : 'No Price Tag checklist yet.'}</div>`; return; }
+  wrap.innerHTML = pending.map(g => {
+    const pct = g.totalQty ? Math.round((g.printedQty / g.totalQty) * 100) : 0;
+    const color = targetBarHex(pct);
+    return `
+      <div class="rm-stock-row" style="grid-template-columns: 150px 1fr 150px;">
+        <div class="rm-stock-name" title="${escapeHtml(g.series)}">${escapeHtml(g.series)}</div>
+        <div class="rm-stock-bar"><div style="width:${pct}%; background:${color};"></div></div>
+        <div class="rm-stock-val"><b>${formatQty(g.printedQty)}</b> / ${formatQty(g.totalQty)} pcs</div>
+      </div>`;
+  }).join('');
 }
 function renderRawMaterialDashboard() {
   renderDashDutyBarForModule('dashDutyBarRawMaterial', 'Raw Material', '🧶', 'Raw Material');
   renderRawMaterialDashKpis();
-  renderRawMaterialDashCharts();
+  renderRawMaterialDashStockRows();
+  renderRawMaterialDashAccessories();
   renderRawMaterialPendingStoList();
   renderPriceTagPendingList();
   renderRawMaterialDashTable();
@@ -31601,12 +31981,12 @@ function dsEnhanceSelect(selectEl) {
     })();
     const radioName = `ds-radio-${Math.random().toString(36).slice(2)}`;
     wrap.innerHTML = `
-      <button type="button" class="ds-toggle" ${disabled ? 'disabled' : ''} style="width:100%; text-align:left; padding:8px 10px; border:1px solid #4a4038; border-radius:4px; font-size:13px; background:#1e1a17; color:var(--text); font-family:inherit; cursor:${disabled ? 'not-allowed' : 'pointer'}; opacity:${disabled ? '0.5' : '1'}; display:flex; align-items:center; justify-content:space-between; gap:6px;">
+      <button type="button" class="ds-toggle" ${disabled ? 'disabled' : ''} style="width:100%; text-align:left; padding:8px 10px; border:1px solid var(--input-border); border-radius:4px; font-size:13px; background:var(--input-bg); color:var(--text); font-family:inherit; cursor:${disabled ? 'not-allowed' : 'pointer'}; opacity:${disabled ? '0.5' : '1'}; display:flex; align-items:center; justify-content:space-between; gap:6px;">
         <span class="ds-toggle-label" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(toggleLabel)}</span><span>▾</span>
       </button>
-      <div class="ds-panel" style="display:none; position:fixed; z-index:9999; min-width:180px; max-height:280px; overflow-y:auto; background:#1e1a17; border:1px solid #4a4038; border-radius:4px; box-shadow:0 6px 16px rgba(0,0,0,0.5);">
-        <div style="padding:8px 8px 4px; position:sticky; top:0; background:#1e1a17;">
-          <input type="text" class="ds-search" placeholder="Search..." style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #4a4038; border-radius:4px; font-size:12px; background:#12100e; color:var(--text); font-family:inherit;">
+      <div class="ds-panel" style="display:none; position:fixed; z-index:9999; min-width:180px; max-height:280px; overflow-y:auto; background:var(--input-bg); border:1px solid var(--input-border); border-radius:4px; box-shadow:0 6px 16px rgba(0,0,0,0.5);">
+        <div style="padding:8px 8px 4px; position:sticky; top:0; background:var(--input-bg);">
+          <input type="text" class="ds-search" placeholder="Search..." style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid var(--input-border); border-radius:4px; font-size:12px; background:#12100e; color:var(--text); font-family:inherit;">
         </div>
         <div class="ds-options">
           ${options.map(o => `<label class="ds-option" data-search="${escapeHtml(o.textContent.toLowerCase())}" style="display:flex; align-items:center; gap:8px; padding:7px 10px; cursor:${o.disabled ? 'not-allowed' : 'pointer'}; font-size:13px; opacity:${o.disabled ? '0.5' : '1'};" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">
@@ -31614,7 +31994,7 @@ function dsEnhanceSelect(selectEl) {
           </label>`).join('')}
         </div>
         <div class="ds-empty" style="display:none; padding:10px; font-size:12px; opacity:0.6;">No matches.</div>
-        <div style="display:flex; gap:6px; padding:8px 10px; border-top:1px solid #4a4038; position:sticky; bottom:0; background:#1e1a17;">
+        <div style="display:flex; gap:6px; padding:8px 10px; border-top:1px solid var(--input-border); position:sticky; bottom:0; background:var(--input-bg);">
           <button type="button" class="btn-ghost ds-clear" style="flex:1; font-size:12px; padding:6px;">Clear</button>
           <button type="button" class="btn-primary ds-confirm" style="flex:1; font-size:12px; padding:6px;">Confirm</button>
         </div>
@@ -31715,6 +32095,190 @@ new MutationObserver(mutations => {
     });
   });
 }).observe(document.body, { childList: true, subtree: true });
+</script>
+<script>
+/* ---------- Themes: Dark coffee (default) / Light coffee / presets / fully custom (Oct 4, 2026) ----------
+   Dark = the stylesheet's :root. Light = html[data-theme="light"] block. Custom = a 5-colour palette
+   (page, cards, text, accent, sidebar) from which every other variable is derived and applied as inline
+   CSS variables on <html>. Everything is remembered per device in localStorage. */
+(function () {
+  const LS_MODE = 'khatam_theme', LS_CUSTOM = 'khatam_theme_custom', LS_VARS = 'khatam_theme_vars', LS_LAST = 'khatam_theme_last';
+  const DARK_PAL  = { bg: '#1a1614', card: '#241f1c', text: '#f2ece3', accent: '#c79b4a', sidebar: '#3c312d' };
+  const LIGHT_PAL = { bg: '#d2b894', card: '#e2cdad', text: '#3a281a', accent: '#7d5a24', sidebar: '#6a4630' };
+  const PRESETS = [
+    { id: 'dark',   name: 'Dark Coffee',     mode: 'dark',  pal: DARK_PAL },
+    { id: 'light',  name: 'Light Coffee',    mode: 'light', pal: LIGHT_PAL },
+    { id: 'mocha',  name: 'Soft Mocha',      mode: 'custom', pal: { bg: '#2e2620', card: '#3a3029', text: '#e6d9c6', accent: '#cfa55a', sidebar: '#231c17' } },
+    { id: 'dim',    name: 'Cappuccino Dim',  mode: 'custom', pal: { bg: '#b9a182', card: '#c9b394', text: '#2c1d11', accent: '#6b4712', sidebar: '#5a3d2a' } },
+    { id: 'sepia',  name: 'Sepia Paper',     mode: 'custom', pal: { bg: '#e9dcc0', card: '#f2e8d0', text: '#46372a', accent: '#8a5a14', sidebar: '#6a4630' } },
+    { id: 'night',  name: 'Night Eye-Care',  mode: 'custom', pal: { bg: '#15110e', card: '#1d1814', text: '#cdbfae', accent: '#b08a4c', sidebar: '#241d18' } },
+  ];
+
+  // ---- colour helpers
+  const clamp = v => Math.max(0, Math.min(255, Math.round(v)));
+  function rgb(hex) { hex = String(hex).replace('#', ''); if (hex.length === 3) hex = hex.split('').map(c => c + c).join(''); const n = parseInt(hex, 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+  function toHex(a) { return '#' + a.map(v => clamp(v).toString(16).padStart(2, '0')).join(''); }
+  function mix(a, b, t) { const A = rgb(a), B = rgb(b); return toHex(A.map((v, i) => v + (B[i] - v) * t)); }
+  function rgba(hex, a) { const c = rgb(hex); return `rgba(${c[0]},${c[1]},${c[2]},${a})`; }
+  function lum(hex) { const c = rgb(hex).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; }
+
+  function derive(p) {
+    const light = lum(p.bg) > 0.18;
+    const sbDark = lum(p.sidebar) < 0.22;
+    const st = light
+      ? { red: '#b25544', green: '#3f7a58', amber: '#94682a', blue: '#43648c', purple: '#6c5190' }
+      : { red: '#e2685f', green: '#4bb583', amber: '#dba63f', blue: '#6c9fe0', purple: '#b18cf0' };
+    const sbText = sbDark ? '#fbeedb' : '#2e2118';
+    const sbAccent = sbDark ? mix(p.accent, '#ffffff', 0.4) : p.accent;
+    const v = {
+      '--bg': p.bg, '--card': p.card, '--text': p.text, '--gold': p.accent,
+      '--border': mix(p.card, p.text, 0.20), '--text-muted': mix(p.text, p.card, 0.34),
+      '--navy': p.sidebar, '--navy-light': mix(p.sidebar, '#ffffff', 0.12),
+      '--red': st.red, '--green': st.green, '--amber': st.amber, '--blue': st.blue, '--purple': st.purple,
+      '--red-bg': mix(p.card, st.red, 0.20), '--green-bg': mix(p.card, st.green, 0.20), '--amber-bg': mix(p.card, st.amber, 0.22),
+      '--blue-bg': mix(p.card, st.blue, 0.18), '--purple-bg': mix(p.card, st.purple, 0.18),
+      '--gray-bg': mix(p.card, p.text, 0.10),
+      '--input-bg': light ? mix(p.card, '#ffffff', 0.45) : mix(p.card, '#000000', 0.28),
+      '--input-border': mix(p.card, p.text, 0.32),
+      '--panel-deep': mix(p.bg, p.text, 0.10), '--disabled-bg': mix(p.card, p.bg, 0.5),
+      '--lane-bg': mix(p.bg, p.text, 0.05), '--switch-track': mix(p.bg, p.text, 0.2),
+      '--overlay-soft': rgba(p.text, 0.05), '--overlay-mid': rgba(p.text, 0.09),
+      '--sb-text': sbText, '--sb-muted': mix(sbText, p.sidebar, 0.30), '--sb-accent': sbAccent,
+      '--sb-card': sbDark ? mix(p.sidebar, '#000000', 0.18) : mix(p.sidebar, '#ffffff', 0.5),
+      '--sb-border': rgba(sbText, 0.28), '--sb-hover': rgba(sbText, 0.12), '--sb-active': rgba(sbAccent, 0.35),
+    };
+    return { vars: v, bg: light ? 'light' : 'dark', sb: sbDark ? 'dark' : 'light' };
+  }
+
+  let appliedKeys = [];
+  function clearInline() {
+    const r = document.documentElement;
+    appliedKeys.forEach(k => r.style.removeProperty(k));
+    // also clear anything the early (pre-paint) script set
+    try { const s = JSON.parse(localStorage.getItem(LS_VARS) || 'null'); if (s && s.vars) Object.keys(s.vars).forEach(k => r.style.removeProperty(k)); } catch (e) {}
+    appliedKeys = [];
+    r.removeAttribute('data-theme-bg'); r.removeAttribute('data-sidebar');
+  }
+  function loadCustom() { try { return Object.assign({}, LIGHT_PAL, JSON.parse(localStorage.getItem(LS_CUSTOM) || '{}')); } catch (e) { return Object.assign({}, LIGHT_PAL); } }
+  function currentMode() { try { const m = localStorage.getItem(LS_MODE); return m === 'light' || m === 'custom' ? m : 'dark'; } catch (e) { return 'dark'; } }
+
+  function setChartColors(pal, light) {
+    const color = light ? mix(pal.text, pal.card, 0.34) : '#b7ab9e';
+    const border = light ? mix(pal.card, pal.text, 0.20) : '#453d37';
+    const track = light ? mix(pal.bg, pal.text, 0.10) : '#3a332e';
+    try {
+      if (typeof Chart !== 'undefined' && Chart.defaults) { Chart.defaults.color = color; Chart.defaults.borderColor = border; }
+      if (typeof KPI_COLOR_HEX !== 'undefined') KPI_COLOR_HEX.track = track;
+    } catch (e) {}
+  }
+
+  function applyTheme(mode, rerender, palette) {
+    const r = document.documentElement;
+    clearInline();
+    let pal;
+    if (mode === 'custom') {
+      pal = Object.assign({}, loadCustom(), palette || {});
+      const d = derive(pal);
+      r.setAttribute('data-theme', 'light');          // structural overrides (sidebar etc.) live in the light block
+      r.setAttribute('data-theme-bg', d.bg);
+      if (d.sb === 'light') r.setAttribute('data-sidebar', 'light');
+      Object.keys(d.vars).forEach(k => { r.style.setProperty(k, d.vars[k]); appliedKeys.push(k); });
+      try { localStorage.setItem(LS_CUSTOM, JSON.stringify(pal)); localStorage.setItem(LS_VARS, JSON.stringify({ vars: d.vars, bg: d.bg, sb: d.sb })); } catch (e) {}
+      setChartColors(pal, d.bg === 'light');
+    } else if (mode === 'light') {
+      r.setAttribute('data-theme', 'light');
+      pal = LIGHT_PAL; setChartColors(pal, true);
+    } else {
+      r.removeAttribute('data-theme'); mode = 'dark';
+      pal = DARK_PAL; setChartColors(pal, false);
+    }
+    try { localStorage.setItem(LS_MODE, mode); if (mode !== 'dark') localStorage.setItem(LS_LAST, mode); } catch (e) {}
+    const isDark = mode === 'dark';
+    const sideBtn = document.getElementById('themeToggleBtnSidebar'), dashBtn = document.getElementById('themeToggleBtnDash');
+    if (sideBtn) sideBtn.innerHTML = isDark ? '&#9728; Light mode' : '&#9790; Dark mode';
+    if (dashBtn) dashBtn.innerHTML = isDark ? '&#9728; Light' : '&#9790; Dark';
+    if (rerender) {
+      ['renderDashboard', 'renderInboundDashboard', 'renderRawMaterialDashboard', 'renderFleetDashboard'].forEach(fn => {
+        try { if (typeof window[fn] === 'function') window[fn](); } catch (e) {}
+      });
+      try { if (typeof Chart !== 'undefined' && Chart.instances) Object.values(Chart.instances).forEach(c => { try { c.update(); } catch (e) {} }); } catch (e) {}
+    }
+  }
+  function toggleTheme() {
+    if (currentMode() === 'dark') {
+      let last = 'light'; try { last = localStorage.getItem(LS_LAST) || 'light'; } catch (e) {}
+      applyTheme(last === 'custom' ? 'custom' : 'light', true);
+    } else applyTheme('dark', true);
+  }
+
+  // ---- Theme panel
+  function openPanel() {
+    if (document.getElementById('themePanelOverlay')) return;
+    const ov = document.createElement('div');
+    ov.id = 'themePanelOverlay';
+    ov.style.cssText = 'position:fixed; inset:0; z-index:100000; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; padding:16px;';
+    const box = document.createElement('div');
+    box.style.cssText = 'background:var(--card); color:var(--text); border:1px solid var(--border); border-radius:12px; padding:20px 22px; width:560px; max-width:100%; max-height:92vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.5); font-size:13px;';
+    const fields = [['bg', 'Page background'], ['card', 'Cards / panels'], ['text', 'Text'], ['accent', 'Accent (titles, highlights)'], ['sidebar', 'Sidebar']];
+    const cur = () => (currentMode() === 'custom' ? loadCustom() : (currentMode() === 'light' ? LIGHT_PAL : DARK_PAL));
+    box.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <div style="font-family:Georgia,serif; font-size:18px; font-weight:700;">Theme</div>
+        <button type="button" id="themePanelClose" class="btn-ghost" style="padding:4px 10px;">Close</button>
+      </div>
+      <div style="color:var(--text-muted); margin-bottom:12px;">Pick a preset, or tweak the colours below. Saved on this device only.</div>
+      <div id="themePresetGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:16px;"></div>
+      <div style="font-weight:700; margin-bottom:8px;">Custom colours</div>
+      <div id="themeFieldGrid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px 16px;"></div>
+      <div style="margin-top:14px; display:flex; gap:8px; justify-content:flex-end;">
+        <button type="button" id="themeResetBtn" class="btn-ghost" style="padding:6px 12px;">Reset to Dark Coffee</button>
+      </div>`;
+    ov.appendChild(box); document.body.appendChild(ov);
+
+    const grid = box.querySelector('#themePresetGrid');
+    PRESETS.forEach(pr => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.style.cssText = `cursor:pointer; padding:8px; border-radius:8px; border:2px solid var(--border); background:${pr.pal.bg}; color:${pr.pal.text}; text-align:left; font-family:inherit; font-size:12px; font-weight:600;`;
+      b.innerHTML = `<div style="display:flex; gap:3px; margin-bottom:6px;"><span style="flex:1; height:14px; border-radius:3px; background:${pr.pal.card}; border:1px solid ${rgba(pr.pal.text, 0.25)};"></span><span style="width:14px; height:14px; border-radius:3px; background:${pr.pal.accent};"></span><span style="width:14px; height:14px; border-radius:3px; background:${pr.pal.sidebar};"></span></div>${pr.name}`;
+      b.addEventListener('click', () => {
+        if (pr.mode === 'custom') applyTheme('custom', true, pr.pal); else applyTheme(pr.mode, true);
+        syncFields();
+      });
+      grid.appendChild(b);
+    });
+    const fg = box.querySelector('#themeFieldGrid');
+    const inputs = {};
+    fields.forEach(([key, label]) => {
+      const row = document.createElement('label');
+      row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:10px; cursor:pointer;';
+      row.innerHTML = `<span>${label}</span>`;
+      const inp = document.createElement('input');
+      inp.type = 'color'; inp.style.cssText = 'width:44px; height:28px; padding:0; border:1px solid var(--border); background:transparent; border-radius:4px; cursor:pointer;';
+      inp.addEventListener('input', () => {
+        const pal = Object.assign({}, cur());
+        Object.keys(inputs).forEach(k => { pal[k] = inputs[k].value; });
+        applyTheme('custom', false, pal);
+      });
+      inp.addEventListener('change', () => applyTheme('custom', true));
+      inputs[key] = inp; row.appendChild(inp); fg.appendChild(row);
+    });
+    function syncFields() { const pal = cur(); Object.keys(inputs).forEach(k => { inputs[k].value = pal[k]; }); }
+    syncFields();
+    const close = () => ov.remove();
+    box.querySelector('#themePanelClose').addEventListener('click', close);
+    ov.addEventListener('click', e => { if (e.target === ov) close(); });
+    box.querySelector('#themeResetBtn').addEventListener('click', () => { applyTheme('dark', true); syncFields(); });
+  }
+
+  window.applyTheme = applyTheme; window.toggleTheme = toggleTheme; window.openThemePanel = openPanel;
+  document.addEventListener('click', function (e) {
+    const t = e.target.closest && e.target.closest('.theme-toggle-btn, #themePanelBtnSidebar, #themePanelBtnDash');
+    if (!t) return;
+    if (t.classList.contains('theme-toggle-btn')) toggleTheme(); else openPanel();
+  });
+  applyTheme(currentMode(), false);
+})();
 </script>
 </body>
 </html>
