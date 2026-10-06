@@ -28677,6 +28677,40 @@ document.getElementById('putawayRollcageAddBtn').addEventListener('click', () =>
   renderPutawayRollcageChips();
   populatePutawayRollcageSelectDropdown();
 });
+// Files a just-logged quantity onto the given trolley(s) without the pop-up — same bookkeeping as the pop-up's Save.
+function putawayCommitAssignment(batchNo, sku, qty, names) {
+  for (const val of names) {
+    const detail = rollcageInUseByDetail(val, null);
+    if (detail && detail.source !== 'Garment Order (Putaway)') {
+      alert(`Rollcage "${val}" was just taken by ${detail.source}. Pick another one.`);
+      return false;
+    }
+  }
+  const srcBatch = garmentOrders.find(b => b.batchNo === batchNo);
+  const srcSku = srcBatch && srcBatch.skus.find(s => s.sku === sku);
+  const totalQty = Number(qty) || 0;
+  const n = names.length;
+  const baseShare = Math.floor(totalQty / n);
+  names.forEach((val, i) => {
+    const rc = rollcages.find(r => r.name === val);
+    if (!rc) return;
+    const share = i === n - 1 ? (totalQty - baseShare * (n - 1)) : baseShare;
+    rc.putawayInUse = true;
+    rc.putawayItems = rc.putawayItems || [];
+    rc.putawayItems.push({ batchNo, sku, qty: share, date: todayStr() });
+    if (srcSku) {
+      srcSku.putawayAssignments = srcSku.putawayAssignments || [];
+      srcSku.putawayAssignments.push({ rollcage: val, status: 'pending' });
+    }
+  });
+  saveRollcages();
+  if (srcSku) saveGarmentOrders();
+  renderRollcagesList();
+  renderRollcageUsageBoards();
+  renderPutawayTab();
+  renderGarmentOrderTab();
+  return true;
+}
 function openPutawayRollcageModal(batchNo, sku, qty) {
   putawayRollcagePending = { batchNo, sku, qty };
   putawayRollcageSelectedNames = [];
@@ -29656,15 +29690,23 @@ function renderGarmentSkuRows(batch, searchQ) {
       <td>${isEditingSku
         ? `<input type="number" class="garment-sku-order-input" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}" min="0" value="${order}" style="width:70px;">`
         : formatQty(order)}</td>
-      <td>${formatQty(received)}</td>
+      <td>${isEditingSku
+        ? `<input type="number" class="garment-sku-received-input" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}" min="0" value="${received}" style="width:70px;" title="Correct a wrongly-received quantity">`
+        : formatQty(received)}</td>
       <td>${formatQty(remaining)}</td>
       <td><span class="badge ${garmentStatusBadgeClass(status)}">${status}</span>${shortNote}</td>
       <td class="row-actions">
         <input type="number" class="garment-sku-log-input" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}" min="0" placeholder="e.g. 50" style="width:70px;">
-        ${needsStationPicker ? `<select class="garment-sku-log-station" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}" style="width:auto; padding:3px 6px; font-size:11px;">
-          <option value="">${onShiftStations.length ? 'Station...' : '— none on shift —'}</option>
-          ${onShiftStations.map(st => `<option value="${escapeHtml(st.name)}">${escapeHtml(st.name)}</option>`).join('')}
-        </select>` : ''}
+        ${(() => {
+          // Oct 6, 2026 (per Shaila): the old Station dropdown ("— none on shift —") is replaced by a
+          // Trolley / Rollcage picker — pick where the goods go right here, and + Log files them straight
+          // onto that trolley's Putaway list (no extra pop-up). Leave it blank and the usual pop-up asks.
+          const rcs = putawayAvailableRollcages();
+          return `<select class="garment-sku-log-rollcage" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}" style="width:auto; padding:3px 6px; font-size:11px;">
+            <option value="">${rcs.length ? 'Trolley / Rollcage...' : '— no trolley available —'}</option>
+            ${rcs.map(rc => `<option value="${escapeHtml(rc.name)}">${escapeHtml(rc.name)}</option>`).join('')}
+          </select>`;
+        })()}
         <button type="button" class="btn-ghost garment-sku-log-btn" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}">+ Log</button>
         ${status !== 'Complete' ? `<button type="button" class="btn-primary garment-sku-complete-btn" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}">Mark Complete</button>` : ''}
         ${status === 'Partial' ? `<button type="button" class="btn-ghost garment-sku-close-short-btn" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}">Close Short</button>` : ''}
@@ -29672,7 +29714,7 @@ function renderGarmentSkuRows(batch, searchQ) {
         ${isEditingSku
           ? `<button type="button" class="btn-primary garment-sku-save-edit-btn" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}">Save</button>
              <button type="button" class="btn-ghost garment-sku-cancel-edit-btn" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}">Cancel</button>`
-          : `<button type="button" class="btn-ghost garment-sku-edit-btn" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}" title="Edit SKU / Qty Order">Edit</button>`}
+          : `<button type="button" class="btn-ghost garment-sku-edit-btn" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}" title="Edit SKU / Qty Order / Qty Received (to correct a wrong receive)">Edit</button>`}
       </td>
       <td class="row-actions"><button class="icon-btn remove-garment-sku-btn" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}" title="Delete SKU">✕</button></td>
     </tr>`;
@@ -30237,6 +30279,10 @@ function renderGarmentOrderTab() {
       .find(el => el.dataset.batch === batchNo && Number(el.dataset.sidx) === sidx);
     const addQty = Math.max(0, Number(input.value) || 0);
     if (!addQty) { input.focus(); return; }
+    // Read the trolley choice NOW — the table re-renders after logging, which would reset the dropdown.
+    const rcSelect = Array.from(wrap.querySelectorAll('.garment-sku-log-rollcage'))
+      .find(el => el.dataset.batch === batchNo && Number(el.dataset.sidx) === sidx);
+    const pickedRollcage = rcSelect ? rcSelect.value : '';
     // Station comes straight from the logged-in user's assigned Receive Station (Team Setup >
     // Users) when they have one. Accounts with NO station assigned get the per-row dropdown
     // instead (only ever showing stations that are currently ON) — pick one there, or leave it as
@@ -30273,8 +30319,8 @@ function renderGarmentOrderTab() {
     }
     const loggedSku = batch.skus[sidx].sku;
     renderInboundAll();
-    // Every successful log asks where the goods physically went (rollcage/trolley), for putaway —
-    // optional/skippable, same pattern as the Outbound Packing rollcage prompt.
+    // Trolley picked in the row itself -> file it straight onto that trolley; otherwise fall back to the pop-up.
+    if (pickedRollcage && putawayCommitAssignment(batchNo, loggedSku, addQty, [pickedRollcage])) return;
     openPutawayRollcageModal(batchNo, loggedSku, addQty);
   }
   wrap.querySelectorAll('.garment-sku-log-btn').forEach(btn => {
@@ -30311,6 +30357,21 @@ function renderGarmentOrderTab() {
       if (!newSku) { alert('SKU cannot be blank.'); return; }
       batch.skus[sidx].sku = newSku;
       batch.skus[sidx].qtyOrder = Math.max(0, Number(orderInput.value) || 0);
+      // Correct a wrongly-received quantity (Oct 6, 2026): sets Qty Received to the typed value and records the
+      // difference as an adjustment row in the receiving log (negative when reducing), so the Receiving Summary,
+      // station totals and the "never lower than the logs" self-heal all stay consistent.
+      const recvInput = Array.from(wrap.querySelectorAll('.garment-sku-received-input')).find(el => el.dataset.batch === batchNo && Number(el.dataset.sidx) === sidx);
+      if (recvInput && recvInput.value !== '') {
+        const newRecv = Math.max(0, Number(recvInput.value) || 0);
+        const oldRecv = Number(batch.skus[sidx].qtyReceived) || 0;
+        const delta = newRecv - oldRecv;
+        if (delta !== 0) {
+          batch.skus[sidx].qtyReceived = newRecv;
+          if (newRecv === 0) delete batch.skus[sidx].lastReceivedDate;
+          garmentReceiveLogs.push({ batchNo: batch.batchNo, sku: newSku, station: '', qty: delta, date: todayStr(), adjustment: true });
+          saveGarmentReceiveLogs();
+        }
+      }
       saveGarmentOrders();
       garmentSkuEditingKey = null;
       renderGarmentOrderTab();
