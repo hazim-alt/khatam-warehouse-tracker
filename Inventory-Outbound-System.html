@@ -2971,7 +2971,7 @@
 
     <div class="card" style="margin-top:16px;">
       <p class="section-title" style="margin-top:0;">Stock List</p>
-      <div id="stockAvailableKpiGrid" class="kpi-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom:14px;"></div>
+      <div id="stockAvailableKpiGrid" class="kpi-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom:14px;"></div>
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
         <input type="text" id="stockAvailableSearchInput" placeholder="Search SKU / Brand / Group / Color / Size / Boutique..." style="flex:1; min-width:220px;">
         <select id="stockAvailableBrandFilter" style="width:auto;"><option value="">All Brands</option></select>
@@ -11956,12 +11956,25 @@ function renderStockAvailableFilterOptions() {
   stockAvailableFillSelect('stockAvailableYearFilter', years, 'All Campaign Years');
 }
 function renderStockAvailableKpis() {
-  const distinctSku = stockAvailableList.length;
-  const totalQty = stockAvailableList.reduce((sum, it) => sum + Object.values(it.qtyByLocation || {}).reduce((s, q) => s + (Number(q) || 0), 0), 0);
+  // Oct 6, 2026 (per Shaila: "kalau filter apa2 pon card kene reflex"): the cards now follow EVERY filter
+  // (search, brand, group, color, size, campaign year, boutique) instead of always showing the whole list.
+  // With a Boutique filter, quantities/zone count are for that one boutique only. "SKU In Stock" counts
+  // SKUs with qty > 0 in what's being shown (the table itself still lists zero-stock SKUs on purpose).
+  const list = stockAvailableFilteredList();
+  const boutiqueFilter = (document.getElementById('stockAvailableBoutiqueFilter') || {}).value || '';
+  const qtyOf = it => {
+    const q = it.qtyByLocation || {};
+    if (boutiqueFilter) return Number(q[boutiqueFilter]) || 0;
+    return Object.values(q).reduce((s, v) => s + (Number(v) || 0), 0);
+  };
+  const totalQty = list.reduce((sum, it) => sum + qtyOf(it), 0);
+  const inStock = list.filter(it => qtyOf(it) > 0).length;
   const boutiqueSet = new Set();
-  stockAvailableList.forEach(it => Object.keys(it.qtyByLocation || {}).forEach(z => { if (z) boutiqueSet.add(z); }));
+  if (boutiqueFilter) boutiqueSet.add(boutiqueFilter);
+  else list.forEach(it => Object.keys(it.qtyByLocation || {}).forEach(z => { if (z) boutiqueSet.add(z); }));
   const cards = [
-    { num: formatQty(distinctSku), label: 'Total SKU' },
+    { num: formatQty(list.length), label: 'Total SKU' },
+    { num: formatQty(inStock), label: 'SKU In Stock' },
     { num: formatQty(totalQty), label: 'Total Qty' },
     { num: formatQty(boutiqueSet.size), label: 'Boutiques/Zones' },
   ];
@@ -11970,6 +11983,7 @@ function renderStockAvailableKpis() {
   ).join('');
 }
 function renderStockAvailableTable() {
+  renderStockAvailableKpis();
   const wrap = document.getElementById('stockAvailableTableWrap');
   const pagWrap = document.getElementById('stockAvailablePaginationWrap');
   const list = stockAvailableFilteredList();
