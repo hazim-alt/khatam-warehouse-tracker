@@ -14225,9 +14225,9 @@ function simpleGvizFetchRows(url) {
       }
     };
     script.onerror = () => { cleanup(); reject(new Error('Could not reach Google Sheets — check your internet connection and the link.')); };
-    // Oct 6, 2026: row cap raised 5000 -> 100000. Available Stock has one row per SKU per Zone, so the old
+    // Oct 6, 2026: row cap raised 5000 -> 100000 -> 1,000,000 (27 zones x ~5,000 SKUs is already ~135,000 rows; Google just clips to the real sheet size). Available Stock has one row per SKU per Zone, so the old
     // 5000-row cap silently cut the sheet off after the first zone (only "KHATAM WAREHOUSE" loaded, 4,999 SKU).
-    script.src = `https://docs.google.com/spreadsheets/d/${parsed.sheetId}/gviz/tq?gid=${parsed.gid}&range=A1:BZ100000&headers=1&tqx=out:json;responseHandler:${cbName}&_cb=${Date.now()}_${cbName}`;
+    script.src = `https://docs.google.com/spreadsheets/d/${parsed.sheetId}/gviz/tq?gid=${parsed.gid}&range=A1:BZ1000000&headers=1&tqx=out:json;responseHandler:${cbName}&_cb=${Date.now()}_${cbName}`;
     document.head.appendChild(script);
   });
 }
