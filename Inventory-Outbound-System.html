@@ -9023,6 +9023,11 @@ function isFleetTripPastLocked(trip) {
 // instead of the driver/assistant roster. If no admin password has been set at all, nothing is
 // blocked (opt-in feature) — set one in Team Setup once ready to start enforcing this.
 function requireAdminPassword(onConfirmed) {
+  // Oct 6, 2026 (per Shaila: "saya tak nak password tu dah"): the Admin password prompt is switched OFF
+  // everywhere it was used — every action that asked for it now just goes ahead. Set to true to bring
+  // the prompt back (the saved Admin password in Team Setup is untouched).
+  const ADMIN_PASSWORD_PROMPT_ENABLED = false;
+  if (!ADMIN_PASSWORD_PROMPT_ENABLED) { onConfirmed(); return; }
   const pw = loadAdminPassword();
   if (!pw) { onConfirmed(); return; }
   openFleetDispatchConfirmModal([{ driverName: 'Admin', driverPassword: pw }], onConfirmed, 'admin');
