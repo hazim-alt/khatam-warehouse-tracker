@@ -21899,11 +21899,14 @@ let fleetSelectedDestinationChips = [];
 // Destinations already used by ANOTHER trip on the SAME date get greyed out / unselectable — two
 // drivers shouldn't both be dispatched to the same boutique on the same day by accident. Keyed by
 // destination name -> the driver whose trip already has it, for the disabled-chip tooltip.
-function fleetDestinationsTakenOnDate(dateIso, excludeTripId) {
+function fleetDestinationsTakenOnDate(dateIso, excludeTripId, sameDriverName) {
   const takenBy = {};
+  const sameKey = (sameDriverName || '').trim().toLowerCase();
   fleetTrips.forEach(t => {
     if (t.date !== dateIso) return;
     if (excludeTripId && t.id === excludeTripId) return;
+    // Another trip by the SAME driver doesn't block — a driver may deliver to the same boutique on multiple trips.
+    if (sameKey && (t.driverName || '').trim().toLowerCase() === sameKey) return;
     fleetTripDestinationsArray(t).forEach(d => { if (!takenBy[d]) takenBy[d] = t.driverName || 'another trip'; });
   });
   return takenBy;
@@ -21985,7 +21988,8 @@ function renderFleetDestinationChips() {
       : `<div class="data-note" style="margin:0 0 4px;">No destination set on this trip yet — go to the Create Trip tab to add one.</div>`;
     return;
   }
-  const takenBy = fleetDestinationsTakenOnDate(fleetTripModalDate, fleetTripEditId);
+  const drvEl = document.getElementById('inputTripDriverName');
+  const takenBy = fleetDestinationsTakenOnDate(fleetTripModalDate, fleetTripEditId, drvEl ? drvEl.value : '');
   // Destinations already assigned to ANOTHER driver's trip that same date are left out of this
   // list entirely — only this trip's own picks and genuinely free/unassigned destinations show up,
   // so the picker only ever shows options actually relevant to the trip being edited.
