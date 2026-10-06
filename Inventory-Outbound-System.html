@@ -428,6 +428,20 @@
   .dash-slide-dots { display: flex; align-items: center; gap: 8px; }
   .dash-slide-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); padding: 0; }
   .dash-slide-dot.active { background: var(--navy); width: 22px; border-radius: 4px; }
+  /* Oct 5, 2026 (per Shaila: "kecik kan sikit boleh?") — top bar made even slimmer: smaller clock card,
+     slide arrows/dots and Full Screen button. */
+  .dash-topbar { margin-bottom: 4px; gap: 8px; }
+  .dash-topbar-brand img { height: 18px; }
+  .dash-topbar-clock { padding: 1px 12px; border-radius: 6px; }
+  .dash-clock-time { font-size: 14px; letter-spacing: 0.05em; }
+  .dash-clock-date { font-size: 7.5px; margin-top: 0; }
+  .dash-topbar-right { gap: 10px; }
+  .dash-slide-nav { gap: 10px; }
+  .dash-slide-arrow { width: 22px; height: 22px; font-size: 14px; }
+  .dash-slide-dots { gap: 6px; }
+  .dash-slide-dot { width: 6px; height: 6px; }
+  .dash-slide-dot.active { width: 16px; border-radius: 3px; }
+  #dashFullscreenBtn { padding: 3px 10px; font-size: 11px; }
 
   .dash-tables-row { margin-bottom: 0; align-items: stretch; }
   .dash-tables-row .section-title { margin: 0 0 14px; flex-shrink: 0; }
@@ -611,7 +625,15 @@
   .dash-slide[data-slide="inbound"] .inb-panel-title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold); font-weight: 700; margin: 0 0 10px; flex-shrink: 0; }
   .dash-slide[data-slide="inbound"] .inb-panel-title .n { color: var(--text-muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
 
-  .dash-slide[data-slide="inbound"] .inb-boutique-rows { display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow-y: auto; }
+  /* Oct 5, 2026 (per Shaila): mid-row grows to fill the free space (FG Arriving Soon now hugs its content),
+     the boutique list shows EVERY boutique with no scrolling (rows spread evenly), and the Top Critical
+     table rows get taller to fill their panel. */
+  .dash-slide[data-slide="inbound"] .inb-mid-row { flex: 1 0 auto; min-height: 300px; }
+  .dash-slide[data-slide="inbound"] .inb-boutique-rows { display: flex; flex-direction: column; flex: 1 1 auto; justify-content: space-between; gap: 4px; max-height: none; overflow: visible; }
+  .dash-slide[data-slide="inbound"] .inb-boutique-row { flex: 1 1 auto; min-height: 20px; max-height: 40px; font-size: 12px; }
+  .dash-slide[data-slide="inbound"] #inboundUrgentWrap { max-height: none !important; }
+  .dash-slide[data-slide="inbound"] #inboundUrgentWrap table { height: 100%; }
+  .dash-slide[data-slide="inbound"] #inboundUrgentWrap td { padding-top: 12px; padding-bottom: 12px; }
   .dash-slide[data-slide="inbound"] .inb-boutique-row { display: grid; grid-template-columns: 150px 1fr 30px; align-items: center; gap: 8px; font-size: 11px; }
   .dash-slide[data-slide="inbound"] .inb-boutique-name { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .dash-slide[data-slide="inbound"] .inb-bbar { display: flex; height: 12px; border-radius: 3px; overflow: hidden; background: var(--border); }
@@ -643,7 +665,7 @@
 
   .dash-slide[data-slide="inbound"] .inb-days-bold { font-family: Georgia, serif; font-weight: 700; font-size: 14px; color: var(--red); }
   .dash-slide[data-slide="inbound"] .inb-days-bold.warn { color: var(--amber); }
-  .dash-slide[data-slide="inbound"] .inb-garment-panel-wrap { margin-bottom: 14px; }
+  .dash-slide[data-slide="inbound"] .inb-garment-panel-wrap { margin-bottom: 14px; flex: 0 0 auto; min-height: auto; overflow: visible; }
 
   /* Fleet slide's "Today's Trips" table lists every registered boutique as its own row — on a
      real TV this can be close to 20 rows, so it gets the same compact treatment as the
@@ -1334,6 +1356,98 @@
   html[data-theme="light"] .kc-label-btn:hover, html[data-theme="light"] .kc-do-btn:hover { color: #fff; }
   html[data-theme="light"] .theme-toggle-btn { color: var(--text); }
   .theme-toggle-btn { cursor: pointer; }
+  /* ===== Dashboard "wow" effects (Oct 5, 2026): depth, 3D slide-in, staggered rise, growing bars, glow =====
+     Entry animations only run while a slide carries .fx-enter (added by dashFxEnter() when a slide is shown,
+     removed ~2s later) so data re-renders after that never replay them. Respects prefers-reduced-motion. */
+  .dash-slides { perspective: 1600px; }
+  .dash-slide .inb-kpi-card, .dash-slide .outb-kpi-card, .dash-slide .rm-kpi-card,
+  .dash-slide .inb-panel, .dash-slide .outb-panel, .dash-slide .rm-panel {
+    background-image: linear-gradient(160deg, rgba(255,255,255,0.045), rgba(255,255,255,0) 55%);
+    border-color: color-mix(in srgb, var(--gold) 26%, var(--border));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 10px 24px -12px rgba(0,0,0,0.6), 0 2px 6px rgba(0,0,0,0.22);
+  }
+  .dash-slide .inb-kpi-card, .dash-slide .outb-kpi-card, .dash-slide .rm-kpi-card {
+    box-shadow: inset 0 2px 0 color-mix(in srgb, var(--gold) 55%, transparent), inset 0 1px 0 rgba(255,255,255,0.06), 0 12px 26px -12px rgba(0,0,0,0.65), 0 2px 6px rgba(0,0,0,0.22);
+  }
+  html[data-theme="light"] .dash-slide .inb-kpi-card, html[data-theme="light"] .dash-slide .outb-kpi-card, html[data-theme="light"] .dash-slide .rm-kpi-card,
+  html[data-theme="light"] .dash-slide .inb-panel, html[data-theme="light"] .dash-slide .outb-panel, html[data-theme="light"] .dash-slide .rm-panel {
+    background-image: linear-gradient(160deg, rgba(255,255,255,0.35), rgba(255,255,255,0) 55%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 8px 18px -10px rgba(70,40,15,0.35), 0 1px 4px rgba(70,40,15,0.12);
+  }
+  html[data-theme="light"] .dash-slide .inb-kpi-card, html[data-theme="light"] .dash-slide .outb-kpi-card, html[data-theme="light"] .dash-slide .rm-kpi-card {
+    box-shadow: inset 0 2px 0 color-mix(in srgb, var(--gold) 55%, transparent), inset 0 1px 0 rgba(255,255,255,0.5), 0 8px 18px -10px rgba(70,40,15,0.35), 0 1px 4px rgba(70,40,15,0.12);
+  }
+  @keyframes fxSlideIn { from { opacity: 0; transform: perspective(1400px) rotateY(-24deg) translateX(60px) scale(0.96); } to { opacity: 1; transform: none; } }
+  @keyframes fxRise { from { opacity: 0; transform: perspective(900px) rotateX(16deg) translateY(26px) scale(0.96); } to { opacity: 1; transform: none; } }
+  @keyframes fxGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @keyframes fxGlow { 0%, 100% { text-shadow: 0 0 0 transparent; } 50% { text-shadow: 0 0 10px color-mix(in srgb, var(--red) 70%, transparent); } }
+  @keyframes fxClock { 0%, 100% { text-shadow: 0 0 0 transparent; } 50% { text-shadow: 0 0 12px color-mix(in srgb, var(--gold) 55%, transparent); } }
+  .dash-slide.fx-enter { animation: fxSlideIn 0.85s cubic-bezier(0.2, 0.8, 0.2, 1) both; transform-origin: 50% 40%; }
+  .dash-slide.fx-enter .fx-rise { animation: fxRise 0.65s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .dash-slide.fx-enter .inb-bbar, .dash-slide.fx-enter .outb-bbar, .dash-slide.fx-enter .rm-stock-bar > div, .dash-slide.fx-enter .rm-track > div,
+  .dash-slide.fx-enter .outb-perf-track > div, .dash-slide.fx-enter .inb-progress-track > div, .dash-slide.fx-enter .inb-gbar > div {
+    transform-origin: left center; animation: fxGrow 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.4s both;
+  }
+  .dash-slide .inb-days-bold, .dash-slide .outb-days-bold { animation: fxGlow 2.6s ease-in-out infinite; }
+  .dash-clock-time { animation: fxClock 4s ease-in-out infinite; }
+  /* Oct 5, 2026 (per Shaila: "ni kecik kan sikit") — slimmer KPI cards on the Inbound / Outbound / Raw
+     Material slides (same shared look): less padding, smaller number and text. */
+  .dash-slide[data-slide="inbound"] .inb-kpi-row, .dash-slide[data-slide="outbound"] .outb-kpi-row, .dash-slide[data-slide="raw-material"] .rm-kpi-row { gap: 10px; margin-bottom: 10px; }
+  .dash-slide[data-slide="inbound"] .inb-kpi-card, .dash-slide[data-slide="outbound"] .outb-kpi-card, .dash-slide[data-slide="raw-material"] .rm-kpi-card { padding: 7px 12px; }
+  .dash-slide[data-slide="inbound"] .inb-kpi-label, .dash-slide[data-slide="outbound"] .outb-kpi-label, .dash-slide[data-slide="raw-material"] .rm-kpi-label { font-size: 10px; }
+  .dash-slide[data-slide="inbound"] .inb-kpi-num, .dash-slide[data-slide="outbound"] .outb-kpi-num, .dash-slide[data-slide="raw-material"] .rm-kpi-num { font-size: 22px; margin: 2px 0; }
+  .dash-slide[data-slide="inbound"] .inb-kpi-num.small, .dash-slide[data-slide="outbound"] .outb-kpi-num.small { font-size: 18px; }
+  .dash-slide[data-slide="inbound"] .inb-kpi-sub, .dash-slide[data-slide="outbound"] .outb-kpi-sub, .dash-slide[data-slide="raw-material"] .rm-kpi-sub { font-size: 10px; line-height: 1.4; }
+  /* ----- Stronger 3D pass (Oct 5, 2026: "tkde efek mcm 3d pon") ----- */
+  .dash-slide .inb-kpi-card, .dash-slide .outb-kpi-card, .dash-slide .rm-kpi-card,
+  .dash-slide .inb-panel, .dash-slide .outb-panel, .dash-slide .rm-panel {
+    background-image: linear-gradient(155deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02) 40%, rgba(0,0,0,0.12));
+    border-color: color-mix(in srgb, var(--gold) 45%, var(--border));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -2px 0 rgba(0,0,0,0.35),
+                0 18px 32px -14px rgba(0,0,0,0.85), 0 6px 12px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,0,0,0.25);
+  }
+  .dash-slide .inb-kpi-card, .dash-slide .outb-kpi-card, .dash-slide .rm-kpi-card {
+    box-shadow: inset 0 3px 0 color-mix(in srgb, var(--gold) 80%, transparent), inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -2px 0 rgba(0,0,0,0.35),
+                0 20px 34px -14px rgba(0,0,0,0.85), 0 6px 12px rgba(0,0,0,0.35), 0 0 22px -8px color-mix(in srgb, var(--gold) 55%, transparent);
+    position: relative; overflow: hidden;
+  }
+  html[data-theme="light"] .dash-slide .inb-kpi-card, html[data-theme="light"] .dash-slide .outb-kpi-card, html[data-theme="light"] .dash-slide .rm-kpi-card,
+  html[data-theme="light"] .dash-slide .inb-panel, html[data-theme="light"] .dash-slide .outb-panel, html[data-theme="light"] .dash-slide .rm-panel {
+    background-image: linear-gradient(155deg, rgba(255,255,255,0.55), rgba(255,255,255,0.1) 45%, rgba(70,40,15,0.07));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -2px 0 rgba(70,40,15,0.18), 0 16px 26px -14px rgba(70,40,15,0.55), 0 4px 8px rgba(70,40,15,0.18);
+  }
+  html[data-theme="light"] .dash-slide .inb-kpi-card, html[data-theme="light"] .dash-slide .outb-kpi-card, html[data-theme="light"] .dash-slide .rm-kpi-card {
+    box-shadow: inset 0 3px 0 color-mix(in srgb, var(--gold) 70%, transparent), inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -2px 0 rgba(70,40,15,0.18), 0 16px 26px -14px rgba(70,40,15,0.55), 0 4px 8px rgba(70,40,15,0.18);
+  }
+  /* gentle continuous "floating" so the cards visibly lift off the page (individual `translate` property
+     so it never fights the entry animation's `transform`), staggered per card by dashFxEnter() */
+  @keyframes fxFloat { 0%, 100% { translate: 0 0; } 50% { translate: 0 -3px; } }
+  .dash-slide .inb-kpi-card, .dash-slide .outb-kpi-card, .dash-slide .rm-kpi-card { animation: fxFloat 6s ease-in-out infinite; }
+  .dash-slide .inb-kpi-card:nth-child(2), .dash-slide .outb-kpi-card:nth-child(2), .dash-slide .rm-kpi-card:nth-child(2) { animation-delay: -1.5s; }
+  .dash-slide .inb-kpi-card:nth-child(3), .dash-slide .outb-kpi-card:nth-child(3), .dash-slide .rm-kpi-card:nth-child(3) { animation-delay: -3s; }
+  .dash-slide .inb-kpi-card:nth-child(4), .dash-slide .outb-kpi-card:nth-child(4), .dash-slide .rm-kpi-card:nth-child(4) { animation-delay: -4.5s; }
+  /* light sweep across the KPI cards every few seconds */
+  @keyframes fxSheen { 0%, 60% { transform: translateX(-130%) skewX(-20deg); } 100% { transform: translateX(330%) skewX(-20deg); } }
+  .dash-slide .inb-kpi-card::after, .dash-slide .outb-kpi-card::after, .dash-slide .rm-kpi-card::after {
+    content: ''; position: absolute; top: 0; left: 0; width: 35%; height: 100%; pointer-events: none;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,0.16), transparent); animation: fxSheen 7s ease-in-out infinite;
+  }
+  /* glowing KPI numbers + a slow golden ambient light behind the slides */
+  .dash-slide .inb-kpi-num, .dash-slide .outb-kpi-num, .dash-slide .rm-kpi-num { text-shadow: 0 2px 14px color-mix(in srgb, var(--gold) 38%, transparent); }
+  @keyframes fxAmbient { 0% { background-position: 0% 0%, 100% 100%; } 50% { background-position: 100% 30%, 0% 70%; } 100% { background-position: 0% 0%, 100% 100%; } }
+  .dash-slides {
+    background-image: radial-gradient(600px 380px at 20% 20%, color-mix(in srgb, var(--gold) 13%, transparent), transparent 70%),
+                      radial-gradient(700px 420px at 80% 80%, color-mix(in srgb, var(--gold) 9%, transparent), transparent 70%);
+    background-size: 200% 200%, 200% 200%; background-repeat: no-repeat; animation: fxAmbient 30s ease-in-out infinite;
+  }
+  /* more dramatic 3D slide-in: swings in from the right with a little overshoot */
+  @keyframes fxSlideIn { 0% { opacity: 0; transform: perspective(1400px) rotateY(-55deg) translateX(140px) scale(0.9); } 70% { opacity: 1; transform: perspective(1400px) rotateY(4deg) translateX(-6px) scale(1.01); } 100% { opacity: 1; transform: none; } }
+  .dash-slide.fx-enter { animation: fxSlideIn 1.1s cubic-bezier(0.2, 0.9, 0.25, 1) both; }
+  @keyframes fxRise { from { opacity: 0; transform: perspective(900px) rotateX(28deg) translateY(44px) scale(0.92); } to { opacity: 1; transform: none; } }
+  /* Slide-change countdown (Oct 5, 2026): seconds left next to the dots + a thin progress line under the top bar. */
+  .dash-slide-countdown { font-size: 11px; font-weight: 700; color: var(--gold); min-width: 34px; text-align: center; font-variant-numeric: tabular-nums; letter-spacing: 0.03em; }
+  .dash-slide-progress { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin: 0 0 6px; flex-shrink: 0; }
+  .dash-slide-progress > i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, color-mix(in srgb, var(--gold) 60%, transparent), var(--gold)); border-radius: 2px; box-shadow: 0 0 8px color-mix(in srgb, var(--gold) 60%, transparent); }
 </style>
 </head>
 <body>
@@ -1552,16 +1666,13 @@
           <button type="button" class="dash-slide-arrow" id="dashSlidePrev" aria-label="Previous slide">&#8249;</button>
           <button type="button" class="dash-slide-arrow" id="dashSlidePlayPause" aria-label="Pause auto-rotate">&#10074;&#10074;</button>
           <div class="dash-slide-dots" id="dashSlideDots"></div>
+          <span class="dash-slide-countdown" id="dashSlideCountdown" title="Time until the next slide"></span>
           <button type="button" class="dash-slide-arrow" id="dashSlideNext" aria-label="Next slide">&#8250;</button>
         </div>
-        <select id="dashSizeToggle" class="btn-ghost" title="Manually boost text/card size — use this when casting to a big TV, since the browser can't tell a 55&quot; TV apart from a regular monitor at the same resolution.">
-          <option value="auto">Display Size: Auto</option>
-          <option value="large">Display Size: Large (TV)</option>
-        </select>
-        <button type="button" class="btn-ghost" id="themePanelBtnDash" title="Choose a theme or make your own colours">&#127912; Theme</button>
         <button type="button" class="btn-ghost" id="dashFullscreenBtn">&#9974; Full Screen</button>
       </div>
     </div>
+    <div class="dash-slide-progress"><i id="dashSlideProgressFill"></i></div>
     <div class="dash-slides" id="dashSlides">
       <div class="dash-slide active" data-slide="outbound">
         <p class="section-title" id="outboundDashTitle">Outbound Performance Summary</p>
@@ -1653,10 +1764,10 @@
 
         <div class="inb-panel inb-garment-panel-wrap">
           <p class="inb-panel-title" id="garmentAttentionPanelTitle">Garment Batches Needing Attention</p>
-          <div id="garmentNeedsAttentionWrap" class="scroll-table" style="max-height:230px;"></div>
+          <div id="garmentNeedsAttentionWrap" class="inb-fg-strip" style="flex-wrap:wrap; overflow:visible;"></div>
         </div>
 
-        <div class="inb-panel" style="flex:1; min-height:0;">
+        <div class="inb-panel" style="flex:0 0 auto;">
           <p class="inb-panel-title">FG Arriving Soon <span class="n">(next 2 weeks, from Campaign Timeline)</span></p>
           <div class="inb-fg-strip" id="inboundDashFgArrivingSoonWrap"></div>
         </div>
@@ -5771,7 +5882,7 @@ document.querySelectorAll('.nav-group-toggle').forEach(toggle => {
 // Fabric/FG Arriving Soon widgets already live on the Raw Material and Inbound slides respectively.
 // Re-ordered per Shaila's request (Sep 28, 2026 — "susun semula slide jadi macam ni").
 const DASH_SLIDES = ['raw-material', 'inbound', 'outbound', 'fleet', 'release-calendar'];
-const DASH_SLIDE_INTERVAL_MS = 15000;
+const DASH_SLIDE_INTERVAL_MS = 30000;   // Oct 5, 2026: 15s -> 30s per slide (per Shaila)
 let dashSlideIndex = 0;
 let dashSlideTimer = null;
 let dashSlidePlaying = true;
@@ -5849,10 +5960,12 @@ renderDashFullscreenBtn();
 const DASH_SIZE_KEY = 'sto_dash_display_size_v1';
 function loadDashSize() {
   const saved = localStorage.getItem(DASH_SIZE_KEY) || 'auto';
-  document.getElementById('dashSizeToggle').value = saved;
+  const sel = document.getElementById('dashSizeToggle');   // control removed Oct 5, 2026 (per Shaila) — saved size still applies
+  if (sel) sel.value = saved;
   document.getElementById('tab-dashboard').classList.toggle('dash-size-large', saved === 'large');
 }
-document.getElementById('dashSizeToggle').addEventListener('change', (e) => {
+const _dashSizeSel = document.getElementById('dashSizeToggle');
+if (_dashSizeSel) _dashSizeSel.addEventListener('change', (e) => {
   localStorage.setItem(DASH_SIZE_KEY, e.target.value);
   document.getElementById('tab-dashboard').classList.toggle('dash-size-large', e.target.value === 'large');
 });
@@ -5987,7 +6100,7 @@ const DASH_AUTOSCROLL_SLIDE_BY_ID = {
   nextToPickWrap: 'outbound', urgentWrap: 'outbound',
   // Per Shaila (Oct 3, 2026): Top Critical STOs is now capped to top 5 and must stay still (removed
   // from this list) — only the boutique bar-list scrolls, since it can have more boutiques than fit.
-  inboundBoutiqueRows: 'inbound', garmentNeedsAttentionWrap: 'inbound',
+  garmentNeedsAttentionWrap: 'inbound',
   // Outbound slide redesign, same Oct 3, 2026 approved mockup: "Open STOs by Boutique" bar-list can
   // have more boutiques than fit on screen, so it scrolls — but outboundOverdueWrap (Top 5 Oldest
   // Overdue STOs) is deliberately NOT in this list, same "tak bergerak" rule as its Inbound sibling.
@@ -31489,22 +31602,26 @@ function renderGarmentNeedsAttention() {
   if (!wrap) return;
   if (!openRows.length) { wrap.innerHTML = `<div class="empty-state">No pending garment batches — everything received and put away.</div>`; return; }
 
+  // Oct 5, 2026 (per Shaila: "buat dalam tu card macam FG Arriving Soon") — card strip instead of a table:
+  // each open batch is one card (garment + days waiting on top, batch no., received/order, progress bar,
+  // status + alert badges). Same data as the old table.
   const barColor = (a) => a === 'CRITICAL' ? KPI_COLOR_HEX.red : a === 'WARNING' ? KPI_COLOR_HEX.amber : KPI_COLOR_HEX.green;
-  let html = `<table><thead><tr><th>Batch No.</th><th>Garment / Supplier</th><th>Order Date</th><th>Received / Order</th><th>Progress</th><th>Status</th><th>Alert</th></tr></thead><tbody>`;
-  openRows.forEach(({ b, status, amaran, waiting, totals }) => {
+  const accentVar = (a) => a === 'CRITICAL' ? 'var(--red)' : a === 'WARNING' ? 'var(--amber)' : 'var(--green)';
+  wrap.innerHTML = openRows.map(({ b, status, amaran, waiting, totals }) => {
     const pct = totals.qtyOrder > 0 ? Math.min(100, Math.round((totals.qtyReceived / totals.qtyOrder) * 100)) : 0;
-    html += `<tr>
-      <td class="mono-name">${escapeHtml(b.batchNo)}</td>
-      <td>${escapeHtml(b.garmentName || '-')}</td>
-      <td>${formatDateLabel(b.orderDate)}</td>
-      <td>${formatQty(totals.qtyReceived)} / ${formatQty(totals.qtyOrder)}</td>
-      <td><span class="inb-gbar"><i style="width:${pct}%; background:${barColor(amaran)};"></i></span> ${pct}%</td>
-      <td><span class="badge ${garmentStatusBadgeClass(status)}">${status}</span></td>
-      <td><span class="badge ${amaranBadgeClass(amaran)}">${amaranLabel(amaran)}</span> <span style="color:var(--text-muted); font-size:10.5px;">${waiting === null ? '' : `(${waiting}d)`}</span></td>
-    </tr>`;
-  });
-  html += `</tbody></table>`;
-  wrap.innerHTML = html;
+    return `
+      <div class="inb-fg-card" style="border-left:3px solid ${accentVar(amaran)}; min-width:260px;">
+        <div class="inb-fg-top"><span title="${escapeHtml(b.garmentName || '-')}" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(b.garmentName || '-')}</span><span class="inb-fg-arrival">${waiting === null ? '' : waiting + 'd waiting'}</span></div>
+        <div class="inb-fg-product mono-name" title="${escapeHtml(b.batchNo)}">${escapeHtml(b.batchNo)}</div>
+        <div style="display:flex; align-items:center; gap:8px; margin-top:3px;">
+          <span class="inb-fg-qty" style="white-space:nowrap;">${formatQty(totals.qtyReceived)} / ${formatQty(totals.qtyOrder)} pcs</span>
+          <div class="inb-progress-track" style="flex:1; margin:0; height:5px;"><div style="width:${pct}%; height:100%; border-radius:4px; background:${barColor(amaran)};"></div></div>
+          <span style="font-size:10.5px; color:var(--text-muted); white-space:nowrap;">${pct}%</span>
+          <span class="badge ${garmentStatusBadgeClass(status)}" style="font-size:10px; padding:1px 6px;">${status}</span>
+          <span class="badge ${amaranBadgeClass(amaran)}" style="font-size:10px; padding:1px 6px;">${amaranLabel(amaran)}</span>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 // Per Shaila's request (Sep 27, 2026 — "buang card sto status , Garment Order: Qty Order vs Qty
@@ -32278,6 +32395,79 @@ new MutationObserver(mutations => {
     if (t.classList.contains('theme-toggle-btn')) toggleTheme(); else openPanel();
   });
   applyTheme(currentMode(), false);
+})();
+</script>
+<script>
+/* ---------- Dashboard wow effects (Oct 5, 2026): 3D slide-in, staggered rise, count-up numbers ---------- */
+(function () {
+  const reduce = false;   // owner wants the effects on this internal dashboard regardless of OS animation settings
+  let cleanupTimer = null;
+  const ITEM_SEL = '.inb-kpi-card, .outb-kpi-card, .rm-kpi-card, .inb-panel, .outb-panel, .rm-panel';
+  const NUM_SEL = '.inb-kpi-num, .outb-kpi-num, .rm-kpi-num';
+
+  function countUp(root) {
+    root.querySelectorAll(NUM_SEL).forEach(el => {
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      let node;
+      while ((node = walker.nextNode())) {
+        const m = node.nodeValue.match(/^(\s*)(\d[\d,]*(?:\.\d+)?)([\s\S]*)$/);
+        if (!m) continue;
+        const raw = m[2], target = parseFloat(raw.replace(/,/g, ''));
+        if (!isFinite(target) || target === 0) break;
+        const decimals = (raw.split('.')[1] || '').length, useComma = raw.indexOf(',') !== -1;
+        const fmt = v => { let s = v.toFixed(decimals); if (useComma) { const p = s.split('.'); p[0] = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ','); s = p.join('.'); } return s; };
+        const start = performance.now(), dur = 900, original = node.nodeValue;
+        const tick = now => {
+          const t = Math.min(1, (now - start) / dur), e = 1 - Math.pow(1 - t, 3);
+          node.nodeValue = m[1] + fmt(target * e) + m[3];
+          if (t < 1) requestAnimationFrame(tick); else node.nodeValue = original;
+        };
+        requestAnimationFrame(tick);
+        break;
+      }
+    });
+  }
+
+  function dashFxEnter() {
+    if (reduce) return;
+    const slide = document.querySelector('.dash-slide.active');
+    if (!slide) return;
+    document.querySelectorAll('.dash-slide.fx-enter').forEach(s => { s.classList.remove('fx-enter'); s.querySelectorAll('.fx-rise').forEach(x => { x.classList.remove('fx-rise'); x.style.animationDelay = ''; }); });
+    clearTimeout(cleanupTimer);
+    slide.querySelectorAll(ITEM_SEL).forEach((el, i) => { el.classList.add('fx-rise'); el.style.animationDelay = (220 + i * 70) + 'ms'; });
+    void slide.offsetWidth;                // restart the animation if the same slide is shown again
+    slide.classList.add('fx-enter');
+    countUp(slide);
+    cleanupTimer = setTimeout(() => {
+      slide.classList.remove('fx-enter');
+      slide.querySelectorAll('.fx-rise').forEach(x => { x.classList.remove('fx-rise'); x.style.animationDelay = ''; });
+    }, 2400);
+  }
+
+  const original = window.goToDashSlide;
+  if (typeof original === 'function') {
+    window.goToDashSlide = function (idx) { original(idx); dashFxEnter(); };
+  }
+  window.dashFxEnter = dashFxEnter;
+
+  // ---- slide-change countdown (seconds left + progress line); re-syncs every time the rotation timer restarts
+  let slideStart = Date.now();
+  const origRestart = window.restartDashSlideTimer;
+  if (typeof origRestart === 'function') {
+    window.restartDashSlideTimer = function () { slideStart = Date.now(); return origRestart.apply(this, arguments); };
+  }
+  setInterval(() => {
+    const label = document.getElementById('dashSlideCountdown'), fill = document.getElementById('dashSlideProgressFill');
+    if (!label || !fill) return;
+    const total = (typeof DASH_SLIDE_INTERVAL_MS !== 'undefined') ? DASH_SLIDE_INTERVAL_MS : 30000;
+    const playing = (typeof dashSlidePlaying !== 'undefined') ? dashSlidePlaying : true;
+    if (!playing) { label.textContent = '\u23F8'; return; }
+    const elapsed = Math.min(total, Date.now() - slideStart);
+    label.textContent = Math.max(0, Math.ceil((total - elapsed) / 1000)) + 's';
+    fill.style.width = (elapsed / total * 100) + '%';
+  }, 200);
+  document.querySelectorAll('.tab-btn[data-tab="dashboard"]').forEach(b => b.addEventListener('click', () => setTimeout(dashFxEnter, 60)));
+  setTimeout(dashFxEnter, 400);            // first slide on page load
 })();
 </script>
 </body>
