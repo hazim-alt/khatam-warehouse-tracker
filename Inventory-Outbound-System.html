@@ -1608,6 +1608,7 @@
       <span>Operation Fleet</span><span class="nav-group-chevron">▾</span>
     </button>
     <div class="nav-group" id="navGroupFleet">
+      <button class="tab-btn" data-tab="fleet-today">Today's Trips</button>
       <button class="tab-btn" data-tab="fleet-trips">Create Trip</button>
       <button class="tab-btn" data-tab="fleet-board">Trip Schedule</button>
       <button class="tab-btn" data-tab="fleet-driver-trip">Driver Trip</button>
@@ -2821,6 +2822,14 @@
       </div>
       <div id="staffScheduleGridWrap" style="overflow-x:auto;"></div>
       <div class="empty-state" id="staffScheduleFilterEmpty" style="display:none;">No staff with that name.</div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-fleet-today">
+    <p class="section-title">Today's Trips</p>
+    <div class="card">
+      <div class="data-note" id="fleetTodayTabNote" style="margin:0 0 14px;"></div>
+      <div id="fleetTodayTabWrap" class="scroll-table"></div>
     </div>
   </section>
 
@@ -5824,7 +5833,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'inbound-sto') renderInboundStoTab();
     if (btn.dataset.tab === 'inbound-board') renderInboundKanban();
     if (btn.dataset.tab === 'inbound-sla') renderInboundSlaTab();
-    if (btn.dataset.tab === 'fleet-trips' || btn.dataset.tab === 'fleet-board' || btn.dataset.tab === 'fleet-driver-trip') renderFleetTab();
+    if (btn.dataset.tab === 'fleet-today' || btn.dataset.tab === 'fleet-trips' || btn.dataset.tab === 'fleet-board' || btn.dataset.tab === 'fleet-driver-trip') renderFleetTab();
     if (btn.dataset.tab === 'staff-schedule') { renderStaffRosterList(); renderStaffScheduleGrid(); }
     if (btn.dataset.tab === 'item-master') renderItemMasterTab();
     if (btn.dataset.tab === 'stock-available') { renderStockAvailableTab(); refreshStockAvailableFromServer(); }
@@ -9001,8 +9010,14 @@ renderAdminPasswordNote();
 // A trip whose date has already passed (before today) becomes a locked log entry — this is checked
 // wherever a trip could be mutated (drag between columns, edit/save, delete, plate no. change, or
 // scheduling a brand-new trip on a past calendar date).
-function isFleetTripPastLocked(trip) {
+// Oct 6, 2026 (per Shaila: "buang ni untuk edit"): past-dated trips are NO LONGER locked for editing — no
+// Admin password to open/edit/move a trip, change its plate no., or schedule on a past date. The ORIGINAL
+// rule is kept below as isFleetTripPastDated() and still guards deleting a past trip (see delete handler).
+function isFleetTripPastDated(trip) {
   return !!(trip && trip.date && trip.date < todayStr());
+}
+function isFleetTripPastLocked(trip) {
+  return false;
 }
 // Same shape as requireDispatchPassword, but always checks against the single Admin password
 // instead of the driver/assistant roster. If no admin password has been set at all, nothing is
@@ -9063,6 +9078,7 @@ const PERMISSION_TABS = [
   { id: 'inbound-board', label: 'Progress Board (Inbound)' },
   { id: 'inbound-putaway', label: 'Putaway (Inbound)' },
   { id: 'inbound-sla', label: 'SLA Settings (Inbound)' },
+  { id: 'fleet-today', label: "Today's Trips (Fleet)" },
   { id: 'fleet-trips', label: 'Create Trip (Fleet)' },
   { id: 'fleet-board', label: 'Trip Schedule (Fleet)' },
   { id: 'fleet-driver-trip', label: 'Driver Trip (Fleet)' },
@@ -22460,7 +22476,7 @@ document.getElementById('fleetTripModalDeleteBtn').addEventListener('click', () 
     closeFleetTripModal();
     renderFleetTab();
   };
-  if (isFleetTripPastLocked(trip)) { requireAdminPassword(doDelete); return; }
+  if (isFleetTripPastDated(trip)) { requireAdminPassword(doDelete); return; }
   doDelete();
 });
 // Reads the modal's fields, validates the driver is filled in, and either creates a new trip or
@@ -23554,8 +23570,9 @@ function renderFleetDashKpis() {
 // for "nobody's covering this boutique today". Total STO / Total Carton reflect as soon as a DO is
 // printed for that boutique — even before a driver's been assigned. A destination can only sit on
 // one active trip per date (enforced elsewhere), so at most one trip covers a given boutique today.
-function renderFleetDashToday() {
-  const wrap = document.getElementById('fleetDashTodayWrap');
+function renderFleetDashToday(wrapId) {
+  const wrap = document.getElementById(wrapId || 'fleetDashTodayWrap');
+  if (!wrap) return;
   const rows = fleetDashTodayRows();
   if (!rows.length) { wrap.innerHTML = `<div class="empty-state">No boutiques registered yet.</div>`; return; }
 
@@ -23593,6 +23610,14 @@ function renderFleetDashToday() {
 function renderFleetDashboard() {
   renderFleetDashKpis();
   renderFleetDashToday();
+  renderFleetTodayTab();
+}
+// "Today's Trips" tab in the Operation Fleet menu (added Oct 6, 2026, above Create Trip): the SAME
+// boutique-by-boutique table the TV Fleet slide shows, as a normal page.
+function renderFleetTodayTab() {
+  const note = document.getElementById('fleetTodayTabNote');
+  if (note) note.textContent = `${formatDateLabel(todayStr())} — every registered boutique, with its DO / driver / trip status for today.`;
+  renderFleetDashToday('fleetTodayTabWrap');
 }
 
 /* ---------- Raw Material dashboard slide ---------- */
