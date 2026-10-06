@@ -1583,6 +1583,7 @@
       <button class="tab-btn" data-tab="rm-stock">Stock Balance</button>
       <button class="tab-btn" data-tab="rm-print">Print Sticker</button>
       <button class="tab-btn" data-tab="rm-price-tag">Price Tag Checklist</button>
+      <button class="tab-btn" data-tab="rm-fabric-arriving">Fabric Arriving Soon</button>
     </div>
     <button type="button" class="nav-group-toggle" id="navGroupInboundToggle" data-group="navGroupInbound">
       <span>Inbound</span><span class="nav-group-chevron">▾</span>
@@ -1593,6 +1594,7 @@
       <button class="tab-btn" data-tab="inbound-sto">STO From Boutique</button>
       <button class="tab-btn" data-tab="inbound-board">Progress Board</button>
       <button class="tab-btn" data-tab="inbound-putaway">Putaway</button>
+      <button class="tab-btn" data-tab="inbound-fg-arriving">FG Arriving Soon</button>
       <button class="tab-btn" data-tab="inbound-sla">SLA Settings</button>
     </div>
     <button type="button" class="nav-group-toggle" id="navGroupOutboundToggle" data-group="navGroupOutbound">
@@ -3089,10 +3091,10 @@
     <p class="section-title">Production — Timeline</p>
     <div class="card">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-        <span class="data-note" style="margin:0;">Upload the campaign tracker export (e.g. "20XX Raya Campaign Tracker.xlsx") — reads the "Summary all series" sheet if present (otherwise the first sheet), and if a "Patawali" sheet is ALSO in the same file, its fuller PATAWALI rows (with the real per-material Batch: "1"/"R"/etc.) replace the sparse PATAWALI rows from Summary. Needs "Item", "Series", "Supplier", "Production status" and the ETA/date columns (Fabric, Finished Goods, Shipment 1/2/3, Release Date). Each upload FULLY REPLACES the current timeline (a fresh snapshot, not additive) — cloud-synced automatically, so every account/device picks it up on its own.</span>
+        <span class="data-note" style="margin:0;">Timeline is loaded from Google Sheets (link below) — cloud-synced automatically, so every account/device picks it up on its own.</span>
         <span id="campaignTimelineStatusNote" class="data-note" style="margin:0; white-space:nowrap;"></span>
       </div>
-      <div class="dropzone" id="campaignTimelineDropzone">
+      <div class="dropzone" id="campaignTimelineDropzone" style="display:none;">
         <div class="dropzone-icon">⬆</div>
         <div class="upload-row">
           <label class="upload-btn-label">
@@ -3108,6 +3110,7 @@
         <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px; max-width:640px;">
           <input type="text" id="campaignTimelineGsheetSummaryInput" placeholder="Share link — Summary all series tab">
           <input type="text" id="campaignTimelineGsheetPatawaliInput" placeholder="Share link — Patawali tab">
+          <input type="text" id="campaignTimelineGsheetAccInput" placeholder="Share link — Accessories tab">
         </div>
         <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
           <button type="button" class="btn-ghost" id="campaignTimelineGsheetSaveBtn">Save Links</button>
@@ -3115,6 +3118,7 @@
         </div>
       </div>
       <div class="upload-status" id="campaignTimelineUploadStatus"></div>
+      <div class="upload-status" id="campaignTimelineAccStatus"></div>
     </div>
 
     <div class="card" style="margin-top:16px;">
@@ -3145,16 +3149,15 @@
            one still lines up with the same row in the other when you switch. -->
       <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin:16px 0 8px;">
         <p class="section-title" style="margin:0;" id="campaignTimelineTableSectionTitle">Finished Goods (FG)</p>
-        <div id="campaignTimelineTableSwitchToggle" style="display:flex; align-items:center; gap:9px; cursor:pointer; user-select:none;">
-          <span class="ctt-switch-label" data-table="fg" style="font-size:13px; font-weight:600; transition:color .15s;">Finished Goods (FG)</span>
-          <span style="position:relative; width:38px; height:20px; border-radius:999px; background:var(--switch-track); border:1px solid var(--input-border); flex-shrink:0;">
-            <span id="campaignTimelineTableSwitchThumb" style="position:absolute; top:1px; left:1px; width:16px; height:16px; border-radius:50%; background:var(--gold); transition:left .15s;"></span>
-          </span>
-          <span class="ctt-switch-label" data-table="fabric" style="font-size:13px; font-weight:600; transition:color .15s;">Fabric</span>
+        <div id="campaignTimelineTableSwitchToggle" style="display:flex; align-items:center; gap:4px; user-select:none; padding:3px; border-radius:999px; background:var(--switch-track); border:1px solid var(--input-border);">
+          <span class="ctt-switch-label" data-table="fg" style="font-size:13px; font-weight:600; padding:4px 14px; border-radius:999px; cursor:pointer; transition:all .15s;">Finished Goods (FG)</span>
+          <span class="ctt-switch-label" data-table="fabric" style="font-size:13px; font-weight:600; padding:4px 14px; border-radius:999px; cursor:pointer; transition:all .15s;">Fabric</span>
+          <span class="ctt-switch-label" data-table="acc" style="font-size:13px; font-weight:600; padding:4px 14px; border-radius:999px; cursor:pointer; transition:all .15s;">Accessories</span>
         </div>
       </div>
       <div id="campaignTimelineTableWrap" class="scroll-table" style="margin-top:0; max-height:65vh;"></div>
       <div id="campaignTimelineFabricTableWrap" class="scroll-table" style="margin-top:0; max-height:65vh; display:none;"></div>
+      <div id="campaignTimelineAccTableWrap" class="scroll-table" style="margin-top:0; max-height:65vh; display:none;"></div>
     </div>
 
     <div class="card" style="margin-top:16px; border-color:#e0685c;">
@@ -3563,6 +3566,22 @@
     <p class="section-title">Inbound Progress Board</p>
     <div class="data-note" style="margin-bottom:14px;">Drag a card to move it between Active, On Progress, and Complete.</div>
     <div class="kanban-board" id="inboundKanbanBoard"></div>
+  </section>
+
+  <section class="tab-panel" id="tab-inbound-fg-arriving">
+    <p class="section-title">FG Arriving Soon</p>
+    <div class="card">
+      <div class="data-note" id="fgArrivingTabNote" style="margin:0 0 14px;">Finished goods arriving in the next 8 weeks (Shipment 1 &amp; 2), from Campaign Timeline. Amber = Garment Order batch matched, green = fully received.</div>
+      <div id="fgArrivingTabWrap" class="scroll-table" style="max-height:calc(100vh - 190px);"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-rm-fabric-arriving">
+    <p class="section-title">Fabric Arriving Soon</p>
+    <div class="card">
+      <div class="data-note" id="fabricArrivingTabNote" style="margin:0 0 14px;">Fabric arriving in the next 8 weeks, from Campaign Timeline. Green = already received in Raw Material, amber = check manually.</div>
+      <div id="fabricArrivingTabWrap" class="scroll-table" style="max-height:calc(100vh - 190px);"></div>
+    </div>
   </section>
 
   <section class="tab-panel" id="tab-inbound-putaway">
@@ -5833,6 +5852,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'inbound-sto') renderInboundStoTab();
     if (btn.dataset.tab === 'inbound-board') renderInboundKanban();
     if (btn.dataset.tab === 'inbound-sla') renderInboundSlaTab();
+    if (btn.dataset.tab === 'inbound-fg-arriving') renderFgArrivingTab();
+    if (btn.dataset.tab === 'rm-fabric-arriving') renderFabricArrivingTab();
     if (btn.dataset.tab === 'fleet-today' || btn.dataset.tab === 'fleet-trips' || btn.dataset.tab === 'fleet-board' || btn.dataset.tab === 'fleet-driver-trip') renderFleetTab();
     if (btn.dataset.tab === 'staff-schedule') { renderStaffRosterList(); renderStaffScheduleGrid(); }
     if (btn.dataset.tab === 'item-master') renderItemMasterTab();
@@ -9073,6 +9094,7 @@ const PERMISSION_TABS = [
   { id: 'rm-stock', label: 'Stock Balance (Raw Material)' },
   { id: 'rm-print', label: 'Print Sticker (Raw Material)' },
   { id: 'rm-price-tag', label: 'Price Tag Checklist (Raw Material)' },
+  { id: 'rm-fabric-arriving', label: 'Fabric Arriving Soon (Raw Material)' },
   { id: 'senarai', label: 'STO List (Outbound)' },
   { id: 'papan', label: 'Progress Board (Outbound)' },
   { id: 'delivered-outbound', label: 'Delivery Status (Outbound)' },
@@ -9082,6 +9104,7 @@ const PERMISSION_TABS = [
   { id: 'inbound-sto', label: 'STO From Boutique (Inbound)' },
   { id: 'inbound-board', label: 'Progress Board (Inbound)' },
   { id: 'inbound-putaway', label: 'Putaway (Inbound)' },
+  { id: 'inbound-fg-arriving', label: 'FG Arriving Soon (Inbound)' },
   { id: 'inbound-sla', label: 'SLA Settings (Inbound)' },
   { id: 'fleet-today', label: "Today's Trips (Fleet)" },
   { id: 'fleet-trips', label: 'Create Trip (Fleet)' },
@@ -9819,6 +9842,28 @@ function applyServerSnapshot(table) {
       pushCollectionDiff(def, { skipEmptyGuard: true });
       remoteArr = remoteArr.concat(localOnly);
     }
+  }
+  // Garment Orders (Oct 6, 2026): a stale server copy must never wipe a Qty Received this device logged moments ago
+  // (staff log receiving, putaway trolley shows it, but the Garment Order line reset to 0). For ~60s after a local
+  // save, any SKU line whose qtyReceived is HIGHER locally than in the incoming snapshot keeps the local value,
+  // and the merged result is pushed back up so every device converges on it.
+  if (table === 'Garment_Orders' && typeof garmentLocalSaveAt !== 'undefined' && Date.now() - garmentLocalSaveAt < 60000) {
+    const localBatches = def.getArray();
+    let healed = false;
+    const copy = JSON.parse(JSON.stringify(remoteArr));
+    copy.forEach(rb => {
+      const lb = localBatches.find(b => b.batchNo === rb.batchNo);
+      if (!lb) return;
+      (rb.skus || []).forEach(rs => {
+        const ls = (lb.skus || []).find(x => x.sku === rs.sku);
+        if (ls && (Number(ls.qtyReceived) || 0) > (Number(rs.qtyReceived) || 0)) {
+          rs.qtyReceived = ls.qtyReceived;
+          if (ls.lastReceivedDate) rs.lastReceivedDate = ls.lastReceivedDate;
+          healed = true;
+        }
+      });
+    });
+    if (healed) remoteArr = copy;
   }
   if (stableStringify(remoteArr) === stableStringify(def.getArray())) { pendingRemoteApply.delete(table); return; }
   if (isUserActivelyTyping() || isTableDirty(table)) { pendingRemoteApply.add(table); return; }
@@ -12778,7 +12823,7 @@ function productionSummaryBatchSeriesList(batch) {
   if (!ids.length) return [];
   const seriesSet = new Set();
   ids.forEach(id => {
-    const rec = campaignTimelineList.find(r => r.id === id);
+    const rec = campaignTimelineAllRecs().find(r => r.id === id);
     if (rec && rec.series) seriesSet.add(rec.series);
   });
   return [...seriesSet];
@@ -13633,7 +13678,7 @@ const CAMPAIGN_TIMELINE_GSHEET_URLS_KEY = 'sto_campaign_timeline_gsheet_urls_v1'
 // The two Google Sheet "Publish to web" CSV links (see fetchCampaignTimelineFromGoogleSheets below)
 // — synced as a plain settings key (syncSettingsKeys) so every device/account shares the same saved
 // links without re-pasting them.
-let campaignTimelineGsheetUrls = { summary: '', patawali: '' };
+let campaignTimelineGsheetUrls = { summary: '', patawali: '', accessories: '' };
 function loadCampaignTimelineGsheetUrls() {
   try { campaignTimelineGsheetUrls = JSON.parse(localStorage.getItem(CAMPAIGN_TIMELINE_GSHEET_URLS_KEY)) || { summary: '', patawali: '' }; }
   catch (e) { campaignTimelineGsheetUrls = { summary: '', patawali: '' }; }
@@ -13646,6 +13691,8 @@ function renderCampaignTimelineGsheetInputs() {
   const p = document.getElementById('campaignTimelineGsheetPatawaliInput');
   if (s) s.value = campaignTimelineGsheetUrls.summary || '';
   if (p) p.value = campaignTimelineGsheetUrls.patawali || '';
+  const a = document.getElementById('campaignTimelineGsheetAccInput');
+  if (a) a.value = campaignTimelineGsheetUrls.accessories || '';
 }
 let campaignTimelineList = [];
 let campaignTimelineImportedAt = '';
@@ -13667,6 +13714,7 @@ function campaignTimelineStableId(series, officialProductName, batch, color, sup
   return 'ctl_' + (h >>> 0).toString(36);
 }
 function loadCampaignTimelineList() {
+  campaignAccLoadLocal();
   campaignTimelineImportedAt = localStorage.getItem(CAMPAIGN_TIMELINE_IMPORTED_AT_KEY) || '';
   try { campaignTimelineList = JSON.parse(localStorage.getItem(CAMPAIGN_TIMELINE_KEY)) || []; } catch (e) { campaignTimelineList = []; }
 }
@@ -13751,6 +13799,7 @@ async function initialCampaignTimelineCloudSync() {
     renderCloudSyncStatus();
   }
   attachCampaignTimelineFbListener();
+  campaignAccCloudInit();
   campaignTimelineInitialSyncDone = true;
   const tabEl = document.getElementById('tab-production-timeline');
   if (tabEl && tabEl.classList.contains('active')) renderCampaignTimelineTab();
@@ -13838,6 +13887,11 @@ function campaignTimelineCellText(v) {
   if (v instanceof Date && !isNaN(v)) return formatDateLabel(campaignTimelineCellDateIso(v));
   return String(v == null ? '' : v).trim();
 }
+// Currency-formatted cells ("RM477,000.00") come back from Google Sheets as formatted text — keep only digits/dot/minus.
+function campaignTimelineCellCurrencyNum(v) {
+  const n = parseFloat(String(v == null ? '' : v).replace(/[^0-9.\-]/g, ''));
+  return isNaN(n) ? 0 : n;
+}
 function campaignTimelineCellNum(v) {
   // {raw:true} (see above) also stops SheetJS from auto-converting "13,300"-style thousands-comma
   // numbers into real numbers for the CSV path — they arrive as literal text instead, so the comma
@@ -13910,6 +13964,7 @@ function parseCampaignTimelineRows(rows, sheetLabel, rawHeaderRows, deterministi
     item: col('item'), series: col('series'), category: col('category'),
     supplier: tailorSupplierIdx !== -1 ? tailorSupplierIdx : col('supplier'),
     officialProductName: col('official product name'),
+    projectDescription: campaignTimelineFindColContains(headerRow, ['project', 'description']),
     // "Batch" (Sep 28, 2026 — Shaila: "untuk patawali ade batch tulis R,,kene follow jugak", batch
     // showing "-" for some Patawali rows even with the Patawali sheet linked+refreshed): switched from
     // an EXACT header match to a contains-match, same reasoning as the Tailor Supplier / Quantity FG
@@ -13988,13 +14043,14 @@ function parseCampaignTimelineRows(rows, sheetLabel, rawHeaderRows, deterministi
       series, category: idx.category !== -1 ? campaignTimelineCellText(row[idx.category]) : '',
       supplier: supplierVal,
       officialProductName: officialName,
+      projectDescription: idx.projectDescription !== -1 ? campaignTimelineCellText(row[idx.projectDescription]) : '',
       batch: batchVal,
       material: idx.material !== -1 ? campaignTimelineCellText(row[idx.material]) : '',
       fabricSupplier: idx.fabricSupplier !== -1 ? campaignTimelineCellText(row[idx.fabricSupplier]) : '',
       fabricInvoiceNumber: idx.fabricInvoiceNumber !== -1 ? campaignTimelineCellText(row[idx.fabricInvoiceNumber]) : '',
       color: colorVal,
       quantity: idx.quantity !== -1 ? campaignTimelineCellNum(row[idx.quantity]) : 0,
-      totalValue: idx.totalValue !== -1 ? campaignTimelineCellNum(row[idx.totalValue]) : 0,
+      totalValue: idx.totalValue !== -1 ? campaignTimelineCellCurrencyNum(row[idx.totalValue]) : 0,
       productionInstruction: idx.productionInstruction !== -1 ? campaignTimelineCellText(row[idx.productionInstruction]) : '',
       productionStatus: idx.productionStatus !== -1 ? campaignTimelineCellText(row[idx.productionStatus]) : '',
       fabricDelivery: idx.fabricDelivery !== -1 ? campaignTimelineCellDateIso(row[idx.fabricDelivery]) : '',
@@ -14378,7 +14434,7 @@ async function campaignTimelineFetchGvizRowsReliable(url) {
 function campaignTimelineIsBlankVal(v) {
   return v === undefined || v === null || v === '' || v === 0;
 }
-function campaignTimelineMergeFetchedRows(newRows, oldRows) {
+function campaignTimelineMergeFetchedRows(newRows, oldRows, dropMissing) {
   const oldMap = new Map(oldRows.map(r => [r.id, r]));
   const seenIds = new Set();
   const merged = newRows.map(newRec => {
@@ -14410,12 +14466,58 @@ function campaignTimelineMergeFetchedRows(newRows, oldRows) {
   });
   // Rows that existed before but didn't come back at all in this fetch (whole row dropped) — keep
   // them rather than silently losing them.
-  oldRows.forEach(oldRec => { if (!seenIds.has(oldRec.id)) merged.push(oldRec); });
+  if (!dropMissing) oldRows.forEach(oldRec => { if (!seenIds.has(oldRec.id)) merged.push(oldRec); });
   return merged;
+}
+// Per Shaila (Oct 6, 2026 — "total value untuk patawali boleh amik dekat sheet summary"): the dedicated
+// Patawali sheet has no Total Value, but the PATAWALI rows on "Summary all series" do. Fills Total Value
+// on each Patawali row that has none: matched by product name (+ colour when both sides have one); if the
+// Summary has the same number of rows for that product they pair up in sheet order, and if it has a single
+// row the value is split across the Patawali rows in proportion to their quantity.
+function campaignTimelineFillPatawaliTotalValue(patawaliRows, summaryRows) {
+  if (!summaryRows || !summaryRows.length) return;
+  const norm = (v) => campaignTimelineNormHeader(v);
+  // Summary lists a product twice: normal run, and "Rewashed Finished Goods (PTX3)" (= Batch "R" on the
+  // Patawali sheet). Key = product + rewash flag so each pairs with its own value.
+  const keyOf = (r, isPatawali) => {
+    const p = norm(r.officialProductName);
+    if (!p) return '';
+    const rewash = /rewash/i.test(r.projectDescription || '') || (isPatawali && norm(r.batch) === 'r');
+    return p + '|' + (rewash ? 'r' : 'n');
+  };
+  const byProduct = new Map();
+  summaryRows.forEach(r => {
+    if (!(Number(r.totalValue) > 0)) return;
+    const k = keyOf(r, false);
+    if (!k) return;
+    if (!byProduct.has(k)) byProduct.set(k, []);
+    byProduct.get(k).push(r);
+  });
+  const groups = new Map();
+  patawaliRows.forEach(r => {
+    if (Number(r.totalValue) > 0) return;
+    const k = keyOf(r, true);
+    if (!k || !byProduct.has(k)) return;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(r);
+  });
+  groups.forEach((rows, k) => {
+    const src = byProduct.get(k);
+    const colorMatch = (r) => src.find(sr => norm(sr.color) && norm(sr.color) === norm(r.color));
+    const unmatched = [];
+    rows.forEach(r => { const m = colorMatch(r); if (m && rows.filter(x => norm(x.color) === norm(r.color)).length === 1) r.totalValue = m.totalValue; else unmatched.push(r); });
+    if (!unmatched.length) return;
+    if (src.length === unmatched.length) { unmatched.forEach((r, i) => { r.totalValue = src[i].totalValue; }); return; }
+    if (src.length === 1) {
+      const totalQty = unmatched.reduce((a, r) => a + (Number(r.quantity) || 0), 0);
+      unmatched.forEach(r => { r.totalValue = totalQty ? Math.round(src[0].totalValue * (Number(r.quantity) || 0) / totalQty * 100) / 100 : src[0].totalValue / unmatched.length; });
+    }
+  });
 }
 async function fetchCampaignTimelineFromGoogleSheets() {
   const statusEl = document.getElementById('campaignTimelineUploadStatus');
   const { summary, patawali } = campaignTimelineGsheetUrls;
+  campaignAccFetch(); // Accessories tab runs on its own (separate list/status), never blocks the FG/Fabric refresh
   if (!summary && !patawali) {
     statusEl.textContent = 'No Google Sheet link saved yet — paste at least one link above and click "Save Links" first.';
     statusEl.className = 'upload-status err';
@@ -14432,6 +14534,8 @@ async function fetchCampaignTimelineFromGoogleSheets() {
   try {
     let mapped = [];
     const errors = [];
+    const infoParts = [];
+    let summaryPatawaliRows = [];
     if (summary) {
       try {
         let summaryRows;
@@ -14460,8 +14564,12 @@ async function fetchCampaignTimelineFromGoogleSheets() {
         // rows. Per her request, when that link is filled in, skip PATAWALI here so it doesn't show
         // duplicate/incomplete rows alongside the real ones. If she hasn't pasted a Patawali link,
         // keep these as a fallback so PATAWALI data doesn't just disappear.
-        if (patawali) summaryRows = summaryRows.filter(row => campaignTimelineNormHeader(row.series) !== 'patawali');
+        if (patawali) {
+          summaryPatawaliRows = summaryRows.filter(row => campaignTimelineNormHeader(row.series) === 'patawali');
+          summaryRows = summaryRows.filter(row => campaignTimelineNormHeader(row.series) !== 'patawali');
+        }
         mapped = mapped.concat(summaryRows);
+        infoParts.push(`Summary tab: ${summaryRows.length} row(s)`);
       }
       catch (e) { errors.push(`"Summary all series" link — ${e.message}`); }
     }
@@ -14472,7 +14580,10 @@ async function fetchCampaignTimelineFromGoogleSheets() {
           campaignTimelineFetchGvizRawHeaderRows(patawali),
         ]);
         const patawaliHeaderRows = patawaliFetch.headerCandidates.concat(patawaliAuxHeaderRows);
-        mapped = mapped.concat(parseCampaignTimelineRows(patawaliFetch.rows, 'Patawali', patawaliHeaderRows, patawaliAuxHeaderRows));
+        const patawaliRowsParsed = parseCampaignTimelineRows(patawaliFetch.rows, 'Patawali', patawaliHeaderRows, patawaliAuxHeaderRows);
+        campaignTimelineFillPatawaliTotalValue(patawaliRowsParsed, summaryPatawaliRows);
+        mapped = mapped.concat(patawaliRowsParsed);
+        infoParts.push(`Patawali tab: ${patawaliRowsParsed.length} row(s)`);
       }
       catch (e) { errors.push(`"Patawali" link — ${e.message}`); }
     }
@@ -14481,11 +14592,25 @@ async function fetchCampaignTimelineFromGoogleSheets() {
     // (half or less), that's a sign the fetch itself broke/timed out partway rather than the sheet
     // genuinely losing that many rows at once — bail out and keep the existing data untouched instead
     // of merging in a badly-incomplete result.
+    // The merge below never deletes existing rows (rows missing from a fetch are kept, blanks never overwrite
+    // real values), so a small fetch is safe to apply — it only updates/adds. Warn instead of blocking.
     if (campaignTimelineList.length > 0 && mapped.length < campaignTimelineList.length * 0.5) {
-      throw new Error(`This fetch only returned ${formatQty(mapped.length)} row(s), far fewer than the ${formatQty(campaignTimelineList.length)} already in the system — looks like an incomplete fetch, not a real change in the sheet. Nothing was changed; please try "Refresh from Google Sheets" again.`);
+      errors.push(`Sheet returned only ${formatQty(mapped.length)} row(s) (${infoParts.join(', ') || 'no per-tab info'}) vs ${formatQty(campaignTimelineList.length)} in the system — existing rows were kept, only matching rows were updated. If this looks wrong, check the Summary/Patawali links point to the right tabs`);
     }
     const beforeSig = stableStringify(campaignTimelineList);
-    campaignTimelineList = campaignTimelineMergeFetchedRows(mapped, campaignTimelineList);
+    // Oct 6, 2026 (per Shaila: "ikut sheet"): the sheet is the source of truth — rows no longer in it are
+    // removed. Only done when EVERY configured link fetched successfully with rows (a failed/partial tab
+    // would otherwise wipe its rows); otherwise old rows are kept as before.
+    const expectedTabs = (summary ? 1 : 0) + (patawali ? 1 : 0);
+    const hardErrors = errors.filter(e => /link —/.test(e));
+    const fullFetch = !hardErrors.length && infoParts.length === expectedTabs && mapped.length > 0;
+    const prevCount = campaignTimelineList.length;
+    campaignTimelineList = campaignTimelineMergeFetchedRows(mapped, campaignTimelineList, fullFetch);
+    if (fullFetch) {
+      const ri = errors.findIndex(e => e.startsWith('Sheet returned only'));
+      if (ri !== -1) errors.splice(ri, 1);
+      if (prevCount > campaignTimelineList.length) errors.push(`Removed ${prevCount - campaignTimelineList.length} row(s) no longer in the sheet`);
+    }
     const changed = stableStringify(campaignTimelineList) !== beforeSig;
     campaignTimelineImportedAt = new Date().toISOString();
     if (changed) {
@@ -14513,6 +14638,7 @@ document.getElementById('campaignTimelineGsheetSaveBtn').addEventListener('click
   campaignTimelineGsheetUrls = {
     summary: document.getElementById('campaignTimelineGsheetSummaryInput').value.trim(),
     patawali: document.getElementById('campaignTimelineGsheetPatawaliInput').value.trim(),
+    accessories: (document.getElementById('campaignTimelineGsheetAccInput') || { value: '' }).value.trim(),
   };
   saveCampaignTimelineGsheetUrls();
   pushSettingsDiff();
@@ -14543,6 +14669,9 @@ document.getElementById('resetCampaignTimelineBtn').addEventListener('click', ()
   if (!confirm('Delete ALL Timeline data? This is synced for everyone and cannot be undone — re-upload the tracker file to restore.')) return;
   campaignTimelineList = [];
   campaignTimelineImportedAt = '';
+  campaignAccList = [];
+  campaignAccSaveLocal();
+  pushCampaignAccToFirebase();
   saveCampaignTimelineListLocal();
   pushCampaignTimelineDiffToFirebase({ skipEmptyGuard: true });
   renderCampaignTimelineTab();
@@ -14636,8 +14765,8 @@ function campaignTimelineFillFabricStatusFilter() {
   if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
 }
 function renderCampaignTimelineFilterOptions() {
-  campaignTimelineFillSelect('campaignTimelineSeriesFilter', [...new Set(campaignTimelineList.map(it => it.series).filter(Boolean))].sort(), 'All Series');
-  campaignTimelineFillSelect('campaignTimelineSupplierFilter', [...new Set(campaignTimelineList.map(it => it.supplier).filter(Boolean))].sort(), 'All Suppliers');
+  campaignTimelineFillSelect('campaignTimelineSeriesFilter', [...new Set(campaignTimelineList.concat(campaignAccList).map(it => it.series).filter(Boolean))].sort(), 'All Series');
+  campaignTimelineFillSelect('campaignTimelineSupplierFilter', [...new Set(campaignTimelineList.concat(campaignAccList).map(it => it.supplier).filter(Boolean))].sort(), 'All Suppliers');
   campaignTimelineFillStatusFilter();
   // Fabric-only (Sep 27, 2026 — "tambah filter material" / "dropdown dah kene asingkan fg ngan
   // fabric") — see renderCampaignTimelineFabricTable, where both of these are actually applied.
@@ -14890,7 +15019,7 @@ function garmentBatchGroupDiagnostics(batch) {
   if (!campaignTimelineList || !campaignTimelineList.length) return out;
   const pairs = garmentBatchBrandGroupPairs(batch);
   if (!pairs.size) return out;
-  const linkedRecs = (batch.timelineIds || []).map(id => campaignTimelineList.find(r => r.id === id)).filter(Boolean);
+  const linkedRecs = (batch.timelineIds || []).map(id => campaignTimelineAllRecs().find(r => r.id === id)).filter(Boolean);
   pairs.forEach((groups, brand) => {
     const brandFirst = campaignTimelineFirstWord(brand);
     const brandRows = campaignTimelineList.filter(r => {
@@ -14929,6 +15058,44 @@ function garmentBatchGroupWarningLines(batch) {
 // existed). Only auto-links a group when its match is UNAMBIGUOUS (exactly one candidate row) — zero
 // or multiple candidates are left for her to resolve manually, same caution as the diagnostics above.
 // Returns true if it changed anything (caller is responsible for saveGarmentOrders()).
+// Auto-link for ACCESSORIES only (Oct 6, 2026, per Shaila: Official Product Name for samping now ends with
+// "2.3m" for MEN or a number 1-6 for BOYS, matching the tail of the Garment Order SKU). Strict, no word-guessing:
+// a SKU links to an Accessories row only when (1) the SKU's last "-" part equals the last word of the row's
+// Official Product Name, (2) the row's category fits the suffix style (MEN -> "x.xm", BOYS/BOY -> plain number),
+// (3) the row's Tailor Supplier appears in the batch's name/number, and (4) EXACTLY ONE row qualifies. Each SKU is
+// only processed once (batch.accAutoDone), so unlinking a row by hand sticks. Returns true if it changed anything.
+function garmentBatchAutoLinkAccessories(batch) {
+  if (!batch || !campaignAccList || !campaignAccList.length) return false;
+  const batchText = `${batch.batchNo || ''} ${batch.garmentName || ''}`.toLowerCase();
+  const done = new Set(batch.accAutoDone || []);
+  const ids = new Set(batch.timelineIds || []);
+  let changed = false;
+  (batch.skus || []).forEach(s => {
+    const sku = String(s.sku || '').trim().toLowerCase();
+    if (!sku || done.has(sku)) return;
+    const suffix = sku.includes('-') ? sku.split('-').pop().trim() : '';
+    if (!suffix) return;
+    const isMenStyle = /^\d+(\.\d+)?m$/.test(suffix);
+    const isNumStyle = /^\d+$/.test(suffix);
+    if (!isMenStyle && !isNumStyle) return;
+    const cands = campaignAccList.filter(r => {
+      const name = (r.officialProductName || r.projectDescription || '').trim().toLowerCase();
+      if (!name || name.split(/\s+/).pop() !== suffix) return false;
+      const cat = (r.category || '').toLowerCase();
+      if (isMenStyle && !/\bmen\b/.test(cat)) return false;
+      if (isNumStyle && !/\bboys?\b/.test(cat)) return false;
+      const sup = (r.supplier || '').trim().toLowerCase();
+      return !!sup && batchText.includes(sup);
+    });
+    if (cands.length === 1) {
+      done.add(sku);
+      if (!ids.has(cands[0].id)) { ids.add(cands[0].id); changed = true; }
+    }
+  });
+  if (changed) { batch.timelineIds = Array.from(ids); batch.accAutoDone = Array.from(done); }
+  else if (done.size !== (batch.accAutoDone || []).length) { batch.accAutoDone = Array.from(done); changed = true; }
+  return changed;
+}
 function garmentBatchAutoLinkTimelineIds(batch) {
   // Per Shaila's request (Sep 25, 2026 — "Ya, matikan fuzzy match"): same word-overlap guesswork as
   // campaignTimelineMatchReceivingRaw (see its comment for the concrete false-positive that prompted
@@ -14944,7 +15111,7 @@ function garmentBatchAutoLinkTimelineIds(batch) {
   if (!pairs.size) return false;
 
   const existingIds = new Set(batch.timelineIds || []);
-  const linkedRecs = Array.from(existingIds).map(id => campaignTimelineList.find(r => r.id === id)).filter(Boolean);
+  const linkedRecs = Array.from(existingIds).map(id => campaignTimelineAllRecs().find(r => r.id === id)).filter(Boolean);
   const newIds = new Set();
   pairs.forEach((groups, brand) => {
     const brandFirst = campaignTimelineFirstWord(brand);
@@ -14981,14 +15148,35 @@ const _campaignTimelineBatchSplitCache = new Map(); // batchNo -> { sig, map: re
 function campaignTimelineBatchSplitByRec(batch) {
   const ids = batch.timelineIds || (batch.timelineId ? [batch.timelineId] : []);
   if (ids.length <= 1) return null; // single-product batch — no split needed
-  const recs = ids.map(id => campaignTimelineList.find(r => r.id === id)).filter(Boolean);
+  const recs = ids.map(id => campaignTimelineAllRecs().find(r => r.id === id)).filter(Boolean);
   if (recs.length <= 1) return null;
   const sig = stableStringify({ skus: batch.skus, ids });
   const cached = _campaignTimelineBatchSplitCache.get(batch.batchNo);
   if (cached && cached.sig === sig) return cached.map;
   // Group this batch's SKUs by Item Master Group (the specific product each SKU line belongs to).
   const byGroup = new Map(); // group text -> { totalOrder, totalReceived, closedShort }
+  // Accessories rows (Oct 6, 2026): a SKU whose last "-" part (e.g. "3" / "2.3m") equals the last word of exactly
+  // ONE linked accessories row's Official Product Name belongs to that row — attributed directly, without needing
+  // an Item Master Group.
+  const directMap = new Map();
+  const accRecs = recs.filter(r => String(r.id || '').startsWith('acc_'));
   (batch.skus || []).forEach(s => {
+    if (!accRecs.length) return;
+    const sku = String(s.sku || '').trim().toLowerCase();
+    const suffix = sku.includes('-') ? sku.split('-').pop().trim() : '';
+    if (!suffix) return;
+    const owners = accRecs.filter(r => ((r.officialProductName || r.projectDescription || '').trim().toLowerCase().split(/\s+/).pop()) === suffix);
+    if (owners.length !== 1) return;
+    const o = owners[0];
+    if (!directMap.has(o.id)) directMap.set(o.id, { totalOrder: 0, totalReceived: 0, closedShort: false });
+    const t = directMap.get(o.id);
+    t.totalOrder += Number(s.qtyOrder) || 0;
+    t.totalReceived += Number(s.qtyReceived) || 0;
+    if (s.closedShort) t.closedShort = true;
+    s.__accDirect = true; // runtime-only marker (not persisted differently — harmless if saved)
+  });
+  (batch.skus || []).forEach(s => {
+    if (s.__accDirect) { delete s.__accDirect; return; }
     const im = itemMasterLookupBySku(s.sku);
     const group = ((im && im.itemGroup) || '').trim();
     if (!group) return; // can't attribute an unmapped SKU to any specific product — left out of every row's split rather than risk double-counting or guessing
@@ -14998,7 +15186,7 @@ function campaignTimelineBatchSplitByRec(batch) {
     acc.totalReceived += Number(s.qtyReceived) || 0;
     if (s.closedShort) acc.closedShort = true;
   });
-  const map = new Map();
+  const map = new Map(directMap);
   byGroup.forEach((acc, group) => {
     // Which of THIS batch's own linked rows best matches this group's name — same word-overlap scoring
     // as campaignTimelineBestWordMatch, just picking among a short known list of sibling rows instead of
@@ -15006,7 +15194,7 @@ function campaignTimelineBatchSplitByRec(batch) {
     const groupWords = campaignTimelineNormWords(group);
     let best = null, bestScore = 0;
     recs.forEach(r => {
-      const recWords = campaignTimelineNormWords(r.officialProductName || '');
+      const recWords = campaignTimelineNormWords(r.officialProductName || r.projectDescription || '');
       if (!groupWords.length || !recWords.length) return;
       const recWordSet = new Set(recWords);
       const matchCount = groupWords.filter(w => recWordSet.has(w)).length;
@@ -15034,6 +15222,7 @@ function campaignTimelineMatchReceivingRaw(rec) {
     // about the real physical shortfall — only the Status label changes).
     const acc = { totalOrder: 0, totalReceived: 0, closedShort: false };
     let groupLabel = '';
+    let splitMissingBatch = '';
     linked.forEach(b => {
       groupLabel = groupLabel || b.garmentName || b.batchNo;
       const split = campaignTimelineBatchSplitByRec(b);
@@ -15045,7 +15234,7 @@ function campaignTimelineMatchReceivingRaw(rec) {
           acc.totalOrder += part.totalOrder;
           acc.totalReceived += part.totalReceived;
           if (part.closedShort) acc.closedShort = true;
-        }
+        } else if (!splitMissingBatch) splitMissingBatch = b.batchNo || b.garmentName || '';
         return;
       }
       (b.skus || []).forEach(s => {
@@ -15054,6 +15243,7 @@ function campaignTimelineMatchReceivingRaw(rec) {
         if (s.closedShort) acc.closedShort = true;
       });
     });
+    if (!acc.totalOrder && splitMissingBatch) return { acc, groupLabel, direct: true, reason: `Linked to batch '${splitMissingBatch}', but that batch covers several rows and none of its SKUs could be matched to THIS row (SKU's last part must equal the last word of the Official Product Name, or its Item Master Group must match the name).` };
     return { acc, groupLabel, direct: true };
   }
   // Per Shaila's request (Sep 25, 2026 — "Ya, matikan fuzzy match"): the word-overlap Brand ->
@@ -15119,7 +15309,7 @@ function campaignTimelineMatchReceiving(rec) {
 // Batch/Qty/Color) and a single flat list of ~150 rows was "pening" (dizzying) to scan.
 function campaignTimelineSeriesList() {
   const set = new Set();
-  campaignTimelineList.forEach(rec => set.add(rec.series || '(no series)'));
+  campaignTimelineAllRecs().forEach(rec => set.add(rec.series || '(no series)'));
   return [...set].sort();
 }
 function campaignTimelineSeriesOptionsHtml(selectedSeries) {
@@ -15129,7 +15319,8 @@ function campaignTimelineSeriesOptionsHtml(selectedSeries) {
 // different colour runs of "PATAWALI Modern fit Quarter Sleeves Top") — Series itself is left out
 // here since the picker's first dropdown already scopes to one series before this list is even shown.
 function campaignTimelineItemLabel(rec) {
-  const parts = [rec.officialProductName || '(no product name)'];
+  const parts = [rec.officialProductName || rec.projectDescription || '(no product name)'];
+  if (String(rec.id || '').startsWith('acc_')) parts.push('Accessories');
   if (rec.batch) parts.push(`Batch ${rec.batch}`);
   if (rec.quantity) parts.push(`Qty ${formatQty(rec.quantity)}`);
   if (rec.color) parts.push(`Color ${rec.color}`);
@@ -15143,7 +15334,7 @@ function campaignTimelineItemLabel(rec) {
 // Timeline sheet (e.g. Batch 1 of "PATAWALI Girls Kebaya" logged once per colour).
 function campaignTimelineItemCheckboxesHtml(series, selectedIds) {
   const selSet = new Set(Array.isArray(selectedIds) ? selectedIds : (selectedIds ? [selectedIds] : []));
-  const items = campaignTimelineList.filter(rec => (rec.series || '(no series)') === series)
+  const items = campaignTimelineAllRecs().filter(rec => (rec.series || '(no series)') === series)
     .sort((a, b) => (a.officialProductName || '').localeCompare(b.officialProductName || ''));
   if (!items.length) return `<div class="data-note" style="margin:0; padding:4px;">No items under this series.</div>`;
   const labelCounts = new Map();
@@ -15174,7 +15365,7 @@ function campaignTimelineReadCheckedIds(container) {
 function campaignTimelineMultiselectSummary(ids) {
   if (!ids.length) return '-- Not linked --';
   if (ids.length === 1) {
-    const rec = campaignTimelineList.find(r => r.id === ids[0]);
+    const rec = campaignTimelineAllRecs().find(r => r.id === ids[0]);
     return rec ? campaignTimelineItemLabel(rec) : '1 item selected';
   }
   return `${ids.length} items selected`;
@@ -15258,7 +15449,7 @@ function campaignTimelineWireCascadingLink(seriesSelectOrig, itemContainerOrig, 
   const toggle = itemContainer.querySelector('.tl-ms-toggle');
   const toggleLabel = itemContainer.querySelector('.tl-ms-toggle-label');
   const panel = itemContainer.querySelector('.tl-ms-panel');
-  const firstSelectedRec = initialIds.length ? campaignTimelineList.find(r => r.id === initialIds[0]) : null;
+  const firstSelectedRec = initialIds.length ? campaignTimelineAllRecs().find(r => r.id === initialIds[0]) : null;
   // initialSeriesOverride covers the case where a Series was already picked but nothing under it is
   // ticked yet (initialIds empty, so there's no row to derive the series from) — e.g. restoring an
   // in-progress, not-yet-saved pick across an unrelated background re-render (see
@@ -15278,7 +15469,7 @@ function campaignTimelineWireCascadingLink(seriesSelectOrig, itemContainerOrig, 
     if (!legSelect) return;
     const ids = campaignTimelineReadCheckedIds(itemContainer);
     if (!ids.length) { legSelect.disabled = true; legSelect.value = ''; return; }
-    const recs = ids.map(id => campaignTimelineList.find(r => r.id === id)).filter(Boolean);
+    const recs = ids.map(id => campaignTimelineAllRecs().find(r => r.id === id)).filter(Boolean);
     const needsLeg = recs.some(r => campaignTimelineShipmentCountForRec(r) >= 2);
     if (!needsLeg) { legSelect.disabled = true; legSelect.value = ''; return; }
     legSelect.disabled = false;
@@ -15884,33 +16075,34 @@ function campaignTimelineSetFilterVisible(id, visible) {
   if (wrap) wrap.style.display = visible ? '' : 'none';
 }
 function campaignTimelineSyncTableSwitchUi() {
-  const isFabric = campaignTimelineActiveTable === 'fabric';
+  const active = campaignTimelineActiveTable;
+  const isFabric = active === 'fabric';
+  const isAcc = active === 'acc';
   const title = document.getElementById('campaignTimelineTableSectionTitle');
-  if (title) title.textContent = isFabric ? 'Fabric' : 'Finished Goods (FG)';
-  const thumb = document.getElementById('campaignTimelineTableSwitchThumb');
-  if (thumb) thumb.style.left = isFabric ? '19px' : '1px';
+  if (title) title.textContent = isFabric ? 'Fabric' : (isAcc ? 'Accessories' : 'Finished Goods (FG)');
   document.querySelectorAll('.ctt-switch-label').forEach(label => {
-    const active = label.dataset.table === campaignTimelineActiveTable;
-    label.style.color = active ? 'var(--gold)' : 'var(--text-dim, #9a8f83)';
+    const on = label.dataset.table === active;
+    label.style.color = on ? 'var(--bg, #1c1714)' : 'var(--text-dim, #9a8f83)';
+    label.style.background = on ? 'var(--gold)' : 'transparent';
   });
   const fgWrap = document.getElementById('campaignTimelineTableWrap');
   const fabricWrap = document.getElementById('campaignTimelineFabricTableWrap');
-  if (fgWrap) fgWrap.style.display = isFabric ? 'none' : '';
+  const accWrap = document.getElementById('campaignTimelineAccTableWrap');
+  if (fgWrap) fgWrap.style.display = active === 'fg' ? '' : 'none';
   if (fabricWrap) fabricWrap.style.display = isFabric ? '' : 'none';
-  // Per Shaila's confusion (Sep 27, 2026 — "kenapa fabric keluar fg punya,,patut keluar fabric punya"):
-  // with the FG/Fabric status filters now split into two separate dropdowns, leaving BOTH always visible
-  // meant "All Status" (FG-only) still sat right there looking like the general filter while viewing the
-  // Fabric table, where it does nothing — she kept clicking it expecting Fabric options. Now only the
-  // filters relevant to whichever table is actually showing are visible; Search/Series/Supplier stay
-  // visible always since both tables read those three.
-  campaignTimelineSetFilterVisible('campaignTimelineStatusFilter', !isFabric);
+  if (accWrap) accWrap.style.display = isAcc ? '' : 'none';
+  // FG status filter only applies to FG; Material/Fabric Status only to Fabric. Search/Series/Supplier
+  // are shared by all three tables.
+  campaignTimelineSetFilterVisible('campaignTimelineStatusFilter', active === 'fg');
   campaignTimelineSetFilterVisible('campaignTimelineMaterialFilter', isFabric);
   campaignTimelineSetFilterVisible('campaignTimelineFabricStatusFilter', isFabric);
 }
 const campaignTimelineTableSwitchToggleEl = document.getElementById('campaignTimelineTableSwitchToggle');
 if (campaignTimelineTableSwitchToggleEl) {
-  campaignTimelineTableSwitchToggleEl.addEventListener('click', () => {
-    campaignTimelineActiveTable = campaignTimelineActiveTable === 'fabric' ? 'fg' : 'fabric';
+  campaignTimelineTableSwitchToggleEl.addEventListener('click', (e) => {
+    const label = e.target.closest('.ctt-switch-label');
+    if (!label) return;
+    campaignTimelineActiveTable = label.dataset.table;
     campaignTimelineSyncTableSwitchUi();
   });
 }
@@ -15926,6 +16118,7 @@ function renderCampaignTimelineTab() {
   renderCampaignTimelineFilterOptions();
   renderCampaignTimelineTable();
   renderCampaignTimelineFabricTable();
+  renderCampaignAccTable();
   campaignTimelineSyncTableSwitchUi();
   // The very first renderCampaignTimelineGsheetInputs() call (near the bottom of this script, at
   // module load) runs BEFORE loadData() has actually read the saved links back out of localStorage
@@ -15938,6 +16131,7 @@ function renderCampaignTimelineTab() {
 function renderCampaignTimelineBothTables() {
   renderCampaignTimelineTable();
   renderCampaignTimelineFabricTable();
+  renderCampaignAccTable();
   campaignTimelineSyncTableSwitchUi();
 }
 document.getElementById('campaignTimelineSearchInput').addEventListener('input', renderCampaignTimelineBothTables);
@@ -15948,6 +16142,208 @@ document.getElementById('campaignTimelineStatusFilter').addEventListener('change
 // re-render the FG table for it.
 document.getElementById('campaignTimelineMaterialFilter').addEventListener('change', renderCampaignTimelineFabricTable);
 document.getElementById('campaignTimelineFabricStatusFilter').addEventListener('change', renderCampaignTimelineFabricTable);
+
+
+/* ==================== Timeline — Accessories table (Oct 6, 2026, per Shaila) ====================
+   Third table next to FG / Fabric, read from the "Accessories" tab of the same campaign tracker sheet
+   (its own Google Sheets link). Same columns as the FG table except Production Status. Kept as its own
+   list (campaignAccList) so it never mixes into FG/Fabric/Garment Order linking; synced through Firebase
+   table "CampaignTimelineAcc". Accessories rows are linkable to Garment Order batches exactly like FG rows
+   (batch.timelineIds — see campaignTimelineAllRecs); Receive FG / Value / Status come from those links. Each refresh is a fresh snapshot — rows no longer
+   in the sheet are dropped. */
+const CAMPAIGN_ACC_KEY = 'sto_campaign_timeline_acc_v1';
+const CAMPAIGN_ACC_FB_TABLE = 'CampaignTimelineAcc';
+let campaignAccList = [];
+let _campaignAccLastServerSnapshot = {};
+let campaignAccPushInFlight = false;
+let campaignAccFbListenerAttached = false;
+let campaignAccFetchInFlight = false;
+// Every Timeline-style row a Garment Order batch can be linked to: FG/Fabric rows plus Accessories rows.
+function campaignTimelineAllRecs() { return (campaignTimelineList || []).concat(typeof campaignAccList !== 'undefined' ? campaignAccList : []); }
+function campaignAccLoadLocal() {
+  try { campaignAccList = JSON.parse(localStorage.getItem(CAMPAIGN_ACC_KEY)) || []; } catch (e) { campaignAccList = []; }
+}
+function campaignAccSaveLocal() { localStorage.setItem(CAMPAIGN_ACC_KEY, JSON.stringify(campaignAccList)); }
+function pushCampaignAccToFirebase() {
+  if (!fbDb) return;
+  const nowKeyed = {};
+  campaignAccList.forEach(it => { nowKeyed[fbSafeKey(it.id)] = it; });
+  const updateObj = {};
+  let changed = false;
+  Object.keys(nowKeyed).forEach(k => {
+    const prev = (_campaignAccLastServerSnapshot[k] !== undefined) ? stableStringify(_campaignAccLastServerSnapshot[k]) : undefined;
+    if (stableStringify(nowKeyed[k]) !== prev) { updateObj[k] = nowKeyed[k]; changed = true; }
+  });
+  Object.keys(_campaignAccLastServerSnapshot).forEach(k => { if (!(k in nowKeyed)) { updateObj[k] = null; changed = true; } });
+  if (!changed) return;
+  _campaignAccLastServerSnapshot = nowKeyed;
+  campaignAccPushInFlight = true;
+  fbChunkedUpdate(fbDb.ref(CAMPAIGN_ACC_FB_TABLE), updateObj).catch(e => {
+    cloudSyncStatus = 'error';
+    cloudSyncLastError = `CampaignTimelineAcc: ${(e && e.message) || e}`;
+    renderCloudSyncStatus();
+  }).finally(() => { campaignAccPushInFlight = false; });
+}
+function campaignAccApplyServerSnapshot(remoteObj) {
+  if (campaignAccPushInFlight) return;
+  _campaignAccLastServerSnapshot = remoteObj || {};
+  const remoteArr = Object.values(_campaignAccLastServerSnapshot);
+  if (stableStringify(remoteArr) === stableStringify(campaignAccList)) return;
+  campaignAccList = remoteArr;
+  campaignAccSaveLocal();
+  const tabEl = document.getElementById('tab-production-timeline');
+  if (tabEl && tabEl.classList.contains('active')) renderCampaignTimelineTab();
+}
+async function campaignAccCloudInit() {
+  if (!fbDb) return;
+  try {
+    const snap = await fbDb.ref(CAMPAIGN_ACC_FB_TABLE).once('value');
+    campaignAccApplyServerSnapshot(snap.val() || {});
+  } catch (e) { /* offline — keep local copy */ }
+  if (campaignAccFbListenerAttached) return;
+  campaignAccFbListenerAttached = true;
+  fbDb.ref(CAMPAIGN_ACC_FB_TABLE).on('value', snapshot => campaignAccApplyServerSnapshot(snapshot.val() || {}));
+}
+function parseCampaignAccRows(rows, rawHeaderRows) {
+  let headerRowIdx = 2;
+  for (let r = 0; r < Math.min(10, rows.length); r++) {
+    const cand = rows[r] || [];
+    if (campaignTimelineFindColOccurrence(cand, 'series', 1) !== -1 || campaignTimelineFindColContains(cand, ['series']) !== -1) { headerRowIdx = r; break; }
+  }
+  const headerRow = rows[headerRowIdx] || [];
+  const combined = campaignTimelineBuildCombinedHeaderRow(rawHeaderRows);
+  const find = (parts) => {
+    const a = campaignTimelineFindColContains(headerRow, parts);
+    if (a !== -1) return a;
+    return combined.length ? campaignTimelineFindColContains(combined, parts) : -1;
+  };
+  const exactOr = (name, parts) => {
+    const e = campaignTimelineFindColOccurrence(headerRow, name, 1);
+    return e !== -1 ? e : find(parts);
+  };
+  const tailor = find(['tailor', 'supplier']);
+  const idx = {
+    item: exactOr('item', ['item']),
+    series: exactOr('series', ['series']),
+    category: exactOr('category', ['category']),
+    project: find(['project', 'description']),
+    official: find(['official', 'product', 'name']),
+    supplier: tailor !== -1 ? tailor : exactOr('supplier', ['supplier']),
+    batch: find(['batch']),
+    color: exactOr('color', ['color']),
+    qty: find(['quantity', 'fg', 'order']),
+    totalValue: (() => { let i = find(['total', 'value']); if (i === -1) i = find(['total', 'amount']); if (i === -1) i = find(['value']); return i; })(),
+    s1d: find(['shipment 1', 'delivery']), s1a: find(['shipment 1', 'arrive']),
+    s2d: find(['shipment 2', 'delivery']), s2a: find(['shipment 2', 'arrive']),
+  };
+  if (idx.series === -1) throw new Error('Accessories tab needs a "Series" column.');
+  parseCampaignAccRows.lastMissing = [['Total Value', idx.totalValue], ['Quantity FG Order pcs', idx.qty], ['Tailor Supplier', idx.supplier]].filter(x => x[1] === -1).map(x => x[0]);
+  parseCampaignAccRows.lastHeaders = headerRow.filter(Boolean).slice(0, 40).join(' | ');
+  const txt = (row, i) => i !== -1 ? campaignTimelineCellText(row[i]) : '';
+  // Accessories sheet formats Total Value as currency ("RM477,000.00") — strip everything but digits/dot/minus.
+  const num = (row, i) => { if (i === -1) return 0; const n = parseFloat(String(row[i] == null ? '' : row[i]).replace(/[^0-9.\-]/g, '')); return isNaN(n) ? 0 : n; };
+  const dt = (row, i) => i !== -1 ? campaignTimelineCellDateIso(row[i]) : '';
+  const out = [];
+  for (let r = headerRowIdx + 1; r < rows.length; r++) {
+    const row = rows[r];
+    if (!row || !row.length) continue;
+    const series = txt(row, idx.series);
+    if (!series) continue; // blank padding rows AND the orange TOTAL rows (no Series)
+    const official = txt(row, idx.official);
+    const project = txt(row, idx.project);
+    const batch = txt(row, idx.batch), color = txt(row, idx.color), supplier = txt(row, idx.supplier);
+    out.push({
+      id: 'acc_' + campaignTimelineStableId(series, (official || project) + '|' + txt(row, idx.item), batch, color, supplier),
+      item: txt(row, idx.item), series, category: txt(row, idx.category),
+      officialProductName: official, projectDescription: project,
+      batch, color, supplier,
+      quantity: num(row, idx.qty), totalValue: num(row, idx.totalValue),
+      ship1Delivery: dt(row, idx.s1d), ship1Arrive: dt(row, idx.s1a), ship2Delivery: dt(row, idx.s2d), ship2Arrive: dt(row, idx.s2a),
+    });
+  }
+  const seen = new Map();
+  out.forEach(rec => { const c = (seen.get(rec.id) || 0) + 1; seen.set(rec.id, c); if (c > 1) rec.id = `${rec.id}_${c}`; });
+  return out;
+}
+async function campaignAccFetch() {
+  const url = (campaignTimelineGsheetUrls && campaignTimelineGsheetUrls.accessories) || '';
+  const statusEl = document.getElementById('campaignTimelineAccStatus');
+  if (!url || campaignAccFetchInFlight) return;
+  campaignAccFetchInFlight = true;
+  try {
+    const [fetched, aux] = await Promise.all([campaignTimelineFetchGvizRowsReliable(url), campaignTimelineFetchGvizRawHeaderRows(url)]);
+    const rows = parseCampaignAccRows(fetched.rows, aux);
+    if (!rows.length) throw new Error('No rows found in the Accessories tab.');
+    const changed = stableStringify(rows) !== stableStringify(campaignAccList);
+    if (changed) {
+      campaignAccList = rows;
+      campaignAccSaveLocal();
+      pushCampaignAccToFirebase();
+      renderCampaignTimelineTab();
+    }
+    const miss = parseCampaignAccRows.lastMissing || [];
+    if (statusEl) { statusEl.textContent = `Accessories: ${formatQty(rows.length)} item(s) ${changed ? 'updated' : 'checked — no changes'}.` + (miss.length ? ` Column(s) not found in the sheet: ${miss.join(', ')}. Headers seen: ${parseCampaignAccRows.lastHeaders}` : ''); statusEl.className = miss.length ? 'upload-status err' : 'upload-status ok'; }
+  } catch (e) {
+    if (statusEl) { statusEl.textContent = 'Accessories: failed — ' + e.message; statusEl.className = 'upload-status err'; }
+  } finally { campaignAccFetchInFlight = false; }
+}
+function campaignAccFilteredList() {
+  const search = (document.getElementById('campaignTimelineSearchInput').value || '').trim().toLowerCase();
+  const seriesFilter = document.getElementById('campaignTimelineSeriesFilter').value;
+  const supplierFilter = document.getElementById('campaignTimelineSupplierFilter').value;
+  return campaignAccList.filter(it => {
+    if (search && ![it.series, it.officialProductName, it.projectDescription, it.supplier, it.category].filter(Boolean).join(' ').toLowerCase().includes(search)) return false;
+    if (seriesFilter && it.series !== seriesFilter) return false;
+    if (supplierFilter && it.supplier !== supplierFilter) return false;
+    return true;
+  });
+}
+function renderCampaignAccTable() {
+  const wrap = document.getElementById('campaignTimelineAccTableWrap');
+  if (!wrap) return;
+  const list = campaignAccFilteredList();
+  if (!list.length) {
+    wrap.innerHTML = `<div class="empty-state">${campaignAccList.length ? 'No rows match the search/filter.' : 'No Accessories data yet — paste the Accessories tab link above and click "Refresh from Google Sheets".'}</div>`;
+    return;
+  }
+  const dateCell = campaignTimelineDateCell;
+  let html = `<table><thead><tr>
+    <th>Series</th><th>Category</th><th>Official Product Name</th><th>Batch</th><th>Color</th>
+    <th>Tailor Supplier</th><th>Quantity FG Order pcs</th><th>Total Value</th>
+    <th>Shipment 1 Delivery</th><th>Shipment 1 Arrive</th><th>Shipment 2 Delivery</th><th>Shipment 2 Arrive</th>
+    <th>Receive FG</th><th>Receive Value</th><th>Receiving Variance</th><th>Variance Value</th>
+    <th>Status</th>
+  </tr></thead><tbody>`;
+  list.forEach(rec => {
+    // Linked to Garment Order exactly like the FG table (explicit batch link only — no guessing).
+    const match = campaignTimelineMatchReceiving(rec);
+    const rcv = (match.acc && Number(match.acc.totalReceived)) || 0;
+    const qty = Number(rec.quantity) || 0, totalValue = Number(rec.totalValue) || 0;
+    const receiveValue = campaignTimelineLinkedReceiveValue(rec);
+    const variancePcs = rcv - qty;
+    const varianceValue = receiveValue - totalValue;
+    const vColor = variancePcs === 0 ? '' : (variancePcs > 0 ? 'color:var(--green);' : 'color:var(--red);');
+    html += `<tr data-id="${escapeHtml(rec.id)}">
+      <td>${escapeHtml(rec.series || '-')}</td>
+      <td>${escapeHtml(rec.category || '-')}</td>
+      <td>${escapeHtml(rec.officialProductName || rec.projectDescription || '-')}</td>
+      <td>${escapeHtml(rec.batch || '-')}</td>
+      <td>${escapeHtml(rec.color || '-')}</td>
+      <td>${escapeHtml(rec.supplier || '-')}</td>
+      <td>${formatQty(qty)}</td>
+      <td>${totalValue ? skuPriceFormatDisplay(totalValue) : '-'}</td>
+      ${dateCell(rec.ship1Delivery)}${dateCell(rec.ship1Arrive)}${dateCell(rec.ship2Delivery)}${dateCell(rec.ship2Arrive)}
+      <td>${formatQty(rcv)}</td>
+      <td>${receiveValue ? skuPriceFormatDisplay(receiveValue) : '-'}</td>
+      <td style="${vColor}">${formatQty(Math.abs(variancePcs))}</td>
+      <td style="${vColor}">${totalValue || receiveValue ? skuPriceFormatDisplay(Math.abs(varianceValue)) : '-'}</td>
+      <td>${campaignTimelineReceivedBadgeHtml(rec)}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+  wrap.style.overflowX = 'auto';
+}
 
 /* ---- TV Dashboard slide (rebuilt per Shaila's request, Sep 22, 2026) ----
    Replaced the old "KPI totals + one mixed Coming Up list" with what she actually asked for: what's
@@ -23826,6 +24222,19 @@ function rmDashStockStatusBadge(available, totalIn) {
 // Timeline dashboard slide (campaignTimelineArrivingSoonHtml), reading off the same campaignTimelineList
 // data — so Raw Material's TV slide surfaces the same near-term fabric watch list without needing its
 // own separate implementation.
+// "Fabric Arriving Soon" tab (Raw Material menu, Oct 6, 2026): full-page version of the dashboard strip.
+function renderFabricArrivingTab() {
+  const wrap = document.getElementById('fabricArrivingTabWrap');
+  if (!wrap) return;
+  if (!campaignTimelineList.length) {
+    wrap.innerHTML = `<div class="empty-state">No Timeline data uploaded yet — upload the campaign tracker file in Production &gt; Timeline.</div>`;
+    return;
+  }
+  wrap.innerHTML = campaignTimelineArrivingSoonHtml(campaignTimelineList, 'fabricArrive', {
+    product: false, qty: true, qtyField: 'quantityFabricsCtn', materialField: 'material',
+    supplierField: 'fabricSupplier', mergeSameSeries: true, weeksAhead: 8
+  });
+}
 function renderRawMaterialDashTable() {
   const wrap = document.getElementById('rmDashFabricArrivingSoonWrap');
   if (!wrap) return;
@@ -28655,7 +29064,17 @@ function loadGarmentOrders() {
     return { ...rest, timelineIds: timelineId ? [timelineId] : [] };
   });
 }
-function saveGarmentOrders() { localStorage.setItem(GARMENT_ORDERS_KEY, JSON.stringify(garmentOrders)); }
+// Oct 6, 2026 (per Shaila: staff logged Qty Received + put it on a putaway trolley, but Garment Order's received
+// amount vanished while Putaway kept it): the putaway trolley (Rollcages) is pushed to Firebase IMMEDIATELY
+// (pushRollcagesNow), but Garment_Orders used to wait for the ~2s cloudSyncReconcile tick — and any realtime
+// snapshot from another device landing in that window replaced the local array with the OLDER server copy,
+// silently wiping the just-logged qtyReceived. Now every save pushes straight away, same fix as pushRmTableNow.
+let garmentLocalSaveAt = 0; // timestamp of this device's last Garment Order save (see applyServerSnapshot guard)
+function saveGarmentOrders() {
+  garmentLocalSaveAt = Date.now();
+  localStorage.setItem(GARMENT_ORDERS_KEY, JSON.stringify(garmentOrders));
+  try { pushRmTableNow('Garment_Orders'); } catch (e) { /* sync not ready yet — the periodic tick will push it */ }
+}
 
 /* ---------- Garment Order: import from Excel/CSV ----------
    Template layout (see downloadGarmentTemplateBtn below): columns A-D are Batch No., Garment Name,
@@ -28949,7 +29368,7 @@ let garmentReceiveLogs = []; // [{ batchNo, sku, station, qty, date }]
 function loadGarmentReceiveLogs() {
   try { garmentReceiveLogs = JSON.parse(localStorage.getItem(GARMENT_RECEIVE_LOGS_KEY)) || []; } catch (e) { garmentReceiveLogs = []; }
 }
-function saveGarmentReceiveLogs() { localStorage.setItem(GARMENT_RECEIVE_LOGS_KEY, JSON.stringify(garmentReceiveLogs)); }
+function saveGarmentReceiveLogs() { localStorage.setItem(GARMENT_RECEIVE_LOGS_KEY, JSON.stringify(garmentReceiveLogs));  try { pushRmTableNow('Garment_Receive_Logs'); } catch (e) { /* periodic tick will push */ } }
 // One-time cleanup run on every load, for installs that already had orphaned data from BEFORE
 // deleting a Garment Order batch also cleaned up after itself (see the batch delete handler) —
 // garmentReceiveLogs is a separate append-only log, so a deleted batch's pcs kept counting toward
@@ -29302,14 +29721,41 @@ function garmentBatchMatchesSearch(batch, q) {
   return batch.skus.some(s => (s.sku || '').toLowerCase().includes(needle));
 }
 
+// Self-heal (Oct 6, 2026, per Shaila: Receiving Summary shows 2 received in range, but Garment Order / "All-Time"
+// says 0/69): every "+ Log" writes a garmentReceiveLogs row AND bumps the SKU's qtyReceived, and a log row is only
+// ever removed together with its whole batch — so a SKU's qtyReceived can never legitimately be LOWER than the sum
+// of its logs. If it is (a stale cloud copy overwrote it), raise it back to the logged total.
+function garmentHealReceivedFromLogs() {
+  if (!garmentOrders.length || !garmentReceiveLogs.length) return false;
+  const sums = new Map();
+  garmentReceiveLogs.forEach(l => {
+    const k = `${l.batchNo}|${String(l.sku || '').trim().toLowerCase()}`;
+    const cur = sums.get(k) || { qty: 0, date: '' };
+    cur.qty += Number(l.qty) || 0;
+    if (l.date && l.date > cur.date) cur.date = l.date;
+    sums.set(k, cur);
+  });
+  let changed = false;
+  garmentOrders.forEach(b => (b.skus || []).forEach(s => {
+    const sum = sums.get(`${b.batchNo}|${String(s.sku || '').trim().toLowerCase()}`);
+    if (sum && sum.qty > (Number(s.qtyReceived) || 0)) {
+      s.qtyReceived = sum.qty;
+      if (sum.date && (!s.lastReceivedDate || s.lastReceivedDate < sum.date)) s.lastReceivedDate = sum.date;
+      changed = true;
+    }
+  }));
+  if (changed) saveGarmentOrders();
+  return changed;
+}
 function renderGarmentOrderTab() {
+  garmentHealReceivedFromLogs();
   // Self-healing auto-link pass (see garmentBatchAutoLinkTimelineIds above) — runs on every render so
   // a batch picks up its explicit Timeline link automatically as soon as its Garment Name and the
   // Timeline data agree, whether that happened because she just fixed a typo, or because new Timeline
   // rows synced in later. Each call is a cheap early-return for any batch already linked, so this
   // doesn't meaningfully slow down rendering.
   let garmentAutoLinked = false;
-  garmentOrders.forEach(b => { if (garmentBatchAutoLinkTimelineIds(b)) garmentAutoLinked = true; });
+  garmentOrders.forEach(b => { if (garmentBatchAutoLinkTimelineIds(b)) garmentAutoLinked = true; if (garmentBatchAutoLinkAccessories(b)) garmentAutoLinked = true; });
   if (garmentAutoLinked) saveGarmentOrders();
 
   // The "Add Batch" form's link-picker lives outside #garmentOrderTableWrap (it's above the batch
@@ -29435,7 +29881,7 @@ function renderGarmentOrderTab() {
                </div>`
             : (() => {
                 const timelineIds = batch.timelineIds || [];
-                const linkedRecs = timelineIds.map(id => campaignTimelineList.find(r => r.id === id)).filter(Boolean);
+                const linkedRecs = timelineIds.map(id => campaignTimelineAllRecs().find(r => r.id === id)).filter(Boolean);
                 const legLabel = batch.shipmentLeg === 'shipment1' ? ' (Shipment 1)' : batch.shipmentLeg === 'shipment2' ? ' (Shipment 2)' : '';
                 let label, title = '';
                 if (!timelineIds.length) label = 'Not linked';
@@ -30546,6 +30992,7 @@ function garmentRecvSummaryRefreshAll() {
   setGarmentRecvSummaryView(garmentRecvSummaryView);
 }
 function renderGarmentRecvSummaryTab() {
+  garmentHealReceivedFromLogs();
   garmentRecvSummaryPopulateAttrFilters();
   garmentRecvSummaryRefreshAll();
 }
@@ -31775,6 +32222,19 @@ function renderInboundDashFgArrivingSoon() {
         <div class="inb-fg-qty">${formatQty(qty)} pcs</div>
       </div>`;
   }).join('');
+}
+// "FG Arriving Soon" tab (Inbound menu, Oct 6, 2026): full-page version of the dashboard strip.
+function renderFgArrivingTab() {
+  const wrap = document.getElementById('fgArrivingTabWrap');
+  if (!wrap) return;
+  if (!campaignTimelineList.length) {
+    wrap.innerHTML = `<div class="empty-state">No Timeline data uploaded yet — upload the campaign tracker file in Production &gt; Timeline.</div>`;
+    return;
+  }
+  wrap.innerHTML = campaignTimelineArrivingSoonHtml(campaignTimelineList, ['ship1Arrive', 'ship2Arrive'], {
+    product: true, qty: true, supplierField: 'supplier', fgStatusColor: true, weeksAhead: 8,
+    fieldLabels: { ship1Arrive: 'Shipment 1', ship2Arrive: 'Shipment 2' }
+  });
 }
 function renderInboundDashboard() {
   renderDashDutyBarInbound();
