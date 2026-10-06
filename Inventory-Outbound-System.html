@@ -14199,7 +14199,7 @@ function simpleGvizFetchRows(url) {
     }
     const cbName = `_campaignTimelineGvizCb${_campaignTimelineGvizCallbackSeq++}`;
     const script = document.createElement('script');
-    const timer = setTimeout(() => { cleanup(); reject(new Error('Timed out — check your internet connection and that the sheet is shared as "Anyone with the link" (Viewer).')); }, 15000);
+    const timer = setTimeout(() => { cleanup(); reject(new Error('Timed out — check your internet connection and that the sheet is shared as "Anyone with the link" (Viewer).')); }, 60000);
     function cleanup() { delete window[cbName]; if (script.parentNode) script.parentNode.removeChild(script); clearTimeout(timer); }
     window[cbName] = (gvizResponse) => {
       cleanup();
@@ -14225,7 +14225,9 @@ function simpleGvizFetchRows(url) {
       }
     };
     script.onerror = () => { cleanup(); reject(new Error('Could not reach Google Sheets — check your internet connection and the link.')); };
-    script.src = `https://docs.google.com/spreadsheets/d/${parsed.sheetId}/gviz/tq?gid=${parsed.gid}&range=A1:BZ5000&headers=1&tqx=out:json;responseHandler:${cbName}&_cb=${Date.now()}_${cbName}`;
+    // Oct 6, 2026: row cap raised 5000 -> 100000. Available Stock has one row per SKU per Zone, so the old
+    // 5000-row cap silently cut the sheet off after the first zone (only "KHATAM WAREHOUSE" loaded, 4,999 SKU).
+    script.src = `https://docs.google.com/spreadsheets/d/${parsed.sheetId}/gviz/tq?gid=${parsed.gid}&range=A1:BZ100000&headers=1&tqx=out:json;responseHandler:${cbName}&_cb=${Date.now()}_${cbName}`;
     document.head.appendChild(script);
   });
 }
