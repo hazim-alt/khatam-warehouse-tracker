@@ -9856,7 +9856,13 @@ function applyServerSnapshot(table) {
       if (!lb) return;
       (rb.skus || []).forEach(rs => {
         const ls = (lb.skus || []).find(x => x.sku === rs.sku);
-        if (ls && (Number(ls.qtyReceived) || 0) > (Number(rs.qtyReceived) || 0)) {
+        if (ls && ls.recvAdjustedAt && ls.recvAdjustedAt > (rs.recvAdjustedAt || 0)) {
+          // Deliberate manual correction made here (possibly a DECREASE) — it wins over the older server copy.
+          rs.qtyReceived = ls.qtyReceived;
+          rs.recvAdjustedAt = ls.recvAdjustedAt;
+          if (ls.lastReceivedDate) rs.lastReceivedDate = ls.lastReceivedDate; else delete rs.lastReceivedDate;
+          healed = true;
+        } else if (ls && (Number(ls.qtyReceived) || 0) > (Number(rs.qtyReceived) || 0)) {
           rs.qtyReceived = ls.qtyReceived;
           if (ls.lastReceivedDate) rs.lastReceivedDate = ls.lastReceivedDate;
           healed = true;
@@ -29698,14 +29704,19 @@ function renderGarmentSkuRows(batch, searchQ) {
       <td class="row-actions">
         <input type="number" class="garment-sku-log-input" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}" min="0" placeholder="e.g. 50" style="width:70px;">
         ${(() => {
-          // Oct 6, 2026 (per Shaila): the old Station dropdown ("— none on shift —") is replaced by a
-          // Trolley / Rollcage picker — pick where the goods go right here, and + Log files them straight
-          // onto that trolley's Putaway list (no extra pop-up). Leave it blank and the usual pop-up asks.
-          const rcs = putawayAvailableRollcages();
-          return `<select class="garment-sku-log-rollcage" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}" style="width:auto; padding:3px 6px; font-size:11px;">
-            <option value="">${rcs.length ? 'Trolley / Rollcage...' : '— no trolley available —'}</option>
-            ${rcs.map(rc => `<option value="${escapeHtml(rc.name)}">${escapeHtml(rc.name)}</option>`).join('')}
-          </select>`;
+          // Oct 6, 2026 (per Shaila: "bagi tau sku ni assign kat trolley mana atau rollcage mana"): shows WHERE this
+          // SKU line was put — one tag per trolley/rollcage it was assigned to (amber = still waiting for putaway,
+          // green ✓ = putaway done), with the qty currently sitting on that trolley.
+          const assigns = s.putawayAssignments || [];
+          if (!assigns.length) return `<div class="garment-sku-trolley" style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">🛒 Not assigned to any trolley yet</div>`;
+          const tags = assigns.map(a => {
+            const rc = rollcages.find(r => r.name === a.rollcage);
+            const qtyOn = rc ? (rc.putawayItems || []).filter(it => it.batchNo === batch.batchNo && it.sku === s.sku).reduce((t, it) => t + (Number(it.qty) || 0), 0) : 0;
+            const done = a.status === 'done';
+            const color = done ? 'var(--green)' : 'var(--amber)';
+            return `<span style="display:inline-block; margin:0 4px 4px 0; padding:2px 8px; border-radius:999px; border:1px solid ${color}; color:${color}; font-size:11px; font-weight:600;" title="${done ? 'Putaway done' : 'Waiting for putaway'}">${escapeHtml(a.rollcage || '-')}${done ? ' ✓' : (qtyOn ? ` · ${formatQty(qtyOn)} pcs` : '')}</span>`;
+          }).join('');
+          return `<div class="garment-sku-trolley" style="margin-bottom:2px;"><span style="font-size:11px; color:var(--text-muted); margin-right:4px;">🛒</span>${tags}</div>`;
         })()}
         <button type="button" class="btn-ghost garment-sku-log-btn" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}">+ Log</button>
         ${status !== 'Complete' ? `<button type="button" class="btn-primary garment-sku-complete-btn" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}">Mark Complete</button>` : ''}
@@ -29773,6 +29784,7 @@ function garmentHealReceivedFromLogs() {
   garmentReceiveLogs.forEach(l => {
     const k = `${l.batchNo}|${String(l.sku || '').trim().toLowerCase()}`;
     const cur = sums.get(k) || { qty: 0, date: '' };
+    if (l.adjustment) cur.adjusted = true; // a manual correction exists for this SKU -> its qtyReceived is authoritative
     cur.qty += Number(l.qty) || 0;
     if (l.date && l.date > cur.date) cur.date = l.date;
     sums.set(k, cur);
@@ -29780,7 +29792,7 @@ function garmentHealReceivedFromLogs() {
   let changed = false;
   garmentOrders.forEach(b => (b.skus || []).forEach(s => {
     const sum = sums.get(`${b.batchNo}|${String(s.sku || '').trim().toLowerCase()}`);
-    if (sum && sum.qty > (Number(s.qtyReceived) || 0)) {
+    if (sum && !sum.adjusted && !s.recvAdjustedAt && sum.qty > (Number(s.qtyReceived) || 0)) {
       s.qtyReceived = sum.qty;
       if (sum.date && (!s.lastReceivedDate || s.lastReceivedDate < sum.date)) s.lastReceivedDate = sum.date;
       changed = true;
@@ -30279,10 +30291,6 @@ function renderGarmentOrderTab() {
       .find(el => el.dataset.batch === batchNo && Number(el.dataset.sidx) === sidx);
     const addQty = Math.max(0, Number(input.value) || 0);
     if (!addQty) { input.focus(); return; }
-    // Read the trolley choice NOW — the table re-renders after logging, which would reset the dropdown.
-    const rcSelect = Array.from(wrap.querySelectorAll('.garment-sku-log-rollcage'))
-      .find(el => el.dataset.batch === batchNo && Number(el.dataset.sidx) === sidx);
-    const pickedRollcage = rcSelect ? rcSelect.value : '';
     // Station comes straight from the logged-in user's assigned Receive Station (Team Setup >
     // Users) when they have one. Accounts with NO station assigned get the per-row dropdown
     // instead (only ever showing stations that are currently ON) — pick one there, or leave it as
@@ -30319,8 +30327,6 @@ function renderGarmentOrderTab() {
     }
     const loggedSku = batch.skus[sidx].sku;
     renderInboundAll();
-    // Trolley picked in the row itself -> file it straight onto that trolley; otherwise fall back to the pop-up.
-    if (pickedRollcage && putawayCommitAssignment(batchNo, loggedSku, addQty, [pickedRollcage])) return;
     openPutawayRollcageModal(batchNo, loggedSku, addQty);
   }
   wrap.querySelectorAll('.garment-sku-log-btn').forEach(btn => {
@@ -30367,6 +30373,7 @@ function renderGarmentOrderTab() {
         const delta = newRecv - oldRecv;
         if (delta !== 0) {
           batch.skus[sidx].qtyReceived = newRecv;
+          batch.skus[sidx].recvAdjustedAt = Date.now(); // marks a deliberate manual correction — sync/self-heal must not undo it
           if (newRecv === 0) delete batch.skus[sidx].lastReceivedDate;
           garmentReceiveLogs.push({ batchNo: batch.batchNo, sku: newSku, station: '', qty: delta, date: todayStr(), adjustment: true });
           saveGarmentReceiveLogs();
@@ -33039,6 +33046,9 @@ new MutationObserver(mutations => {
   document.querySelectorAll('.tab-btn[data-tab="dashboard"]').forEach(b => b.addEventListener('click', () => setTimeout(dashFxEnter, 60)));
   setTimeout(dashFxEnter, 400);            // first slide on page load
 })();
+
+// Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
+try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 06Oct-r6'; } catch (e) {}
 </script>
 </body>
 </html>
