@@ -29709,12 +29709,16 @@ function renderGarmentSkuRows(batch, searchQ) {
           // green ✓ = putaway done), with the qty currently sitting on that trolley.
           const assigns = s.putawayAssignments || [];
           if (!assigns.length) return `<div class="garment-sku-trolley" style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">🛒 Not assigned to any trolley yet</div>`;
-          const tags = assigns.map(a => {
+          const tags = assigns.map((a, ai) => {
             const rc = rollcages.find(r => r.name === a.rollcage);
             const qtyOn = rc ? (rc.putawayItems || []).filter(it => it.batchNo === batch.batchNo && it.sku === s.sku).reduce((t, it) => t + (Number(it.qty) || 0), 0) : 0;
             const done = a.status === 'done';
-            const color = done ? 'var(--green)' : 'var(--amber)';
-            return `<span style="display:inline-block; margin:0 4px 4px 0; padding:2px 8px; border-radius:999px; border:1px solid ${color}; color:${color}; font-size:11px; font-weight:600;" title="${done ? 'Putaway done' : 'Waiting for putaway'}">${escapeHtml(a.rollcage || '-')}${done ? ' ✓' : (qtyOn ? ` · ${formatQty(qtyOn)} pcs` : '')}</span>`;
+            const missing = !done && !qtyOn; // pending, but no longer on the trolley's Putaway list (e.g. deleted there)
+            const color = done ? 'var(--green)' : (missing ? 'var(--red)' : 'var(--amber)');
+            const title = done ? 'Putaway done — click to REMOVE this record (e.g. it was marked by mistake)'
+              : (missing ? 'Not on this trolley\'s Putaway list anymore — click to PUT IT BACK' : 'Waiting for putaway');
+            const clickable = done || missing;
+            return `<span class="garment-trolley-tag" data-batch="${escapeHtml(batch.batchNo)}" data-sidx="${si}" data-aidx="${ai}" data-act="${done ? 'remove' : (missing ? 'restore' : '')}" style="display:inline-block; margin:0 4px 4px 0; padding:2px 8px; border-radius:999px; border:1px solid ${color}; color:${color}; font-size:11px; font-weight:600;${clickable ? ' cursor:pointer;' : ''}" title="${title}">${escapeHtml(a.rollcage || '-')}${done ? ' ✓' : (missing ? ' ↺' : (qtyOn ? ` · ${formatQty(qtyOn)} pcs` : ''))}</span>`;
           }).join('');
           return `<div class="garment-sku-trolley" style="margin-bottom:2px;"><span style="font-size:11px; color:var(--text-muted); margin-right:4px;">🛒</span>${tags}</div>`;
         })()}
@@ -30329,6 +30333,47 @@ function renderGarmentOrderTab() {
     renderInboundAll();
     openPutawayRollcageModal(batchNo, loggedSku, addQty);
   }
+  // Trolley tags on each SKU row: click a green ✓ tag to remove that (mistaken) "done" record, or a red ↺ tag to put
+  // the SKU back onto that trolley's Putaway list (as pending).
+  wrap.querySelectorAll('.garment-trolley-tag').forEach(tag => {
+    const act = tag.dataset.act;
+    if (!act) return;
+    tag.addEventListener('click', () => {
+      const batch = garmentOrders.find(b => b.batchNo === tag.dataset.batch);
+      const sku = batch && batch.skus[Number(tag.dataset.sidx)];
+      const assignment = sku && (sku.putawayAssignments || [])[Number(tag.dataset.aidx)];
+      if (!assignment) return;
+      if (act === 'remove') {
+        if (!confirm(`Remove the "${assignment.rollcage} ✓" putaway-done record for ${sku.sku}?`)) return;
+        sku.putawayAssignments.splice(Number(tag.dataset.aidx), 1);
+        saveGarmentOrders();
+        renderGarmentOrderTab();
+        return;
+      }
+      // restore
+      const rc = rollcages.find(r => r.name === assignment.rollcage);
+      if (!rc) { alert(`Rollcage "${assignment.rollcage}" no longer exists in Team Setup.`); return; }
+      const detail = rollcageInUseByDetail(rc.name, null);
+      if (detail && detail.source !== 'Garment Order (Putaway)') { alert(`Rollcage "${rc.name}" is currently used by ${detail.source}.`); return; }
+      const otherQty = rollcages.reduce((t, r) => t + (r.name === rc.name ? 0 : (r.putawayItems || []).filter(it => it.batchNo === batch.batchNo && it.sku === sku.sku).reduce((x, it) => x + (Number(it.qty) || 0), 0)), 0);
+      const suggested = Math.max(0, (Number(sku.qtyReceived) || 0) - otherQty);
+      const entered = prompt(`How many pcs of ${sku.sku} to put back on ${rc.name}?`, String(suggested));
+      if (entered === null) return;
+      const qty = Math.max(0, Number(entered) || 0);
+      if (!qty) return;
+      rc.putawayInUse = true;
+      rc.putawayItems = rc.putawayItems || [];
+      rc.putawayItems.push({ batchNo: batch.batchNo, sku: sku.sku, qty, date: todayStr() });
+      assignment.status = 'pending';
+      delete assignment.doneDate;
+      saveRollcages();
+      saveGarmentOrders();
+      renderRollcagesList();
+      renderRollcageUsageBoards();
+      renderPutawayTab();
+      renderGarmentOrderTab();
+    });
+  });
   wrap.querySelectorAll('.garment-sku-log-btn').forEach(btn => {
     btn.addEventListener('click', () => performGarmentSkuLog(btn.dataset.batch, Number(btn.dataset.sidx)));
   });
