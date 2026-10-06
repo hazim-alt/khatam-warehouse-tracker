@@ -21820,10 +21820,8 @@ function fleetPeopleBusyOnDate(dateIso, excludeTripId) {
 }
 function populateFleetDriverDatalist() {
   const dl = document.getElementById('fleetDriverNamesList');
-  const busy = fleetPeopleBusyOnDate(fleetTripModalDate, fleetTripEditId);
-  const names = [...new Set(fleetDrivers.map(d => (d.driverName || '').trim()).filter(Boolean))]
-    .filter(n => !busy.has(n.toLowerCase()))
-    .sort();
+  // A driver may run several trips in one day, so all registered drivers stay suggestable.
+  const names = [...new Set(fleetDrivers.map(d => (d.driverName || '').trim()).filter(Boolean))].sort();
   dl.innerHTML = names.map(n => `<option value="${escapeHtml(n)}"></option>`).join('');
 }
 
