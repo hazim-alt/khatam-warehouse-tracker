@@ -4459,7 +4459,33 @@ function setCartonCounter(boutique, n) {
   const key = cartonCounterKey(boutique);
   const counters = loadCartonCounters();
   counters[key] = Math.max(0, Number(n) || 0);
+  // Per-boutique "last changed" stamps (Oct 6, 2026): the whole counter map syncs as ONE string, so a Reset made
+  // here used to be overwritten by an older copy coming back from the cloud ("dah reset pon jadi asal balik").
+  // With stamps, whichever device changed a boutique's counter MOST RECENTLY wins for that boutique.
+  const ts = (counters.__ts && typeof counters.__ts === 'object') ? counters.__ts : {};
+  ts[key] = Date.now();
+  counters.__ts = ts;
   localStorage.setItem(CARTON_COUNTER_KEY, JSON.stringify(counters));
+  try { pushSettingsDiff(); } catch (e) { /* sync not ready — periodic tick will push */ }
+}
+// Merge two serialized counter maps boutique-by-boutique: newer stamp wins; on a tie/no stamps the remote value wins
+// (previous behaviour). Returns a JSON string.
+function mergeCartonCounterStrings(localStr, remoteStr) {
+  let l = {}, r = {};
+  try { l = JSON.parse(localStr) || {}; } catch (e) {}
+  try { r = JSON.parse(remoteStr) || {}; } catch (e) {}
+  const lts = (l.__ts && typeof l.__ts === 'object') ? l.__ts : {};
+  const rts = (r.__ts && typeof r.__ts === 'object') ? r.__ts : {};
+  const out = {}, ots = {};
+  new Set([...Object.keys(l), ...Object.keys(r)]).forEach(k => {
+    if (k === '__ts') return;
+    const hasL = Object.prototype.hasOwnProperty.call(l, k), hasR = Object.prototype.hasOwnProperty.call(r, k);
+    const lt = Number(lts[k]) || 0, rt = Number(rts[k]) || 0;
+    if (hasL && (!hasR || lt > rt)) { out[k] = l[k]; if (lt) ots[k] = lt; }
+    else { out[k] = r[k]; if (rt) ots[k] = rt; }
+  });
+  out.__ts = ots;
+  return JSON.stringify(out);
 }
 // The actual Carton No.(s) assigned to this STO, as a plain array — the source of truth for
 // everything carton-number-related from here on. Older records only ever stored a contiguous
@@ -9995,6 +10021,12 @@ function applySettingsSnapshot() {
       if (mergedStr !== local) { localStorage.setItem(k, mergedStr); changed = true; }
       return;
     }
+    if (k === CARTON_COUNTER_KEY) {
+      const mergedStr = mergeCartonCounterStrings(local, remote);
+      if (mergedStr !== local) { localStorage.setItem(k, mergedStr); changed = true; }
+      if (mergedStr !== remote) setTimeout(() => { try { pushSettingsDiff(); } catch (e) {} }, 0); // our newer value still has to reach the cloud
+      return;
+    }
     localStorage.setItem(k, remote); changed = true;
   });
   settingsApplyPending = false;
@@ -15188,20 +15220,26 @@ function campaignTimelineBatchSplitByRec(batch) {
     const im = itemMasterLookupBySku(s.sku);
     const group = ((im && im.itemGroup) || '').trim();
     if (!group) return; // can't attribute an unmapped SKU to any specific product — left out of every row's split rather than risk double-counting or guessing
-    if (!byGroup.has(group)) byGroup.set(group, { totalOrder: 0, totalReceived: 0, closedShort: false });
-    const acc = byGroup.get(group);
+    // Brand ('BOYS SAMPING' vs 'SAMPING') keeps MEN and BOYS accessories apart when their Group text is identical.
+    const brandKey = String((im && im.itemBrand) || '').trim();
+    const gKey = group + '\u0001' + (/boy/i.test(brandKey) ? 'boys' : 'other');
+    if (!byGroup.has(gKey)) byGroup.set(gKey, { totalOrder: 0, totalReceived: 0, closedShort: false, group, boys: /boy/i.test(brandKey) });
+    const acc = byGroup.get(gKey);
     acc.totalOrder += Number(s.qtyOrder) || 0;
     acc.totalReceived += Number(s.qtyReceived) || 0;
     if (s.closedShort) acc.closedShort = true;
   });
   const map = new Map(directMap);
-  byGroup.forEach((acc, group) => {
+  byGroup.forEach((acc) => {
+    const group = acc.group;
     // Which of THIS batch's own linked rows best matches this group's name — same word-overlap scoring
     // as campaignTimelineBestWordMatch, just picking among a short known list of sibling rows instead of
     // searching a whole index.
     const groupWords = campaignTimelineNormWords(group);
     let best = null, bestScore = 0;
     recs.forEach(r => {
+      // Accessories: a BOYS-brand SKU group may only land on a BOYS row, and a non-BOYS one only on a non-BOYS row.
+      if (String(r.id || '').startsWith('acc_') && (/boy/i.test((r.category || '') + ' ' + (r.officialProductName || ''))) !== acc.boys) return;
       const recWords = campaignTimelineNormWords(r.officialProductName || r.projectDescription || '');
       if (!groupWords.length || !recWords.length) return;
       const recWordSet = new Set(recWords);
@@ -33101,7 +33139,7 @@ new MutationObserver(mutations => {
 })();
 
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 06Oct-r7'; } catch (e) {}
+try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 06Oct-r9'; } catch (e) {}
 </script>
 </body>
 </html>
