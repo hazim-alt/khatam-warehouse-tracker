@@ -9862,6 +9862,8 @@ function applyServerSnapshot(table) {
           rs.recvAdjustedAt = ls.recvAdjustedAt;
           if (ls.lastReceivedDate) rs.lastReceivedDate = ls.lastReceivedDate; else delete rs.lastReceivedDate;
           healed = true;
+        } else if (ls && rs.recvAdjustedAt && rs.recvAdjustedAt >= (ls.recvAdjustedAt || 0)) {
+          // The incoming (cloud) copy carries a deliberate manual correction this device doesn't know about yet — keep it.
         } else if (ls && (Number(ls.qtyReceived) || 0) > (Number(rs.qtyReceived) || 0)) {
           rs.qtyReceived = ls.qtyReceived;
           if (ls.lastReceivedDate) rs.lastReceivedDate = ls.lastReceivedDate;
@@ -29788,7 +29790,7 @@ function garmentHealReceivedFromLogs() {
   garmentReceiveLogs.forEach(l => {
     const k = `${l.batchNo}|${String(l.sku || '').trim().toLowerCase()}`;
     const cur = sums.get(k) || { qty: 0, date: '' };
-    if (l.adjustment) cur.adjusted = true; // a manual correction exists for this SKU -> its qtyReceived is authoritative
+    if (l.adjustment) cur.adjusted = true; else cur.logged = (cur.logged || 0) + (Number(l.qty) || 0);
     cur.qty += Number(l.qty) || 0;
     if (l.date && l.date > cur.date) cur.date = l.date;
     sums.set(k, cur);
@@ -29796,7 +29798,13 @@ function garmentHealReceivedFromLogs() {
   let changed = false;
   garmentOrders.forEach(b => (b.skus || []).forEach(s => {
     const sum = sums.get(`${b.batchNo}|${String(s.sku || '').trim().toLowerCase()}`);
-    if (sum && !sum.adjusted && !s.recvAdjustedAt && sum.qty > (Number(s.qtyReceived) || 0)) {
+    // A manual correction (Edit -> Qty Received) is recorded as an adjustment row, so for such a SKU the log total
+    // (receipts + adjustments) IS the true received figure: if a stale device pushed the old number back, restore it.
+    if (sum && sum.adjusted && sum.logged > 0 && sum.qty >= 0 && sum.qty !== (Number(s.qtyReceived) || 0)) {
+      s.qtyReceived = sum.qty;
+      if (!sum.qty) delete s.lastReceivedDate;
+      changed = true;
+    } else if (sum && !sum.adjusted && !s.recvAdjustedAt && sum.qty > (Number(s.qtyReceived) || 0)) {
       s.qtyReceived = sum.qty;
       if (sum.date && (!s.lastReceivedDate || s.lastReceivedDate < sum.date)) s.lastReceivedDate = sum.date;
       changed = true;
@@ -33093,7 +33101,7 @@ new MutationObserver(mutations => {
 })();
 
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 06Oct-r6'; } catch (e) {}
+try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 06Oct-r7'; } catch (e) {}
 </script>
 </body>
 </html>
