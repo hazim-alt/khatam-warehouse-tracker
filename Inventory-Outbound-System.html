@@ -11841,8 +11841,9 @@ async function fetchStockAvailableFromGoogleSheets() {
     const groupIdx = header.indexOf('item group');
     const brandIdx = header.indexOf('item brand');
     const zoneIdx = header.indexOf('zone');
-    const qtyIdx = header.indexOf('total qty');
-    if (qtyIdx === -1) throw new Error('This sheet needs a "Total Qty" column.');
+    // Oct 6, 2026 (per Shaila: "total kuantiti amik kat column L"): quantity is always read from sheet
+    // column L (12th column, index 11), regardless of its header text.
+    const qtyIdx = 11;
     const dataRows = rows.slice(1);
     let excludedCount = 0;
     const bySku = new Map();
