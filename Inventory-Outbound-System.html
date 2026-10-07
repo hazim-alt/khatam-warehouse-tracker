@@ -446,6 +446,8 @@
   .dash-tables-row { margin-bottom: 0; align-items: stretch; }
   .dash-tables-row .section-title { margin: 0 0 14px; flex-shrink: 0; }
   .dash-tables-row .card { margin-bottom: 0; }
+  .tab-btn.needs-update::after { content:''; display:inline-block; width:8px; height:8px; border-radius:50%; background:#e0453a; margin-left:6px; vertical-align:middle; }
+  .needs-update-banner { background:rgba(224,69,58,0.14); border:1px solid #e0453a; color:#f1a39d; border-radius:6px; padding:8px 12px; margin-bottom:12px; font-size:13px; }
   .scroll-table { max-height: 320px; overflow-y: auto; overflow-x: auto; }
   .scroll-table table thead th { position: sticky; top: 0; background: var(--card); }
   /* Opt-out of the 320px inner scrollbox — for tables that already paginate (so an internal
@@ -1640,6 +1642,8 @@
       <button class="tab-btn" data-tab="team-drivers">Drivers</button>
       <button class="tab-btn" data-tab="team-suppliers">Supplier Locations</button>
       <button class="tab-btn" data-tab="team-printers">Printers</button>
+      <button class="tab-btn" data-tab="team-gsheet-links">Google Sheets Links</button>
+      <button class="tab-btn" data-tab="team-reset">Reset Data</button>
       <button class="tab-btn" data-tab="team-admin">Admin &amp; Access</button>
     </div>
     <button class="tab-btn" data-tab="staff-schedule">Staff Schedule</button>
@@ -2692,6 +2696,21 @@
     </div>
   </section>
 
+  <section class="tab-panel" id="tab-team-gsheet-links">
+    <p class="section-title">Google Sheets Links</p>
+    <div class="data-note" style="margin-bottom:14px;">Every Google Sheets link the app reads from, in one place. Paste the NORMAL Share link ("Anyone with the link" - Viewer) of the exact tab, click Save Links, then Refresh. Links are saved and shared across every account/device.</div>
+    <div id="gsheetLinksItemMaster"><p class="section-title" style="margin:6px 0 8px;">Item Master List &amp; Price</p></div>
+    <div id="gsheetLinksStock" style="margin-top:18px;"><p class="section-title" style="margin:6px 0 8px;">Available Stock</p></div>
+    <div id="gsheetLinksTimeline" style="margin-top:18px;"><p class="section-title" style="margin:6px 0 8px;">Production Timeline (Summary / Patawali / Accessories)</p></div>
+  </section>
+
+  <section class="tab-panel" id="tab-team-reset">
+    <p class="section-title">Reset Data</p>
+    <div class="data-note" style="margin-bottom:6px;">Delete-everything buttons. These cannot be undone.</div>
+    <div id="resetPickerHolder"></div>
+    <div id="resetDangerHolder"></div>
+  </section>
+
   <section class="tab-panel" id="tab-team-printers">
     <p class="section-title">Printers</p>
     <div class="card">
@@ -2996,7 +3015,7 @@
         <span class="data-note" style="margin:0;">Each boutique/zone becomes one column (like a pivot table) — scroll right if there are many columns.</span>
         <button type="button" class="btn-ghost" id="stockAvailableReorderColsBtn" style="white-space:nowrap;">↕ Reorder Columns</button>
       </div>
-      <div id="stockAvailableTableWrap" class="scroll-table"></div>
+      <div id="stockAvailableTableWrap" class="scroll-table" style="max-height:calc(100vh - 440px); min-height:320px;"></div>
       <div id="stockAvailablePaginationWrap" style="display:flex; align-items:center; justify-content:center; gap:10px; margin-top:12px;"></div>
     </div>
 
@@ -3123,7 +3142,7 @@
 
     <div class="card" style="margin-top:16px;">
       <p class="section-title" style="margin-top:0;">Timeline — Sorted by Nearest Date</p>
-      <span class="data-note" style="margin:0;">Each item shows its NEXT upcoming milestone (whichever date — Fabric ETA, FG ETA, Shipment, or Release — is soonest) so the list is always ordered by what's coming up next. Click a row for the full date breakdown. Items with nothing upcoming (already released, or no dates filled in) sort to the bottom. The "Received" column is pulled live from the Garment Order tab — matched by Series = Brand, Supplier = Garment Name, and Product = Item Master Group (word-matched, since these are entered with the words in a different order across sheets). It's not stored here, so it's always up to date and won't be wiped when you re-upload this file. "Not Received Yet" means that exact supplier's batch for that product hasn't been entered into Garment Order at all yet — it never borrows another supplier's numbers just because the product name matches.</span>
+      <span class="data-note" style="margin:0;">Sorted by the nearest upcoming date. Click a row for the full date breakdown.</span>
       <div class="filters" style="margin-top:10px;">
         <input type="text" id="campaignTimelineSearchInput" placeholder="Search item / series / supplier...">
         <select id="campaignTimelineSeriesFilter"><option value="">All Series</option></select>
@@ -5860,6 +5879,14 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
       else if (currentDashSlide === 'inbound') renderInboundDashboard();
       else if (currentDashSlide === 'fleet') renderFleetDashboard();
       else if (currentDashSlide === 'raw-material') renderRawMaterialDashboard();
+    }
+    if (btn.dataset.tab === 'team-gsheet-links') {
+      try {
+        renderCampaignTimelineGsheetInputs();
+        if (typeof renderItemMasterGsheetInput === 'function') renderItemMasterGsheetInput();
+        const pEl = document.getElementById('itemMasterPriceGsheetUrl'); if (pEl) pEl.value = localStorage.getItem(ITEM_MASTER_PRICE_GSHEET_URL_KEY) || '';
+        const saEl = document.getElementById('stockAvailableGsheetUrl'); if (saEl) saEl.value = localStorage.getItem(STOCK_AVAILABLE_GSHEET_URL_KEY) || '';
+      } catch (e) { /* inputs just show whatever they already hold */ }
     }
     if (btn.dataset.tab === 'rm-import') renderRmImportTab();
     if (btn.dataset.tab === 'rm-receive-pick') { renderRmReceiveTab(); renderRmPickTab(); setRmReceivePickMode(rmReceivePickMode); setRmItemType(rmReceiveItemType); }
@@ -9114,6 +9141,8 @@ function getCurrentUser() {
 // user can be granted access via one module without the other.
 const PERMISSION_TABS = [
   { id: 'dashboard', label: 'Dashboard' },
+  { id: 'team-gsheet-links', label: 'Google Sheets Links (Team Setup)' },
+  { id: 'team-reset', label: 'Reset Data (Team Setup)' },
   { id: 'rm-import', label: 'Import Data (Raw Material)' },
   { id: 'rm-receive-pick', label: 'Receive & Pick (Raw Material)' },
   { id: 'rm-sto', label: 'Create STO (Raw Material)' },
@@ -33153,8 +33182,158 @@ new MutationObserver(mutations => {
   setTimeout(dashFxEnter, 400);            // first slide on page load
 })();
 
+
+// Google Sheets link settings (Oct 7, 2026, per Shaila: "create satu tab khas untuk benda ni"): the link cards that used
+// to sit at the top of Item Master List, Available Stock and Production Timeline are moved into the dedicated
+// Team Setup > Google Sheets Links tab. The elements themselves are moved (not copied), so every input/button keeps its
+// id and its existing listeners/sync behaviour untouched.
+try {
+  [['tab-item-master', 'gsheetLinksItemMaster', 'Item Master List'], ['tab-stock-available', 'gsheetLinksStock', 'Available Stock'], ['tab-production-timeline', 'gsheetLinksTimeline', 'Production — Timeline']].forEach(([src, dst]) => {
+    const srcTab = document.getElementById(src);
+    const card = srcTab && srcTab.querySelector(':scope > .card');
+    const holder = document.getElementById(dst);
+    if (card && holder) {
+      holder.appendChild(card);
+      const note = document.createElement('div');
+      note.className = 'data-note';
+      note.style.cssText = 'margin:0 0 12px;';
+      note.textContent = 'Google Sheets link & Refresh now live in Team Setup > Google Sheets Links.';
+      srcTab.querySelector('.section-title').insertAdjacentElement('afterend', note);
+    }
+  });
+} catch (e) { console.warn('gsheet links move failed', e); }
+
+// Reset Data tab (Oct 8, 2026, per Shaila: "button reset setiap tab buat satu tab khas"): every reset / clear button
+// (the four Danger Zone cards) is moved (not copied) into Team Setup > Reset Data, so ids and click handlers keep working exactly as before.
+try {
+  // The four "Danger Zone" cards (delete-everything buttons) move over as whole cards.
+  const dangerHolder = document.getElementById('resetDangerHolder');
+  ['resetRmBtn', 'resetItemMasterBtn', 'resetStockAvailableBtn', 'resetCampaignTimelineBtn'].forEach(id => {
+    const card = document.getElementById(id) && document.getElementById(id).closest('.card');
+    if (card && dangerHolder) dangerHolder.appendChild(card);
+  });
+} catch (e) { console.warn('reset buttons move failed', e); }
+
+// "Reset by tab" picker (Oct 8, 2026, per Shaila: "saya boleh pilih tab mana yg saya nak reset"): tick the tabs/modules to
+// wipe, then one typed confirmation. Modules that already have a reset button reuse that button's own logic (its
+// confirm() is auto-accepted because this picker asks once, up front); the rest are wiped here.
+try {
+  const holder = document.getElementById('resetPickerHolder');
+  const resetSyncTables = (tables) => {
+    tables.forEach(t => {
+      const def = SYNC_COLLECTIONS.find(d => d.table === t);
+      if (def) { def.setArray([]); try { pushCollectionDiff(def, { skipEmptyGuard: true }); } catch (e) {} }
+    });
+  };
+  const RESET_MODULES = [
+    { id: 'sto', label: 'STO List (Outbound)', desc: 'STOs, DO records, carton & DO counters', btn: 'clearDataBtn' },
+    { id: 'progress', label: 'Outbound Progress Board', desc: 'Moves every STO back to Active', btn: 'resetProgressBtn' },
+    { id: 'trips', label: 'Trip Schedule (Fleet)', desc: 'All trips', btn: 'resetFleetTripsBtn' },
+    { id: 'inboundSto', label: 'STO From Boutique (Inbound)', desc: 'All inbound STOs', btn: 'resetInboundStoBtn' },
+    { id: 'garment', label: 'Garment Order (Inbound)', desc: 'Batches, receiving logs & putaway trolleys', fn: () => {
+        resetSyncTables(['Garment_Orders', 'Garment_Receive_Logs']);
+        rollcages.forEach(rc => { rc.putawayItems = []; rc.putawayInUse = false; });
+        saveRollcages();
+        try { renderGarmentOrderTab(); renderInboundAll(); renderPutawayTab(); renderRollcagesList(); renderRollcageUsageBoards(); } catch (e) {}
+      } },
+    { id: 'rm', label: 'Raw Material', desc: 'Rolls, STOs, DOs, picks', btn: 'resetRmBtn' },
+    { id: 'itemMaster', label: 'Item Master List', desc: 'All items', btn: 'resetItemMasterBtn' },
+    { id: 'stock', label: 'Available Stock', desc: 'Stock list', btn: 'resetStockAvailableBtn' },
+    { id: 'timeline', label: 'Production Timeline', desc: 'FG, Fabric & Accessories rows', btn: 'resetCampaignTimelineBtn' },
+    { id: 'production', label: 'Production Decisions', desc: 'Produce-again & RM top-up decisions', fn: () => resetSyncTables(['ProductionDecisions', 'ProductionRmDecisions']) },
+    { id: 'requestStock', label: 'Request Stock', desc: 'All stock requests', fn: () => resetSyncTables(['RequestStock']) },
+    { id: 'accRecv', label: 'Accessories Receipts', desc: 'Accessories receiving records', fn: () => resetSyncTables(['Accessories_Receipts']) },
+    { id: 'tPickers', label: 'Team Setup: Pickers', desc: 'Picker list', fn: () => resetSyncTables(['Pickers']) },
+    { id: 'tRollcages', label: 'Team Setup: Rollcages / Trolleys', desc: 'All rollcages', fn: () => resetSyncTables(['Rollcages']) },
+    { id: 'tPacking', label: 'Team Setup: Packing Stations', desc: 'All packing stations', fn: () => resetSyncTables(['Packing_Stations']) },
+    { id: 'tReceive', label: 'Team Setup: Receive Stations', desc: 'All receive stations', fn: () => resetSyncTables(['Receive_Stations']) },
+    { id: 'tDrivers', label: 'Team Setup: Drivers', desc: 'Driver list', fn: () => resetSyncTables(['Fleet_Drivers']) },
+    { id: 'tPrinters', label: 'Team Setup: Printers', desc: 'Price tag printers', fn: () => resetSyncTables(['PriceTag_Printers']) },
+    { id: 'tTargets', label: 'Team Setup: Daily Targets', desc: 'Daily targets', fn: () => { localStorage.setItem(DAILY_TARGETS_KEY, '{}'); try { pushSettingsDiff(); } catch (e) {} } },
+    { id: 'tSuppliers', label: 'Team Setup: Supplier Locations', desc: 'Supplier locations', fn: () => { localStorage.setItem(PRODUCTION_SUMMARY_SUPPLIER_LOCATIONS_KEY, '{}'); try { pushSettingsDiff(); } catch (e) {} } },
+    { id: 'staffSched', label: 'Staff Schedule', desc: 'Roster & schedule', fn: () => { resetSyncTables(['Staff_Roster']); localStorage.setItem(STAFF_SCHEDULE_KEY, '{}'); try { pushSettingsDiff(); } catch (e) {} } },
+    { id: 'priceTag', label: 'Price Tag', desc: 'Stickers & price-tag DOs', fn: () => resetSyncTables(['PriceTag_Stickers', 'PriceTag_DOs']) },
+  ];
+  if (holder) {
+    holder.innerHTML = `<div class="card" style="margin-top:12px;">
+      <p class="rm-form-section-label" style="margin-top:0;">Reset by tab</p>
+      <span class="data-note" style="margin:0;">Tick the tab(s) to reset.</span>
+      <div id="resetPickList" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:8px; margin-top:10px;">
+        ${RESET_MODULES.map(m => `<label style="display:flex; gap:8px; align-items:flex-start; padding:8px 10px; border:1px solid var(--border); border-radius:6px; cursor:pointer;">
+          <input type="checkbox" class="reset-pick-cb" value="${m.id}" style="margin-top:3px; width:15px; height:15px; min-width:15px; padding:0;">
+          <span><strong style="font-size:13px;">${m.label}</strong><br><span class="data-note" style="margin:0;">${m.desc}</span></span></label>`).join('')}
+      </div>
+      <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; align-items:center;">
+        <button type="button" class="btn-ghost" id="resetPickAllBtn">Select all</button>
+        <button type="button" class="btn-ghost" id="resetPickNoneBtn">Clear</button>
+        <button type="button" class="btn-ghost" id="resetPickRunBtn" style="color:#e0685c;">🗑 Reset Selected</button>
+        <span class="data-note" id="resetPickStatus" style="margin:0;"></span>
+      </div>
+    </div>`;
+    const cbs = () => Array.from(holder.querySelectorAll('.reset-pick-cb'));
+    document.getElementById('resetPickAllBtn').addEventListener('click', () => cbs().forEach(c => { c.checked = true; }));
+    document.getElementById('resetPickNoneBtn').addEventListener('click', () => cbs().forEach(c => { c.checked = false; }));
+    document.getElementById('resetPickRunBtn').addEventListener('click', () => {
+      const status = document.getElementById('resetPickStatus');
+      const picked = RESET_MODULES.filter(m => cbs().some(c => c.checked && c.value === m.id));
+      if (!picked.length) { status.textContent = 'Tick at least one tab first.'; return; }
+      const typed = prompt(`This will permanently delete the data of:\n\n- ${picked.map(m => m.label).join('\n- ')}\n\nType RESET to confirm.`);
+      if (typed === null) return;
+      if (typed.trim().toUpperCase() !== 'RESET') { status.textContent = 'Not confirmed — nothing was reset.'; return; }
+      const origConfirm = window.confirm;
+      const done = [];
+      try {
+        window.confirm = () => true; // the single typed confirmation above replaces each button's own confirm
+        picked.forEach(m => {
+          try {
+            if (m.btn) { const b = document.getElementById(m.btn); if (b) b.click(); }
+            else m.fn();
+            done.push(m.label);
+          } catch (e) { console.warn('reset failed', m.id, e); }
+        });
+      } finally { window.confirm = origConfirm; }
+      try { renderAll(); } catch (e) {}
+      cbs().forEach(c => { c.checked = false; });
+      status.textContent = done.length ? `Reset done: ${done.join(', ')}.` : 'Nothing was reset.';
+      if (done.length) setTimeout(() => location.reload(), 2000);
+    });
+  }
+} catch (e) { console.warn('reset picker failed', e); }
+
+// Daily-update reminder: red dot on the tab + banner inside it while the tab still needs today's refresh.
+// Add more tabs to DAILY_UPDATE_TABS later (id = data-tab value, check() returns true when an update is due).
+try {
+  const todayStr = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const DAILY_UPDATE_TABS = [
+    { id: 'stock-available', msg: 'Available Stock belum di-update hari ini. Tekan "Refresh from Google Sheets" dalam Team Setup > Google Sheets Links.',
+      check: () => {
+        if (!stockAvailableList.length) return true;
+        if (!stockAvailableImportedAt) return false;
+        const d = new Date(stockAvailableImportedAt);
+        const loc = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        return loc !== todayStr();
+      } },
+  ];
+  const updateDailyReminders = () => {
+    DAILY_UPDATE_TABS.forEach(t => {
+      let due = false;
+      try { due = !!t.check(); } catch (e) {}
+      document.querySelectorAll('.tab-btn[data-tab="' + t.id + '"]').forEach(b => b.classList.toggle('needs-update', due));
+      const panel = document.getElementById('tab-' + t.id);
+      if (!panel) return;
+      let bn = panel.querySelector(':scope > .needs-update-banner');
+      if (due && !bn) {
+        bn = document.createElement('div'); bn.className = 'needs-update-banner'; bn.textContent = t.msg;
+        panel.insertBefore(bn, panel.firstChild);
+      } else if (!due && bn) bn.remove();
+    });
+  };
+  updateDailyReminders();
+  setInterval(updateDailyReminders, 30000);
+  document.addEventListener('click', () => setTimeout(updateDailyReminders, 800));
+} catch (e) { console.warn('daily reminders failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 07Oct-r10'; } catch (e) {}
+try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 08Oct-r18'; } catch (e) {}
 </script>
 </body>
 </html>
