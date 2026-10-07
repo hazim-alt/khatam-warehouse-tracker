@@ -33305,14 +33305,8 @@ try {
 try {
   const todayStr = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   const DAILY_UPDATE_TABS = [
-    { id: 'stock-available', msg: 'Available Stock belum di-update hari ini. Tekan "Refresh from Google Sheets" dalam Team Setup > Google Sheets Links.',
-      check: () => {
-        if (!stockAvailableList.length) return true;
-        if (!stockAvailableImportedAt) return false;
-        const d = new Date(stockAvailableImportedAt);
-        const loc = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-        return loc !== todayStr();
-      } },
+    { id: 'stock-available', msg: 'Available Stock kosong. Perlu di-update hari ini. Tekan "Refresh from Google Sheets" dalam Team Setup > Google Sheets Links.',
+      check: () => !stockAvailableList.length },
   ];
   const updateDailyReminders = () => {
     DAILY_UPDATE_TABS.forEach(t => {
@@ -33333,7 +33327,7 @@ try {
   document.addEventListener('click', () => setTimeout(updateDailyReminders, 800));
 } catch (e) { console.warn('daily reminders failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 08Oct-r18'; } catch (e) {}
+try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 08Oct-r19'; } catch (e) {}
 </script>
 </body>
 </html>
