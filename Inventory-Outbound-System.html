@@ -15540,7 +15540,10 @@ function campaignTimelineWireCascadingLink(seriesSelectOrig, itemContainerOrig, 
       return;
     }
     setToggleEnabled(true);
-    panel.innerHTML = campaignTimelineItemCheckboxesHtml(series, preselectIds || []);
+    // Search box pinned at the top of the list (Oct 7, 2026, per Shaila: "boleh search, susah kene scroll lama2").
+    panel.innerHTML = `<div class="tl-ms-search-wrap" style="position:sticky; top:0; z-index:1; background:var(--input-bg); padding:6px; border-bottom:1px solid var(--input-border);">
+      <input type="text" class="tl-ms-search" placeholder="🔎 Search (e.g. batch 2, color 13, qty 5000)..." autocomplete="off" style="width:100%; box-sizing:border-box; padding:6px 8px; font-size:13px;">
+    </div>` + campaignTimelineItemCheckboxesHtml(series, preselectIds || []);
     updateToggleLabel();
     syncLegEnabled(isUserPick);
   }
@@ -15577,8 +15580,20 @@ function campaignTimelineWireCascadingLink(seriesSelectOrig, itemContainerOrig, 
     campaignTimelineCloseAllMultiselects(willOpen ? panel : null);
     if (willOpen) positionPanel();
     panel.style.display = willOpen ? 'block' : 'none';
+    if (willOpen) { const si = panel.querySelector('.tl-ms-search'); if (si) setTimeout(() => si.focus(), 0); }
   });
   panel.addEventListener('click', (e) => e.stopPropagation()); // clicking inside the panel shouldn't close it
+  // Live filter: every typed word must appear in an option's text; already-ticked options always stay visible.
+  panel.addEventListener('input', (e) => {
+    if (!(e.target && e.target.classList && e.target.classList.contains('tl-ms-search'))) return;
+    const words = e.target.value.toLowerCase().split(/\s+/).filter(Boolean);
+    panel.querySelectorAll('.tl-ms-option').forEach(opt => {
+      const text = opt.textContent.toLowerCase().replace(/,/g, '');
+      const cb = opt.querySelector('input[type="checkbox"]');
+      const show = !words.length || (cb && cb.checked) || words.every(w => text.includes(w));
+      opt.style.display = show ? 'flex' : 'none';
+    });
+  });
   panel.addEventListener('change', (e) => {
     if (!(e.target && e.target.matches('input[type="checkbox"]'))) return;
     updateToggleLabel();
@@ -33139,7 +33154,7 @@ new MutationObserver(mutations => {
 })();
 
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 06Oct-r9'; } catch (e) {}
+try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 07Oct-r10'; } catch (e) {}
 </script>
 </body>
 </html>
