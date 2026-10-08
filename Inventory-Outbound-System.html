@@ -149,7 +149,7 @@
   }
   .brand-eyebrow { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #c9beb0; margin: 0 0 4px; font-weight: 600; }
   .brand-logo { display: block; max-width: 140px; height: auto; margin-bottom: 16px; }
-  .brand-title { font-family: Georgia, "Times New Roman", serif; font-size: 20px; margin: 0; font-weight: 700; letter-spacing: 0.01em; line-height: 1.3; }
+  .brand-title { font-family: 'NumLining', Georgia, "Times New Roman", serif; font-size: 20px; margin: 0; font-weight: 700; letter-spacing: 0.01em; line-height: 1.3; }
   .sidebar-date { padding: 0 24px; font-size: 12px; color: #b3a89c; margin-bottom: 20px; }
 
   @keyframes navActivePulse {
@@ -305,7 +305,7 @@
     background: linear-gradient(180deg, rgba(199,155,74,0.10), rgba(199,155,74,0.02));
   }
   .dash-clock-time {
-    font-family: Georgia, serif; font-size: 18px; font-weight: 700; letter-spacing: 0.06em;
+    font-family: 'NumLining', Georgia, serif; font-size: 18px; font-weight: 700; letter-spacing: 0.06em;
     color: var(--gold); line-height: 1.15; font-variant-numeric: tabular-nums;
   }
   .dash-clock-date {
@@ -334,7 +334,7 @@
   .kpi-card.gray { border-top-color: var(--text-muted); }
   .kpi-card.gold { border-top-color: var(--gold); }
   .kpi-card.purple { border-top-color: var(--purple); }
-  .kpi-num { font-size: 28px; font-weight: 700; font-family: Georgia, serif; }
+  .kpi-num { font-size: 28px; font-weight: 700; font-family: 'NumLining', Georgia, serif; }
   .kpi-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; font-weight: 500; }
 
   /* Reports tab — each module (Outbound/Fleet/Inbound/Garment) sits in its own bordered panel so the
@@ -375,7 +375,7 @@
   .report-exec-summary:empty { display: none; }
   .report-exec-summary { display: flex; align-items: stretch; justify-content: space-around; flex-wrap: wrap; gap: 20px; margin: 18px 0 26px; padding: 22px 12px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
   .report-exec-stat { text-align: center; min-width: 130px; flex: 1; }
-  .report-exec-stat .report-exec-num { font-size: 42px; font-weight: 700; font-family: Georgia, serif; line-height: 1; color: var(--text); }
+  .report-exec-stat .report-exec-num { font-size: 42px; font-weight: 700; font-family: 'NumLining', Georgia, serif; line-height: 1; color: var(--text); }
   .report-exec-stat.warn .report-exec-num { color: var(--red); }
   .report-exec-stat .report-exec-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 10px; font-weight: 700; }
   .report-exec-divider { width: 1px; align-self: stretch; background: var(--border); }
@@ -448,6 +448,10 @@
   .dash-tables-row .card { margin-bottom: 0; }
   .tab-btn.needs-update::after { content:''; display:inline-block; width:8px; height:8px; border-radius:50%; background:#e0453a; margin-left:6px; vertical-align:middle; }
   .needs-update-banner { background:rgba(224,69,58,0.14); border:1px solid #e0453a; color:#f1a39d; border-radius:6px; padding:8px 12px; margin-bottom:12px; font-size:13px; }
+  /* Digits (and . , % / : -) always use a clean lining-figure sans font; Georgia's old-style numerals were hard to read. */
+  @font-face { font-family:'NumLining'; font-weight:400; src: local('Segoe UI'), local('Roboto'), local('Helvetica Neue'), local('Arial'); unicode-range: U+0030-0039, U+002C, U+002E, U+0025, U+002F, U+003A; }
+  @font-face { font-family:'NumLining'; font-weight:700; src: local('Segoe UI Bold'), local('Segoe UI Semibold'), local('Roboto Bold'), local('Helvetica Neue Bold'), local('Arial Bold'); unicode-range: U+0030-0039, U+002C, U+002E, U+0025, U+002F, U+003A; }
+  .rn-cell { width:1%; white-space:nowrap; text-align:center; opacity:0.75; font-variant-numeric:tabular-nums; }
   .scroll-table { max-height: 320px; overflow-y: auto; overflow-x: auto; }
   .scroll-table table thead th { position: sticky; top: 0; background: var(--card); }
   /* Opt-out of the 320px inner scrollbox — for tables that already paginate (so an internal
@@ -506,7 +510,7 @@
   .dash-slide[data-slide="raw-material"] .rm-kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; flex-shrink: 0; }
   .dash-slide[data-slide="raw-material"] .rm-kpi-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; }
   .dash-slide[data-slide="raw-material"] .rm-kpi-label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
-  .dash-slide[data-slide="raw-material"] .rm-kpi-num { font-family: Georgia, 'Times New Roman', serif; font-size: 30px; line-height: 1.1; margin: 6px 0 4px; color: var(--text); }
+  .dash-slide[data-slide="raw-material"] .rm-kpi-num { font-family: 'NumLining', Georgia, 'Times New Roman', serif; font-size: 30px; line-height: 1.1; margin: 6px 0 4px; color: var(--text); }
   .dash-slide[data-slide="raw-material"] .rm-kpi-sub { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
   .dash-slide[data-slide="raw-material"] .rm-kpi-sub b { color: var(--text); }
   .dash-slide[data-slide="raw-material"] .rm-track { height: 7px; background: var(--border); border-radius: 4px; margin: 6px 0; overflow: hidden; }
@@ -547,7 +551,7 @@
   .dash-slide[data-slide="outbound"] .outb-kpi-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; position: relative; display: flex; flex-direction: column; }
   .dash-slide[data-slide="outbound"] .outb-kpi-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
   .dash-slide[data-slide="outbound"] .outb-kpi-label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
-  .dash-slide[data-slide="outbound"] .outb-kpi-num { font-family: Georgia, 'Times New Roman', serif; font-size: 30px; line-height: 1.1; margin: 6px 0 4px; color: var(--text); }
+  .dash-slide[data-slide="outbound"] .outb-kpi-num { font-family: 'NumLining', Georgia, 'Times New Roman', serif; font-size: 30px; line-height: 1.1; margin: 6px 0 4px; color: var(--text); }
   .dash-slide[data-slide="outbound"] .outb-kpi-num.small { font-size: 22px; }
   .dash-slide[data-slide="outbound"] .outb-kpi-sub { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
   .dash-slide[data-slide="outbound"] .outb-kpi-sub b { color: var(--text); }
@@ -592,7 +596,7 @@
   .dash-slide[data-slide="outbound"] .outb-nxt-boutique { font-size: 12px; color: var(--text); margin: 4px 0 2px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .dash-slide[data-slide="outbound"] .outb-bucket-row { display: flex; gap: 8px; margin-top: 10px; flex-shrink: 0; }
   .dash-slide[data-slide="outbound"] .outb-bucket { flex: 1; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; text-align: center; }
-  .dash-slide[data-slide="outbound"] .outb-bucket .bn { font-family: Georgia, serif; font-size: 17px; color: var(--text); }
+  .dash-slide[data-slide="outbound"] .outb-bucket .bn { font-family: 'NumLining', Georgia, serif; font-size: 17px; color: var(--text); }
   .dash-slide[data-slide="outbound"] .outb-bucket .bl { font-size: 9px; color: var(--text-muted); margin-top: 2px; }
   .dash-slide[data-slide="outbound"] .outb-footnote { font-size: 10px; color: var(--text-muted); margin-top: 8px; line-height: 1.5; flex-shrink: 0; }
   .dash-slide[data-slide="outbound"] .outb-footnote b { color: var(--amber); }
@@ -600,9 +604,9 @@
   .dash-slide[data-slide="outbound"] .outb-perf-fill { height: 100%; border-radius: 4px; }
   .dash-slide[data-slide="outbound"] .outb-nxt-qty { font-size: 11px; color: var(--text-muted); }
 
-  .dash-slide[data-slide="outbound"] .outb-days-bold { font-family: Georgia, serif; font-weight: 700; font-size: 14px; color: var(--red); }
+  .dash-slide[data-slide="outbound"] .outb-days-bold { font-family: 'NumLining', Georgia, serif; font-weight: 700; font-size: 14px; color: var(--red); }
   .dash-slide[data-slide="outbound"] .outb-rollcage-stat { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-  .dash-slide[data-slide="outbound"] .outb-rollcage-num { font-family: Georgia, serif; font-size: 26px; color: var(--text); }
+  .dash-slide[data-slide="outbound"] .outb-rollcage-num { font-family: 'NumLining', Georgia, serif; font-size: 26px; color: var(--text); }
   .dash-slide[data-slide="outbound"] .outb-rollcage-label { font-size: 11px; color: var(--text-muted); }
   .dash-slide[data-slide="outbound"] .outb-rollcage-list { font-size: 10.5px; color: var(--text-muted); margin-top: 8px; line-height: 1.6; }
 
@@ -615,7 +619,7 @@
   .dash-slide[data-slide="inbound"] .inb-kpi-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; position: relative; display: flex; flex-direction: column; }
   .dash-slide[data-slide="inbound"] .inb-kpi-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
   .dash-slide[data-slide="inbound"] .inb-kpi-label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
-  .dash-slide[data-slide="inbound"] .inb-kpi-num { font-family: Georgia, 'Times New Roman', serif; font-size: 30px; line-height: 1.1; margin: 6px 0 4px; color: var(--text); }
+  .dash-slide[data-slide="inbound"] .inb-kpi-num { font-family: 'NumLining', Georgia, 'Times New Roman', serif; font-size: 30px; line-height: 1.1; margin: 6px 0 4px; color: var(--text); }
   .dash-slide[data-slide="inbound"] .inb-kpi-num.small { font-size: 22px; }
   .dash-slide[data-slide="inbound"] .inb-kpi-sub { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
   .dash-slide[data-slide="inbound"] .inb-kpi-sub b { color: var(--text); }
@@ -650,7 +654,7 @@
 
   .dash-slide[data-slide="inbound"] .inb-bucket-row { display: flex; gap: 8px; margin-top: 10px; flex-shrink: 0; }
   .dash-slide[data-slide="inbound"] .inb-bucket { flex: 1; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; text-align: center; }
-  .dash-slide[data-slide="inbound"] .inb-bucket .bn { font-family: Georgia, serif; font-size: 17px; color: var(--text); }
+  .dash-slide[data-slide="inbound"] .inb-bucket .bn { font-family: 'NumLining', Georgia, serif; font-size: 17px; color: var(--text); }
   .dash-slide[data-slide="inbound"] .inb-bucket .bl { font-size: 9px; color: var(--text-muted); margin-top: 2px; }
   .dash-slide[data-slide="inbound"] .inb-footnote { font-size: 10px; color: var(--text-muted); margin-top: 8px; line-height: 1.5; flex-shrink: 0; }
   .dash-slide[data-slide="inbound"] .inb-footnote b { color: var(--amber); }
@@ -665,7 +669,7 @@
   .dash-slide[data-slide="inbound"] .inb-fg-product { font-size: 12px; color: var(--text); margin: 4px 0 2px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .dash-slide[data-slide="inbound"] .inb-fg-qty { font-size: 11px; color: var(--text-muted); }
 
-  .dash-slide[data-slide="inbound"] .inb-days-bold { font-family: Georgia, serif; font-weight: 700; font-size: 14px; color: var(--red); }
+  .dash-slide[data-slide="inbound"] .inb-days-bold { font-family: 'NumLining', Georgia, serif; font-weight: 700; font-size: 14px; color: var(--red); }
   .dash-slide[data-slide="inbound"] .inb-days-bold.warn { color: var(--amber); }
   .dash-slide[data-slide="inbound"] .inb-garment-panel-wrap { margin-bottom: 14px; flex: 0 0 auto; min-height: auto; overflow: visible; }
 
@@ -697,7 +701,7 @@
   td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
   tr:last-child td { border-bottom: none; }
   tr:hover { background: rgba(255,255,255,0.03); }
-  .mono-name { font-weight: 600; font-family: Georgia, serif; }
+  .mono-name { font-weight: 600; font-family: 'NumLining', Georgia, serif; }
   /* Stock Available pivot table (SKU rows × Boutique/Zone columns) — same sticky-SKU-column /
      single-line-cell treatment as other pivot tables in this app, so a wide boutique list stays
      scrollable without losing track of which row is which. */
@@ -846,7 +850,7 @@
   .kanban-board::-webkit-scrollbar-thumb { background: var(--navy-light); border-radius: 6px; }
   .kanban-board::-webkit-scrollbar-thumb:hover { background: var(--gold); }
   .fleet-cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-  .fleet-cal-title { font-family: Georgia, serif; font-size: 15px; font-weight: 600; }
+  .fleet-cal-title { font-family: 'NumLining', Georgia, serif; font-size: 15px; font-weight: 600; }
   .fleet-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
   .fleet-cal-dow { text-align: center; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); padding-bottom: 6px; }
   .fleet-cal-day { min-height: 56px; min-width: 0; border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; cursor: pointer; display: flex; flex-direction: column; background: var(--bg); transition: border-color 0.12s ease; overflow: hidden; position: relative; }
@@ -944,7 +948,7 @@
   }
   .rm-card.rm-card-empty { opacity: 0.5; border-left-color: var(--border); }
   .rm-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-  .rm-card-rollno { font-weight: 700; font-family: Georgia, serif; font-size: 14px; color: var(--gold); }
+  .rm-card-rollno { font-weight: 700; font-family: 'NumLining', Georgia, serif; font-size: 14px; color: var(--gold); }
   .rm-card-fabric { font-size: 12.5px; font-weight: 600; }
   .rm-card-sub { font-size: 11.5px; color: var(--text-muted); }
   .rm-card-meter { font-size: 20px; font-weight: 700; line-height: 1.1; }
@@ -956,7 +960,7 @@
   .rm-card-actions button { flex: 1; min-width: 90px; }
   .kanban-card .kc-top-row { display: flex; align-items: flex-start; gap: 6px; margin-bottom: 3px; }
   .kanban-card .kc-select { margin-top: 2px; flex-shrink: 0; cursor: pointer; }
-  .kanban-card .kc-order { font-weight: 700; font-family: Georgia, serif; font-size: 13px; word-break: break-word; overflow-wrap: break-word; }
+  .kanban-card .kc-order { font-weight: 700; font-family: 'NumLining', Georgia, serif; font-size: 13px; word-break: break-word; overflow-wrap: break-word; }
   .kanban-card .kc-butik { color: var(--text-muted); margin-bottom: 4px; word-break: break-word; overflow-wrap: break-word; }
   /* Fleet trip cards specifically: destination is secondary info, driver name should stand out */
   #fleetKanbanBoard .kanban-card .kc-butik { opacity: 0.6; font-size: 11px; }
@@ -1105,7 +1109,7 @@
     display: flex; flex-direction: column; justify-content: center;
   }
   .login-box .brand-logo { width: 46px; height: 46px; display: block; margin: 0 auto 12px; }
-  .login-box h1 { font-family: Georgia, serif; font-size: 19px; margin: 0 0 4px; text-align: center; }
+  .login-box h1 { font-family: 'NumLining', Georgia, serif; font-size: 19px; margin: 0 0 4px; text-align: center; }
   .login-box .login-sub { text-align: center; color: var(--text-muted); font-size: 12.5px; margin: 0 0 22px; }
   .login-box .field { margin-bottom: 14px; }
   .login-box .field:last-of-type { margin-bottom: 0; }
@@ -1138,7 +1142,7 @@
   .fleet-reassign-tab.active { background: var(--navy); color: #fff; border-color: var(--navy); }
   .modal-box { background: var(--card); border: 1px solid var(--border); border-radius: 8px; max-width: 800px; width: 100%; max-height: 92vh; overflow-y: auto; padding: 24px; }
   .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-  .modal-header h2 { font-size: 16px; margin: 0; font-family: Georgia, serif; }
+  .modal-header h2 { font-size: 16px; margin: 0; font-family: 'NumLining', Georgia, serif; }
   .modal-close { background: transparent; border: none; font-size: 22px; color: var(--text-muted); cursor: pointer; line-height: 1; }
   .modal-close:hover { color: var(--red); }
   /* Same raised "physical button" treatment as the sidebar collapse/expand buttons — used
@@ -1243,7 +1247,7 @@
   .rm-summary-value { font-weight: 600; text-align: right; }
   .rm-summary-total { text-align: center; margin-top: 6px; }
   .rm-summary-total-label { font-size: 10.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
-  .rm-summary-total-value { font-size: 28px; font-weight: 800; color: var(--gold); font-family: Georgia, serif; }
+  .rm-summary-total-value { font-size: 28px; font-weight: 800; color: var(--gold); font-family: 'NumLining', Georgia, serif; }
 
   .do-preview-wrap { display: flex; justify-content: center; margin-bottom: 18px; overflow-x: auto; padding: 14px; background: var(--panel-deep); border-radius: 8px; }
   .do-doc {
@@ -1628,6 +1632,7 @@
       <button class="tab-btn" data-tab="production-fg">Stock Level Finish Good</button>
       <button class="tab-btn" data-tab="production-rm">Stock Level Raw Materials</button>
       <button class="tab-btn" data-tab="production-restock">Restock Status</button>
+      <button class="tab-btn" data-tab="production-received-product">Received by Product</button>
       <button class="tab-btn" data-tab="production-timeline">Timeline</button>
     </div>
     <button type="button" class="nav-group-toggle" id="navGroupTeamToggle" data-group="navGroupTeam">
@@ -3106,6 +3111,21 @@
     </div>
   </section>
 
+  <section class="tab-panel" id="tab-production-received-product">
+    <p class="section-title">Production — Received by Product</p>
+    <div class="card">
+      <span class="data-note" style="margin:0;">Live from Garment Order. Grouped by Brand, Product and Color — no linking needed.</span>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin:12px 0;">
+        <input type="text" id="recvProdSearch" placeholder="Search brand / product..." style="flex:1; min-width:200px;">
+        <select id="recvProdBrand" style="width:auto;"><option value="">All Brands</option></select>
+        <select id="recvProdStatus" style="width:auto;"><option value="">All Status</option><option value="open">Not complete</option><option value="done">Complete</option></select>
+        <button type="button" class="btn-ghost" id="recvProdExportBtn">Export CSV</button>
+      </div>
+      <div id="recvProdKpi" class="data-note" style="margin:0 0 8px;"></div>
+      <div id="recvProdWrap" class="scroll-table" style="max-height:calc(100vh - 330px); min-height:300px;"></div>
+    </div>
+  </section>
+
   <section class="tab-panel" id="tab-production-timeline">
     <p class="section-title">Production — Timeline</p>
     <div class="card">
@@ -3471,7 +3491,7 @@
             <div class="chart-wrap" style="position:relative; width:140px; height:140px;">
               <canvas id="garmentRecvSummaryStatusChart"></canvas>
               <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
-                <div id="garmentRecvSummaryStatusPct" style="font-size:22px; font-weight:700; font-family:Georgia, serif; white-space:nowrap;">—</div>
+                <div id="garmentRecvSummaryStatusPct" style="font-size:22px; font-weight:700; font-family: 'NumLining', Georgia, serif; white-space:nowrap;">—</div>
               </div>
             </div>
             <div id="garmentRecvSummaryStatusLegend" style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;"></div>
@@ -5916,6 +5936,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'production-fg') renderProductionStockFgTab();
     if (btn.dataset.tab === 'production-rm') renderProductionRmTab();
     if (btn.dataset.tab === 'production-restock') renderProductionRestockTab();
+    if (btn.dataset.tab === 'production-received-product') renderReceivedByProductTab();
     if (btn.dataset.tab === 'production-timeline') renderCampaignTimelineTab();
     if (btn.dataset.tab === 'production-release-calendar') renderProductionReleaseCalendarTab();
     if (btn.dataset.tab === 'finance') renderFinanceTab();
@@ -9182,6 +9203,7 @@ const PERMISSION_TABS = [
   { id: 'production-fg', label: 'Stock Level Finish Good (Production)' },
   { id: 'production-rm', label: 'Stock Level Raw Materials (Production)' },
   { id: 'production-restock', label: 'Restock Status (Production)' },
+  { id: 'production-received-product', label: 'Received by Product (Production)' },
   { id: 'production-timeline', label: 'Timeline (Production)' },
   { id: 'production-release-calendar', label: 'Release Calendar (Production)' },
   { id: 'finance', label: 'Finance' },
@@ -13731,6 +13753,80 @@ function renderProductionRestockTab() {
   renderProductionRestockRmList();
 }
 
+
+/* ==================== Tab: Received by Product (Production) ====================
+   Oct 8, 2026, per Shaila: Production only needs to know how much has been received per product — no Timeline linking.
+   Aggregates every Garment Order SKU line by Item Master Brand + Group. */
+function recvProdBuildRows() {
+  const map = new Map();
+  (garmentOrders || []).forEach(b => {
+    (b.skus || []).forEach(sk => {
+      const im = itemMasterLookupBySku(sk.sku);
+      const brand = ((im && im.itemBrand) || '').trim() || '(Unmapped SKU)';
+      const group = ((im && im.itemGroup) || '').trim() || '(No group)';
+      const color = ((im && im.itemColor) || '').trim() || '-';
+      const key = brand + '\u0001' + group + '\u0001' + color;
+      if (!map.has(key)) map.set(key, { brand, group, color, order: 0, received: 0, closedShort: false, batches: new Map() });
+      const r = map.get(key);
+      const o = Number(sk.qtyOrder) || 0, rc = Number(sk.qtyReceived) || 0;
+      r.order += o; r.received += rc;
+      if (sk.closedShort) r.closedShort = true;
+      const bn = b.batchNo || '(batch)';
+      if (!r.batches.has(bn)) r.batches.set(bn, { name: b.garmentName || '', order: 0, received: 0 });
+      const bb = r.batches.get(bn); bb.order += o; bb.received += rc;
+    });
+  });
+  return Array.from(map.values()).sort((a, b) => a.brand.localeCompare(b.brand) || a.group.localeCompare(b.group) || a.color.localeCompare(b.color));
+}
+function renderReceivedByProductTab() {
+  const wrap = document.getElementById('recvProdWrap');
+  if (!wrap) return;
+  const rows = recvProdBuildRows();
+  const brandSel = document.getElementById('recvProdBrand');
+  const brands = Array.from(new Set(rows.map(r => r.brand))).sort();
+  if (brandSel && brandSel.options.length !== brands.length + 1) {
+    const cur = brandSel.value;
+    brandSel.innerHTML = '<option value="">All Brands</option>' + brands.map(b => `<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('');
+    brandSel.value = brands.includes(cur) ? cur : '';
+  }
+  const q = (document.getElementById('recvProdSearch').value || '').toLowerCase().split(/\s+/).filter(Boolean);
+  const brandF = brandSel ? brandSel.value : '';
+  const statF = document.getElementById('recvProdStatus').value;
+  const shown = rows.filter(r => {
+    if (brandF && r.brand !== brandF) return false;
+    const st = campaignTimelineStatusLabel({ totalOrder: r.order, totalReceived: r.received, closedShort: r.closedShort }, false);
+    const done = st.key === 'complete' || st.key === 'complete-short';
+    if (statF === 'done' && !done) return false;
+    if (statF === 'open' && done) return false;
+    const text = (r.brand + ' ' + r.group + ' ' + r.color).toLowerCase();
+    return q.every(w => text.includes(w));
+  });
+  const totO = shown.reduce((a, r) => a + r.order, 0), totR = shown.reduce((a, r) => a + r.received, 0);
+  document.getElementById('recvProdKpi').textContent = `${shown.length} product(s) · Received ${formatQty(totR)} / Ordered ${formatQty(totO)}`;
+  if (!shown.length) { wrap.innerHTML = '<div class="data-note" style="padding:8px;">No data.</div>'; return; }
+  wrap._rows = shown;
+  wrap.innerHTML = `<table><thead><tr><th>Brand</th><th>Product</th><th>Color</th><th style="text-align:right;">Ordered</th><th style="text-align:right;">Received</th><th style="text-align:right;">Balance</th><th style="text-align:right;">%</th><th>Status</th><th>Batches</th></tr></thead><tbody>` +
+    shown.map(r => {
+      const st = campaignTimelineStatusLabel({ totalOrder: r.order, totalReceived: r.received, closedShort: r.closedShort }, false);
+      const pct = r.order ? Math.round(r.received / r.order * 100) : 0;
+      const bal = Math.max(0, r.order - r.received);
+      const det = Array.from(r.batches.entries()).map(([bn, v]) => `${escapeHtml(bn)}${v.name ? ' (' + escapeHtml(v.name) + ')' : ''}: ${formatQty(v.received)}/${formatQty(v.order)}`).join('<br>');
+      return `<tr><td>${escapeHtml(r.brand)}</td><td>${escapeHtml(r.group)}</td><td>${escapeHtml(r.color)}</td><td style="text-align:right;">${formatQty(r.order)}</td><td style="text-align:right;">${formatQty(r.received)}</td><td style="text-align:right;">${formatQty(bal)}</td><td style="text-align:right;">${pct}%</td><td><span class="badge ${st.cls}">${st.text}</span></td><td><details><summary style="cursor:pointer;">${r.batches.size} batch</summary><div class="data-note" style="margin:4px 0 0; white-space:nowrap;">${det}</div></details></td></tr>`;
+    }).join('') + '</tbody></table>';
+}
+['recvProdSearch', 'recvProdBrand', 'recvProdStatus'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener(id === 'recvProdSearch' ? 'input' : 'change', renderReceivedByProductTab);
+});
+document.getElementById('recvProdExportBtn').addEventListener('click', () => {
+  const rows = (document.getElementById('recvProdWrap')._rows) || [];
+  if (!rows.length) return;
+  const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
+  const lines = [['Brand', 'Product', 'Color', 'Ordered', 'Received', 'Balance'].map(esc).join(',')].concat(rows.map(r => [r.brand, r.group, r.color, r.order, r.received, Math.max(0, r.order - r.received)].map(esc).join(',')));
+  const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'received-by-product.csv'; a.click();
+});
+
 /* ==================== Tab: Timeline (campaign tracker upload) ====================
    Per Shaila's request (Sep 19, 2026): a read-at-a-glance list of when campaign stock is expected —
    fabric ETA, finished-goods ETA, per-shipment estimates, and release date — sourced from her
@@ -15409,14 +15505,30 @@ function campaignTimelineItemLabel(rec) {
 // Timeline sheet (e.g. Batch 1 of "PATAWALI Girls Kebaya" logged once per colour).
 function campaignTimelineItemCheckboxesHtml(series, selectedIds) {
   const selSet = new Set(Array.isArray(selectedIds) ? selectedIds : (selectedIds ? [selectedIds] : []));
-  const items = campaignTimelineAllRecs().filter(rec => (rec.series || '(no series)') === series)
-    .sort((a, b) => (a.officialProductName || '').localeCompare(b.officialProductName || ''));
-  if (!items.length) return `<div class="data-note" style="margin:0; padding:4px;">No items under this series.</div>`;
+  // Rows already fully received are hidden from this picker (Oct 8, 2026, per Shaila: "yg dah siap receive tkperlu show") —
+  // only rows still short on qty are offered. A row already ticked for THIS batch always stays visible.
+  const multiSeries = Array.isArray(series);
+  const items = campaignTimelineAllRecs().filter(rec => multiSeries ? series.includes(rec.series || '(no series)') : (rec.series || '(no series)') === series)
+    .filter(rec => {
+      if (selSet.has(rec.id)) return true;
+      try {
+        // Only rows that already have a batch linked can be "fully received" — an unlinked row's badge comes from a
+        // fuzzy match that can wrongly count the very batch being linked now, which hid the whole series.
+        const lk = campaignTimelineLinkedBatchesIndex().get(rec.id);
+        if (!lk || !lk.length) return true;
+        const h = campaignTimelineReceivedBadgeHtml(rec);
+        const done = /Complete/.test(h) && !/In Progress|Pending|Not Received/.test(h);
+        return !done;
+      } catch (e) { return true; }
+    })
+    .sort((a, b) => multiSeries ? ((a.series || '').localeCompare(b.series || '') || (a.officialProductName || '').localeCompare(b.officialProductName || '')) : (a.officialProductName || '').localeCompare(b.officialProductName || ''));
+  if (!items.length) return `<div class="data-note" style="margin:0; padding:4px;">No items under this series (or all fully received).</div>`;
   const labelCounts = new Map();
   items.forEach(rec => { const l = campaignTimelineItemLabel(rec); labelCounts.set(l, (labelCounts.get(l) || 0) + 1); });
   return items.map(rec => {
     let label = campaignTimelineItemLabel(rec);
     if ((labelCounts.get(label) || 0) > 1) label += ` (#${rec.id.slice(-5)})`;
+    if (multiSeries) label = (rec.series || '(no series)') + ' — ' + label;
     // The checkbox's padding/border/background/border-radius are all explicitly reset here — the
     // app's global `input, select, textarea { padding:8px 10px; border:...; background:... }` rule
     // (meant for text inputs and <select>s) also matches <input type="checkbox">, inflating each one
@@ -15529,9 +15641,23 @@ function campaignTimelineWireCascadingLink(seriesSelectOrig, itemContainerOrig, 
   // ticked yet (initialIds empty, so there's no row to derive the series from) — e.g. restoring an
   // in-progress, not-yet-saved pick across an unrelated background re-render (see
   // renderGarmentOrderTab's inProgressTimelineEdit for where this comes from).
-  const initialSeries = firstSelectedRec ? (firstSelectedRec.series || '(no series)') : (initialSeriesOverride || '');
-  seriesSelect.innerHTML = '<option value="">-- Select Series --</option>' + campaignTimelineSeriesOptionsHtml(initialSeries);
-  seriesSelect.value = initialSeries;
+  const initialSeries = initialSeriesOverride || (firstSelectedRec ? (firstSelectedRec.series || '(no series)') : '');
+  // Auto series (Oct 8, 2026, per Shaila: "brand tu dah ade, series tu auto keluar"): the batch's SKUs already carry a
+  // Brand (Item Master) — every Timeline series whose leading word matches one of those brands is listed together, so
+  // no Series needs picking by hand (and one order can span 2+ series).
+  const AUTO = '__auto__';
+  let autoSeries = [];
+  try {
+    const bt = excludeBatchNo ? (garmentOrders || []).find(b => b.batchNo === excludeBatchNo) : null;
+    const brandWords = new Set();
+    ((bt && bt.skus) || []).forEach(sk => { const im = itemMasterLookupBySku(sk.sku); const w = campaignTimelineFirstWord(im && im.itemBrand); if (w) brandWords.add(w); });
+    if (brandWords.size) autoSeries = campaignTimelineSeriesList().filter(sr => brandWords.has(campaignTimelineFirstWord(sr)));
+  } catch (e) { autoSeries = []; }
+  const initialRecs = initialIds.map(id => campaignTimelineAllRecs().find(r => r.id === id)).filter(Boolean);
+  const initialSpansMany = new Set(initialRecs.map(r => r.series || '(no series)')).size > 1;
+  seriesSelect.innerHTML = '<option value="">-- Select Series --</option>' + (autoSeries.length ? `<option value="${AUTO}">Auto (${autoSeries.length} series)</option>` : '') + campaignTimelineSeriesOptionsHtml(initialSeries);
+  seriesSelect.value = (autoSeries.length && !initialSeriesOverride && (!initialIds.length || initialSpansMany)) ? AUTO : initialSeries;
+  if (seriesSelect.value !== AUTO && seriesSelect.value !== initialSeries) seriesSelect.value = initialSeries;
   function setToggleEnabled(enabled) {
     toggle.disabled = !enabled;
     toggle.style.opacity = enabled ? '1' : '0.5';
@@ -15569,10 +15695,29 @@ function campaignTimelineWireCascadingLink(seriesSelectOrig, itemContainerOrig, 
       return;
     }
     setToggleEnabled(true);
+    // One order can cover 2+ series (Oct 8, 2026, per Shaila): ticks made under a previous series are carried over
+    // and shown at the top ("Other series"), so switching Series no longer drops them.
+    let carried = [];
+    let keepAll = [];
+    {
+      const keep = (preselectIds && preselectIds.length) ? preselectIds : campaignTimelineReadCheckedIds(itemContainer);
+      keepAll = keep;
+      const shownIds = new Set(campaignTimelineAllRecs().filter(r => series === AUTO ? autoSeries.includes(r.series || '(no series)') : (r.series || '(no series)') === series).map(r => r.id));
+      carried = Array.from(new Set(keep)).filter(id => !shownIds.has(id));
+    }
+    const carriedHtml = carried.map(id => {
+      const rec = campaignTimelineAllRecs().find(r => r.id === id);
+      if (!rec) return '';
+      const label = (rec.series || '(no series)') + ' — ' + campaignTimelineItemLabel(rec);
+      return `<label class="tl-ms-option" style="display:flex; align-items:flex-start; gap:8px; padding:7px 10px; cursor:pointer; font-size:13px; line-height:1.35; box-sizing:border-box; width:100%; background:rgba(255,255,255,0.04);">
+        <input type="checkbox" value="${escapeHtml(rec.id)}" checked style="margin:2px 0 0; flex-shrink:0; width:15px; height:15px; min-width:15px; min-height:15px; padding:0;">
+        <span style="min-width:0; flex:1; overflow-wrap:anywhere; word-break:break-word; color:var(--text);">${escapeHtml(label)}</span>
+      </label>`;
+    }).join('');
     // Search box pinned at the top of the list (Oct 7, 2026, per Shaila: "boleh search, susah kene scroll lama2").
     panel.innerHTML = `<div class="tl-ms-search-wrap" style="position:sticky; top:0; z-index:1; background:var(--input-bg); padding:6px; border-bottom:1px solid var(--input-border);">
       <input type="text" class="tl-ms-search" placeholder="🔎 Search (e.g. batch 2, color 13, qty 5000)..." autocomplete="off" style="width:100%; box-sizing:border-box; padding:6px 8px; font-size:13px;">
-    </div>` + campaignTimelineItemCheckboxesHtml(series, preselectIds || []);
+    </div>` + carriedHtml + campaignTimelineItemCheckboxesHtml(series === AUTO ? autoSeries : series, keepAll);
     updateToggleLabel();
     syncLegEnabled(isUserPick);
   }
@@ -33052,7 +33197,7 @@ new MutationObserver(mutations => {
     const cur = () => (currentMode() === 'custom' ? loadCustom() : (currentMode() === 'light' ? LIGHT_PAL : DARK_PAL));
     box.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-        <div style="font-family:Georgia,serif; font-size:18px; font-weight:700;">Theme</div>
+        <div style="font-family: 'NumLining', Georgia,serif; font-size:18px; font-weight:700;">Theme</div>
         <button type="button" id="themePanelClose" class="btn-ghost" style="padding:4px 10px;">Close</button>
       </div>
       <div style="color:var(--text-muted); margin-bottom:12px;">Pick a preset, or tweak the colours below. Saved on this device only.</div>
@@ -33326,8 +33471,55 @@ try {
   setInterval(updateDailyReminders, 30000);
   document.addEventListener('click', () => setTimeout(updateDailyReminders, 800));
 } catch (e) { console.warn('daily reminders failed', e); }
+
+// Row-number column (Oct 8, 2026, per Shaila: "tambah column no. kt depan sekali ... kecuali tab today trip"): every table inside a
+// tab panel gets a leading "No." column, added/renumbered automatically whenever a table is (re)rendered. Skipped: Today's Trips,
+// the TV dashboard, and tables marked data-no-rownum.
+try {
+  const RN_SKIP = '#tab-fleet-today, #tab-dashboard, [data-no-rownum]';
+  let rnBusy = false, rnTimer = null;
+  const rnProcess = (table) => {
+    if (table.closest(RN_SKIP) || !table.closest('.tab-panel') || table.parentElement.closest('table')) return;
+    const heads = table.tHead ? Array.from(table.tHead.rows) : [];
+    heads.forEach((tr, i) => {
+      if (i === 0 && !tr.querySelector('th.rn-cell')) {
+        const th = document.createElement('th'); th.className = 'rn-cell'; th.textContent = 'No.';
+        if (heads.length > 1) th.rowSpan = heads.length;
+        tr.insertBefore(th, tr.firstChild);
+      }
+    });
+    Array.from(table.tBodies).forEach(tb => {
+      let n = 0;
+      Array.from(tb.rows).forEach(tr => {
+        const first = tr.cells[0];
+        if (first && first.classList.contains('rn-cell')) { if (first.tagName === 'TD' && first.dataset.rn) { n++; if (first.textContent !== String(n)) first.textContent = n; } return; }
+        if (!first) return;
+        const td = document.createElement('td'); td.className = 'rn-cell';
+        if (first.colSpan > 1 && tr.cells.length === 1) { first.colSpan += 1; return; } // full-width note/group row
+        n++; td.textContent = n; td.dataset.rn = '1';
+        tr.insertBefore(td, first);
+      });
+    });
+    if (table.tFoot) Array.from(table.tFoot.rows).forEach(tr => {
+      if (!tr.cells[0] || tr.cells[0].classList.contains('rn-cell')) return;
+      if (tr.cells.length === 1 && tr.cells[0].colSpan > 1) { tr.cells[0].colSpan += 1; return; }
+      const td = document.createElement('td'); td.className = 'rn-cell'; tr.insertBefore(td, tr.cells[0]);
+    });
+  };
+  const rnRun = () => {
+    rnBusy = true;
+    try { document.querySelectorAll('.tab-panel table').forEach(rnProcess); } catch (e) { console.warn('rownum failed', e); }
+    rnBusy = false;
+  };
+  const rnObs = new MutationObserver(() => {
+    if (rnBusy) return;
+    clearTimeout(rnTimer); rnTimer = setTimeout(rnRun, 120);
+  });
+  rnObs.observe(document.body, { childList: true, subtree: true });
+  rnRun();
+} catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 08Oct-r19'; } catch (e) {}
+try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 08Oct-r28'; } catch (e) {}
 </script>
 </body>
 </html>
