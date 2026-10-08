@@ -451,6 +451,7 @@
   /* Digits (and . , % / : -) always use a clean lining-figure sans font; Georgia's old-style numerals were hard to read. */
   @font-face { font-family:'NumLining'; font-weight:400; src: local('Segoe UI'), local('Roboto'), local('Helvetica Neue'), local('Arial'); unicode-range: U+0030-0039, U+002C, U+002E, U+0025, U+002F, U+003A; }
   @font-face { font-family:'NumLining'; font-weight:700; src: local('Segoe UI Bold'), local('Segoe UI Semibold'), local('Roboto Bold'), local('Helvetica Neue Bold'), local('Arial Bold'); unicode-range: U+0030-0039, U+002C, U+002E, U+0025, U+002F, U+003A; }
+  .garment-batch-timeline-link-row { display:none !important; }
   .rn-cell { width:1%; white-space:nowrap; text-align:center; opacity:0.75; font-variant-numeric:tabular-nums; }
   .scroll-table { max-height: 320px; overflow-y: auto; overflow-x: auto; }
   .scroll-table table thead th { position: sticky; top: 0; background: var(--card); }
@@ -3114,11 +3115,15 @@
   <section class="tab-panel" id="tab-production-received-product">
     <p class="section-title">Production — Received by Product</p>
     <div class="card">
-      <span class="data-note" style="margin:0;">Live from Garment Order. Grouped by Brand, Product and Color — no linking needed.</span>
+      <span class="data-note" style="margin:0;">Live from Garment Order. Grouped by Brand, Product, Color and Tailor — no linking needed.</span>
+      <div id="recvProdKpiGrid" class="kpi-grid" style="grid-template-columns: repeat(5, 1fr); margin:12px 0;"></div>
       <div style="display:flex; gap:10px; flex-wrap:wrap; margin:12px 0;">
         <input type="text" id="recvProdSearch" placeholder="Search brand / product..." style="flex:1; min-width:200px;">
         <select id="recvProdBrand" style="width:auto;"><option value="">All Brands</option></select>
-        <select id="recvProdStatus" style="width:auto;"><option value="">All Status</option><option value="open">Not complete</option><option value="done">Complete</option></select>
+        <select id="recvProdProduct" style="width:auto; max-width:220px;"><option value="">All Products</option></select>
+        <select id="recvProdColor" style="width:auto;"><option value="">All Colors</option></select>
+        <select id="recvProdTailor" style="width:auto;"><option value="">All Tailors</option></select>
+        <select id="recvProdStatus" style="width:auto;"><option value="">All Status</option><option value="pending">Pending</option><option value="in-progress">In Progress</option><option value="complete">Complete Receive</option><option value="complete-short">Complete (Short)</option><option value="not-received">Not Received</option></select>
         <button type="button" class="btn-ghost" id="recvProdExportBtn">Export CSV</button>
       </div>
       <div id="recvProdKpi" class="data-note" style="margin:0 0 8px;"></div>
@@ -3454,7 +3459,7 @@
         <label id="newGarmentSizeGridLabel">Qty per size (fill in whichever apply)</label>
         <div id="newGarmentSizeGrid" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
       </div>
-      <div class="field" style="margin-bottom:10px;">
+      <div class="field" style="margin-bottom:10px; display:none;">
         <label>Link to Timeline Item (optional)</label>
         <div class="form-grid" style="grid-template-columns: 1fr 1.4fr 1fr; align-items:start;">
           <select id="inputNewGarmentTimelineSeries"><option value="">-- Select Series --</option></select>
@@ -12847,16 +12852,16 @@ function renderProductionSummaryCollectionTable() {
     <th>Est. Arrive M'sia</th>
   </tr></thead><tbody>`;
   sorted.forEach(({ rec }) => {
-    const match = campaignTimelineMatchReceiving(rec);
-    const receiveFg = (match.acc && Number(match.acc.totalReceived)) || 0;
-    const qty = Number(rec.quantity) || 0;
-    const totalValue = Number(rec.totalValue) || 0;
-    const receiveValue = campaignTimelineLinkedReceiveValue(rec);
+    const fig = campaignTimelineReceiveFigures(rec);
+    const receiveFg = fig.receiveFg;
+    const qty = fig.qty;
+    const totalValue = fig.totalValue;
+    const receiveValue = fig.receiveValue;
     // Per Shaila's request (Sep 26, 2026 — same "4 column jadi 2 column" change as the Timeline table,
     // applied here too): one signed Receiving Variance/Variance Value pair replaces the old separate
     // Extra Receive/Value Extra/Balance (pcs)/Balance Value columns.
-    const variancePcs = receiveFg - qty;
-    const varianceValue = receiveValue - totalValue;
+    const variancePcs = fig.variancePcs;
+    const varianceValue = fig.varianceValue;
     // Per Shaila's follow-up (Sep 26, 2026 — "variance ade tiga keadaan extra... short... balance"):
     // the COLOR here isn't a raw sign check on variancePcs — it follows whether receiving has actually
     // finished for this row (campaignTimelineVarianceStatusFilterKey, same completion states as the FG
@@ -13757,6 +13762,8 @@ function renderProductionRestockTab() {
 /* ==================== Tab: Received by Product (Production) ====================
    Oct 8, 2026, per Shaila: Production only needs to know how much has been received per product — no Timeline linking.
    Aggregates every Garment Order SKU line by Item Master Brand + Group. */
+// Reverted Oct 8, 2026 (per Shaila: "tukar semula"): Ordered / Ordered Value come from Garment Order again. Set true to use Timeline's Quantity FG Order pcs / Total Value instead.
+const RECV_PROD_USE_TIMELINE_ORDER = false;
 function recvProdBuildRows() {
   const map = new Map();
   (garmentOrders || []).forEach(b => {
@@ -13765,56 +13772,123 @@ function recvProdBuildRows() {
       const brand = ((im && im.itemBrand) || '').trim() || '(Unmapped SKU)';
       const group = ((im && im.itemGroup) || '').trim() || '(No group)';
       const color = ((im && im.itemColor) || '').trim() || '-';
-      const key = brand + '\u0001' + group + '\u0001' + color;
-      if (!map.has(key)) map.set(key, { brand, group, color, order: 0, received: 0, closedShort: false, batches: new Map() });
+      const tailor = String(b.garmentName || '').trim() || '-';
+      const key = brand + '\u0001' + group + '\u0001' + color + '\u0001' + tailor;
+      if (!map.has(key)) map.set(key, { brand, group, color, tailor, order: 0, received: 0, orderValue: 0, receivedValue: 0, closedShort: false, batches: new Map() });
       const r = map.get(key);
       const o = Number(sk.qtyOrder) || 0, rc = Number(sk.qtyReceived) || 0;
-      r.order += o; r.received += rc;
+      const price = skuPriceNumeric(skuPriceLookup(sk.sku)) || 0;
+      r.order += o; r.received += rc; r.orderValue += o * price; r.receivedValue += rc * price;
       if (sk.closedShort) r.closedShort = true;
       const bn = b.batchNo || '(batch)';
       if (!r.batches.has(bn)) r.batches.set(bn, { name: b.garmentName || '', order: 0, received: 0 });
       const bb = r.batches.get(bn); bb.order += o; bb.received += rc;
     });
   });
-  return Array.from(map.values()).sort((a, b) => a.brand.localeCompare(b.brand) || a.group.localeCompare(b.group) || a.color.localeCompare(b.color));
+  const out = Array.from(map.values()).sort((a, b) => a.brand.localeCompare(b.brand) || a.group.localeCompare(b.group) || a.color.localeCompare(b.color) || a.tailor.localeCompare(b.tailor));
+  // Ordered = Timeline's "Quantity FG Order pcs" / "Total Value" (Oct 8, 2026, per Shaila). Timeline has no real colour, so a
+  // Timeline row is matched on Brand + Product + Tailor only and its figures sit on the FIRST colour row of that group
+  // (other colours show "-") so nothing is counted twice. No Timeline match → falls back to the Garment Order figures.
+  try {
+    const nw = (t) => campaignTimelineNormWords(t);
+    const tl = [...(campaignTimelineList || []), ...(campaignAccList || [])];
+    const groups = new Map();
+    out.forEach(r => {
+      const k = r.brand + '\u0001' + r.group + '\u0001' + r.tailor;
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(r);
+    });
+    groups.forEach(list => {
+      const f = list[0];
+      const brandW = new Set(nw(f.brand));
+      const groupW = nw(f.group).filter(w => !brandW.has(w)).sort().join(' ');
+      const tailorW = new Set(nw(f.tailor));
+      let qty = 0, val = 0, hit = false;
+      tl.forEach(rec => {
+        const serW = nw(rec.series);
+        if (!serW.length || !(serW[0] === nw(f.brand)[0] || serW.every(w => brandW.has(w)))) return;
+        const supW = nw(rec.supplier);
+        if (!supW.length || !supW.every(w => tailorW.has(w))) return;
+        const serSet = new Set(serW);
+        const nameW = nw(rec.officialProductName || rec.projectDescription).filter(w => !serSet.has(w) && !brandW.has(w)).sort().join(' ');
+        if (nameW !== groupW) return;
+        qty += Number(rec.quantity) || 0; val += Number(rec.totalValue) || 0; hit = true;
+      });
+      const gRecv = list.reduce((a, r) => a + r.received, 0), gRecvV = list.reduce((a, r) => a + r.receivedValue, 0);
+      list.forEach((r, i) => {
+        if (hit && RECV_PROD_USE_TIMELINE_ORDER) {
+          r.dispOrder = i === 0 ? qty : null; r.dispOrderValue = i === 0 ? val : null;
+          r.dispVarPcs = i === 0 ? gRecv - qty : null; r.dispVarVal = i === 0 ? gRecvV - val : null;
+          r.stOrder = qty; r.stReceived = gRecv;
+        } else {
+          r.dispOrder = r.order; r.dispOrderValue = r.orderValue;
+          r.dispVarPcs = r.received - r.order; r.dispVarVal = r.receivedValue - r.orderValue;
+          r.stOrder = r.order; r.stReceived = r.received;
+        }
+      });
+    });
+  } catch (e) {
+    console.warn('recvProd timeline join failed', e);
+    out.forEach(r => { r.dispOrder = r.order; r.dispOrderValue = r.orderValue; r.dispVarPcs = r.received - r.order; r.dispVarVal = r.receivedValue - r.orderValue; r.stOrder = r.order; r.stReceived = r.received; });
+  }
+  return out;
 }
 function renderReceivedByProductTab() {
   const wrap = document.getElementById('recvProdWrap');
   if (!wrap) return;
   const rows = recvProdBuildRows();
-  const brandSel = document.getElementById('recvProdBrand');
-  const brands = Array.from(new Set(rows.map(r => r.brand))).sort();
-  if (brandSel && brandSel.options.length !== brands.length + 1) {
-    const cur = brandSel.value;
-    brandSel.innerHTML = '<option value="">All Brands</option>' + brands.map(b => `<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('');
-    brandSel.value = brands.includes(cur) ? cur : '';
-  }
+  const fillSel = (id, field, allLabel) => {
+    const sel = document.getElementById(id);
+    if (!sel) return '';
+    const vals = Array.from(new Set(rows.map(r => r[field]))).sort((a, b) => a.localeCompare(b));
+    const cur = sel.value;
+    if (sel.dataset.sig !== vals.join('\u0001')) {
+      sel.innerHTML = `<option value="">${allLabel}</option>` + vals.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+      sel.dataset.sig = vals.join('\u0001');
+      sel.value = vals.includes(cur) ? cur : '';
+    }
+    return sel.value;
+  };
+  const brandF = fillSel('recvProdBrand', 'brand', 'All Brands');
+  const prodF = fillSel('recvProdProduct', 'group', 'All Products');
+  const colorF = fillSel('recvProdColor', 'color', 'All Colors');
+  const tailorF = fillSel('recvProdTailor', 'tailor', 'All Tailors');
   const q = (document.getElementById('recvProdSearch').value || '').toLowerCase().split(/\s+/).filter(Boolean);
-  const brandF = brandSel ? brandSel.value : '';
   const statF = document.getElementById('recvProdStatus').value;
   const shown = rows.filter(r => {
     if (brandF && r.brand !== brandF) return false;
-    const st = campaignTimelineStatusLabel({ totalOrder: r.order, totalReceived: r.received, closedShort: r.closedShort }, false);
-    const done = st.key === 'complete' || st.key === 'complete-short';
-    if (statF === 'done' && !done) return false;
-    if (statF === 'open' && done) return false;
-    const text = (r.brand + ' ' + r.group + ' ' + r.color).toLowerCase();
+    if (prodF && r.group !== prodF) return false;
+    if (colorF && r.color !== colorF) return false;
+    if (tailorF && r.tailor !== tailorF) return false;
+    const st = campaignTimelineStatusLabel({ totalOrder: r.stOrder, totalReceived: r.stReceived, closedShort: r.closedShort }, false);
+    if (statF && st.key !== statF) return false;
+    const text = (r.brand + ' ' + r.group + ' ' + r.color + ' ' + r.tailor).toLowerCase();
     return q.every(w => text.includes(w));
   });
-  const totO = shown.reduce((a, r) => a + r.order, 0), totR = shown.reduce((a, r) => a + r.received, 0);
-  document.getElementById('recvProdKpi').textContent = `${shown.length} product(s) · Received ${formatQty(totR)} / Ordered ${formatQty(totO)}`;
+  const totO = shown.reduce((a, r) => a + (r.dispOrder || 0), 0), totR = shown.reduce((a, r) => a + r.received, 0);
+  const totOV = shown.reduce((a, r) => a + (r.dispOrderValue || 0), 0), totRV = shown.reduce((a, r) => a + r.receivedValue, 0);
+  const kpiCards = [
+    { num: new Set(shown.map(r => r.brand)).size, label: 'Total Brand' },
+    { num: new Set(shown.map(r => r.group)).size, label: 'Total Product' },
+    { num: new Set(shown.map(r => r.color)).size, label: 'Total Color' },
+    { num: formatQty(totR) + ' pcs', label: 'Total Receive' },
+    { num: skuPriceFormatDisplay(totRV), label: 'Total Value Receive' },
+  ];
+  document.getElementById('recvProdKpiGrid').innerHTML = kpiCards.map(c => `<div class="kpi-card"><div class="kpi-num">${c.num}</div><div class="kpi-label">${c.label}</div></div>`).join('');
+  document.getElementById('recvProdKpi').textContent = `${shown.length} product(s) · Received ${formatQty(totR)} / Ordered ${formatQty(totO)} · Value ${skuPriceFormatDisplay(totRV)} / ${skuPriceFormatDisplay(totOV)}`;
   if (!shown.length) { wrap.innerHTML = '<div class="data-note" style="padding:8px;">No data.</div>'; return; }
   wrap._rows = shown;
-  wrap.innerHTML = `<table><thead><tr><th>Brand</th><th>Product</th><th>Color</th><th style="text-align:right;">Ordered</th><th style="text-align:right;">Received</th><th style="text-align:right;">Balance</th><th style="text-align:right;">%</th><th>Status</th><th>Batches</th></tr></thead><tbody>` +
+  wrap.innerHTML = `<table><thead><tr><th>Brand</th><th>Product</th><th>Color</th><th>Tailor Name</th><th style="text-align:right;">Ordered</th><th style="text-align:right;">Ordered Value</th><th style="text-align:right;">Received</th><th style="text-align:right;">Received Value</th><th style="text-align:right;">Variance Pcs</th><th style="text-align:right;">Variance Value</th><th style="text-align:right;">%</th><th>Status</th></tr></thead><tbody>` +
     shown.map(r => {
-      const st = campaignTimelineStatusLabel({ totalOrder: r.order, totalReceived: r.received, closedShort: r.closedShort }, false);
-      const pct = r.order ? Math.round(r.received / r.order * 100) : 0;
-      const bal = Math.max(0, r.order - r.received);
+      const st = campaignTimelineStatusLabel({ totalOrder: r.stOrder, totalReceived: r.stReceived, closedShort: r.closedShort }, false);
+      const pct = r.stOrder ? Math.round(r.stReceived / r.stOrder * 100) : 0;
+      const vp = r.dispVarPcs, vv = r.dispVarVal;
+      const vcol = !vp ? '' : (vp > 0 ? 'color:var(--green);' : 'color:var(--red);');
       const det = Array.from(r.batches.entries()).map(([bn, v]) => `${escapeHtml(bn)}${v.name ? ' (' + escapeHtml(v.name) + ')' : ''}: ${formatQty(v.received)}/${formatQty(v.order)}`).join('<br>');
-      return `<tr><td>${escapeHtml(r.brand)}</td><td>${escapeHtml(r.group)}</td><td>${escapeHtml(r.color)}</td><td style="text-align:right;">${formatQty(r.order)}</td><td style="text-align:right;">${formatQty(r.received)}</td><td style="text-align:right;">${formatQty(bal)}</td><td style="text-align:right;">${pct}%</td><td><span class="badge ${st.cls}">${st.text}</span></td><td><details><summary style="cursor:pointer;">${r.batches.size} batch</summary><div class="data-note" style="margin:4px 0 0; white-space:nowrap;">${det}</div></details></td></tr>`;
+      return `<tr><td>${escapeHtml(r.brand)}</td><td>${escapeHtml(r.group)}</td><td>${escapeHtml(r.color)}</td><td>${escapeHtml(r.tailor)}</td><td style="text-align:right;">${r.dispOrder === null ? '-' : formatQty(r.dispOrder)}</td><td style="text-align:right;">${r.dispOrderValue ? skuPriceFormatDisplay(r.dispOrderValue) : '-'}</td><td style="text-align:right;">${formatQty(r.received)}</td><td style="text-align:right;">${r.receivedValue ? skuPriceFormatDisplay(r.receivedValue) : '-'}</td><td style="text-align:right;${vcol}">${vp === null ? '-' : (vp > 0 ? '+' : (vp < 0 ? '-' : '')) + formatQty(Math.abs(vp))}</td><td style="text-align:right;${vcol}">${(vv === null || !(r.dispOrderValue || r.receivedValue)) ? '-' : (vv > 0 ? '+' : (vv < 0 ? '-' : '')) + skuPriceFormatDisplay(Math.abs(vv))}</td><td style="text-align:right;">${pct}%</td><td><span class="badge ${st.cls}">${st.text}</span></td></tr>`;
     }).join('') + '</tbody></table>';
 }
-['recvProdSearch', 'recvProdBrand', 'recvProdStatus'].forEach(id => {
+['recvProdSearch', 'recvProdBrand', 'recvProdProduct', 'recvProdColor', 'recvProdTailor', 'recvProdStatus'].forEach(id => {
   const el = document.getElementById(id);
   if (el) el.addEventListener(id === 'recvProdSearch' ? 'input' : 'change', renderReceivedByProductTab);
 });
@@ -13822,7 +13896,7 @@ document.getElementById('recvProdExportBtn').addEventListener('click', () => {
   const rows = (document.getElementById('recvProdWrap')._rows) || [];
   if (!rows.length) return;
   const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
-  const lines = [['Brand', 'Product', 'Color', 'Ordered', 'Received', 'Balance'].map(esc).join(',')].concat(rows.map(r => [r.brand, r.group, r.color, r.order, r.received, Math.max(0, r.order - r.received)].map(esc).join(',')));
+  const lines = [['Brand', 'Product', 'Color', 'Tailor Name', 'Ordered', 'Ordered Value', 'Received', 'Received Value', 'Variance Pcs', 'Variance Value'].map(esc).join(',')].concat(rows.map(r => [r.brand, r.group, r.color, r.tailor, r.dispOrder === null ? '' : r.dispOrder, r.dispOrderValue === null ? '' : r.dispOrderValue.toFixed(2), r.received, r.receivedValue.toFixed(2), r.dispVarPcs === null ? '' : r.dispVarPcs, r.dispVarVal === null ? '' : r.dispVarVal.toFixed(2)].map(esc).join(',')));
   const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'received-by-product.csv'; a.click();
 });
@@ -14164,6 +14238,12 @@ function parseCampaignTimelineRows(rows, sheetLabel, rawHeaderRows, deterministi
     ship2Delivery: campaignTimelineFindColContains(headerRow, ['shipment 2', 'delivery']),
     ship2Arrive: campaignTimelineFindColContains(headerRow, ['shipment 2', 'arrive']),
     // Added per Shaila's column list (Sep 24, 2026) for the redesigned Timeline table.
+    // Receive FG / Receive Value / Receiving Variance / Variance Value are read straight from her Google Sheet (Oct 8, 2026,
+    // per Shaila: "amik teros dalam google sheet") — no Garment Order linking involved.
+    receiveFg: campaignTimelineFindColContainsOccurrence(headerRow, ['receive', 'fg'], 1, ['value']),
+    receiveValue: campaignTimelineFindColContains(headerRow, ['receive', 'value']),
+    variancePcs: campaignTimelineFindColContainsOccurrence(headerRow, ['variance'], 1, ['value']),
+    varianceValue: campaignTimelineFindColContains(headerRow, ['variance', 'value']),
     quantityFabricsCtn: campaignTimelineFindColContains(headerRow, ['quantity', 'fabrics', 'ctn']),
     quantityFabricsMeter: campaignTimelineFindColContains(headerRow, ['quantity', 'fabrics', 'meter']),
     // Added per Shaila's request (Sep 28, 2026 — "nak tambah column 'Fabric Invoice Number'").
@@ -14216,6 +14296,10 @@ function parseCampaignTimelineRows(rows, sheetLabel, rawHeaderRows, deterministi
       color: colorVal,
       quantity: idx.quantity !== -1 ? campaignTimelineCellNum(row[idx.quantity]) : 0,
       totalValue: idx.totalValue !== -1 ? campaignTimelineCellCurrencyNum(row[idx.totalValue]) : 0,
+      sheetReceiveFg: idx.receiveFg !== -1 ? campaignTimelineCellNum(row[idx.receiveFg]) : null,
+      sheetReceiveValue: idx.receiveValue !== -1 ? campaignTimelineCellCurrencyNum(row[idx.receiveValue]) : null,
+      sheetVariancePcs: idx.variancePcs !== -1 ? campaignTimelineCellNum(row[idx.variancePcs]) : null,
+      sheetVarianceValue: idx.varianceValue !== -1 ? campaignTimelineCellCurrencyNum(row[idx.varianceValue]) : null,
       productionInstruction: idx.productionInstruction !== -1 ? campaignTimelineCellText(row[idx.productionInstruction]) : '',
       productionStatus: idx.productionStatus !== -1 ? campaignTimelineCellText(row[idx.productionStatus]) : '',
       fabricDelivery: idx.fabricDelivery !== -1 ? campaignTimelineCellDateIso(row[idx.fabricDelivery]) : '',
@@ -15100,7 +15184,7 @@ function campaignTimelineLinkedBatchesIndex() {
       // pushed under EVERY id it's linked to, so each of those rows independently sees this batch's
       // full totals (same "show the whole batch's figure on every row it covers" logic that already
       // applied the other way around, when several DIFFERENT batches link to the SAME Timeline row).
-      const ids = b.timelineIds || (b.timelineId ? [b.timelineId] : []);
+      const ids = []; // Timeline ↔ Garment Order linking removed (Oct 8, 2026, per Shaila) — stored links are ignored, not deleted
       ids.forEach(id => {
         if (!id) return;
         if (!map.has(id)) map.set(id, []);
@@ -15905,7 +15989,30 @@ function campaignTimelineOneBadgeHtml(label, acc, forceComplete) {
   const s = campaignTimelineStatusLabel(acc, forceComplete);
   return `<span class="badge ${s.cls}">${escapeHtml(label)}: ${s.text}</span>`;
 }
+// Receive figures for a Timeline row: straight from the Google Sheet columns when the sheet has them, else (older data / sheet without
+// those columns) the previous Garment Order-based numbers.
+function campaignTimelineReceiveFigures(rec) {
+  const qty = Number(rec.quantity) || 0, totalValue = Number(rec.totalValue) || 0;
+  const fromSheet = rec.sheetReceiveFg !== null && rec.sheetReceiveFg !== undefined;
+  let receiveFg, receiveValue;
+  if (fromSheet) {
+    receiveFg = Number(rec.sheetReceiveFg) || 0;
+    receiveValue = (rec.sheetReceiveValue !== null && rec.sheetReceiveValue !== undefined) ? Number(rec.sheetReceiveValue) || 0 : 0;
+  } else {
+    const match = campaignTimelineMatchReceiving(rec);
+    receiveFg = (match.acc && Number(match.acc.totalReceived)) || 0;
+    receiveValue = campaignTimelineLinkedReceiveValue(rec);
+  }
+  const variancePcs = (fromSheet && rec.sheetVariancePcs !== null && rec.sheetVariancePcs !== undefined) ? Number(rec.sheetVariancePcs) || 0 : receiveFg - qty;
+  const varianceValue = (fromSheet && rec.sheetVarianceValue !== null && rec.sheetVarianceValue !== undefined) ? Number(rec.sheetVarianceValue) || 0 : receiveValue - totalValue;
+  return { fromSheet, qty, totalValue, receiveFg, receiveValue, variancePcs, varianceValue };
+}
 function campaignTimelineReceivedBadgeHtml(rec) {
+  if (rec.sheetReceiveFg !== null && rec.sheetReceiveFg !== undefined) {
+    const forceDone = campaignTimelineProductionStatusIndicatesComplete(rec.productionStatus);
+    const st = campaignTimelineStatusLabel({ totalOrder: Number(rec.quantity) || 0, totalReceived: Number(rec.sheetReceiveFg) || 0, closedShort: false }, forceDone);
+    return `<span class="badge ${st.cls}">${st.text}</span>`;
+  }
   // Per Shaila's request (Sep 24, 2026) — "saya nak buat berasingan" — when at least one batch linked
   // to this row has an actual Shipment 1/2 leg picked, show separate badges per leg instead of one
   // combined figure, since two physical shipments of the same order can arrive (and get received) on
@@ -16056,11 +16163,11 @@ function renderCampaignTimelineTable() {
     // price yg kt garment order total kan"): summed straight from each linked batch's own SKU lines
     // (qtyReceived × that SKU's own Price from SKU Price List), not an average unit price computed from
     // Total Value ÷ Quantity. Total Value itself still only ever comes from her sheet column (unchanged).
-    const match = campaignTimelineMatchReceiving(rec);
-    const receiveFg = (match.acc && Number(match.acc.totalReceived)) || 0;
-    const qty = Number(rec.quantity) || 0;
-    const totalValue = Number(rec.totalValue) || 0;
-    const receiveValue = campaignTimelineLinkedReceiveValue(rec);
+    const fig = campaignTimelineReceiveFigures(rec);
+    const receiveFg = fig.receiveFg;
+    const qty = fig.qty;
+    const totalValue = fig.totalValue;
+    const receiveValue = fig.receiveValue;
     // Per Shaila's request (Sep 26, 2026 — "4 column ni kalau saya tukar jadi 2 column je boleh
     // ke??Receiving Variance, Variance Value"): the old 4-column split (Extra Receive/Value Extra for
     // overage, Balance (pcs)/Balance Value for shortfall, each clamped ≥ 0 so they'd never show a
@@ -16070,8 +16177,8 @@ function renderCampaignTimelineTable() {
     // garment order,,amik dari receive fg - Quantity FG Order pcs") — same formula as before, just no
     // longer split/clamped into two separate columns. Matches the naming + unsigned-number-plus-color
     // display already used for this exact concept in the Summary Receiving table.
-    const variancePcs = receiveFg - qty;
-    const varianceValue = receiveValue - totalValue;
+    const variancePcs = fig.variancePcs;
+    const varianceValue = fig.varianceValue;
     html += `<tr data-id="${escapeHtml(rec.id)}">
       <td>${escapeHtml(rec.series || '-')}</td>
       <td>${escapeHtml(rec.category || '-')}</td>
@@ -16551,12 +16658,12 @@ function renderCampaignAccTable() {
   </tr></thead><tbody>`;
   list.forEach(rec => {
     // Linked to Garment Order exactly like the FG table (explicit batch link only — no guessing).
-    const match = campaignTimelineMatchReceiving(rec);
-    const rcv = (match.acc && Number(match.acc.totalReceived)) || 0;
-    const qty = Number(rec.quantity) || 0, totalValue = Number(rec.totalValue) || 0;
-    const receiveValue = campaignTimelineLinkedReceiveValue(rec);
-    const variancePcs = rcv - qty;
-    const varianceValue = receiveValue - totalValue;
+    const fig = campaignTimelineReceiveFigures(rec);
+    const rcv = fig.receiveFg;
+    const qty = fig.qty, totalValue = fig.totalValue;
+    const receiveValue = fig.receiveValue;
+    const variancePcs = fig.variancePcs;
+    const varianceValue = fig.varianceValue;
     const vColor = variancePcs === 0 ? '' : (variancePcs > 0 ? 'color:var(--green);' : 'color:var(--red);');
     html += `<tr data-id="${escapeHtml(rec.id)}">
       <td>${escapeHtml(rec.series || '-')}</td>
@@ -29488,7 +29595,8 @@ function processUploadedGarmentFile(file) {
       }
       statusEl.textContent = '';
       statusEl.className = 'upload-status';
-      openGarmentImportLinkModal(mapped);
+      garmentPendingImportRows = mapped;
+      document.getElementById('garmentImportLinkConfirmBtn').click(); // Timeline linking removed (Oct 8, 2026) — commit straight away
     } catch (err) {
       statusEl.textContent = 'Failed to process file: ' + err.message;
       statusEl.className = 'upload-status err';
@@ -33519,7 +33627,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 08Oct-r28'; } catch (e) {}
+try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 08Oct-r39'; } catch (e) {}
 </script>
 </body>
 </html>
