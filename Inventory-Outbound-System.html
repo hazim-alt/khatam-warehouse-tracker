@@ -2385,15 +2385,6 @@
       <div id="tableWrap"></div>
       <div class="data-note">Data is stored in this browser (localStorage), tied to this exact file's location — opening a different copy/download of this HTML file starts empty. Upload a new file to update the status of existing STOs.</div>
 
-      <div class="filters" style="margin-top:16px; align-items:center;">
-        <span class="data-note" style="margin-top:0;">Carton No. counter (per boutique):</span>
-        <select id="cartonResetButikSelect"></select>
-        <span class="badge badge-blue" id="cartonCounterBadge">Currently at: 0</span>
-        <span class="data-note" style="margin-top:0;">Set next Carton No. to start from:</span>
-        <input type="number" id="cartonResetValue" min="0" value="0" style="width:80px;">
-        <button class="btn-ghost" id="resetCartonCounterBtn">Reset Counter</button>
-      </div>
-      <div class="data-note" id="cartonCounterNote"></div>
     </div>
   </section>
 
@@ -2407,11 +2398,24 @@
     </div>
     <div class="data-note" style="margin-bottom:14px;">Each column has its own search box — filter STO No., boutique, or boutique code independently per column. Drag a card to another column to change its progress, or tick cards and use the bulk bar to move several at once.</div>
 
+    <div class="card" style="margin-bottom:14px;">
+      <div class="filters" style="align-items:center;">
+        <span class="data-note" style="margin-top:0;">Carton No. counter (per boutique):</span>
+        <select id="cartonResetButikSelect"></select>
+        <span class="badge badge-blue" id="cartonCounterBadge">Currently at: 0</span>
+        <span class="data-note" style="margin-top:0;">Set next Carton No. to start from:</span>
+        <input type="number" id="cartonResetValue" min="0" value="0" style="width:80px;">
+        <button class="btn-ghost" id="resetCartonCounterBtn">Reset Counter</button>
+      </div>
+      <div class="data-note" id="cartonCounterNote"></div>
+    </div>
+
     <div class="bulk-toolbar" id="kanbanBulkToolbar">
       <span class="badge badge-blue" id="kanbanSelectedCount">0 selected</span>
       <button class="btn-ghost" id="kanbanSelectAllBtn">Select All Visible</button>
       <button class="btn-ghost" id="kanbanBulkClearBtn">Clear Selection</button>
       <button class="btn-ghost" id="kanbanBulkDownloadLabelsBtn">⬇ Download Label List (Selected)</button>
+      <button class="btn-ghost" id="kanbanBulkPrintDoBtn">🖨 Print DO (Selected)</button>
       <span class="data-note" style="margin-top:0;">Move selected to:</span>
       <select id="kanbanBulkTarget"></select>
       <button class="btn-primary" id="kanbanBulkMoveBtn">Move Selected</button>
@@ -3797,6 +3801,7 @@
       </div>
       <div class="field full data-note" id="doBatchNote" style="margin:-4px 0 0;"></div>
       <div class="field full data-note" id="doLockNote" style="display:none; margin:-4px 0 0;"></div>
+      <div class="field full" id="doStoPickWrap" style="display:none;"></div>
     </div>
 
     <div class="do-preview-wrap">
@@ -27627,6 +27632,7 @@ function updateBulkToolbar() {
   document.getElementById('kanbanBulkMoveBtn').disabled = count === 0;
   document.getElementById('kanbanBulkClearBtn').disabled = count === 0;
   document.getElementById('kanbanBulkDownloadLabelsBtn').disabled = count === 0;
+  document.getElementById('kanbanBulkPrintDoBtn').disabled = count === 0;
 }
 
 function renderKanban() {
@@ -27697,7 +27703,16 @@ function renderKanban() {
       card.classList.add('dragging');
       // A DO group card carries a JSON array of every STO it covers instead of a single id —
       // dropping it moves all of them together (see the drop handler below).
-      e.dataTransfer.setData('text/plain', card.dataset.groupIds || card.dataset.id);
+      // Multi-drag (Oct 8, 2026, per Shaila: "select 5 sto, boleh drag terus 5 sto"): dragging a card that is itself ticked while
+      // 2+ cards are ticked carries EVERY ticked STO — the drop handler then moves them all in one confirm.
+      let payload = card.dataset.groupIds || card.dataset.id;
+      try {
+        const ownIds = card.dataset.groupIds ? JSON.parse(card.dataset.groupIds) : [card.dataset.id];
+        if (selectedCartons.size > 1 && ownIds.length && ownIds.every(id => selectedCartons.has(id))) {
+          payload = JSON.stringify([...selectedCartons]);
+        }
+      } catch (err) { /* keep single payload */ }
+      e.dataTransfer.setData('text/plain', payload);
       e.dataTransfer.effectAllowed = 'move';
     });
     card.addEventListener('dragend', () => card.classList.remove('dragging'));
@@ -27795,7 +27810,8 @@ function renderKanban() {
         if (Array.isArray(parsed) && parsed.length > 1) groupIds = parsed;
       } catch (err) { /* not JSON — plain single order number, handled below */ }
       if (groupIds && stage) {
-        bulkMoveOrderNumbersToStage(groupIds, stage);
+        const moved = bulkMoveOrderNumbersToStage(groupIds, stage);
+        if (moved) { groupIds.forEach(id => selectedCartons.delete(id)); updateBulkToolbar(); }
         return;
       }
       const orderNumber = raw;
@@ -27927,6 +27943,30 @@ function bulkMoveOrderNumbersToStage(orderNumbers, target) {
   }
   return moveIds;
 }
+
+// Print several DOs in ONE print job (Oct 8, 2026, per Shaila: "select larkin ngan angsana, then terus print sekali"): tick the
+// DO Issued cards, press Print DO (Selected). Each boutique's DO is created/updated exactly like its own Print DO button would,
+// then all of them print together, one DO per page.
+document.getElementById('kanbanBulkPrintDoBtn').addEventListener('click', () => {
+  const ids = [...selectedCartons].filter(id => { const r = records.find(x => x.orderNumber === id); return r && (r.progress || 'Active') === 'Shipped'; });
+  if (!ids.length) { alert('Tick DO Issued card(s) first.'); return; }
+  const batches = groupOrderNumbersByBoutique(ids);
+  if (!confirm(`Print ${batches.length} DO(s) together?`)) return;
+  const htmls = [], labels = [];
+  doModalQueue = [];
+  batches.forEach(batch => {
+    openDOModalForBatch(batch);
+    if (!doCurrentBatch) return;
+    commitDoCurrentBatch();
+    const clone = document.getElementById('doDocument').cloneNode(true);
+    clone.removeAttribute('id');
+    clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+    htmls.push(clone.outerHTML);
+    labels.push(doCurrentBatch.doNo);
+    closeDOModal();
+  });
+  if (htmls.length) { printDO(htmls, labels.join('_')); renderKanban(); }
+});
 
 document.getElementById('kanbanBulkMoveBtn').addEventListener('click', () => {
   const target = document.getElementById('kanbanBulkTarget').value;
@@ -28613,6 +28653,7 @@ function openDOModalForBatch(orderNumbers) {
   updateDoCourierFieldVisibility();
 
   applyDoLockUI();
+  buildDoStoPick();
   renderDOPreview();
   document.getElementById('doModal').classList.remove('hidden');
 }
@@ -28633,6 +28674,24 @@ function closeDOModal() {
   }
 }
 
+// Pick which STO(s) of this DO appear on the printed paper (Oct 8, 2026, per Shaila: "select mana sto print sekali").
+// All ticked by default; the DO record itself still keeps every STO — only the printout follows the ticks.
+let doPrintSelection = null; // Set of order numbers, or null = all
+function buildDoStoPick() {
+  const wrap = document.getElementById('doStoPickWrap');
+  if (!wrap) return;
+  doPrintSelection = null;
+  const list = (doCurrentBatch && doCurrentBatch.orderNumbers) || [];
+  if (list.length < 2) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+  wrap.style.display = '';
+  wrap.innerHTML = `<label>STO to print <span style="color:var(--text-muted); font-weight:400;">(tick the ones to include)</span></label>
+    <div style="display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:4px;">${list.map(on => `<label style="display:flex; align-items:center; gap:6px; font-size:12px; cursor:pointer;"><input type="checkbox" class="do-sto-pick" value="${escapeHtml(on)}" checked style="width:15px; height:15px; min-width:15px; padding:0;"><span class="mono-name">${escapeHtml(on)}</span></label>`).join('')}</div>`;
+  wrap.querySelectorAll('.do-sto-pick').forEach(cb => cb.addEventListener('change', () => {
+    const picked = Array.from(wrap.querySelectorAll('.do-sto-pick:checked')).map(c => c.value);
+    doPrintSelection = picked.length === list.length ? null : new Set(picked);
+    renderDOPreview();
+  }));
+}
 function renderDOPreview() {
   if (!doCurrentBatch) return;
   const doNo = document.getElementById('doNo').value || '-';
@@ -28643,6 +28702,7 @@ function renderDOPreview() {
   // regardless of the order the STOs happened to be dragged/selected in.
   const lowestCartonNo = rec => rec.cartonLock ? (getCartonLockNumbers(rec)[0] || 1) : 1;
   const recs = doCurrentBatch.orderNumbers
+    .filter(on => !doPrintSelection || doPrintSelection.has(on))
     .map(on => records.find(r => r.orderNumber === on))
     .filter(Boolean)
     .sort((a, b) => lowestCartonNo(a) - lowestCartonNo(b));
@@ -28678,7 +28738,13 @@ document.getElementById('doModal').addEventListener('click', (e) => {
 
 document.getElementById('doPrintBtn').addEventListener('click', () => {
   if (!doCurrentBatch) return;
+  if (doPrintSelection && doPrintSelection.size === 0) { alert('Tick at least one STO to print.'); return; }
 
+  commitDoCurrentBatch();
+  printDO();
+});
+
+function commitDoCurrentBatch() {
   // Lock in the DO No. (reserved from the single global running sequence, shared across every
   // boutique) the first time this batch's DO is created. Reprints reuse the same DO No. and
   // STO list; the delivery date stays editable and gets re-saved on every print so corrections
@@ -28719,17 +28785,24 @@ document.getElementById('doPrintBtn').addEventListener('click', () => {
 
   applyDoLockUI();
   renderDOPreview();
-  printDO();
-});
+}
 
-function printDO() {
-  const sourceDoc = document.getElementById('doDocument');
-  const clone = sourceDoc.cloneNode(true);
-  clone.removeAttribute('id');
-  clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
 
-  const orderLabel = doCurrentBatch ? (doCurrentBatch.doNo || doCurrentBatch.orderNumbers.join('_')) : 'DO';
-  const fullHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Delivery Order - ${escapeHtml(orderLabel)}</title><style>${DO_PRINT_CSS}</style></head><body>${clone.outerHTML}</body></html>`;
+function printDO(manyHtml, manyLabel) {
+  let bodyHtml, orderLabel;
+  if (manyHtml && manyHtml.length) {
+    // Several DOs in one print job — each on its own page(s).
+    bodyHtml = manyHtml.map(h => `<div style="page-break-after:always; break-after:page;">${h}</div>`).join('');
+    orderLabel = manyLabel || 'DOs';
+  } else {
+    const sourceDoc = document.getElementById('doDocument');
+    const clone = sourceDoc.cloneNode(true);
+    clone.removeAttribute('id');
+    clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+    bodyHtml = clone.outerHTML;
+    orderLabel = doCurrentBatch ? (doCurrentBatch.doNo || doCurrentBatch.orderNumbers.join('_')) : 'DO';
+  }
+  const fullHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Delivery Order - ${escapeHtml(orderLabel)}</title><style>${DO_PRINT_CSS}</style></head><body>${bodyHtml}</body></html>`;
 
   let printFrame = document.getElementById('doPrintFrame');
   if (printFrame) printFrame.remove();
@@ -33627,7 +33700,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 08Oct-r39'; } catch (e) {}
+try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 08Oct-r43'; } catch (e) {}
 </script>
 </body>
 </html>
