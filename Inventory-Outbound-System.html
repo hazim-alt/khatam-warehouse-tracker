@@ -452,6 +452,8 @@
   @font-face { font-family:'NumLining'; font-weight:400; src: local('Segoe UI'), local('Roboto'), local('Helvetica Neue'), local('Arial'); unicode-range: U+0030-0039, U+002C, U+002E, U+0025, U+002F, U+003A; }
   @font-face { font-family:'NumLining'; font-weight:700; src: local('Segoe UI Bold'), local('Segoe UI Semibold'), local('Roboto Bold'), local('Helvetica Neue Bold'), local('Arial Bold'); unicode-range: U+0030-0039, U+002C, U+002E, U+0025, U+002F, U+003A; }
   .garment-batch-timeline-link-row { display:none !important; }
+  /* Progress Board's own reset buttons are hidden (use Team Setup > Reset Data); a stylesheet rule so JS toggling style.display can't re-show them. */
+  #resetProgressBtn, #undoResetProgressBtn { display:none !important; }
   .rn-cell { width:1%; white-space:nowrap; text-align:center; opacity:0.75; font-variant-numeric:tabular-nums; }
   .scroll-table { max-height: 320px; overflow-y: auto; overflow-x: auto; }
   .scroll-table table thead th { position: sticky; top: 0; background: var(--card); }
@@ -2392,11 +2394,11 @@
     <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
       <p class="section-title" style="margin-bottom:0;">Picking/Packing Progress Board</p>
       <div style="display:flex; gap:8px;">
-        <button class="btn-ghost" id="undoResetProgressBtn" style="display:none;">↩ Undo Reset</button>
+        <!-- Reset Progress Board / Undo Reset removed from this tab (Oct 8, 2026) — use Team Setup > Reset Data. Hidden so code still works. -->
+        <button class="btn-ghost" id="undoResetProgressBtn">↩ Undo Reset</button>
         <button class="btn-ghost" id="resetProgressBtn">Reset Progress Board</button>
       </div>
     </div>
-    <div class="data-note" style="margin-bottom:14px;">Each column has its own search box — filter STO No., boutique, or boutique code independently per column. Drag a card to another column to change its progress, or tick cards and use the bulk bar to move several at once.</div>
 
     <div class="card" style="margin-bottom:14px;">
       <div class="filters" style="align-items:center;">
@@ -2416,9 +2418,9 @@
       <button class="btn-ghost" id="kanbanBulkClearBtn">Clear Selection</button>
       <button class="btn-ghost" id="kanbanBulkDownloadLabelsBtn">⬇ Download Label List (Selected)</button>
       <button class="btn-ghost" id="kanbanBulkPrintDoBtn">🖨 Print DO (Selected)</button>
-      <span class="data-note" style="margin-top:0;">Move selected to:</span>
-      <select id="kanbanBulkTarget"></select>
-      <button class="btn-primary" id="kanbanBulkMoveBtn">Move Selected</button>
+      <button class="btn-ghost" id="kanbanBulkPrintLabelBtn">🏷 Print Label (Selected)</button>
+      <!-- Move selected to / Move Selected removed (Oct 8, 2026) — drag the ticked cards instead. Kept hidden so existing code still finds the ids. -->
+      <span style="display:none;"><select id="kanbanBulkTarget"></select><button class="btn-primary" id="kanbanBulkMoveBtn">Move Selected</button></span>
     </div>
 
     <div class="kanban-board" id="kanbanBoard"></div>
@@ -27633,6 +27635,7 @@ function updateBulkToolbar() {
   document.getElementById('kanbanBulkClearBtn').disabled = count === 0;
   document.getElementById('kanbanBulkDownloadLabelsBtn').disabled = count === 0;
   document.getElementById('kanbanBulkPrintDoBtn').disabled = count === 0;
+  document.getElementById('kanbanBulkPrintLabelBtn').disabled = count === 0;
 }
 
 function renderKanban() {
@@ -27943,6 +27946,51 @@ function bulkMoveOrderNumbersToStage(orderNumbers, target) {
   }
   return moveIds;
 }
+
+// Print the carton labels of several Packed STOs in ONE print job (Oct 8, 2026, per Shaila: "select beberapa sto, print label sekali").
+// A small popup asks Total Carton for each STO (pre-filled from what's already locked, else 1), then each STO is processed exactly like
+// its own Print Label button (Carton No. range reserved per boutique) and every label prints together.
+document.getElementById('kanbanBulkPrintLabelBtn').addEventListener('click', () => {
+  const ids = [...selectedCartons].filter(id => { const r = records.find(x => x.orderNumber === id); return r && (r.progress || 'Active') === 'Packed'; });
+  if (!ids.length) { alert('Tick STO card(s) in the Packed column first.'); return; }
+  const old = document.getElementById('bulkLabelOverlay'); if (old) old.remove();
+  const ov = document.createElement('div');
+  ov.id = 'bulkLabelOverlay'; ov.className = 'modal-overlay';
+  ov.innerHTML = `<div class="modal-box" style="max-width:520px;">
+    <div class="modal-header"><h2>Print Labels (${ids.length} STO)</h2><button class="modal-close" id="bulkLabelClose">&times;</button></div>
+    <div class="data-note" style="margin:0 0 10px;">Total Carton for each STO:</div>
+    <div style="max-height:50vh; overflow:auto;">${ids.map(id => {
+      const r = records.find(x => x.orderNumber === id);
+      const n = r.cartonLock ? getCartonLockNumbers(r).length : 1;
+      return `<div style="display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid var(--border);"><div style="flex:1; min-width:0;"><div class="mono-name">${escapeHtml(id)}</div><div class="data-note" style="margin:0;">${escapeHtml(r.toWarehouse || '-')}</div></div><input type="number" min="1" value="${n}" class="bulk-label-total" data-id="${escapeHtml(id)}" style="width:80px;"></div>`;
+    }).join('')}</div>
+    <div class="modal-actions"><button class="btn-ghost" id="bulkLabelCancel">Cancel</button><button class="btn-primary" id="bulkLabelGo">Print All Labels</button></div>
+  </div>`;
+  document.body.appendChild(ov);
+  const close = () => ov.remove();
+  ov.querySelector('#bulkLabelClose').addEventListener('click', close);
+  ov.querySelector('#bulkLabelCancel').addEventListener('click', close);
+  ov.querySelector('#bulkLabelGo').addEventListener('click', () => {
+    const totals = {};
+    ov.querySelectorAll('.bulk-label-total').forEach(inp => { totals[inp.dataset.id] = Math.max(1, Number(inp.value) || 1); });
+    close();
+    let html = '';
+    const printed = [];
+    ids.forEach(id => {
+      openStickerModal(id);
+      document.getElementById('stTotalCarton').value = totals[id];
+      renderStickerPreview();
+      const built = buildCartonLabelsHtml();
+      if (built) { html += built.labelsHtml; printed.push(id); }
+      closeStickerModal();
+    });
+    if (html) {
+      printLabelsFrame(html, printed.length > 1 ? `${printed.length} STO` : printed[0]);
+      renderCartonCounterNote();
+      renderKanban();
+    }
+  });
+});
 
 // Print several DOs in ONE print job (Oct 8, 2026, per Shaila: "select larkin ngan angsana, then terus print sekali"): tick the
 // DO Issued cards, press Print DO (Selected). Each boutique's DO is created/updated exactly like its own Print DO button would,
@@ -28342,8 +28390,15 @@ document.getElementById('stickerModal').addEventListener('click', (e) => {
 });
 
 function printAllCartons() {
+  const built = buildCartonLabelsHtml();
+  if (!built) return;
+  printLabelsFrame(built.labelsHtml, built.rec.orderNumber);
+}
+// Reserves the Carton No. range (first print only / extra cartons) and returns the filled-in label markup for the STO currently
+// open in the sticker modal — shared by the single Print Label button and the bulk "Print Label (Selected)" bar button.
+function buildCartonLabelsHtml() {
   const rec = records.find(r => r.orderNumber === stickerRecOrderNumber);
-  if (!rec) return;
+  if (!rec) return null;
   const boutiqueForLock = rec.toWarehouse || '-';
   const desiredTotal = Math.max(1, Number(document.getElementById('stTotalCarton').value) || 1);
 
@@ -28416,6 +28471,10 @@ function printAllCartons() {
     tempHolder.removeChild(clone);
   }
   tempHolder.remove();
+  return { rec, labelsHtml };
+}
+function printLabelsFrame(labelsHtml, titleLabel) {
+  const rec = { orderNumber: titleLabel };
 
   // Print via a hidden same-page iframe containing ONLY the label(s), styled with a
   // dedicated, self-contained stylesheet (STICKER_PRINT_CSS) — not a copy of the whole
@@ -33700,7 +33759,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 08Oct-r43'; } catch (e) {}
+try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 08Oct-r46'; } catch (e) {}
 </script>
 </body>
 </html>
