@@ -5058,7 +5058,9 @@ function packerTodayTotalQty() {
 function inboundTodayTotalQty() {
   const today = todayStr();
   const stoQty = inboundRecords.filter(r => r.receivingCompletedDate === today).reduce((sum, r) => sum + (parseFloat(r.totalOrderQty) || 0), 0);
-  const garmentQty = garmentReceiveLogs.filter(l => l.date === today).reduce((sum, l) => sum + (Number(l.qty) || 0), 0);
+  // Only real receiving counts — correction rows (adjustment:true, e.g. fixing a wrong receive qty) are bookkeeping, not receiving done today,
+  // and used to push this figure negative (Oct 9, 2026, per Shaila: "kenapa -258").
+  const garmentQty = garmentReceiveLogs.filter(l => l.date === today && !l.adjustment && (Number(l.qty) || 0) > 0).reduce((sum, l) => sum + (Number(l.qty) || 0), 0);
   return stoQty + garmentQty;
 }
 // --- Campaign Mode OFF fallback -----------------------------------------------------------------
@@ -12589,7 +12591,10 @@ function campaignTimelineShipmentReceiveProgress(rec) {
   const forceComplete = campaignTimelineProductionStatusIndicatesComplete(rec.productionStatus);
   const hasLegSplit = linked && linked.some(b => b.shipmentLeg === 'shipment1' || b.shipmentLeg === 'shipment2');
   const legs = [];
-  if (linked && linked.length) {
+  if (rec.sheetReceiveFg !== null && rec.sheetReceiveFg !== undefined) {
+    const m = campaignTimelineMatchReceivingRaw(rec);
+    if (m.acc && m.acc.totalOrder) legs.push(m.acc);
+  } else if (linked && linked.length) {
     if (hasLegSplit) {
       const acc1 = campaignTimelineLinkedShipmentAcc(rec, 'shipment1');
       const acc2 = campaignTimelineLinkedShipmentAcc(rec, 'shipment2');
@@ -14251,6 +14256,12 @@ function parseCampaignTimelineRows(rows, sheetLabel, rawHeaderRows, deterministi
     receiveValue: campaignTimelineFindColContains(headerRow, ['receive', 'value']),
     variancePcs: campaignTimelineFindColContainsOccurrence(headerRow, ['variance'], 1, ['value']),
     varianceValue: campaignTimelineFindColContains(headerRow, ['variance', 'value']),
+    // FG-table extras read from the Summary sheet (Oct 9, 2026, per Shaila): Allocation Boutique + QC Result columns and their links.
+    allocationBoutique: campaignTimelineFindColContains(headerRow, ['allocation', 'boutique']),
+    qcFg: campaignTimelineFindColContainsOccurrence(headerRow, ['qc', 'finish', 'goods'], 1, ['link']),
+    qcFgLink: campaignTimelineFindColContains(headerRow, ['qc', 'finish', 'goods', 'link']),
+    qcWash: campaignTimelineFindColContainsOccurrence(headerRow, ['qc', 'washing', 'test'], 1, ['link']),
+    qcWashLink: campaignTimelineFindColContains(headerRow, ['qc', 'washing', 'test', 'link']),
     quantityFabricsCtn: campaignTimelineFindColContains(headerRow, ['quantity', 'fabrics', 'ctn']),
     quantityFabricsMeter: campaignTimelineFindColContains(headerRow, ['quantity', 'fabrics', 'meter']),
     // Added per Shaila's request (Sep 28, 2026 — "nak tambah column 'Fabric Invoice Number'").
@@ -14303,6 +14314,11 @@ function parseCampaignTimelineRows(rows, sheetLabel, rawHeaderRows, deterministi
       color: colorVal,
       quantity: idx.quantity !== -1 ? campaignTimelineCellNum(row[idx.quantity]) : 0,
       totalValue: idx.totalValue !== -1 ? campaignTimelineCellCurrencyNum(row[idx.totalValue]) : 0,
+      allocationBoutique: idx.allocationBoutique !== -1 ? campaignTimelineCellText(row[idx.allocationBoutique]) : '',
+      qcFg: idx.qcFg !== -1 ? campaignTimelineCellText(row[idx.qcFg]) : '',
+      qcFgLink: idx.qcFgLink !== -1 ? campaignTimelineCellText(row[idx.qcFgLink]) : '',
+      qcWash: idx.qcWash !== -1 ? campaignTimelineCellText(row[idx.qcWash]) : '',
+      qcWashLink: idx.qcWashLink !== -1 ? campaignTimelineCellText(row[idx.qcWashLink]) : '',
       sheetReceiveFg: idx.receiveFg !== -1 ? campaignTimelineCellNum(row[idx.receiveFg]) : null,
       sheetReceiveValue: idx.receiveValue !== -1 ? campaignTimelineCellCurrencyNum(row[idx.receiveValue]) : null,
       sheetVariancePcs: idx.variancePcs !== -1 ? campaignTimelineCellNum(row[idx.variancePcs]) : null,
@@ -15474,6 +15490,11 @@ function campaignTimelineBatchSplitByRec(batch) {
   return map;
 }
 function campaignTimelineMatchReceivingRaw(rec) {
+  // FG / Accessories rows read their receiving straight from the Google Sheet's Receive FG column (Oct 9, 2026, per Shaila: FG &
+  // Accessories link to no other tab except Summary Dashboard) — so Summary Dashboard, status filters etc. all see the sheet's figure.
+  if (rec && rec.sheetReceiveFg !== null && rec.sheetReceiveFg !== undefined) {
+    return { acc: { totalOrder: Number(rec.quantity) || 0, totalReceived: Number(rec.sheetReceiveFg) || 0, closedShort: false }, groupLabel: 'Google Sheet', direct: true, reason: '' };
+  }
   const linked = campaignTimelineLinkedBatchesIndex().get(rec.id);
   if (linked && linked.length) {
     // closedShort: true if ANY linked SKU line was manually closed-short in Garment Order (Shaila's
@@ -15918,7 +15939,16 @@ function campaignTimelineLinkedShipmentAcc(rec, leg) {
 // own price, so two SKUs of the same product in different sizes/colors that happen to cost different
 // amounts are no longer averaged together. A SKU with no price on file (skuPriceLookup returns null)
 // just contributes 0 for that line rather than skewing the total.
+// Sheet has Receive FG but no Receive Value column → estimate: Receive FG × (Total Value ÷ Quantity FG Order pcs). Shown with "≈".
+function campaignTimelineReceiveValueIsEstimate(rec) {
+  return !!(rec && rec.sheetReceiveFg !== null && rec.sheetReceiveFg !== undefined && (rec.sheetReceiveValue === null || rec.sheetReceiveValue === undefined));
+}
 function campaignTimelineLinkedReceiveValue(rec) {
+  if (rec && rec.sheetReceiveValue !== null && rec.sheetReceiveValue !== undefined) return Number(rec.sheetReceiveValue) || 0;
+  if (campaignTimelineReceiveValueIsEstimate(rec)) {
+    const q = Number(rec.quantity) || 0, tv = Number(rec.totalValue) || 0;
+    return q && tv ? (Number(rec.sheetReceiveFg) || 0) * (tv / q) : 0;
+  }
   const linked = campaignTimelineLinkedBatchesIndex().get(rec.id);
   if (!linked || !linked.length) return 0;
   let value = 0;
@@ -15998,13 +16028,20 @@ function campaignTimelineOneBadgeHtml(label, acc, forceComplete) {
 }
 // Receive figures for a Timeline row: straight from the Google Sheet columns when the sheet has them, else (older data / sheet without
 // those columns) the previous Garment Order-based numbers.
+// A link column from the sheet: a real URL becomes a clickable "Open" link, anything else is shown as-is ("-" when empty).
+function campaignTimelineLinkCellHtml(v) {
+  const t = String(v || '').trim();
+  if (!t) return '-';
+  if (/^https?:\/\//i.test(t)) return `<a href="${escapeHtml(t)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();" style="color:var(--gold);">Open</a>`;
+  return escapeHtml(t);
+}
 function campaignTimelineReceiveFigures(rec) {
   const qty = Number(rec.quantity) || 0, totalValue = Number(rec.totalValue) || 0;
   const fromSheet = rec.sheetReceiveFg !== null && rec.sheetReceiveFg !== undefined;
   let receiveFg, receiveValue;
   if (fromSheet) {
     receiveFg = Number(rec.sheetReceiveFg) || 0;
-    receiveValue = (rec.sheetReceiveValue !== null && rec.sheetReceiveValue !== undefined) ? Number(rec.sheetReceiveValue) || 0 : 0;
+    receiveValue = campaignTimelineLinkedReceiveValue(rec);
   } else {
     const match = campaignTimelineMatchReceiving(rec);
     receiveFg = (match.acc && Number(match.acc.totalReceived)) || 0;
@@ -16012,7 +16049,7 @@ function campaignTimelineReceiveFigures(rec) {
   }
   const variancePcs = (fromSheet && rec.sheetVariancePcs !== null && rec.sheetVariancePcs !== undefined) ? Number(rec.sheetVariancePcs) || 0 : receiveFg - qty;
   const varianceValue = (fromSheet && rec.sheetVarianceValue !== null && rec.sheetVarianceValue !== undefined) ? Number(rec.sheetVarianceValue) || 0 : receiveValue - totalValue;
-  return { fromSheet, qty, totalValue, receiveFg, receiveValue, variancePcs, varianceValue };
+  return { fromSheet, qty, totalValue, receiveFg, receiveValue, variancePcs, varianceValue, estimated: campaignTimelineReceiveValueIsEstimate(rec) };
 }
 function campaignTimelineReceivedBadgeHtml(rec) {
   if (rec.sheetReceiveFg !== null && rec.sheetReceiveFg !== undefined) {
@@ -16159,7 +16196,7 @@ function renderCampaignTimelineTable() {
     <th>Tailor Supplier</th><th>Quantity FG Order pcs</th><th>Total Value</th>
     <th>Shipment 1 Delivery</th><th>Shipment 1 Arrive</th><th>Shipment 2 Delivery</th><th>Shipment 2 Arrive</th>
     <th>Receive FG</th><th>Receive Value</th><th>Receiving Variance</th><th>Variance Value</th>
-    <th>Status</th>
+    <th>Status</th><th>Allocation Boutique</th><th>QC Result Finish Goods</th><th>QC Result Finish Goods Link</th><th>QC Result Washing Test</th><th>QC Result Washing Test Link</th>
   </tr></thead><tbody>`;
   rows.forEach(({ rec }) => {
     // Receive FG only reflects an EXPLICIT Garment Order link (campaignTimelineMatchReceiving — fuzzy
@@ -16201,10 +16238,15 @@ function renderCampaignTimelineTable() {
       ${dateCell(rec.ship2Delivery)}
       ${dateCell(rec.ship2Arrive)}
       <td>${formatQty(receiveFg)}</td>
-      <td>${receiveValue ? skuPriceFormatDisplay(receiveValue) : '-'}</td>
+      <td${fig.estimated ? ' title="Estimate: Receive FG × (Total Value ÷ Quantity)"' : ''}>${receiveValue ? (fig.estimated ? '≈ ' : '') + skuPriceFormatDisplay(receiveValue) : '-'}</td>
       <td style="${variancePcs === 0 ? '' : (variancePcs > 0 ? 'color:var(--green);' : 'color:var(--red);')}">${formatQty(Math.abs(variancePcs))}</td>
       <td style="${variancePcs === 0 ? '' : (variancePcs > 0 ? 'color:var(--green);' : 'color:var(--red);')}">${totalValue || receiveValue ? skuPriceFormatDisplay(Math.abs(varianceValue)) : '-'}</td>
       <td>${campaignTimelineReceivedBadgeHtml(rec)}</td>
+      <td>${escapeHtml(rec.allocationBoutique || '-')}</td>
+      <td>${escapeHtml(rec.qcFg || '-')}</td>
+      <td>${campaignTimelineLinkCellHtml(rec.qcFgLink)}</td>
+      <td>${escapeHtml(rec.qcWash || '-')}</td>
+      <td>${campaignTimelineLinkCellHtml(rec.qcWashLink)}</td>
     </tr>`;
   });
   html += `</tbody></table>`;
@@ -16683,7 +16725,7 @@ function renderCampaignAccTable() {
       <td>${totalValue ? skuPriceFormatDisplay(totalValue) : '-'}</td>
       ${dateCell(rec.ship1Delivery)}${dateCell(rec.ship1Arrive)}${dateCell(rec.ship2Delivery)}${dateCell(rec.ship2Arrive)}
       <td>${formatQty(rcv)}</td>
-      <td>${receiveValue ? skuPriceFormatDisplay(receiveValue) : '-'}</td>
+      <td${fig.estimated ? ' title="Estimate: Receive FG × (Total Value ÷ Quantity)"' : ''}>${receiveValue ? (fig.estimated ? '≈ ' : '') + skuPriceFormatDisplay(receiveValue) : '-'}</td>
       <td style="${vColor}">${formatQty(Math.abs(variancePcs))}</td>
       <td style="${vColor}">${totalValue || receiveValue ? skuPriceFormatDisplay(Math.abs(varianceValue)) : '-'}</td>
       <td>${campaignTimelineReceivedBadgeHtml(rec)}</td>
@@ -33759,7 +33801,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 08Oct-r46'; } catch (e) {}
+try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 11Oct-r50'; } catch (e) {}
 </script>
 </body>
 </html>
