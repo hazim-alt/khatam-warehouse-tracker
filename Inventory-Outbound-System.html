@@ -34370,7 +34370,7 @@ try {
   const RN_SKIP = '#tab-fleet-today, #tab-dashboard, [data-no-rownum]';
   let rnBusy = false, rnTimer = null;
   const rnProcess = (table) => {
-    if (table.closest(RN_SKIP) || !table.closest('.tab-panel') || table.parentElement.closest('table')) return;
+    if (table.closest(RN_SKIP) || !table.closest('.tab-panel')) return;
     const heads = table.tHead ? Array.from(table.tHead.rows) : [];
     heads.forEach((tr, i) => {
       if (i === 0 && !tr.querySelector('th.rn-cell')) {
@@ -34386,6 +34386,8 @@ try {
         if (first && first.classList.contains('rn-cell')) { if (first.tagName === 'TD' && first.dataset.rn) { n++; if (first.textContent !== String(n)) first.textContent = n; } return; }
         if (!first) return;
         const td = document.createElement('td'); td.className = 'rn-cell';
+        // expand/detail rows (they hold a nested table, or are marked "detail") are not numbered — the nested table numbers itself
+        if (tr.querySelector(':scope > td > table') || /detail/i.test(tr.className)) { tr.insertBefore(td, first); return; }
         if (first.colSpan > 1 && tr.cells.length === 1) { first.colSpan += 1; return; } // full-width note/group row
         n++; td.textContent = n; td.dataset.rn = '1';
         tr.insertBefore(td, first);
@@ -34414,7 +34416,7 @@ try {
       m.addedNodes.forEach(n => {
         if (n.nodeType !== 1) return;
         if (n.tagName === 'TABLE') tables.add(n);
-        else if (n.querySelectorAll) n.querySelectorAll('table').forEach(x => tables.add(x));
+        if (n.querySelectorAll) n.querySelectorAll('table').forEach(x => tables.add(x));
       });
     });
     if (!tables.size) return;
@@ -34428,7 +34430,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 13Oct-r85'; } catch (e) {}
+try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 13Oct-r86'; } catch (e) {}
 </script>
 </body>
 </html>
