@@ -27801,7 +27801,7 @@ function doGroupCardHtml(group) {
       ${isCourier ? `<span class="badge badge-gold" style="padding:2px 7px;" title="${doRec.courierTrackingNo ? 'Tracking: ' + escapeHtml(doRec.courierTrackingNo) : 'No tracking no. entered'}">📮 ${escapeHtml(doRec.deliveryMethod)}</span>` : ''}
       ${isPostponed ? `<span class="badge badge-amber" style="padding:2px 7px;" title="Driver didn't reach this destination last trip — attach it to a new trip when ready.">⏸ Reschedule</span>` : ''}
     </div>
-    ${recs.length > 1 ? `
+    ${recs.length >= 1 ? `
     <button type="button" class="kc-do-group-toggle" data-key="${escapeHtml(group.key)}">${expanded ? '▲ Hide' : '▼ Show'} ${recs.length} STO(s)</button>
     <div class="kc-do-group-list" style="display:${expanded ? 'block' : 'none'};">
       ${recs.map(r => `<div class="kc-do-group-row"><span class="mono-name">${escapeHtml(r.orderNumber)}</span><span style="display:flex; align-items:center; gap:8px;">Qty ${formatQty(r.totalOrderQty)}<button type="button" class="kc-do-group-label" data-order="${escapeHtml(r.orderNumber)}" title="Reprint label carton STO ini" style="background:none; border:1px solid var(--gold); color:var(--gold); border-radius:3px; padding:0 6px; font-size:11px; cursor:pointer;">🏷</button>${(getCurrentUser() && getCurrentUser().isAdmin) ? `<button type="button" class="kc-do-group-remove" data-order="${escapeHtml(r.orderNumber)}" data-do="${escapeHtml(group.doNo || '')}" title="Buang STO ini daripada DO (kembali ke Packed)" style="background:none; border:1px solid var(--red); color:var(--red); border-radius:3px; padding:0 6px; font-size:11px; cursor:pointer;">✕</button>` : ''}</span></div>`).join('')}
@@ -34133,7 +34133,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 13Oct-r71'; } catch (e) {}
+try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 13Oct-r72'; } catch (e) {}
 </script>
 </body>
 </html>
