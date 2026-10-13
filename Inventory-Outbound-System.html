@@ -27685,7 +27685,7 @@ function doGroupCardHtml(group) {
     ${recs.length > 1 ? `
     <button type="button" class="kc-do-group-toggle" data-key="${escapeHtml(group.key)}">${expanded ? '▲ Hide' : '▼ Show'} ${recs.length} STO(s)</button>
     <div class="kc-do-group-list" style="display:${expanded ? 'block' : 'none'};">
-      ${recs.map(r => `<div class="kc-do-group-row"><span class="mono-name">${escapeHtml(r.orderNumber)}</span><span style="display:flex; align-items:center; gap:8px;">Qty ${formatQty(r.totalOrderQty)}${(currentUser && currentUser.isAdmin) ? `<button type="button" class="kc-do-group-remove" data-order="${escapeHtml(r.orderNumber)}" data-do="${escapeHtml(group.doNo || '')}" title="Buang STO ini daripada DO (kembali ke Packed)" style="background:none; border:1px solid var(--red); color:var(--red); border-radius:3px; padding:0 6px; font-size:11px; cursor:pointer;">✕</button>` : ''}</span></div>`).join('')}
+      ${recs.map(r => `<div class="kc-do-group-row"><span class="mono-name">${escapeHtml(r.orderNumber)}</span><span style="display:flex; align-items:center; gap:8px;">Qty ${formatQty(r.totalOrderQty)}${(getCurrentUser() && getCurrentUser().isAdmin) ? `<button type="button" class="kc-do-group-remove" data-order="${escapeHtml(r.orderNumber)}" data-do="${escapeHtml(group.doNo || '')}" title="Buang STO ini daripada DO (kembali ke Packed)" style="background:none; border:1px solid var(--red); color:var(--red); border-radius:3px; padding:0 6px; font-size:11px; cursor:pointer;">✕</button>` : ''}</span></div>`).join('')}
     </div>` : ''}
     <button type="button" class="kc-do-group-btn" data-group-ids='${idsJson}'>Print DO</button>
     ${isCourier ? `<button type="button" class="kc-courier-delivered-btn" data-do="${escapeHtml(group.doNo)}" style="margin-top:6px;">✓ Mark Delivered (${escapeHtml(doRec.deliveryMethod)})</button>` : ''}
@@ -27879,7 +27879,7 @@ function renderKanban() {
   board.querySelectorAll('.kc-do-group-remove').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (!(currentUser && currentUser.isAdmin)) return; // Admin/Team Lead only
+      { const cu = getCurrentUser(); if (!(cu && cu.isAdmin)) return; } // Admin/Team Lead only
       const on = btn.dataset.order, doNo = btn.dataset.do;
       const rec = records.find(r => r.orderNumber === on);
       if (!rec) return;
@@ -34010,7 +34010,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 13Oct-r67'; } catch (e) {}
+try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 13Oct-r68'; } catch (e) {}
 </script>
 </body>
 </html>
