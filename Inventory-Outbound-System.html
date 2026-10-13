@@ -447,6 +447,9 @@
   .dash-tables-row .section-title { margin: 0 0 14px; flex-shrink: 0; }
   .dash-tables-row .card { margin-bottom: 0; }
   .tab-btn.needs-update::after { content:''; display:inline-block; width:8px; height:8px; border-radius:50%; background:#e0453a; margin-left:6px; vertical-align:middle; }
+  .tab-btn.has-new::after { content:attr(data-new); display:inline-block; min-width:18px; padding:0 5px; height:18px; line-height:18px; border-radius:9px; background:#e0453a; color:#fff; font-size:11px; font-weight:700; text-align:center; margin-left:8px; vertical-align:middle; }
+  tr.bqr-new td { background:rgba(224,69,58,0.10); }
+  .bqr-new-tag { display:inline-block; background:#e0453a; color:#fff; font-size:10px; font-weight:700; padding:1px 6px; border-radius:8px; margin-right:6px; vertical-align:middle; }
   .needs-update-banner { background:rgba(224,69,58,0.14); border:1px solid #e0453a; color:#f1a39d; border-radius:6px; padding:8px 12px; margin-bottom:12px; font-size:13px; }
   /* Digits (and . , % / : -) always use a clean lining-figure sans font; Georgia's old-style numerals were hard to read. */
   @font-face { font-family:'NumLining'; font-weight:400; src: local('Segoe UI'), local('Roboto'), local('Helvetica Neue'), local('Arial'); unicode-range: U+0030-0039, U+002C, U+002E, U+0025, U+002F, U+003A; }
@@ -1582,6 +1585,7 @@
   <button type="button" class="btn-ghost" id="deviceStationBtn" style="width:100%; text-align:left; padding:4px 10px; font-size:11px; margin:0 0 10px;">📍 <span id="deviceStationBtnLabel">This device's station: — none —</span></button>
   <nav class="tabs">
     <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+    <button class="tab-btn" data-tab="bulk-qc-result">Bulk QC Result</button>
     <button type="button" class="nav-group-toggle" id="navGroupRawMaterialToggle" data-group="navGroupRawMaterial">
       <span>Raw Material</span><span class="nav-group-chevron">▾</span>
     </button>
@@ -1660,7 +1664,6 @@
     <button class="tab-btn" data-tab="stock-available">Available Stock</button>
     <button class="tab-btn" data-tab="finance">Finance</button>
     <button class="tab-btn" data-tab="request-stock">Request Stock</button>
-    <button class="tab-btn" data-tab="laporan">Reports</button>
   </nav>
   <div id="sidebarSyncBar" style="display:none; flex-direction:column; align-items:flex-start; gap:6px; margin-top:auto; padding:14px 24px; border-top:1px solid rgba(255,255,255,0.1);">
     <span id="sidebarSyncStatus" class="data-note" style="margin:0; white-space:nowrap;"></span>
@@ -3146,17 +3149,41 @@
       <div style="display:flex; gap:8px; margin:12px 0 0;">
         <button type="button" class="btn-primary" id="bqcModeFg">Finished Goods (FG)</button>
         <button type="button" class="btn-ghost" id="bqcModeFabric">Fabric</button>
+        <span style="flex:1;"></span>
+        <button type="button" class="btn-ghost" id="bqcLinkBtn" title="Tarik link QC yang boleh klik dari Google Sheet (perlu API key)">🔗 Tarik link QC</button>
+        <button type="button" class="btn-ghost" id="bqcKeyBtn" title="Tukar API key">🔑</button>
       </div>
+      <div id="bqcLinkStatus" class="data-note" style="margin:6px 0 0;"></div>
       <div id="bqcKpiGrid" class="kpi-grid" style="grid-template-columns: repeat(5, 1fr); margin:12px 0;"></div>
       <div style="display:flex; gap:10px; flex-wrap:wrap; margin:12px 0;">
         <input type="text" id="bqcSearch" placeholder="Search series / product / supplier / boutique..." style="flex:1; min-width:200px;">
         <select id="bqcSeries" style="width:auto;"><option value="">All Series</option></select>
         <select id="bqcTailor" style="width:auto;"><option value="">All Tailors</option></select>
-        <select id="bqcFgStatus" style="width:auto;"><option value="">QC Finish Goods: All</option><option value="pass">Pass</option><option value="pass-with">Pass With…</option><option value="request">Request…</option><option value="fail">Fail</option><option value="none">Belum QC</option></select>
-        <select id="bqcWashStatus" style="width:auto; display:none;"><option value="">QC Washing: All</option><option value="pass">Pass</option><option value="pass-with">Pass With…</option><option value="request">Request…</option><option value="fail">Fail</option><option value="none">Belum QC</option></select>
+        <select id="bqcFgStatus" style="width:auto;"><option value="">QC Finish Goods: All</option><option value="pass">Pass</option><option value="pass-with">Pass With Condition</option><option value="request">Requested</option><option value="on-hold">On Hold</option><option value="fail">Fail</option><option value="none">Pending QC</option></select>
+        <select id="bqcWashStatus" style="width:auto; display:none;"><option value="">QC Washing: All</option><option value="pass">Pass</option><option value="pass-with">Pass With Condition</option><option value="request">Requested</option><option value="on-hold">On Hold</option><option value="fail">Fail</option><option value="none">Pending QC</option></select>
         <select id="bqcReady" style="width:auto;"><option value="">Ready: All</option><option value="yes">Ready to distribute</option><option value="no">Not ready</option></select>
       </div>
       <div id="bqcWrap" class="scroll-table" style="max-height:calc(100vh - 360px); min-height:300px;"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-bulk-qc-result">
+    <p class="section-title">Bulk QC Result</p>
+    <div class="card">
+      <span class="data-note" style="margin:0;">Only items with a finished QC result (Pass, Pass With Condition, Fail) — read from the Google Sheet.</span>
+      <div id="bqrNewBanner" class="needs-update-banner" style="display:none; margin:10px 0 0;"></div>
+      <div style="display:flex; gap:8px; margin:12px 0 0;">
+        <button type="button" class="btn-primary" id="bqrModeFg">Finished Goods (FG)</button>
+        <button type="button" class="btn-ghost" id="bqrModeFabric">Fabric</button>
+      </div>
+      <div id="bqrKpiGrid" class="kpi-grid" style="grid-template-columns: repeat(4, 1fr); margin:12px 0;"></div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin:12px 0;">
+        <input type="text" id="bqrSearch" placeholder="Search series / product / supplier / boutique..." style="flex:1; min-width:200px;">
+        <select id="bqrSeries" style="width:auto;"><option value="">All Series</option></select>
+        <select id="bqrTailor" style="width:auto;"><option value="">All Tailors</option></select>
+        <select id="bqrStatus" style="width:auto;"><option value="">Result: All</option><option value="pass">Pass</option><option value="pass-with">Pass With Condition</option><option value="fail">Fail</option></select>
+      </div>
+      <div id="bqrWrap" class="scroll-table" style="max-height:calc(100vh - 330px); min-height:300px;"></div>
     </div>
   </section>
 
@@ -3370,7 +3397,7 @@
     </div>
   </div>
 
-  <section class="tab-panel" id="tab-laporan">
+  <section class="tab-panel" id="tab-laporan" hidden style="display:none !important;">
     <p class="section-title">Reports</p>
     <div class="card" style="margin-bottom:20px;">
       <div class="filters" style="align-items:center; margin-bottom:6px; flex-wrap:wrap;">
@@ -5969,7 +5996,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'papan') renderKanban();
     if (btn.dataset.tab === 'delivered') renderDeliveredTab();
     if (btn.dataset.tab === 'sla') renderSlaTab();
-    if (btn.dataset.tab === 'laporan') renderLaporan();
     if (btn.dataset.tab === 'inbound-garment') renderGarmentOrderTab();
     if (btn.dataset.tab === 'inbound-garment-receiving') renderGarmentRecvSummaryTab();
     if (btn.dataset.tab === 'inbound-sto') renderInboundStoTab();
@@ -5988,6 +6014,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'production-restock') renderProductionRestockTab();
     if (btn.dataset.tab === 'production-received-product') renderReceivedByProductTab();
     if (btn.dataset.tab === 'production-bulk-qc') renderBulkQcTab();
+    if (btn.dataset.tab === 'bulk-qc-result') bqrOnOpen();
     if (btn.dataset.tab === 'production-timeline') renderCampaignTimelineTab();
     if (btn.dataset.tab === 'production-release-calendar') renderProductionReleaseCalendarTab();
     if (btn.dataset.tab === 'finance') renderFinanceTab();
@@ -9321,11 +9348,11 @@ const PERMISSION_TABS = [
   { id: 'production-restock', label: 'Restock Status (Production)' },
   { id: 'production-received-product', label: 'Received by Product (Production)' },
   { id: 'production-bulk-qc', label: 'Bulk QC (Production)' },
+  { id: 'bulk-qc-result', label: 'Bulk QC Result' },
   { id: 'production-timeline', label: 'Timeline (Production)' },
   { id: 'production-release-calendar', label: 'Release Calendar (Production)' },
   { id: 'finance', label: 'Finance' },
   { id: 'request-stock', label: 'Request Stock' },
-  { id: 'laporan', label: 'Reports' },
 ];
 function userCanAccessTab(user, tabId) {
   if (!user) return false;
@@ -14026,14 +14053,137 @@ function bqcStatusKey(text) {
   if (/^pass\s*with/.test(t)) return 'pass-with';
   if (/^pass/.test(t)) return 'pass';
   if (/^(fail|reject)/.test(t)) return 'fail';
+  if (/^on\s*hold/.test(t)) return 'on-hold';
   if (/^request/.test(t)) return 'request';
   return 'request';
 }
 function bqcBadgeHtml(text) {
   const k = bqcStatusKey(text);
-  const cls = { pass: 'badge-green', 'pass-with': 'badge-amber', request: 'badge-blue', fail: 'badge-red', none: 'badge-gray' }[k];
-  const label = k === 'none' ? 'Belum QC' : text;
+  const cls = { pass: 'badge-green', 'pass-with': 'badge-amber', request: 'badge-blue', 'on-hold': 'badge-gray', fail: 'badge-red', none: 'badge-gray' }[k];
+  const label = k === 'none' ? 'Pending QC' : text;
   return `<span class="badge ${cls}" title="${escapeHtml(text || '')}">${escapeHtml(label)}</span>`;
+}
+// ---- QC hyperlinks via Google Sheets API (needs a free API key; the sheet must be shared "anyone with the link can view") ----
+const BQC_API_KEY_LS = 'sheetsApiKeyV1';
+function bqcGetApiKey() { try { return localStorage.getItem(BQC_API_KEY_LS) || ''; } catch (e) { return ''; } }
+function bqcCellLinks(cell) {
+  if (!cell) return [];
+  const text = String(cell.formattedValue || '');
+  const out = [];
+  const runs = Array.isArray(cell.textFormatRuns) ? cell.textFormatRuns : [];
+  runs.forEach((run, i) => {
+    const uri = run && run.format && run.format.link && run.format.link.uri;
+    if (!uri) return;
+    const start = run.startIndex || 0;
+    const end = i + 1 < runs.length ? (runs[i + 1].startIndex || text.length) : text.length;
+    out.push({ text: text.slice(start, end).trim() || 'Open', url: uri });
+  });
+  if (!out.length) {
+    (Array.isArray(cell.chipRuns) ? cell.chipRuns : []).forEach(run => {
+      const uri = run && run.chip && run.chip.richLinkProperties && run.chip.richLinkProperties.uri;
+      if (uri) out.push({ text: 'Open file', url: uri });
+    });
+  }
+  if (!out.length && cell.hyperlink) out.push({ text: text.trim() || 'Open', url: cell.hyperlink });
+  if (!out.length && /^https?:\/\//i.test(text.trim())) out.push({ text: 'Open', url: text.trim() });
+  return out;
+}
+async function bqcFetchLinksForUrl(url, key) {
+  const parsed = campaignTimelineParseSheetUrl(url);
+  if (!parsed || parsed.publishedLinkError) return {};
+  const base = 'https://sheets.googleapis.com/v4/spreadsheets/' + parsed.sheetId;
+  const jget = async u => {
+    const r = await fetch(u);
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error((j.error && j.error.message) || ('HTTP ' + r.status));
+    return j;
+  };
+  const meta = await jget(base + '?fields=sheets.properties(sheetId,title)&key=' + encodeURIComponent(key));
+  const sh = (meta.sheets || []).map(x => x.properties).find(pr => String(pr.sheetId) === String(parsed.gid));
+  if (!sh) throw new Error('Tab (gid ' + parsed.gid + ') not found');
+  const range = "'" + String(sh.title).replace(/'/g, "''") + "'!A1:BZ3000";
+  const data = await jget(base + '?ranges=' + encodeURIComponent(range) + '&fields=sheets.data.rowData.values(formattedValue,hyperlink,textFormatRuns(startIndex,format(link(uri))),chipRuns(startIndex,chip(richLinkProperties(uri,mimeType))))&key=' + encodeURIComponent(key));
+  const rowData = (((data.sheets || [])[0] || {}).data || [])[0] || {};
+  const rows = (rowData.rowData || []).map(r => r.values || []);
+  const textRows = rows.map(r => r.map(c => String((c && c.formattedValue) || '').trim()));
+  // Header may span several rows (merged banner above the column labels) — combine the first rows per column, carrying banner text across merged blanks.
+  const HR = Math.min(12, textRows.length);
+  const width = Math.max(0, ...textRows.slice(0, HR).map(r => r.length));
+  const combined = Array.from({ length: width }, () => []);
+  for (let i = 0; i < HR; i++) {
+    const row = textRows[i];
+    const filled = row.filter(Boolean).length;
+    const banner = filled > 0 && filled < width * 0.4;
+    let carry = '';
+    for (let c = 0; c < width; c++) {
+      const t = row[c] || '';
+      if (t) carry = t; else if (!banner) carry = '';
+      const use = t || (banner ? carry : '');
+      if (use) combined[c].push(use);
+    }
+  }
+  const comb = combined.map(a => a.join(' '));
+  const cFg = bqcOr(campaignTimelineFindColContains(comb, ['qc', 'finish', 'goods', 'link']), () => campaignTimelineFindColContains(comb, ['qc', 'report', 'garment']));
+  const cWash = bqcOr(campaignTimelineFindColContains(comb, ['qc', 'washing', 'test', 'link']), () => campaignTimelineFindColContains(comb, ['qc', 'result', 'washing', 'fabric']));
+  if (cFg === -1 && cWash === -1) {
+    const qcCols = comb.map((h, c) => /qc|link|washing|finish/i.test(h) ? (c + 1) + ':' + h.slice(0, 60) : '').filter(Boolean).join(' | ');
+    const sample = 'cols=' + width + ', rows=' + textRows.length + ', QC-ish: ' + (qcCols || 'none') + ' // last cols: ' + comb.slice(-8).join(' | ');
+    throw new Error('QC link columns not found. ' + sample);
+  }
+  let hdr = 0;
+  for (let i = 0; i < HR; i++) { if (campaignTimelineFindColOccurrence(textRows[i], 'series', 1) !== -1) { hdr = i; break; } }
+  // Identity columns mirror parseCampaignTimelineRows exactly (same header row, same matching) so the generated ids line up with the records.
+  const hr = textRows[hdr] || [];
+  const exact = n => campaignTimelineFindColOccurrence(hr, n, 1);
+  const cSeries = exact('series'), cName = exact('official product name'), cBatch = campaignTimelineFindColContains(hr, ['batch']), cColor = exact('color');
+  const tsi = campaignTimelineFindColContains(hr, ['tailor', 'supplier']);
+  const cSup = tsi !== -1 ? tsi : exact('supplier');
+  const T = (i, c) => (c === -1 ? '' : (textRows[i][c] || ''));
+  const result = {};
+  for (let i = hdr + 1; i < rows.length; i++) {
+    const series = T(i, cSeries), name = T(i, cName);
+    if (!series && !name) continue;
+    const id = campaignTimelineStableId(series, name, T(i, cBatch), T(i, cColor), T(i, cSup));
+    result[id] = { qcFgLinks: cFg === -1 ? [] : bqcCellLinks(rows[i][cFg]), qcWashLinks: cWash === -1 ? [] : bqcCellLinks(rows[i][cWash]) };
+  }
+  return result;
+}
+async function bqcFetchLinks(opts) {
+  const statusEl = document.getElementById('bqcLinkStatus');
+  const setS = (t, err) => { if (statusEl) { statusEl.textContent = t; statusEl.style.color = err ? '#e57373' : ''; } };
+  let key = bqcGetApiKey();
+  if (!key || (opts && opts.changeKey)) {
+    const k = prompt('Paste Google API key (Sheets API) untuk tarik link QC dari sheet:', key || '');
+    if (k === null) return;
+    key = k.trim();
+    try { localStorage.setItem(BQC_API_KEY_LS, key); } catch (e) {}
+    if (!key) { setS('API key dikosongkan.', true); return; }
+  }
+  setS('Menarik link dari sheet...');
+  try {
+    const urls = [campaignTimelineGsheetUrls.summary, campaignTimelineGsheetUrls.patawali].filter(Boolean);
+    if (!urls.length) throw new Error('Tiada link Google Sheet disimpan dalam Timeline');
+    let all = {};
+    const errs = []; let okTabs = 0;
+    for (const u of urls) {
+      try { Object.assign(all, await bqcFetchLinksForUrl(u, key)); okTabs++; }
+      catch (e) { errs.push(e.message); }
+    }
+    if (!okTabs) throw new Error(errs.join(' || '));
+    let n = 0, changed = false;
+    campaignTimelineList.forEach(rec => {
+      const l = all[rec.id];
+      if (!l) return;
+      if (stableStringify(rec.qcFgLinks || []) !== stableStringify(l.qcFgLinks) || stableStringify(rec.qcWashLinks || []) !== stableStringify(l.qcWashLinks)) { rec.qcFgLinks = l.qcFgLinks; rec.qcWashLinks = l.qcWashLinks; changed = true; }
+      if (l.qcFgLinks.length || l.qcWashLinks.length) n++;
+    });
+    if (changed) { saveCampaignTimelineListLocal(); pushCampaignTimelineDiffToFirebase({ skipEmptyGuard: true }); }
+    setS(n + ' baris ada link (' + Object.keys(all).length + ' baris sheet dibaca, ' + campaignTimelineList.filter(r => all[r.id]).length + ' padan).' + (changed ? '' : ' (tiada perubahan)') + (errs.length ? ' (1 tab tiada lajur link QC — diabaikan)' : ''));
+    renderBulkQcTab();
+    if (typeof renderCampaignTimelineTab === 'function') renderCampaignTimelineTab();
+  } catch (e) {
+    setS('Gagal: ' + e.message, true);
+  }
 }
 let bqcMode = 'fg'; // 'fg' | 'fabric' — two separate tables (Oct 13, 2026, per Shaila: "finish good lain, fabric lain table")
 function renderBulkQcTab() {
@@ -14082,15 +14232,15 @@ function renderBulkQcTab() {
   const kpi = fabric ? [
     { num: shown.length, label: 'Total Item' },
     { num: cnt('pass'), label: 'Washing Pass' },
-    { num: cnt('pass-with'), label: 'Pass With…' },
-    { num: cnt('request') + cnt('fail'), label: 'Request / Fail' },
-    { num: cnt('none'), label: 'Belum QC' },
+    { num: cnt('pass-with'), label: 'Pass With Condition' },
+    { num: cnt('request') + cnt('on-hold') + cnt('fail'), label: 'Requested / Hold / Fail' },
+    { num: cnt('none'), label: 'Pending QC' },
   ] : [
     { num: shown.length, label: 'Total Item' },
     { num: shown.filter(isReady).length, label: 'Ready to Distribute' },
     { num: cnt('pass') + cnt('pass-with'), label: 'QC FG Pass' },
-    { num: cnt('request'), label: 'QC FG Request' },
-    { num: cnt('none'), label: 'Belum QC FG' },
+    { num: cnt('request') + cnt('on-hold'), label: 'QC FG Requested / Hold' },
+    { num: cnt('none'), label: 'Pending QC FG' },
   ];
   document.getElementById('bqcKpiGrid').innerHTML = kpi.map(c => `<div class="kpi-card"><div class="kpi-num">${c.num}</div><div class="kpi-label">${c.label}</div></div>`).join('');
   if (!rows.length) { wrap.innerHTML = '<div class="empty-state">No Timeline data yet — Refresh from Google Sheets in Production &gt; Timeline.</div>'; return; }
@@ -14098,13 +14248,146 @@ function renderBulkQcTab() {
   const E = escapeHtml;
   if (!fabric) {
     wrap.innerHTML = `<table><thead><tr><th>Series</th><th>Official Product Name</th><th>Batch</th><th>Color</th><th>Tailor Supplier</th><th style="text-align:right;">Quantity FG Order pcs</th><th>Allocation Boutique</th><th>QC Result Finish Goods</th><th>QC Finish Goods Link</th><th>Ready</th></tr></thead><tbody>` +
-      shown.map(r => `<tr><td>${E(r.series || '-')}</td><td>${E(r.officialProductName || '-')}</td><td>${E(r.batch || '-')}</td><td>${E(r.color || '-')}</td><td>${E(r.supplier || '-')}</td><td style="text-align:right;">${formatQty(r.quantity || 0)}</td><td>${E(r.allocationBoutique || '-')}</td><td>${bqcBadgeHtml(r.qcFg)}</td><td>${campaignTimelineLinkCellHtml(r.qcFgLink)}</td><td>${isReady(r) ? '<span class="badge badge-green">Yes</span>' : '<span class="badge badge-gray">No</span>'}</td></tr>`).join('') + '</tbody></table>';
+      shown.map(r => `<tr><td>${E(r.series || '-')}</td><td>${E(r.officialProductName || '-')}</td><td>${E(r.batch || '-')}</td><td>${E(r.color || '-')}</td><td>${E(r.supplier || '-')}</td><td style="text-align:right;">${formatQty(r.quantity || 0)}</td><td>${E(r.allocationBoutique || '-')}</td><td>${bqcBadgeHtml(r.qcFg)}</td><td>${campaignTimelineLinksHtml(r,'qcFg')}</td><td>${isReady(r) ? '<span class="badge badge-green">Yes</span>' : '<span class="badge badge-gray">No</span>'}</td></tr>`).join('') + '</tbody></table>';
   } else {
     wrap.innerHTML = `<table><thead><tr><th>Series</th><th>Official Product Name</th><th>Material</th><th>Fabric Supplier</th><th style="text-align:right;">Qty Fabrics (Ctn)</th><th style="text-align:right;">Qty Fabrics (Meter)</th><th>QC Result Washing Test (Fabrics/Garment)</th><th>QC Washing Test Link</th></tr></thead><tbody>` +
-      shown.map(r => `<tr><td>${E(r.series || '-')}</td><td>${E(r.officialProductName || '-')}</td><td>${E(r.material || '-')}</td><td>${E(r.fabricSupplier || '-')}</td><td style="text-align:right;">${formatQty(r.quantityFabricsCtn || 0)}</td><td style="text-align:right;">${formatQty(r.quantityFabricsMeter || 0)}</td><td>${bqcBadgeHtml(r.qcWash)}</td><td>${campaignTimelineLinkCellHtml(r.qcWashLink)}</td></tr>`).join('') + '</tbody></table>';
+      shown.map(r => `<tr><td>${E(r.series || '-')}</td><td>${E(r.officialProductName || '-')}</td><td>${E(r.material || '-')}</td><td>${E(r.fabricSupplier || '-')}</td><td style="text-align:right;">${formatQty(r.quantityFabricsCtn || 0)}</td><td style="text-align:right;">${formatQty(r.quantityFabricsMeter || 0)}</td><td>${bqcBadgeHtml(r.qcWash)}</td><td>${campaignTimelineLinksHtml(r,'qcWash')}</td></tr>`).join('') + '</tbody></table>';
   }
 }
+// ---- Bulk QC Result: standalone tab, only items whose QC is finished (Pass / Pass With Condition / Fail) ----
+let bqrMode = 'fg';
+// ---- Bulk QC Result notifications: red counter on the tab + NEW tags when a QC result is new or changed since the last visit (per device) ----
+const BQR_SEEN_LS = 'bqrSeenV1';
+let bqrHighlight = new Set();
+function bqrKeyFg(r) { return r.id + '|fg'; }
+function bqrKeyFab(r) { return r.id + '|fab'; }
+function bqrIsNew(r) { return bqrHighlight.has(bqrMode === 'fabric' ? bqrKeyFab(r) : bqrKeyFg(r)); }
+function bqrCurrentDone() {
+  const DONE = ['pass', 'pass-with', 'fail'], out = {};
+  (campaignTimelineList || []).forEach(r => {
+    const f = bqcStatusKey(r.qcFg); if (DONE.includes(f)) out[bqrKeyFg(r)] = f;
+    if (campaignTimelineFabricRowHasDetails(r) || r.material || r.fabricSupplier) { const w = bqcStatusKey(r.qcWash); if (DONE.includes(w)) out[bqrKeyFab(r)] = w; }
+  });
+  return out;
+}
+// Seen-state is kept per ACCOUNT: Firebase path BqrSeen/<username> (JSON string), mirrored in localStorage for offline use.
+const bqrState = { user: null, ref: null, ready: false, seen: null };
+function bqrEnsureUser() {
+  const u = getCurrentUser();
+  if (!u) return false;
+  const uk = String(u.username).replace(/[.#$\/\[\]]/g, '_');
+  if (bqrState.user !== uk) {
+    if (bqrState.ref) { try { bqrState.ref.off(); } catch (e) {} }
+    bqrState.user = uk; bqrState.ref = null; bqrState.ready = true; bqrState.seen = null;
+    try { bqrState.seen = JSON.parse(localStorage.getItem(BQR_SEEN_LS + ':' + uk)); } catch (e) { bqrState.seen = null; }
+    bqrHighlight = new Set();
+    if (fbDb) {
+      bqrState.ready = false;
+      bqrState.ref = fbDb.ref('BqrSeen/' + uk);
+      bqrState.ref.on('value', snap => {
+        const v = snap.val();
+        if (typeof v === 'string') { try { bqrState.seen = JSON.parse(v); } catch (e) {} }
+        bqrState.ready = true;
+        bqrUpdateNotify();
+      }, () => { bqrState.ready = true; });
+    }
+  }
+  return true;
+}
+function bqrLoadSeen() { return bqrState.seen; }
+function bqrSaveSeen(o) {
+  bqrState.seen = o;
+  try { localStorage.setItem(BQR_SEEN_LS + ':' + bqrState.user, JSON.stringify(o)); } catch (e) {}
+  if (fbDb && bqrState.ref) { try { bqrState.ref.set(JSON.stringify(o)).catch(() => {}); } catch (e) {} }
+}
+function bqrNewKeys() {
+  const cur = bqrCurrentDone(), seen = bqrLoadSeen();
+  if (!seen) return { cur, fresh: [], baseline: true };
+  return { cur, fresh: Object.keys(cur).filter(k => seen[k] !== cur[k]), baseline: false };
+}
+function bqrTabActive() { const p = document.getElementById('tab-bulk-qc-result'); return !!(p && p.classList.contains('active')); }
+function bqrUpdateNotify() {
+  if (!Array.isArray(campaignTimelineList) || !campaignTimelineList.length) return;
+  if (!bqrEnsureUser() || !bqrState.ready) return;
+  const { cur, fresh, baseline } = bqrNewKeys();
+  if (baseline) { bqrSaveSeen(cur); return; }
+  const btns = document.querySelectorAll('.tab-btn[data-tab="bulk-qc-result"]');
+  if (bqrTabActive()) {
+    if (fresh.length) { fresh.forEach(k => bqrHighlight.add(k)); bqrSaveSeen(cur); renderBqrTab(); }
+    btns.forEach(b => { b.classList.remove('has-new'); b.removeAttribute('data-new'); });
+    return;
+  }
+  btns.forEach(b => { b.classList.toggle('has-new', fresh.length > 0); if (fresh.length) b.setAttribute('data-new', String(fresh.length)); else b.removeAttribute('data-new'); });
+}
+function bqrOnOpen() {
+  if (!bqrEnsureUser()) { renderBqrTab(); return; }
+  if (!bqrState.ready) { renderBqrTab(); return; }
+  const { cur, fresh, baseline } = bqrNewKeys();
+  bqrHighlight = new Set(baseline ? [] : fresh);
+  bqrSaveSeen(cur);
+  document.querySelectorAll('.tab-btn[data-tab="bulk-qc-result"]').forEach(b => { b.classList.remove('has-new'); b.removeAttribute('data-new'); });
+  renderBqrTab();
+}
+setInterval(bqrUpdateNotify, 4000);
+setTimeout(bqrUpdateNotify, 1500);
+
+function renderBqrTab() {
+  const wrap = document.getElementById('bqrWrap');
+  if (!wrap) return;
+  const fabric = bqrMode === 'fabric';
+  document.getElementById('bqrModeFg').className = fabric ? 'btn-ghost' : 'btn-primary';
+  document.getElementById('bqrModeFabric').className = fabric ? 'btn-primary' : 'btn-ghost';
+  const field = fabric ? 'qcWash' : 'qcFg';
+  const supField = fabric ? 'fabricSupplier' : 'supplier';
+  const DONE = ['pass', 'pass-with', 'fail'];
+  const rows = (campaignTimelineList || []).filter(r => (!fabric || campaignTimelineFabricRowHasDetails(r) || r.material || r.fabricSupplier) && DONE.includes(bqcStatusKey(r[field])));
+  const fill = (id, f, allLabel) => {
+    const sel = document.getElementById(id); if (!sel) return '';
+    const vals = Array.from(new Set(rows.map(r => r[f]).filter(Boolean))).sort((a, b) => String(a).localeCompare(String(b)));
+    const sig = vals.join('\u0001'), cur = sel.value;
+    if (sel.dataset.sig !== sig) {
+      sel.innerHTML = `<option value="">${allLabel}</option>` + vals.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+      sel.dataset.sig = sig; sel.value = vals.includes(cur) ? cur : '';
+    }
+    return sel.value;
+  };
+  const seriesF = fill('bqrSeries', 'series', 'All Series');
+  const tailorF = fill('bqrTailor', supField, fabric ? 'All Fabric Suppliers' : 'All Tailors');
+  const statusF = document.getElementById('bqrStatus').value;
+  const q = (document.getElementById('bqrSearch').value || '').toLowerCase().split(/\s+/).filter(Boolean);
+  const shown = rows.filter(r => {
+    if (seriesF && r.series !== seriesF) return false;
+    if (tailorF && r[supField] !== tailorF) return false;
+    if (statusF && bqcStatusKey(r[field]) !== statusF) return false;
+    const text = [r.series, r.officialProductName, r[supField], r.allocationBoutique, r.batch, r.color, r.material].join(' ').toLowerCase();
+    return q.every(w => text.includes(w));
+  });
+  const cnt = k => shown.filter(r => bqcStatusKey(r[field]) === k).length;
+  const kpi = [
+    { num: shown.length, label: 'Total QC Done' },
+    { num: cnt('pass'), label: 'Pass' },
+    { num: cnt('pass-with'), label: 'Pass With Condition' },
+    { num: cnt('fail'), label: 'Fail' },
+  ];
+  document.getElementById('bqrKpiGrid').innerHTML = kpi.map(c => `<div class="kpi-card"><div class="kpi-num">${c.num}</div><div class="kpi-label">${c.label}</div></div>`).join('');
+  const nb = document.getElementById('bqrNewBanner');
+  if (nb) { nb.style.display = bqrHighlight.size ? '' : 'none'; nb.textContent = bqrHighlight.size + ' new / updated QC result(s) since your last visit.'; }
+  if (!shown.length) { wrap.innerHTML = '<div class="empty-state">No finished QC result yet.</div>'; return; }
+  const E = escapeHtml;
+  if (!fabric) {
+    wrap.innerHTML = `<table><thead><tr><th>Series</th><th>Official Product Name</th><th>Batch</th><th>Color</th><th>Tailor Supplier</th><th style="text-align:right;">Quantity FG Order pcs</th><th>Allocation Boutique</th><th>QC Result Finish Goods</th><th>QC Finish Goods Link</th></tr></thead><tbody>` +
+      shown.map(r => `<tr${bqrIsNew(r) ? ' class="bqr-new"' : ''}><td>${E(r.series || '-')}</td><td>${E(r.officialProductName || '-')}</td><td>${E(r.batch || '-')}</td><td>${E(r.color || '-')}</td><td>${E(r.supplier || '-')}</td><td style="text-align:right;">${formatQty(r.quantity || 0)}</td><td>${E(r.allocationBoutique || '-')}</td><td>${bqrIsNew(r) ? '<span class="bqr-new-tag">NEW</span>' : ''}${bqcBadgeHtml(r.qcFg)}</td><td>${campaignTimelineLinksHtml(r, 'qcFg')}</td></tr>`).join('') + '</tbody></table>';
+  } else {
+    wrap.innerHTML = `<table><thead><tr><th>Series</th><th>Official Product Name</th><th>Material</th><th>Fabric Supplier</th><th style="text-align:right;">Qty Fabrics (Ctn)</th><th style="text-align:right;">Qty Fabrics (Meter)</th><th>QC Result Washing Test</th><th>QC Washing Test Link</th></tr></thead><tbody>` +
+      shown.map(r => `<tr${bqrIsNew(r) ? ' class="bqr-new"' : ''}><td>${E(r.series || '-')}</td><td>${E(r.officialProductName || '-')}</td><td>${E(r.material || '-')}</td><td>${E(r.fabricSupplier || '-')}</td><td style="text-align:right;">${formatQty(r.quantityFabricsCtn || 0)}</td><td style="text-align:right;">${formatQty(r.quantityFabricsMeter || 0)}</td><td>${bqrIsNew(r) ? '<span class="bqr-new-tag">NEW</span>' : ''}${bqcBadgeHtml(r.qcWash)}</td><td>${campaignTimelineLinksHtml(r, 'qcWash')}</td></tr>`).join('') + '</tbody></table>';
+  }
+}
+document.getElementById('bqrModeFg').addEventListener('click', () => { bqrMode = 'fg'; ['bqrSeries','bqrTailor'].forEach(id => { document.getElementById(id).dataset.sig = ''; }); renderBqrTab(); });
+document.getElementById('bqrModeFabric').addEventListener('click', () => { bqrMode = 'fabric'; ['bqrSeries','bqrTailor'].forEach(id => { document.getElementById(id).dataset.sig = ''; }); renderBqrTab(); });
+['bqrSearch', 'bqrSeries', 'bqrTailor', 'bqrStatus'].forEach(id => document.getElementById(id).addEventListener(id === 'bqrSearch' ? 'input' : 'change', renderBqrTab));
 document.getElementById('bqcModeFg').addEventListener('click', () => { bqcMode = 'fg'; ['bqcSeries','bqcTailor'].forEach(id => { const e = document.getElementById(id); if (e) { e.dataset.sig = ''; } }); renderBulkQcTab(); });
+document.getElementById('bqcLinkBtn').addEventListener('click', () => bqcFetchLinks());
+document.getElementById('bqcKeyBtn').addEventListener('click', () => bqcFetchLinks({ changeKey: true }));
 document.getElementById('bqcModeFabric').addEventListener('click', () => { bqcMode = 'fabric'; ['bqcSeries','bqcTailor'].forEach(id => { const e = document.getElementById(id); if (e) { e.dataset.sig = ''; } }); renderBulkQcTab(); });
 ['bqcSearch', 'bqcSeries', 'bqcTailor', 'bqcFgStatus', 'bqcWashStatus', 'bqcReady'].forEach(id => {
   const el = document.getElementById(id);
@@ -14291,6 +14574,7 @@ function campaignTimelineFindColContains(headerRow, parts) {
 // label also contains "estimate date delivery" as a substring, so without excluding "shipment" here
 // it gets miscounted as a 2nd Fabric/FG occurrence instead of being left for the dedicated
 // ship1Delivery/etc. lookups.
+function bqcOr(first, fallback) { return first !== -1 ? first : fallback(); }
 function campaignTimelineFindColContainsOccurrence(headerRow, parts, occurrence, excludeParts) {
   let count = 0;
   for (let i = 0; i < headerRow.length; i++) {
@@ -14456,10 +14740,11 @@ function parseCampaignTimelineRows(rows, sheetLabel, rawHeaderRows, deterministi
     varianceValue: campaignTimelineFindColContains(headerRow, ['variance', 'value']),
     // FG-table extras read from the Summary sheet (Oct 9, 2026, per Shaila): Allocation Boutique + QC Result columns and their links.
     allocationBoutique: campaignTimelineFindColContains(headerRow, ['allocation', 'boutique']),
-    qcFg: campaignTimelineFindColContainsOccurrence(headerRow, ['qc', 'finish', 'goods'], 1, ['link']),
-    qcFgLink: campaignTimelineFindColContains(headerRow, ['qc', 'finish', 'goods', 'link']),
-    qcWash: campaignTimelineFindColContainsOccurrence(headerRow, ['qc', 'washing', 'test'], 1, ['link']),
-    qcWashLink: campaignTimelineFindColContains(headerRow, ['qc', 'washing', 'test', 'link']),
+    // Patawali tab layout (Oct 13, 2026): Fabric = link col "QC Result Washing (Fabric)" + status "QC Washing Result"; Finish Goods = link col "QC Report (Garment)" + the SECOND "QC Washing Result" status.
+    qcFg: bqcOr(campaignTimelineFindColContainsOccurrence(headerRow, ['qc', 'finish', 'goods'], 1, ['link']), () => campaignTimelineFindColContainsOccurrence(headerRow, ['qc', 'washing', 'result'], 2, ['fabric', 'garment'])),
+    qcFgLink: bqcOr(campaignTimelineFindColContains(headerRow, ['qc', 'finish', 'goods', 'link']), () => campaignTimelineFindColContains(headerRow, ['qc', 'report', 'garment'])),
+    qcWash: bqcOr(campaignTimelineFindColContainsOccurrence(headerRow, ['qc', 'washing', 'test'], 1, ['link']), () => campaignTimelineFindColContainsOccurrence(headerRow, ['qc', 'washing', 'result'], 1, ['fabric', 'garment'])),
+    qcWashLink: bqcOr(campaignTimelineFindColContains(headerRow, ['qc', 'washing', 'test', 'link']), () => campaignTimelineFindColContains(headerRow, ['qc', 'result', 'washing', 'fabric'])),
     quantityFabricsCtn: campaignTimelineFindColContains(headerRow, ['quantity', 'fabrics', 'ctn']),
     quantityFabricsMeter: campaignTimelineFindColContains(headerRow, ['quantity', 'fabrics', 'meter']),
     // Added per Shaila's request (Sep 28, 2026 — "nak tambah column 'Fabric Invoice Number'").
@@ -15097,6 +15382,7 @@ async function fetchCampaignTimelineFromGoogleSheets() {
     // check (which, see loadData() below, used to happen constantly) tore down and rebuilt the whole
     // table for nothing, which is what looked like it was "blinking".
     if (changed) renderCampaignTimelineTab();
+    if (bqcGetApiKey()) bqcFetchLinks({ silent: true });
   } catch (err) {
     statusEl.textContent = 'Failed to fetch from Google Sheets: ' + err.message;
     statusEl.className = 'upload-status err';
@@ -16230,8 +16516,16 @@ function campaignTimelineOneBadgeHtml(label, acc, forceComplete) {
 function campaignTimelineLinkCellHtml(v) {
   const t = String(v || '').trim();
   if (!t) return '-';
-  if (/^https?:\/\//i.test(t)) return `<a href="${escapeHtml(t)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();" style="color:var(--gold);">Open</a>`;
+  if (/^https?:\/\//i.test(t)) return `<a href="${escapeHtml(t)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();" style="color:#6ab0ff; text-decoration:underline;">Open</a>`;
   return escapeHtml(t);
+}
+// QC link cells: gviz only returns the visible label, so the real URLs come from bqcFetchLinks (Sheets API) into rec.qcFgLinks / rec.qcWashLinks.
+function campaignTimelineLinksHtml(rec, which) {
+  const arr = rec && rec[which + 'Links'];
+  if (Array.isArray(arr) && arr.length) {
+    return arr.map(l => `<a href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();" style="color:#6ab0ff; text-decoration:underline;">${escapeHtml(l.text || 'Open')}</a>`).join('<br>');
+  }
+  return campaignTimelineLinkCellHtml(rec && rec[which + 'Link']);
 }
 function campaignTimelineReceiveFigures(rec) {
   const qty = Number(rec.quantity) || 0, totalValue = Number(rec.totalValue) || 0;
@@ -16442,9 +16736,9 @@ function renderCampaignTimelineTable() {
       <td>${campaignTimelineReceivedBadgeHtml(rec)}</td>
       <td>${escapeHtml(rec.allocationBoutique || '-')}</td>
       <td>${escapeHtml(rec.qcFg || '-')}</td>
-      <td>${campaignTimelineLinkCellHtml(rec.qcFgLink)}</td>
+      <td>${campaignTimelineLinksHtml(rec,'qcFg')}</td>
       <td>${escapeHtml(rec.qcWash || '-')}</td>
-      <td>${campaignTimelineLinkCellHtml(rec.qcWashLink)}</td>
+      <td>${campaignTimelineLinksHtml(rec,'qcWash')}</td>
     </tr>`;
   });
   html += `</tbody></table>`;
@@ -27108,6 +27402,7 @@ function applyReportModuleFilter() {
   if (boutiqueEl) boutiqueEl.style.display = (moduleKey === 'all' || moduleKey === 'outbound') ? '' : 'none';
 }
 function renderLaporan() {
+  return; // Reports tab removed (Oct 13, 2026, per Shaila) — panel markup kept only so old element lookups don't break
   renderReportRangeNote();
   renderReportExecSummary();
   renderReportOutboundKpis();
@@ -34133,7 +34428,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 13Oct-r72'; } catch (e) {}
+try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 13Oct-r85'; } catch (e) {}
 </script>
 </body>
 </html>
