@@ -33793,15 +33793,33 @@ try {
     try { document.querySelectorAll('.tab-panel table').forEach(rnProcess); } catch (e) { console.warn('rownum failed', e); }
     rnBusy = false;
   };
-  const rnObs = new MutationObserver(() => {
+  // Runs synchronously inside the MutationObserver callback (a microtask, i.e. BEFORE the browser paints) and only touches the
+  // tables that actually changed — so a freshly rendered table never shows up for a frame without its No. column (that was the
+  // "kejap hilang kejap ade" flicker the old 120ms debounce caused).
+  const rnObs = new MutationObserver((muts) => {
     if (rnBusy) return;
-    clearTimeout(rnTimer); rnTimer = setTimeout(rnRun, 120);
+    const tables = new Set();
+    muts.forEach(m => {
+      const t = m.target;
+      if (t && t.nodeType === 1) { const ct = t.closest && t.closest('table'); if (ct) tables.add(ct); }
+      m.addedNodes.forEach(n => {
+        if (n.nodeType !== 1) return;
+        if (n.tagName === 'TABLE') tables.add(n);
+        else if (n.querySelectorAll) n.querySelectorAll('table').forEach(x => tables.add(x));
+      });
+    });
+    if (!tables.size) return;
+    rnBusy = true;
+    try { tables.forEach(t => { if (t.isConnected) rnProcess(t); }); } catch (e) { console.warn('rownum failed', e); }
+    rnBusy = false;
+    // the observer also sees our own edits; drop them so they don't re-trigger work
+    rnObs.takeRecords();
   });
   rnObs.observe(document.body, { childList: true, subtree: true });
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 11Oct-r50'; } catch (e) {}
+try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 13Oct-r51'; } catch (e) {}
 </script>
 </body>
 </html>
