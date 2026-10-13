@@ -1636,6 +1636,7 @@
       <button class="tab-btn" data-tab="production-rm">Stock Level Raw Materials</button>
       <button class="tab-btn" data-tab="production-restock">Restock Status</button>
       <button class="tab-btn" data-tab="production-received-product">Received by Product</button>
+      <button class="tab-btn" data-tab="production-bulk-qc">Bulk QC</button>
       <button class="tab-btn" data-tab="production-timeline">Timeline</button>
     </div>
     <button type="button" class="nav-group-toggle" id="navGroupTeamToggle" data-group="navGroupTeam">
@@ -3135,6 +3136,27 @@
       </div>
       <div id="recvProdKpi" class="data-note" style="margin:0 0 8px;"></div>
       <div id="recvProdWrap" class="scroll-table" style="max-height:calc(100vh - 330px); min-height:300px;"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-production-bulk-qc">
+    <p class="section-title">Production — Bulk QC</p>
+    <div class="card">
+      <span class="data-note" style="margin:0;">Read from the Google Sheet (Summary All Series) — QC is filled in the sheet as usual. Refresh from Google Sheets in Production &gt; Timeline to update.</span>
+      <div style="display:flex; gap:8px; margin:12px 0 0;">
+        <button type="button" class="btn-primary" id="bqcModeFg">Finished Goods (FG)</button>
+        <button type="button" class="btn-ghost" id="bqcModeFabric">Fabric</button>
+      </div>
+      <div id="bqcKpiGrid" class="kpi-grid" style="grid-template-columns: repeat(5, 1fr); margin:12px 0;"></div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin:12px 0;">
+        <input type="text" id="bqcSearch" placeholder="Search series / product / supplier / boutique..." style="flex:1; min-width:200px;">
+        <select id="bqcSeries" style="width:auto;"><option value="">All Series</option></select>
+        <select id="bqcTailor" style="width:auto;"><option value="">All Tailors</option></select>
+        <select id="bqcFgStatus" style="width:auto;"><option value="">QC Finish Goods: All</option><option value="pass">Pass</option><option value="pass-with">Pass With…</option><option value="request">Request…</option><option value="fail">Fail</option><option value="none">Belum QC</option></select>
+        <select id="bqcWashStatus" style="width:auto; display:none;"><option value="">QC Washing: All</option><option value="pass">Pass</option><option value="pass-with">Pass With…</option><option value="request">Request…</option><option value="fail">Fail</option><option value="none">Belum QC</option></select>
+        <select id="bqcReady" style="width:auto;"><option value="">Ready: All</option><option value="yes">Ready to distribute</option><option value="no">Not ready</option></select>
+      </div>
+      <div id="bqcWrap" class="scroll-table" style="max-height:calc(100vh - 360px); min-height:300px;"></div>
     </div>
   </section>
 
@@ -5965,6 +5987,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'production-rm') renderProductionRmTab();
     if (btn.dataset.tab === 'production-restock') renderProductionRestockTab();
     if (btn.dataset.tab === 'production-received-product') renderReceivedByProductTab();
+    if (btn.dataset.tab === 'production-bulk-qc') renderBulkQcTab();
     if (btn.dataset.tab === 'production-timeline') renderCampaignTimelineTab();
     if (btn.dataset.tab === 'production-release-calendar') renderProductionReleaseCalendarTab();
     if (btn.dataset.tab === 'finance') renderFinanceTab();
@@ -9297,6 +9320,7 @@ const PERMISSION_TABS = [
   { id: 'production-rm', label: 'Stock Level Raw Materials (Production)' },
   { id: 'production-restock', label: 'Restock Status (Production)' },
   { id: 'production-received-product', label: 'Received by Product (Production)' },
+  { id: 'production-bulk-qc', label: 'Bulk QC (Production)' },
   { id: 'production-timeline', label: 'Timeline (Production)' },
   { id: 'production-release-calendar', label: 'Release Calendar (Production)' },
   { id: 'finance', label: 'Finance' },
@@ -13990,6 +14014,101 @@ document.getElementById('recvProdExportBtn').addEventListener('click', () => {
   const lines = [['Brand', 'Product', 'Color', 'Tailor Name', 'Ordered', 'Ordered Value', 'Received', 'Received Value', 'Variance Pcs', 'Variance Value'].map(esc).join(',')].concat(rows.map(r => [r.brand, r.group, r.color, r.tailor, r.dispOrder === null ? '' : r.dispOrder, r.dispOrderValue === null ? '' : r.dispOrderValue.toFixed(2), r.received, r.receivedValue.toFixed(2), r.dispVarPcs === null ? '' : r.dispVarPcs, r.dispVarVal === null ? '' : r.dispVarVal.toFixed(2)].map(esc).join(',')));
   const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'received-by-product.csv'; a.click();
+});
+
+
+/* ==================== Tab: Bulk QC (Production) ====================
+   Oct 13, 2026, per Shaila: production does a bulk QC before distributing to every location. The QC results already live in her Summary
+   sheet (QC Result Finish Goods / Washing Test + links), so this tab only DISPLAYS them (read-only) per Timeline FG row. */
+function bqcStatusKey(text) {
+  const t = String(text || '').trim().toLowerCase();
+  if (!t) return 'none';
+  if (/^pass\s*with/.test(t)) return 'pass-with';
+  if (/^pass/.test(t)) return 'pass';
+  if (/^(fail|reject)/.test(t)) return 'fail';
+  if (/^request/.test(t)) return 'request';
+  return 'request';
+}
+function bqcBadgeHtml(text) {
+  const k = bqcStatusKey(text);
+  const cls = { pass: 'badge-green', 'pass-with': 'badge-amber', request: 'badge-blue', fail: 'badge-red', none: 'badge-gray' }[k];
+  const label = k === 'none' ? 'Belum QC' : text;
+  return `<span class="badge ${cls}" title="${escapeHtml(text || '')}">${escapeHtml(label)}</span>`;
+}
+let bqcMode = 'fg'; // 'fg' | 'fabric' — two separate tables (Oct 13, 2026, per Shaila: "finish good lain, fabric lain table")
+function renderBulkQcTab() {
+  const wrap = document.getElementById('bqcWrap');
+  if (!wrap) return;
+  const fabric = bqcMode === 'fabric';
+  document.getElementById('bqcModeFg').className = fabric ? 'btn-ghost' : 'btn-primary';
+  document.getElementById('bqcModeFabric').className = fabric ? 'btn-primary' : 'btn-ghost';
+  document.getElementById('bqcFgStatus').style.display = fabric ? 'none' : '';
+  document.getElementById('bqcReady').style.display = fabric ? 'none' : '';
+  document.getElementById('bqcWashStatus').style.display = fabric ? '' : 'none';
+  const supField = fabric ? 'fabricSupplier' : 'supplier';
+  const rows = (campaignTimelineList || []).filter(r => !fabric || campaignTimelineFabricRowHasDetails(r) || r.material || r.fabricSupplier);
+  const fill = (id, field, allLabel) => {
+    const sel = document.getElementById(id); if (!sel) return '';
+    const vals = Array.from(new Set(rows.map(r => r[field]).filter(Boolean))).sort((a, b) => String(a).localeCompare(String(b)));
+    const sig = vals.join('\u0001');
+    const cur = sel.value;
+    if (sel.dataset.sig !== sig) {
+      sel.innerHTML = `<option value="">${allLabel}</option>` + vals.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+      sel.dataset.sig = sig; sel.value = vals.includes(cur) ? cur : '';
+    }
+    return sel.value;
+  };
+  const seriesF = fill('bqcSeries', 'series', 'All Series');
+  const tailorF = fill('bqcTailor', supField, fabric ? 'All Fabric Suppliers' : 'All Tailors');
+  const fgF = document.getElementById('bqcFgStatus').value;
+  const washF = document.getElementById('bqcWashStatus').value;
+  const readyF = document.getElementById('bqcReady').value;
+  const q = (document.getElementById('bqcSearch').value || '').toLowerCase().split(/\s+/).filter(Boolean);
+  // FG "Ready to distribute" = Finish Goods QC passed (Pass / Pass With…).
+  const isReady = r => ['pass', 'pass-with'].includes(bqcStatusKey(r.qcFg));
+  const shown = rows.filter(r => {
+    if (seriesF && r.series !== seriesF) return false;
+    if (tailorF && r[supField] !== tailorF) return false;
+    if (!fabric) {
+      if (fgF && bqcStatusKey(r.qcFg) !== fgF) return false;
+      if (readyF === 'yes' && !isReady(r)) return false;
+      if (readyF === 'no' && isReady(r)) return false;
+    } else if (washF && bqcStatusKey(r.qcWash) !== washF) return false;
+    const text = [r.series, r.officialProductName, r[supField], r.allocationBoutique, r.batch, r.color, r.material].join(' ').toLowerCase();
+    return q.every(w => text.includes(w));
+  });
+  const field = fabric ? 'qcWash' : 'qcFg';
+  const cnt = k => shown.filter(r => bqcStatusKey(r[field]) === k).length;
+  const kpi = fabric ? [
+    { num: shown.length, label: 'Total Item' },
+    { num: cnt('pass'), label: 'Washing Pass' },
+    { num: cnt('pass-with'), label: 'Pass With…' },
+    { num: cnt('request') + cnt('fail'), label: 'Request / Fail' },
+    { num: cnt('none'), label: 'Belum QC' },
+  ] : [
+    { num: shown.length, label: 'Total Item' },
+    { num: shown.filter(isReady).length, label: 'Ready to Distribute' },
+    { num: cnt('pass') + cnt('pass-with'), label: 'QC FG Pass' },
+    { num: cnt('request'), label: 'QC FG Request' },
+    { num: cnt('none'), label: 'Belum QC FG' },
+  ];
+  document.getElementById('bqcKpiGrid').innerHTML = kpi.map(c => `<div class="kpi-card"><div class="kpi-num">${c.num}</div><div class="kpi-label">${c.label}</div></div>`).join('');
+  if (!rows.length) { wrap.innerHTML = '<div class="empty-state">No Timeline data yet — Refresh from Google Sheets in Production &gt; Timeline.</div>'; return; }
+  if (!shown.length) { wrap.innerHTML = '<div class="data-note" style="padding:8px;">No data.</div>'; return; }
+  const E = escapeHtml;
+  if (!fabric) {
+    wrap.innerHTML = `<table><thead><tr><th>Series</th><th>Official Product Name</th><th>Batch</th><th>Color</th><th>Tailor Supplier</th><th style="text-align:right;">Quantity FG Order pcs</th><th>Allocation Boutique</th><th>QC Result Finish Goods</th><th>QC Finish Goods Link</th><th>Ready</th></tr></thead><tbody>` +
+      shown.map(r => `<tr><td>${E(r.series || '-')}</td><td>${E(r.officialProductName || '-')}</td><td>${E(r.batch || '-')}</td><td>${E(r.color || '-')}</td><td>${E(r.supplier || '-')}</td><td style="text-align:right;">${formatQty(r.quantity || 0)}</td><td>${E(r.allocationBoutique || '-')}</td><td>${bqcBadgeHtml(r.qcFg)}</td><td>${campaignTimelineLinkCellHtml(r.qcFgLink)}</td><td>${isReady(r) ? '<span class="badge badge-green">Yes</span>' : '<span class="badge badge-gray">No</span>'}</td></tr>`).join('') + '</tbody></table>';
+  } else {
+    wrap.innerHTML = `<table><thead><tr><th>Series</th><th>Official Product Name</th><th>Material</th><th>Fabric Supplier</th><th style="text-align:right;">Qty Fabrics (Ctn)</th><th style="text-align:right;">Qty Fabrics (Meter)</th><th>QC Result Washing Test (Fabrics/Garment)</th><th>QC Washing Test Link</th></tr></thead><tbody>` +
+      shown.map(r => `<tr><td>${E(r.series || '-')}</td><td>${E(r.officialProductName || '-')}</td><td>${E(r.material || '-')}</td><td>${E(r.fabricSupplier || '-')}</td><td style="text-align:right;">${formatQty(r.quantityFabricsCtn || 0)}</td><td style="text-align:right;">${formatQty(r.quantityFabricsMeter || 0)}</td><td>${bqcBadgeHtml(r.qcWash)}</td><td>${campaignTimelineLinkCellHtml(r.qcWashLink)}</td></tr>`).join('') + '</tbody></table>';
+  }
+}
+document.getElementById('bqcModeFg').addEventListener('click', () => { bqcMode = 'fg'; ['bqcSeries','bqcTailor'].forEach(id => { const e = document.getElementById(id); if (e) { e.dataset.sig = ''; } }); renderBulkQcTab(); });
+document.getElementById('bqcModeFabric').addEventListener('click', () => { bqcMode = 'fabric'; ['bqcSeries','bqcTailor'].forEach(id => { const e = document.getElementById(id); if (e) { e.dataset.sig = ''; } }); renderBulkQcTab(); });
+['bqcSearch', 'bqcSeries', 'bqcTailor', 'bqcFgStatus', 'bqcWashStatus', 'bqcReady'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener(id === 'bqcSearch' ? 'input' : 'change', renderBulkQcTab);
 });
 
 /* ==================== Tab: Timeline (campaign tracker upload) ====================
@@ -27685,7 +27804,7 @@ function doGroupCardHtml(group) {
     ${recs.length > 1 ? `
     <button type="button" class="kc-do-group-toggle" data-key="${escapeHtml(group.key)}">${expanded ? '▲ Hide' : '▼ Show'} ${recs.length} STO(s)</button>
     <div class="kc-do-group-list" style="display:${expanded ? 'block' : 'none'};">
-      ${recs.map(r => `<div class="kc-do-group-row"><span class="mono-name">${escapeHtml(r.orderNumber)}</span><span style="display:flex; align-items:center; gap:8px;">Qty ${formatQty(r.totalOrderQty)}${(getCurrentUser() && getCurrentUser().isAdmin) ? `<button type="button" class="kc-do-group-remove" data-order="${escapeHtml(r.orderNumber)}" data-do="${escapeHtml(group.doNo || '')}" title="Buang STO ini daripada DO (kembali ke Packed)" style="background:none; border:1px solid var(--red); color:var(--red); border-radius:3px; padding:0 6px; font-size:11px; cursor:pointer;">✕</button>` : ''}</span></div>`).join('')}
+      ${recs.map(r => `<div class="kc-do-group-row"><span class="mono-name">${escapeHtml(r.orderNumber)}</span><span style="display:flex; align-items:center; gap:8px;">Qty ${formatQty(r.totalOrderQty)}<button type="button" class="kc-do-group-label" data-order="${escapeHtml(r.orderNumber)}" title="Reprint label carton STO ini" style="background:none; border:1px solid var(--gold); color:var(--gold); border-radius:3px; padding:0 6px; font-size:11px; cursor:pointer;">🏷</button>${(getCurrentUser() && getCurrentUser().isAdmin) ? `<button type="button" class="kc-do-group-remove" data-order="${escapeHtml(r.orderNumber)}" data-do="${escapeHtml(group.doNo || '')}" title="Buang STO ini daripada DO (kembali ke Packed)" style="background:none; border:1px solid var(--red); color:var(--red); border-radius:3px; padding:0 6px; font-size:11px; cursor:pointer;">✕</button>` : ''}</span></div>`).join('')}
     </div>` : ''}
     <button type="button" class="kc-do-group-btn" data-group-ids='${idsJson}'>Print DO</button>
     ${isCourier ? `<button type="button" class="kc-courier-delivered-btn" data-do="${escapeHtml(group.doNo)}" style="margin-top:6px;">✓ Mark Delivered (${escapeHtml(doRec.deliveryMethod)})</button>` : ''}
@@ -27876,6 +27995,10 @@ function renderKanban() {
 
   // Remove ONE STO from a DO (Oct 13, 2026, per Shaila: "buang satu sto sbb ada problem"): the STO goes back to Packed (its carton
   // numbers stay), is taken off the DO's STO list, and the DO itself is deleted if nothing is left in it.
+  // Reprint the carton label of ONE STO inside a DO Issued card (same locked Carton No.s, no new numbers reserved).
+  board.querySelectorAll('.kc-do-group-label').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.stopPropagation(); openStickerModal(btn.dataset.order); });
+  });
   board.querySelectorAll('.kc-do-group-remove').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -34010,7 +34133,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 13Oct-r68'; } catch (e) {}
+try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 13Oct-r71'; } catch (e) {}
 </script>
 </body>
 </html>
