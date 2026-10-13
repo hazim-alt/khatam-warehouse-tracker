@@ -7195,6 +7195,37 @@ function rollBackCartonCounterIfSafe(rec) {
 // Fleet staff can see the whole delivery lifecycle in one place without needing the Outbound
 // module's own Kanban board — the Progress Board's "DO Issued" column itself only ever shows the
 // not-yet-dispatched groups (see buildDoGroupsForShippedCards), so this tab is the complete picture.
+// True when every STO listed on an old DO (whose STO records are gone from the STO List) still has carton info — saved on the DO
+// itself (stoSnapshot, incl. hand-filled) or found in the removed-STO log.
+// An STO record only counts as THIS DO's data when it isn't tied to a different DO (the same STO number can be uploaded again after an
+// old DO was delivered and get a new DO — its cartons then belong to the new DO, not the old one).
+function stoRecordForDo(on, doNo) {
+  return records.find(r => r.orderNumber === on && (!doNo || !r.doNo || r.doNo === doNo));
+}
+// Old DO whose STOs left the STO List: total carton = sum of the carton numbers saved on the DO (or in the removed-STO log, or an STO
+// still in records). If any STO has no carton info it returns '-' rather than the misleading "1 per STO" guess used before.
+function doOrphanTotalCarton(doRec) {
+  const log = loadRemovedStoLog();
+  let total = 0;
+  for (const on of (doRec.orderNumbers || [])) {
+    const r = stoRecordForDo(on, doRec.doNo);
+    if (r) { total += r.cartonLock ? getCartonLockNumbers(r).length : 1; continue; }
+    const snap = doRec.stoSnapshot && doRec.stoSnapshot[on];
+    if (snap && snap.length) { total += snap.length; continue; }
+    const lg = log.find(e => e.orderNumber === on && e.rec);
+    if (lg) { total += lg.rec.cartonLock ? getCartonLockNumbers(lg.rec).length : 1; continue; }
+    return '-';
+  }
+  return total;
+}
+function doOrphanMissingStos(doRec) {
+  const log = loadRemovedStoLog();
+  return (doRec.orderNumbers || []).filter(on => !(stoRecordForDo(on, doRec.doNo) || (doRec.stoSnapshot && doRec.stoSnapshot[on] && doRec.stoSnapshot[on].length) || log.some(e => e.orderNumber === on && e.rec)));
+}
+function doOrphanInfoComplete(doRec) {
+  const log = loadRemovedStoLog();
+  return (doRec.orderNumbers || []).every(on => stoRecordForDo(on, doRec.doNo) || (doRec.stoSnapshot && doRec.stoSnapshot[on] && doRec.stoSnapshot[on].length) || log.some(e => e.orderNumber === on && e.rec));
+}
 function renderDeliveredTab() {
   const search = (document.getElementById('deliveredSearchInput').value || '').trim().toLowerCase();
   const sortBy = document.getElementById('deliveredSortBy').value;
@@ -7228,7 +7259,7 @@ function renderDeliveredTab() {
     // cartonLock to read from.
     const totalCarton = group.records.length
       ? group.records.reduce((sum, r) => sum + (r.cartonLock ? r.cartonLock.totalCarton : 1), 0)
-      : (group.orphaned && doRec ? (doRec.orderNumbers || []).length : 0);
+      : (group.orphaned && doRec ? doOrphanTotalCarton(doRec) : 0);
     // Courier DOs (Lalamove/Grab/Other) never have a Fleet trip at all — Outbound's own "Mark
     // Delivered" click (Progress Board DO Issued card) is what flips this to Delivered instead.
     if (isCourier) {
@@ -7299,7 +7330,11 @@ function renderDeliveredTab() {
     // a plain number here instead of the usual clickable count.
     const totalStoDisplay = group.records.length
       ? `<button type="button" class="delivered-sto-link" data-row-idx="${idx}">${group.records.length}</button>`
-      : (group.orphaned && doRec ? (doRec.orderNumbers || []).length : 0);
+      : (group.orphaned && doRec && (doRec.orderNumbers || []).length
+          // Blue/clickable only once every STO of this old DO has its carton info filled in (Oct 13, 2026, per Shaila: staff fill in first,
+          // then it turns blue) — until then it stays a plain number.
+          ? (doOrphanInfoComplete(doRec) ? `<button type="button" class="delivered-sto-link" data-row-idx="${idx}">${(doRec.orderNumbers || []).length}</button>` : `<span title="Belum lengkap — tiada rekod carton untuk: ${escapeHtml(doOrphanMissingStos(doRec).join(', '))}. Buka DO dan isi Carton No.">${(doRec.orderNumbers || []).length}</span>`)
+          : 0);
     html += `<tr title="${group.orphaned ? 'This DO\'s original STO record(s) are no longer in the active list, but the DO itself is still here — click its number to edit.' : ''}">
       <td>${escapeHtml(group.boutique)}</td>
       <td class="mono-name">${doLinkHtml}</td>
@@ -7347,7 +7382,7 @@ function renderDeliveredTab() {
     btn.addEventListener('click', () => {
       const doRec = doRecords.find(d => d.doNo === btn.dataset.do);
       if (!doRec || !doRec.orderNumbers || !doRec.orderNumbers.length) { alert('Could not find this DO\'s original STO list.'); return; }
-      openDOModalForBatch(doRec.orderNumbers.slice());
+      openDOModalForBatch(doRec.orderNumbers.slice(), doRec.doNo);
     });
   });
   // Total STO -> popup listing every STO number that makes up this group's count.
@@ -7355,7 +7390,9 @@ function renderDeliveredTab() {
     btn.addEventListener('click', () => {
       const row = list[Number(btn.dataset.rowIdx)];
       if (!row) return;
-      openStoListModal(`STO List - ${row.group.boutique}`, row.group.records.map(r => r.orderNumber));
+      // An orphaned group (its STOs already left the STO List) lists the order numbers stored on the DO itself.
+      const nums = row.group.records.length ? row.group.records.map(r => r.orderNumber) : ((row.doRec && row.doRec.orderNumbers) || []);
+      openStoListModal(`STO List - ${row.group.boutique}`, nums);
     });
   });
 }
@@ -28749,10 +28786,16 @@ function openDoBatchOrderNumbersForBoutique(boutique, mustInclude) {
 // number and STO list are reused; otherwise, if this boutique already has an open (not-yet-
 // dispatched) DO waiting, they're folded into that same DO No.; only if neither exists does a
 // fresh DO No. get created.
-function openDOModalForBatch(orderNumbers) {
-  const recs = orderNumbers.map(on => records.find(r => r.orderNumber === on)).filter(Boolean);
+function openDOModalForBatch(orderNumbers, forceDoNo) {
+  const forcedDo = forceDoNo ? doRecords.find(d => d.doNo === forceDoNo) : null;
+  const recs = forcedDo ? [] : orderNumbers.map(on => records.find(r => r.orderNumber === on)).filter(Boolean);
   let boutique, allOrderNumbers, existing;
-  if (recs.length) {
+  if (forcedDo) {
+    // Opened from a specific DO (Delivery Status link): show exactly THAT DO, not whichever DO the STOs' current records point to.
+    existing = forcedDo;
+    boutique = forcedDo.boutique || '-';
+    allOrderNumbers = (forcedDo.orderNumbers || []).slice();
+  } else if (recs.length) {
     boutique = recs[0].toWarehouse || '-';
     allOrderNumbers = openDoBatchOrderNumbersForBoutique(boutique, orderNumbers);
     existing = null;
@@ -28811,6 +28854,7 @@ document.getElementById('doDeliveryMethod').addEventListener('change', updateDoC
 function closeDOModal() {
   document.getElementById('doModal').classList.add('hidden');
   doCurrentBatch = null;
+  try { renderDeliveredTab(); } catch (e) {} // re-evaluate the Total STO link colour after anything was fixed in the DO
   if (doModalQueue.length) {
     const next = doModalQueue.shift();
     openDOModalForBatch(next);
@@ -28838,7 +28882,7 @@ function buildDoMissingFill() {
   const doRec = doRecords.find(d => d.doNo === doCurrentBatch.doNo);
   if (!doRec) return;
   const missing = doCurrentBatch.orderNumbers.filter(on => {
-    if (records.some(r => r.orderNumber === on)) return false;
+    if (stoRecordForDo(on, doRec.doNo)) return false;
     if (doRec.stoSnapshot && doRec.stoSnapshot[on] && doRec.stoSnapshot[on].length) return false;
     const lg = loadRemovedStoLog().find(e => e.orderNumber === on && e.rec);
     return !lg;
@@ -28853,6 +28897,7 @@ function buildDoMissingFill() {
     if (nums.length) doRec.stoSnapshot[inp.dataset.on] = nums; else delete doRec.stoSnapshot[inp.dataset.on];
     saveDoRecords();
     renderDOPreview();
+    try { renderDeliveredTab(); } catch (e) {}
   }));
 }
 function buildDoStoPick() {
@@ -28887,7 +28932,7 @@ function renderDOPreview() {
   const entries = doCurrentBatch.orderNumbers
     .filter(on => !doPrintSelection || doPrintSelection.has(on))
     .map(on => {
-      const rec = records.find(r => r.orderNumber === on);
+      const rec = stoRecordForDo(on, doCurrentBatch.doNo);
       if (rec) return { on, numbers: rec.cartonLock ? getCartonLockNumbers(rec) : [1] };
       const snap = doRecForPreview && doRecForPreview.stoSnapshot && doRecForPreview.stoSnapshot[on];
       if (snap && snap.length) return { on, numbers: snap.slice() };
@@ -28967,7 +29012,8 @@ function commitDoCurrentBatch() {
   let anyLinked = false;
   doCurrentBatch.orderNumbers.forEach(on => {
     const rec = records.find(r => r.orderNumber === on);
-    if (rec && rec.doNo !== doCurrentBatch.doNo) { rec.doNo = doCurrentBatch.doNo; anyLinked = true; }
+    // never steal an STO that already belongs to a different DO (same STO number re-issued under a newer DO)
+    if (rec && !rec.doNo) { rec.doNo = doCurrentBatch.doNo; anyLinked = true; }
   });
   if (anyLinked) saveRecords();
   // Any already-Scheduled/Out-of-Delivery trip already going to this boutique picks up this
@@ -33938,7 +33984,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 13Oct-r57'; } catch (e) {}
+try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 13Oct-r65'; } catch (e) {}
 </script>
 </body>
 </html>
