@@ -2333,7 +2333,7 @@
           </label>
           <span class="upload-hint">...or drag &amp; drop a .csv / .xlsx file here</span>
         </div>
-        <div class="upload-hint" style="margin-top:10px;">The file is matched by the columns "Order Number", "To Warehouse", "Status", "Created Date". Only STOs with <strong>Active</strong> status are saved/updated — STOs that have changed status (Issued/Cancelled/etc.) are automatically removed from the list.</div>
+        <div class="upload-hint" style="margin-top:10px;">The file is matched by the columns "Order Number", "To Warehouse", "Status", "Created Date". Only STOs with <strong>Active</strong> status are added/updated. STOs already in the list are never removed by an upload.</div>
       </div>
       <div class="upload-status" id="uploadStatus"></div>
       <div class="data-note" id="lastUploadNote">No file uploaded yet.</div>
@@ -2385,6 +2385,7 @@
         <button class="btn-ghost" id="clearDataBtn">Reset STO List</button>
       </div>
       <div id="tableWrap"></div>
+      <div id="removedStoLogWrap" style="margin-top:16px;"></div>
       <div class="data-note">Data is stored in this browser (localStorage), tied to this exact file's location — opening a different copy/download of this HTML file starts empty. Upload a new file to update the status of existing STOs.</div>
 
     </div>
@@ -3804,6 +3805,7 @@
       <div class="field full data-note" id="doBatchNote" style="margin:-4px 0 0;"></div>
       <div class="field full data-note" id="doLockNote" style="display:none; margin:-4px 0 0;"></div>
       <div class="field full" id="doStoPickWrap" style="display:none;"></div>
+      <div class="field full" id="doMissingWrap" style="display:none;"></div>
     </div>
 
     <div class="do-preview-wrap">
@@ -5504,6 +5506,19 @@ const PROGRESS_OPTIONS = ['Active', 'Picking', 'Packing', 'Packed', 'Shipped'];
 const PROGRESS_LABELS = { Active: 'Active', Picking: 'Picking', Packing: 'Packing', Packed: 'Packed', Shipped: 'DO Issued' };
 function progressLabel(stage) { return PROGRESS_LABELS[stage] || stage; }
 
+// Log of STOs taken out of the STO List (Oct 13, 2026, per Shaila: "ade sto yg tetiba hilang") — every removal (upload marked it no
+// longer Active, or someone pressed Delete) is recorded with who/when/why so it can be traced and restored. Synced across devices.
+const REMOVED_STO_LOG_KEY = 'sto_removed_log_v1';
+function loadRemovedStoLog() { try { const a = JSON.parse(localStorage.getItem(REMOVED_STO_LOG_KEY)); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+function logRemovedSto(rec, reason) {
+  try {
+    const log = loadRemovedStoLog();
+    let who = '';
+    try { const u = getCurrentUser(); who = (u && u.username) || ''; } catch (e) {}
+    log.unshift({ orderNumber: rec.orderNumber, at: new Date().toISOString(), reason, by: who, progress: rec.progress || 'Active', rec });
+    localStorage.setItem(REMOVED_STO_LOG_KEY, JSON.stringify(log.slice(0, 100)));
+  } catch (e) { console.warn('removed STO log failed', e); }
+}
 function upsertRecords(newRecs) {
   let added = 0, updated = 0, removed = 0;
   const newlyAdded = [];
@@ -5513,10 +5528,9 @@ function upsertRecords(newRecs) {
     if (isActiveStatus(nr.status)) {
       if (idx === -1) { const rec = { ...nr, progress: 'Active' }; records.push(rec); newlyAdded.push(rec); added++; }
       else { records[idx] = { ...records[idx], ...nr }; updated++; }
-    } else if (idx !== -1) {
-      records.splice(idx, 1);
-      removed++;
     }
+    // Upload only ever ADDS / UPDATES Active STOs (Oct 13, 2026, per Shaila: "tarik sto yg active sahaja dari file, yg dah ade biar
+    // kan je") — an STO already in the list is never removed just because its status in the file is no longer Active.
   });
   saveRecords();
   newlyAdded.forEach(rec => markStoJustCreatedByThisDevice('STO_Records', rec));
@@ -5557,7 +5571,7 @@ function processUploadedFile(file) {
       const mapped = rows.map(mapRowToRecord).filter(r => r.orderNumber);
       const { added, updated, removed } = upsertRecords(mapped);
 
-      let msg = `Success: ${added} new STO(s) added, ${updated} updated, ${removed} removed (no longer Active).`;
+      let msg = `Success: ${added} new STO(s) added, ${updated} updated.`;
       if (added === 0 && updated === 0 && removed === 0) {
         const statusesFound = [...new Set(mapped.map(r => r.status).filter(Boolean))];
         msg += ` No rows with "Active" status were found. (${mapped.length} rows read, statuses found: ${statusesFound.length ? statusesFound.join(', ') : 'none'}).`;
@@ -7148,6 +7162,7 @@ function renderSenaraiTable() {
       const idx = records.findIndex(r => r.orderNumber === orderNumber);
       if (idx === -1) return;
       rollBackCartonCounterIfSafe(records[idx]);
+      logRemovedSto(records[idx], 'Deleted manually');
       records.splice(idx, 1);
       saveRecords();
       renderAll();
@@ -7266,7 +7281,7 @@ function renderDeliveredTab() {
   };
 
   let html = `<table><thead><tr>
-    <th>Boutique</th><th>DO No.</th><th>Status</th><th>Driver</th><th>Assistant</th><th>Total STO</th><th>Total Carton</th><th>Date</th>
+    <th>Boutique</th><th>DO No.</th><th>Status</th><th>Driver</th><th>Assistant</th><th>Total STO</th><th>Total Carton</th><th>Date</th><th></th>
   </tr></thead><tbody>`;
   list.forEach(({ group, trip, doRec, isCourier, status, totalCarton, dateVal }, idx) => {
     const assistants = trip ? fleetTripAssistantsArray(trip) : [];
@@ -7294,10 +7309,37 @@ function renderDeliveredTab() {
       <td>${totalStoDisplay}</td>
       <td>${totalCarton}</td>
       <td>${dateVal ? escapeHtml(formatDateLabel(dateVal)) : '-'}</td>
+      <td>${(group.doNo && (status === 'DO Issued' || status === 'Reschedule')) ? `<button type="button" class="btn-ghost delivered-do-delete-btn" data-do="${escapeHtml(group.doNo)}" style="padding:4px 10px; color:var(--red); border-color:var(--red);">Delete DO</button>` : ''}</td>
     </tr>`;
   });
   html += `</tbody></table>`;
   wrap.innerHTML = html;
+  // Delete DO (Oct 13, 2026, per Shaila): only for a DO that has no trip yet (DO Issued / Reschedule). Removes the DO record and
+  // unlinks its STOs; then asks whether the STOs themselves should also be removed from the STO List (logged, can be restored).
+  wrap.querySelectorAll('.delivered-do-delete-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const doNo = btn.dataset.do;
+      const inTrip = (fleetTrips || []).some(t => (t.doNos || []).includes(doNo));
+      if (inTrip) { alert('This DO is already on a trip. Remove it from the trip first.'); return; }
+      const doRec = doRecords.find(d => d.doNo === doNo);
+      const stos = records.filter(r => r.doNo === doNo || (doRec && (doRec.orderNumbers || []).includes(r.orderNumber)));
+      if (!confirm(`Delete DO "${doNo}"? The DO record is removed (${stos.length} STO linked). This cannot be undone.`)) return;
+      let alsoStos = false;
+      if (stos.length) alsoStos = confirm(`Also delete the ${stos.length} STO(s) of this DO from the STO List?\n\nOK = delete them too (they go to the removed STO log, can be restored)\nCancel = keep the STO(s), only the DO is removed`);
+      doRecords = doRecords.filter(d => d.doNo !== doNo);
+      saveDoRecords();
+      if (alsoStos) {
+        stos.forEach(r => { try { rollBackCartonCounterIfSafe(r); } catch (e) {} logRemovedSto(r, `Deleted with DO ${doNo}`); });
+        const gone = new Set(stos.map(r => r.orderNumber));
+        records = records.filter(r => !gone.has(r.orderNumber));
+      } else {
+        stos.forEach(r => { delete r.doNo; });
+      }
+      saveRecords();
+      renderAll();
+      renderDeliveredTab(); // renderAll() doesn't redraw this tab — without this the deleted row stayed on screen
+    });
+  });
 
   // DO No. -> reopen the same DO modal used everywhere else (Print/Reprint), pre-filled with the
   // full original STO batch for that DO, exactly like clicking "Print DO" on a Progress Board card.
@@ -10037,7 +10079,7 @@ function attachPostponedDoNosListener() {
 // in the file would throw "Cannot access before initialization". Calling this only from inside the
 // functions below (which only ever run after the whole script has finished loading) avoids that.
 function syncSettingsKeys() {
-  return [SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, STICKER_KEY, DAILY_TARGETS_KEY, CAMPAIGN_MODE_KEY, DAILY_TARGETS_CAMPAIGN_SNAPSHOT_KEY, INBOUND_ALERT_SETTINGS_KEY, EMAILJS_SETTINGS_KEY, ADMIN_PASSWORD_KEY, PACKING_STATION_RR_KEY, STAFF_SCHEDULE_KEY, STATION_PRESENCE_KEY, REQ_STOCK_TEMPLATE_KEY, ITEM_MASTER_IMPORTED_AT_KEY, CAMPAIGN_TIMELINE_GSHEET_URLS_KEY, PRODUCTION_SUMMARY_SUPPLIER_LOCATIONS_KEY, ITEM_MASTER_GSHEET_LINKS_KEY, ITEM_MASTER_PRICE_GSHEET_URL_KEY, STOCK_AVAILABLE_GSHEET_URL_KEY];
+  return [SLA_KEY, CARTON_COUNTER_KEY, DO_COUNTER_KEY, STICKER_KEY, DAILY_TARGETS_KEY, CAMPAIGN_MODE_KEY, DAILY_TARGETS_CAMPAIGN_SNAPSHOT_KEY, INBOUND_ALERT_SETTINGS_KEY, EMAILJS_SETTINGS_KEY, ADMIN_PASSWORD_KEY, PACKING_STATION_RR_KEY, STAFF_SCHEDULE_KEY, STATION_PRESENCE_KEY, REQ_STOCK_TEMPLATE_KEY, ITEM_MASTER_IMPORTED_AT_KEY, CAMPAIGN_TIMELINE_GSHEET_URLS_KEY, PRODUCTION_SUMMARY_SUPPLIER_LOCATIONS_KEY, ITEM_MASTER_GSHEET_LINKS_KEY, ITEM_MASTER_PRICE_GSHEET_URL_KEY, STOCK_AVAILABLE_GSHEET_URL_KEY, REMOVED_STO_LOG_KEY];
 }
 const FB_SETTINGS_TABLE = 'AppSettings';
 function pushSettingsDiff() {
@@ -28778,7 +28820,43 @@ function closeDOModal() {
 // Pick which STO(s) of this DO appear on the printed paper (Oct 8, 2026, per Shaila: "select mana sto print sekali").
 // All ticked by default; the DO record itself still keeps every STO — only the printout follows the ticks.
 let doPrintSelection = null; // Set of order numbers, or null = all
+// Old DOs whose STO is no longer in the STO List have no carton info — let it be typed in by hand (saved on the DO, so it sticks).
+function parseCartonNumberInput(text) {
+  const out = [];
+  String(text || '').split(/[,;\s]+/).filter(Boolean).forEach(part => {
+    const m = part.match(/^(\d+)\s*[-–]\s*(\d+)$/);
+    if (m) { let a = Number(m[1]), b = Number(m[2]); if (a > b) [a, b] = [b, a]; for (let i = a; i <= b && out.length < 2000; i++) out.push(i); }
+    else if (/^\d+$/.test(part)) out.push(Number(part));
+  });
+  return Array.from(new Set(out)).sort((x, y) => x - y);
+}
+function buildDoMissingFill() {
+  const wrap = document.getElementById('doMissingWrap');
+  if (!wrap) return;
+  wrap.style.display = 'none'; wrap.innerHTML = '';
+  if (!doCurrentBatch || !doCurrentBatch.doNo) return;
+  const doRec = doRecords.find(d => d.doNo === doCurrentBatch.doNo);
+  if (!doRec) return;
+  const missing = doCurrentBatch.orderNumbers.filter(on => {
+    if (records.some(r => r.orderNumber === on)) return false;
+    if (doRec.stoSnapshot && doRec.stoSnapshot[on] && doRec.stoSnapshot[on].length) return false;
+    const lg = loadRemovedStoLog().find(e => e.orderNumber === on && e.rec);
+    return !lg;
+  });
+  if (!missing.length) return;
+  wrap.style.display = '';
+  wrap.innerHTML = `<label>STO tiada rekod carton <span style="color:var(--text-muted); font-weight:400;">(isi Carton No., contoh 101-103 atau 5, 6, 9)</span></label>
+    <div style="display:flex; flex-direction:column; gap:6px; margin-top:4px;">${missing.map(on => `<div style="display:flex; align-items:center; gap:8px;"><span class="mono-name" style="min-width:210px; font-size:12px;">${escapeHtml(on)}</span><input type="text" class="do-missing-input" data-on="${escapeHtml(on)}" placeholder="Carton No." style="flex:1;"></div>`).join('')}</div>`;
+  wrap.querySelectorAll('.do-missing-input').forEach(inp => inp.addEventListener('change', () => {
+    const nums = parseCartonNumberInput(inp.value);
+    doRec.stoSnapshot = doRec.stoSnapshot || {};
+    if (nums.length) doRec.stoSnapshot[inp.dataset.on] = nums; else delete doRec.stoSnapshot[inp.dataset.on];
+    saveDoRecords();
+    renderDOPreview();
+  }));
+}
 function buildDoStoPick() {
+  buildDoMissingFill();
   const wrap = document.getElementById('doStoPickWrap');
   if (!wrap) return;
   doPrintSelection = null;
@@ -28801,20 +28879,31 @@ function renderDOPreview() {
 
   // Sort by lowest Carton No. ascending so the table always reads in physical carton order,
   // regardless of the order the STOs happened to be dragged/selected in.
-  const lowestCartonNo = rec => rec.cartonLock ? (getCartonLockNumbers(rec)[0] || 1) : 1;
-  const recs = doCurrentBatch.orderNumbers
+  // An STO can be gone from `records` by the time an old DO is reopened (an upload marked it no longer Active) — the DO used to
+  // print blank ("0 STO · 0 Carton") then. Now each row falls back to the carton snapshot saved on the DO when it was printed,
+  // then to the removed-STO log, and only as a last resort lists the STO No. alone (Oct 13, 2026, per Shaila).
+  const doRecForPreview = doCurrentBatch.doNo ? doRecords.find(d => d.doNo === doCurrentBatch.doNo) : null;
+  const removedLog = loadRemovedStoLog();
+  const entries = doCurrentBatch.orderNumbers
     .filter(on => !doPrintSelection || doPrintSelection.has(on))
-    .map(on => records.find(r => r.orderNumber === on))
-    .filter(Boolean)
-    .sort((a, b) => lowestCartonNo(a) - lowestCartonNo(b));
+    .map(on => {
+      const rec = records.find(r => r.orderNumber === on);
+      if (rec) return { on, numbers: rec.cartonLock ? getCartonLockNumbers(rec) : [1] };
+      const snap = doRecForPreview && doRecForPreview.stoSnapshot && doRecForPreview.stoSnapshot[on];
+      if (snap && snap.length) return { on, numbers: snap.slice() };
+      const logged = removedLog.find(e => e.orderNumber === on && e.rec);
+      if (logged) return { on, numbers: logged.rec.cartonLock ? getCartonLockNumbers(logged.rec) : [1] };
+      return { on, numbers: null };
+    })
+    .sort((a, b) => (a.numbers ? a.numbers[0] : Infinity) - (b.numbers ? b.numbers[0] : Infinity));
   let grandTotalCarton = 0;
-  const rows = recs.map(rec => {
-    const numbers = rec.cartonLock ? getCartonLockNumbers(rec) : [1];
-    const totalCarton = numbers.length;
+  const rows = entries.map(en => {
+    if (!en.numbers) return `<tr><td>${escapeHtml(en.on)}</td><td>-</td><td>-</td></tr>`;
+    const totalCarton = en.numbers.length;
     grandTotalCarton += totalCarton;
-    const cartonLabel = formatCartonNumberList(numbers);
-    return `<tr><td>${escapeHtml(rec.orderNumber)}</td><td>${totalCarton}</td><td>${escapeHtml(cartonLabel)}</td></tr>`;
+    return `<tr><td>${escapeHtml(en.on)}</td><td>${totalCarton}</td><td>${escapeHtml(formatCartonNumberList(en.numbers))}</td></tr>`;
   }).join('');
+  const recs = entries;
 
   // A filler row (empty, borders only) is appended after the real STO rows and stretched to
   // height:100% so the table's grid lines visually extend all the way down to the Total bar,
@@ -28867,6 +28956,14 @@ function commitDoCurrentBatch() {
   // into it (same destination, dragged in before this DO went Out of Delivery).
   const doRec = doRecords.find(d => d.doNo === doCurrentBatch.doNo);
   if (doRec) doRec.orderNumbers = doCurrentBatch.orderNumbers.slice();
+  // Remember each STO's carton numbers on the DO itself, so a reprint still works after the STO leaves the STO List.
+  if (doRec) {
+    doRec.stoSnapshot = doRec.stoSnapshot || {};
+    doCurrentBatch.orderNumbers.forEach(on => {
+      const r = records.find(x => x.orderNumber === on);
+      if (r) doRec.stoSnapshot[on] = r.cartonLock ? getCartonLockNumbers(r) : [1];
+    });
+  }
   let anyLinked = false;
   doCurrentBatch.orderNumbers.forEach(on => {
     const rec = records.find(r => r.orderNumber === on);
@@ -29538,9 +29635,31 @@ document.getElementById('packingStationSaveBtn').addEventListener('click', () =>
   renderKanban();
 });
 
+
+function renderRemovedStoLog() {
+  const wrap = document.getElementById('removedStoLogWrap');
+  if (!wrap) return;
+  const log = loadRemovedStoLog();
+  if (!log.length) { wrap.innerHTML = ''; return; }
+  const open = wrap.dataset.open === '1';
+  wrap.innerHTML = `<button type="button" class="btn-ghost" id="removedStoToggle">${open ? '▲ Hide' : '▼ Show'} removed STO log (${log.length})</button>` + (open ? `<div class="scroll-table" style="margin-top:8px; max-height:320px;"><table><thead><tr><th>STO No.</th><th>Boutique</th><th>Qty</th><th>Stage</th><th>Reason</th><th>By</th><th>When</th><th></th></tr></thead><tbody>${log.map((e, i) => `<tr><td class="mono-name">${escapeHtml(e.orderNumber)}</td><td>${escapeHtml((e.rec && e.rec.toWarehouse) || '-')}</td><td>${escapeHtml(String((e.rec && e.rec.totalOrderQty) || '-'))}</td><td>${escapeHtml(progressLabel(e.progress || 'Active'))}</td><td>${escapeHtml(e.reason || '-')}</td><td>${escapeHtml(e.by || '-')}</td><td>${escapeHtml(formatDateTimeLabel(e.at))}</td><td><button type="button" class="btn-ghost removed-sto-restore" data-i="${i}">Restore</button></td></tr>`).join('')}</tbody></table></div>` : '');
+  wrap.querySelector('#removedStoToggle').addEventListener('click', () => { wrap.dataset.open = open ? '0' : '1'; renderRemovedStoLog(); });
+  wrap.querySelectorAll('.removed-sto-restore').forEach(btn => btn.addEventListener('click', () => {
+    const l = loadRemovedStoLog();
+    const e = l[Number(btn.dataset.i)];
+    if (!e || !e.rec) return;
+    if (records.some(r => r.orderNumber === e.orderNumber)) { alert('This STO is already in the list.'); return; }
+    records.push(e.rec);
+    l.splice(Number(btn.dataset.i), 1);
+    localStorage.setItem(REMOVED_STO_LOG_KEY, JSON.stringify(l));
+    saveRecords();
+    renderAll();
+  }));
+}
 function renderAll() {
   populateFilterOptions();
   renderSenaraiTable();
+  try { renderRemovedStoLog(); } catch (e) { console.warn('removed log render failed', e); }
   renderDashboard();
   // No Chart.js canvases on the Fleet dashboard slide (just a KPI grid + table), so unlike the
   // outbound/inbound slides there's no display:none-canvas sizing issue — safe to refresh
@@ -33819,7 +33938,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 13Oct-r51'; } catch (e) {}
+try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 13Oct-r57'; } catch (e) {}
 </script>
 </body>
 </html>
