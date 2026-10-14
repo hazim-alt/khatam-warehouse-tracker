@@ -12768,7 +12768,7 @@ function campaignTimelineShipmentReceiveProgressFilterKey(rec) {
 // TABLE, not the KPI cards above (she asked for the table to be filterable, not for the KPI cards to
 // react to these — unlike the location-card click, which she explicitly asked to "reflex" the KPI cards
 // too).
-let productionSummaryCollectionFilters = { series: [], category: [], productName: [], productionStatus: [], batch: [], arriveStatus: [], varianceStatus: [] };
+let productionSummaryCollectionFilters = { series: [], category: [], productName: [], productionStatus: [], batch: [], qcStatus: [], varianceStatus: [] };
 // Per Shaila's request (Sep 26, 2026 — "tambah filter variance ade tiga keadaan extra... short...
 // balance"): NOT a raw sign check on the Receiving Variance number — it's tied to whether receiving has
 // actually finished for that row, same completion states already computed by
@@ -12790,7 +12790,7 @@ function productionSummaryCollectionFilteredRows() {
   if (f.productName.length) rows = rows.filter(r => f.productName.includes(campaignTimelineProductLabel(r)));
   if (f.productionStatus.length) rows = rows.filter(r => f.productionStatus.includes(r.productionStatus || '-'));
   if (f.batch.length) rows = rows.filter(r => f.batch.includes(r.batch || '-'));
-  if (f.arriveStatus.length) rows = rows.filter(r => f.arriveStatus.includes(campaignTimelineShipmentReceiveProgressFilterKey(r)));
+  if (f.qcStatus.length) rows = rows.filter(r => f.qcStatus.includes(bqcStatusKey(r.qcFg)));
   if (f.varianceStatus.length) rows = rows.filter(r => f.varianceStatus.includes(campaignTimelineVarianceStatusFilterKey(r)));
   return rows;
 }
@@ -12950,9 +12950,9 @@ function renderProductionSummaryCollectionFilters() {
     { key: 'productName', label: 'Official Product Name', options: distinct(r => campaignTimelineProductLabel(r)), getValue: campaignTimelineProductLabel },
     { key: 'productionStatus', label: 'Production Status', options: distinct(r => r.productionStatus || '-'), getValue: r => r.productionStatus || '-' },
     { key: 'batch', label: 'Batch', options: distinct(r => r.batch || '-'), getValue: r => r.batch || '-' },
-    { key: 'arriveStatus', label: "Est. Arrive M'sia Status", options: [
-      { value: 'not-received', text: 'Not Received' }, { value: 'pending', text: 'Pending' }, { value: 'complete', text: 'Complete' },
-    ], getValue: campaignTimelineShipmentReceiveProgressFilterKey },
+    { key: 'qcStatus', label: 'QC Result Finish Goods', options: [
+      { value: 'pass', text: 'Pass' }, { value: 'pass-with', text: 'Pass With Condition' }, { value: 'request', text: 'Requested' }, { value: 'on-hold', text: 'On Hold' }, { value: 'fail', text: 'Fail' }, { value: 'none', text: 'Pending QC' },
+    ], getValue: r => bqcStatusKey(r.qcFg) },
     { key: 'varianceStatus', label: 'Variance', options: [
       { value: 'extra', text: 'Extra' }, { value: 'short', text: 'Short' }, { value: 'balance', text: 'Balance' },
     ], getValue: campaignTimelineVarianceStatusFilterKey },
@@ -12991,7 +12991,7 @@ function renderProductionSummaryCollectionTable() {
     <th>Series</th><th>Category</th><th>Official Product Name</th><th>Production Status</th><th>Batch</th><th>Color</th>
     <th>Tailor Supplier</th><th>Quantity FG Order pcs</th><th>Total Value</th>
     <th>Quantity FG Received pcs</th><th>Receive Value</th><th>Receiving Variance</th><th>Variance Value</th>
-    <th>Est. Arrive M'sia</th>
+    <th>QC Result Finish Goods</th>
   </tr></thead><tbody>`;
   sorted.forEach(({ rec }) => {
     const fig = campaignTimelineReceiveFigures(rec);
@@ -13025,7 +13025,7 @@ function renderProductionSummaryCollectionTable() {
       <td>${receiveValue ? skuPriceFormatDisplay(receiveValue) : '-'}</td>
       <td style="${varianceColor}">${formatQty(Math.abs(variancePcs))}</td>
       <td style="${varianceColor}">${totalValue || receiveValue ? skuPriceFormatDisplay(Math.abs(varianceValue)) : '-'}</td>
-      <td>${campaignTimelineShipmentReceiveProgressBadgeHtml(rec)}</td>
+      <td>${bqcBadgeHtml(rec.qcFg)}</td>
     </tr>`;
   });
   html += `</tbody></table>`;
@@ -34430,7 +34430,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 13Oct-r86'; } catch (e) {}
+try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 14Oct-r87'; } catch (e) {}
 </script>
 </body>
 </html>
