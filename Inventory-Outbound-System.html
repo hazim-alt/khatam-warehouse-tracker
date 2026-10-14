@@ -10074,6 +10074,19 @@ function applyServerSnapshot(table) {
   if (table === 'Garment_Orders') {
     const garmentInSaveWindow = typeof garmentLocalSaveAt !== 'undefined' && Date.now() - garmentLocalSaveAt < 60000;
     const localBatches = def.getArray();
+    // Keep (and re-push) a batch added on this device that isn't on the server yet — otherwise an unrelated incoming snapshot silently wipes it.
+    {
+      const remoteKeysG = new Set(remoteArr.map(r => fbSafeKey(syncKeyOf(r))));
+      const keepNew = [];
+      localBatches.forEach(lb => {
+        const k = fbSafeKey(syncKeyOf(lb));
+        if (remoteKeysG.has(k)) { garmentPendingNew.delete(k); return; }
+        const t = garmentPendingNew.get(k);
+        if (t && Date.now() - t < 10 * 60 * 1000) keepNew.push(lb);
+        else if (t) garmentPendingNew.delete(k);
+      });
+      if (keepNew.length) { remoteArr = remoteArr.concat(keepNew); pushCollectionDiff(def, { skipEmptyGuard: true }); }
+    }
     let healed = false;
     const copy = JSON.parse(JSON.stringify(remoteArr));
     copy.forEach(rb => {
@@ -30243,7 +30256,13 @@ function loadGarmentOrders() {
 // snapshot from another device landing in that window replaced the local array with the OLDER server copy,
 // silently wiping the just-logged qtyReceived. Now every save pushes straight away, same fix as pushRmTableNow.
 let garmentLocalSaveAt = 0; // timestamp of this device's last Garment Order save (see applyServerSnapshot guard)
+// Batches created on this device that the server hasn't confirmed yet (key -> time). An incoming snapshot must not wipe them before their push lands.
+const garmentPendingNew = new Map();
 function saveGarmentOrders() {
+  try {
+    const prevSnap = fbLastServerSnapshot['Garment_Orders'] || {};
+    garmentOrders.forEach(b => { const k = fbSafeKey(syncKeyOf(b)); if (!(k in prevSnap) && !garmentPendingNew.has(k)) garmentPendingNew.set(k, Date.now()); });
+  } catch (e) {}
   garmentLocalSaveAt = Date.now();
   localStorage.setItem(GARMENT_ORDERS_KEY, JSON.stringify(garmentOrders));
   try { pushRmTableNow('Garment_Orders'); } catch (e) { /* sync not ready yet — the periodic tick will push it */ }
@@ -34524,7 +34543,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '14Oct-r95';
+const APP_BUILD_LABEL = '14Oct-r96';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // New-version notice (Oct 14, 2026): the hosted copy (http/https) records its build number in Firebase (AppMeta/latestBuild);
