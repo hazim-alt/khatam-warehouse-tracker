@@ -1657,6 +1657,7 @@
       <button class="tab-btn" data-tab="team-printers">Printers</button>
       <button class="tab-btn" data-tab="team-gsheet-links">Google Sheets Links</button>
       <button class="tab-btn" data-tab="team-reset">Reset Data</button>
+      <button class="tab-btn" data-tab="team-delete-history">Delete History</button>
       <button class="tab-btn" data-tab="team-admin">Admin &amp; Access</button>
     </div>
     <button class="tab-btn" data-tab="staff-schedule">Staff Schedule</button>
@@ -3184,6 +3185,18 @@
         <select id="bqrStatus" style="width:auto;"><option value="">Result: All</option><option value="pass">Pass</option><option value="pass-with">Pass With Condition</option><option value="fail">Fail</option></select>
       </div>
       <div id="bqrWrap" class="scroll-table" style="max-height:calc(100vh - 330px); min-height:300px;"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-team-delete-history">
+    <p class="section-title">Delete History</p>
+    <div class="card">
+      <span class="data-note" style="margin:0;">Every deletion made from any device is recorded here (who, when, what). Click Restore to bring a record back. Removals of 50+ records at once are only summarised and cannot be restored from here.</span>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin:12px 0;">
+        <input type="text" id="dhSearch" placeholder="Search record / user..." style="flex:1; min-width:200px;">
+        <select id="dhModule" style="width:auto;"><option value="">All Modules</option></select>
+      </div>
+      <div id="dhWrap" class="scroll-table" style="max-height:calc(100vh - 260px); min-height:200px;"></div>
     </div>
   </section>
 
@@ -6016,6 +6029,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'production-received-product') renderReceivedByProductTab();
     if (btn.dataset.tab === 'production-bulk-qc') renderBulkQcTab();
     if (btn.dataset.tab === 'bulk-qc-result') bqrOnOpen();
+    if (btn.dataset.tab === 'team-delete-history') renderDeleteHistoryTab();
     if (btn.dataset.tab === 'production-timeline') renderCampaignTimelineTab();
     if (btn.dataset.tab === 'production-release-calendar') renderProductionReleaseCalendarTab();
     if (btn.dataset.tab === 'finance') renderFinanceTab();
@@ -9308,6 +9322,7 @@ const PERMISSION_TABS = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'team-gsheet-links', label: 'Google Sheets Links (Team Setup)' },
   { id: 'team-reset', label: 'Reset Data (Team Setup)' },
+  { id: 'team-delete-history', label: 'Delete History (Team Setup)' },
   { id: 'rm-import', label: 'Import Data (Raw Material)' },
   { id: 'rm-receive-pick', label: 'Receive & Pick (Raw Material)' },
   { id: 'rm-sto', label: 'Create STO (Raw Material)' },
@@ -9947,6 +9962,22 @@ function anySetupDirty() {
 // enough to always fit in one chunk so this rarely bites, but it costs nothing to guard every table
 // the same way in case one grows past the chunk size.
 const collectionPushInFlight = new Set();
+const fbKnownKeys = {}, fbKnownSig = {}; // table -> Set of record keys this device has held locally (persisted)
+function fbGetKnown(table) {
+  if (!(table in fbKnownKeys)) {
+    let a = null; try { a = JSON.parse(localStorage.getItem('sto_fb_known__' + table)); } catch (e) {}
+    fbKnownKeys[table] = Array.isArray(a) ? new Set(a) : null;
+    fbKnownSig[table] = Array.isArray(a) ? a.join('|') : null;
+  }
+  return fbKnownKeys[table];
+}
+function fbSetKnown(table, keys) {
+  const set = new Set(keys); fbKnownKeys[table] = set;
+  const sig = [...set].join('|');
+  if (sig !== fbKnownSig[table]) { fbKnownSig[table] = sig; try { localStorage.setItem('sto_fb_known__' + table, JSON.stringify([...set])); } catch (e) {} }
+}
+function fbMayDelete(table, k) { const ks = fbGetKnown(table); return !ks || ks.has(k); } // import-mirrored tables: first run after upgrade (nothing persisted yet) keeps the old behaviour
+const garmentExplicitDeleteKeys = new Set(); // Firebase keys of batches the user deliberately deleted (Delete button / Reset) — the only ones a push may remove
 function pushCollectionDiff(def, opts) {
   if (!fbDb) return;
   const arr = def.getArray();
@@ -9978,7 +10009,30 @@ function pushCollectionDiff(def, opts) {
     const prevStr = (prev[k] !== undefined) ? stableStringify(prev[k]) : undefined;
     if (stableStringify(nowKeyed[k]) !== prevStr) { updateObj[k] = nowKeyed[k]; changed = true; }
   });
-  Object.keys(prev).forEach(k => { if (!(k in nowKeyed)) { updateObj[k] = null; changed = true; } });
+  // Oct 14, 2026 (per Shaila: "kalau tkde sapa2 yg delete tkkn hilang" — applies to EVERY table): a push may only delete a record this device itself
+  // held in its own array (known keys, persisted across reloads). A record that merely appeared on the server and was never in THIS device's array
+  // (snapshot cache running ahead of the local array) is never removed by a "missing locally" diff. Garment Orders are stricter still: only an explicit
+  // Delete / Reset action (garmentExplicitDeleteKeys) can remove a batch.
+  const knownSet = fbGetKnown(def.table);
+  const deletedNow = [];
+  Object.keys(prev).forEach(k => {
+    if (k in nowKeyed) return;
+    if (def.table === 'Garment_Orders') { if (!garmentExplicitDeleteKeys.has(k)) return; }
+    else if (!knownSet || !knownSet.has(k)) return;
+    updateObj[k] = null; changed = true;
+    deletedNow.push({ k, rec: prev[k] });
+    if (def.table === 'Garment_Orders') {
+      garmentExplicitDeleteKeys.delete(k);
+      try {
+        const lg = JSON.parse(localStorage.getItem('garmentDeleteLogV1') || '[]');
+        const u = (typeof getCurrentUser === 'function' && getCurrentUser()) || {};
+        lg.push({ at: new Date().toISOString(), by: u.username || '', batch: (prev[k] && prev[k].batchNo) || k });
+        localStorage.setItem('garmentDeleteLogV1', JSON.stringify(lg.slice(-50)));
+      } catch (e) {}
+    }
+  });
+  fbSetKnown(def.table, Object.keys(nowKeyed));
+  try { dhRecordDeletions(def.table, deletedNow); } catch (e) { console.warn('delete history failed', e); }
   if (!changed) return;
   fbLastServerSnapshot[def.table] = nowKeyed;
   collectionPushInFlight.add(def.table);
@@ -10120,6 +10174,7 @@ function applyServerSnapshot(table) {
   if (stableStringify(remoteArr) === stableStringify(def.getArray())) { pendingRemoteApply.delete(table); return; }
   if (isUserActivelyTyping() || isTableDirty(table)) { pendingRemoteApply.add(table); return; }
   def.setArray(remoteArr);
+  try { fbSetKnown(table, def.getArray().map(r => fbSafeKey(syncKeyOf(r)))); } catch (e) {}
   if (def.afterPull) def.afterPull();
   pendingRemoteApply.delete(table);
   renderAll();
@@ -10155,7 +10210,8 @@ function pushPostponedDoNosDiff() {
   const updateObj = {};
   let changed = false;
   Object.keys(nowKeyed).forEach(k => { if (prev[k] !== nowKeyed[k]) { updateObj[k] = nowKeyed[k]; changed = true; } });
-  Object.keys(prev).forEach(k => { if (!(k in nowKeyed)) { updateObj[k] = null; changed = true; } });
+  Object.keys(prev).forEach(k => { if (!(k in nowKeyed) && fbMayDelete('x_postponed', k)) { updateObj[k] = null; changed = true; } });
+  fbSetKnown('x_postponed', Object.keys(nowKeyed));
   if (!changed) return;
   fbLastServerSnapshot[FB_POSTPONED_DONOS_TABLE] = nowKeyed;
   fbDb.ref(FB_POSTPONED_DONOS_TABLE).update(updateObj).catch(e => {
@@ -11029,7 +11085,8 @@ function pushItemMasterDiffToFirebase() {
     const prevStr = (_itemMasterLastServerSnapshot[k] !== undefined) ? stableStringify(_itemMasterLastServerSnapshot[k]) : undefined;
     if (stableStringify(nowKeyed[k]) !== prevStr) { updateObj[k] = nowKeyed[k]; changed = true; }
   });
-  Object.keys(_itemMasterLastServerSnapshot).forEach(k => { if (!(k in nowKeyed)) { updateObj[k] = null; changed = true; } });
+  Object.keys(_itemMasterLastServerSnapshot).forEach(k => { if (!(k in nowKeyed) && fbMayDelete('x_itemMaster', k)) { updateObj[k] = null; changed = true; } });
+  fbSetKnown('x_itemMaster', Object.keys(nowKeyed));
   if (!changed) return;
   _itemMasterLastServerSnapshot = nowKeyed;
   itemMasterPushInFlight = true;
@@ -11809,7 +11866,8 @@ function pushSkuPriceDiffToFirebase() {
     const prevStr = (_skuPriceLastServerSnapshot[k] !== undefined) ? stableStringify(_skuPriceLastServerSnapshot[k]) : undefined;
     if (stableStringify(nowKeyed[k]) !== prevStr) { updateObj[k] = nowKeyed[k]; changed = true; }
   });
-  Object.keys(_skuPriceLastServerSnapshot).forEach(k => { if (!(k in nowKeyed)) { updateObj[k] = null; changed = true; } });
+  Object.keys(_skuPriceLastServerSnapshot).forEach(k => { if (!(k in nowKeyed) && fbMayDelete('x_skuPrice', k)) { updateObj[k] = null; changed = true; } });
+  fbSetKnown('x_skuPrice', Object.keys(nowKeyed));
   if (!changed) return;
   _skuPriceLastServerSnapshot = nowKeyed;
   skuPricePushInFlight = true;
@@ -12014,7 +12072,8 @@ function pushStockAvailableDiffToFirebase(opts) {
     const prevStr = (_stockAvailableLastServerSnapshot[k] !== undefined) ? stableStringify(_stockAvailableLastServerSnapshot[k]) : undefined;
     if (stableStringify(nowKeyed[k]) !== prevStr) { updateObj[k] = nowKeyed[k]; changed = true; }
   });
-  Object.keys(_stockAvailableLastServerSnapshot).forEach(k => { if (!(k in nowKeyed)) { updateObj[k] = null; changed = true; } });
+  Object.keys(_stockAvailableLastServerSnapshot).forEach(k => { if (!(k in nowKeyed) && fbMayDelete('x_stockAvail', k)) { updateObj[k] = null; changed = true; } });
+  fbSetKnown('x_stockAvail', Object.keys(nowKeyed));
   if (!changed) return;
   _stockAvailableLastServerSnapshot = nowKeyed;
   stockAvailablePushInFlight = true;
@@ -14278,6 +14337,101 @@ function renderBulkQcTab() {
   }
 }
 // ---- Bulk QC Result: standalone tab, only items whose QC is finished (Pass / Pass With Condition / Fail) ----
+// ---- Delete History (Oct 14, 2026, per Shaila): every deletion pushed to Firebase is logged (who/when/what, with the record itself for Restore) ----
+const DH_OUTBOX_LS = 'deleteHistoryOutboxV1';
+const DH_TABLE_LABEL = { STO_Records: 'STO (Outbound)', DO_Records: 'DO Record', Fleet_Drivers: 'Driver', Fleet_Trips: 'Trip', Garment_Orders: 'Garment Order batch', Garment_Receive_Logs: 'Garment receive log', Inbound_STO: 'STO From Boutique', Packing_Stations: 'Packing Station', Receive_Stations: 'Receive Station', Pickers: 'Picker', Staff_Roster: 'Staff', Rollcages: 'Rollcage', RawMaterial_Rolls: 'RM Roll', RawMaterial_Picks: 'RM Pick', RawMaterial_STOs: 'RM STO', RawMaterial_DOs: 'RM DO', Accessories_Receipts: 'Accessories receipt', PriceTag_Stickers: 'Price Tag sticker', PriceTag_Printers: 'Price Tag printer', PriceTag_DOs: 'Price Tag DO', RequestStock: 'Request Stock', ProductionDecisions: 'Production decision', ProductionRmDecisions: 'Production RM decision', Users: 'User account' };
+const dhState = { list: [], listening: false };
+function dhLabelOf(rec) {
+  if (!rec || typeof rec !== 'object') return String(rec == null ? '' : rec);
+  if (rec.sku && rec.qty !== undefined) return `${rec.sku} × ${rec.qty}${rec.batchNo ? ' (' + rec.batchNo + ')' : ''}`;
+  const parts = [];
+  ['orderNumber', 'doNo', 'requestNo', 'batchNo', 'name', 'username', 'sku', 'garmentName', 'id'].forEach(f => { if (rec[f] && parts.length < 2 && !parts.includes(String(rec[f]))) parts.push(String(rec[f])); });
+  return parts.join(' — ') || '(record)';
+}
+function dhOutbox() { try { return JSON.parse(localStorage.getItem(DH_OUTBOX_LS)) || []; } catch (e) { return []; } }
+function dhSaveOutbox(a) { try { localStorage.setItem(DH_OUTBOX_LS, JSON.stringify(a.slice(-300))); } catch (e) {} }
+function dhNewId() { return 'dh_' + Date.now().toString(36).padStart(9, '0') + Math.random().toString(36).slice(2, 6); }
+function dhRecordDeletions(table, list) {
+  if (!list || !list.length) return;
+  const u = (typeof getCurrentUser === 'function' && getCurrentUser()) || {};
+  const at = new Date().toISOString(), by = u.username || '';
+  const entries = list.length > 50
+    ? [{ id: dhNewId(), at, by, table, count: list.length, label: `${list.length} records removed in one go`, summary: true }]
+    : list.map(({ k, rec }) => ({ id: dhNewId(), at, by, table, key: k, label: dhLabelOf(rec), data: table === 'Users' ? '' : JSON.stringify(rec) }));
+  const ob = dhOutbox(); entries.forEach(e => ob.push(e)); dhSaveOutbox(ob);
+  dhFlush();
+}
+function dhFlush() {
+  if (!fbDb) return;
+  dhOutbox().forEach(e => {
+    fbDb.ref('Delete_History/' + e.id).set(e).then(() => { dhSaveOutbox(dhOutbox().filter(x => x.id !== e.id)); }).catch(() => {});
+  });
+}
+function dhEnsure() {
+  if (!fbDb) return;
+  dhFlush();
+  if (dhState.listening) return;
+  dhState.listening = true;
+  fbDb.ref('Delete_History').orderByKey().limitToLast(300).on('value', snap => {
+    dhState.list = Object.values(snap.val() || {});
+    const p = document.getElementById('tab-team-delete-history');
+    if (p && p.classList.contains('active')) renderDeleteHistoryTab();
+  }, () => { dhState.listening = false; });
+}
+setInterval(dhEnsure, 4000);
+function dhAllEntries() {
+  const map = new Map();
+  dhState.list.forEach(e => map.set(e.id, e));
+  dhOutbox().forEach(e => { if (!map.has(e.id)) map.set(e.id, e); });
+  return Array.from(map.values()).sort((a, b) => String(b.at).localeCompare(String(a.at)));
+}
+function renderDeleteHistoryTab() {
+  const wrap = document.getElementById('dhWrap');
+  if (!wrap) return;
+  const all = dhAllEntries();
+  const sel = document.getElementById('dhModule');
+  const mods = Array.from(new Set(all.map(e => DH_TABLE_LABEL[e.table] || e.table))).sort();
+  const sig = mods.join('|');
+  if (sel.dataset.sig !== sig) { const cur = sel.value; sel.innerHTML = '<option value="">All Modules</option>' + mods.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join(''); sel.dataset.sig = sig; sel.value = mods.includes(cur) ? cur : ''; }
+  const q = (document.getElementById('dhSearch').value || '').toLowerCase().split(/\s+/).filter(Boolean);
+  const shown = all.filter(e => {
+    const mod = DH_TABLE_LABEL[e.table] || e.table;
+    if (sel.value && mod !== sel.value) return false;
+    const text = [e.label, e.by, mod].join(' ').toLowerCase();
+    return q.every(w => text.includes(w));
+  });
+  if (!shown.length) { wrap.innerHTML = '<div class="empty-state">No deletions recorded yet.</div>'; return; }
+  const fmt = iso => { const d = new Date(iso); return isNaN(d) ? '-' : d.toLocaleString('en-GB'); };
+  wrap.innerHTML = '<table><thead><tr><th>Date / Time</th><th>Deleted by</th><th>Module</th><th>Record</th><th>Action</th></tr></thead><tbody>' +
+    shown.map(e => {
+      let act;
+      if (e.restoredAt) act = `<span class="badge badge-green">Restored by ${escapeHtml(e.restoredBy || '-')}</span>`;
+      else if (e.data) act = `<button type="button" class="btn-ghost dh-restore-btn" data-id="${escapeHtml(e.id)}">Restore</button>`;
+      else act = '<span style="color:var(--text-muted);">Cannot restore</span>';
+      return `<tr><td>${escapeHtml(fmt(e.at))}</td><td>${escapeHtml(e.by || '-')}</td><td>${escapeHtml(DH_TABLE_LABEL[e.table] || e.table)}</td><td>${escapeHtml(e.label || '-')}</td><td>${act}</td></tr>`;
+    }).join('') + '</tbody></table>';
+  wrap.querySelectorAll('.dh-restore-btn').forEach(btn => btn.addEventListener('click', () => dhRestore(btn.dataset.id)));
+}
+function dhRestore(id) {
+  const e = dhAllEntries().find(x => x.id === id);
+  if (!e || !e.data) return;
+  const def = SYNC_COLLECTIONS.find(d => d.table === e.table);
+  if (!def) { alert('This module cannot be restored from here.'); return; }
+  let rec; try { rec = JSON.parse(e.data); } catch (err) { alert('Saved record is unreadable.'); return; }
+  const arr = def.getArray();
+  const key = fbSafeKey(syncKeyOf(rec));
+  if (arr.some(r => fbSafeKey(syncKeyOf(r)) === key)) { alert('This record already exists again.'); return; }
+  if (!confirm(`Restore "${e.label}" (${DH_TABLE_LABEL[e.table] || e.table})?`)) return;
+  def.setArray(arr.concat([rec]));
+  try { pushCollectionDiff(def, { skipEmptyGuard: true }); } catch (err) {}
+  const u = (getCurrentUser && getCurrentUser()) || {};
+  e.restoredAt = new Date().toISOString(); e.restoredBy = u.username || '';
+  if (fbDb) fbDb.ref('Delete_History/' + e.id).update({ restoredAt: e.restoredAt, restoredBy: e.restoredBy }).catch(() => {});
+  try { renderAll(); } catch (err) {}
+  renderDeleteHistoryTab();
+}
+document.getElementById('dhSearch').addEventListener('input', renderDeleteHistoryTab);
+document.getElementById('dhModule').addEventListener('change', renderDeleteHistoryTab);
 let bqrMode = 'fg';
 // ---- Bulk QC Result notifications: red counter on the tab + NEW tags when a QC result is new or changed since the last visit (per device) ----
 const BQR_SEEN_LS = 'bqrSeenV1';
@@ -14494,7 +14648,8 @@ function pushCampaignTimelineDiffToFirebase(opts) {
     const prevStr = (_campaignTimelineLastServerSnapshot[k] !== undefined) ? stableStringify(_campaignTimelineLastServerSnapshot[k]) : undefined;
     if (stableStringify(nowKeyed[k]) !== prevStr) { updateObj[k] = nowKeyed[k]; changed = true; }
   });
-  Object.keys(_campaignTimelineLastServerSnapshot).forEach(k => { if (!(k in nowKeyed)) { updateObj[k] = null; changed = true; } });
+  Object.keys(_campaignTimelineLastServerSnapshot).forEach(k => { if (!(k in nowKeyed) && fbMayDelete('x_campaignTimeline', k)) { updateObj[k] = null; changed = true; } });
+  fbSetKnown('x_campaignTimeline', Object.keys(nowKeyed));
   if (!changed) return;
   _campaignTimelineLastServerSnapshot = nowKeyed;
   campaignTimelinePushInFlight = true;
@@ -17084,7 +17239,8 @@ function pushCampaignAccToFirebase() {
     const prev = (_campaignAccLastServerSnapshot[k] !== undefined) ? stableStringify(_campaignAccLastServerSnapshot[k]) : undefined;
     if (stableStringify(nowKeyed[k]) !== prev) { updateObj[k] = nowKeyed[k]; changed = true; }
   });
-  Object.keys(_campaignAccLastServerSnapshot).forEach(k => { if (!(k in nowKeyed)) { updateObj[k] = null; changed = true; } });
+  Object.keys(_campaignAccLastServerSnapshot).forEach(k => { if (!(k in nowKeyed) && fbMayDelete('x_campaignAcc', k)) { updateObj[k] = null; changed = true; } });
+  fbSetKnown('x_campaignAcc', Object.keys(nowKeyed));
   if (!changed) return;
   _campaignAccLastServerSnapshot = nowKeyed;
   campaignAccPushInFlight = true;
@@ -31284,6 +31440,7 @@ function renderGarmentOrderTab() {
       e.stopPropagation();
       const batchNo = btn.dataset.batch;
       if (!confirm(`Delete Batch "${batchNo}" and all its SKUs? This cannot be undone.`)) return;
+      garmentOrders.filter(b => b.batchNo === batchNo).forEach(b => garmentExplicitDeleteKeys.add(fbSafeKey(syncKeyOf(b))));
       garmentOrders = garmentOrders.filter(b => b.batchNo !== batchNo);
       garmentExpandedBatches.delete(batchNo);
       saveGarmentOrders();
@@ -34371,7 +34528,7 @@ try {
   const resetSyncTables = (tables) => {
     tables.forEach(t => {
       const def = SYNC_COLLECTIONS.find(d => d.table === t);
-      if (def) { def.setArray([]); try { pushCollectionDiff(def, { skipEmptyGuard: true }); } catch (e) {} }
+      if (def) { if (t === 'Garment_Orders') def.getArray().forEach(b => garmentExplicitDeleteKeys.add(fbSafeKey(syncKeyOf(b)))); def.setArray([]); try { pushCollectionDiff(def, { skipEmptyGuard: true }); } catch (e) {} }
     });
   };
   const RESET_MODULES = [
@@ -34543,7 +34700,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '14Oct-r96';
+const APP_BUILD_LABEL = '14Oct-r101';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // New-version notice (Oct 14, 2026): the hosted copy (http/https) records its build number in Firebase (AppMeta/latestBuild);
