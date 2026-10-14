@@ -3470,7 +3470,8 @@
     <div class="card">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
         <span class="data-note" style="margin:0;">Import batches/SKUs straight from Excel or CSV instead of adding one by one.</span>
-        <button type="button" class="btn-ghost" id="downloadGarmentTemplateBtn">⬇ Download Template</button>
+        <span style="display:flex; gap:8px;"><button type="button" class="btn-ghost" id="fixGarmentDupLogsBtn" title="Find SKU lines whose received qty is inflated by repeated identical receive logs">🧹 Fix duplicate receives</button>
+        <button type="button" class="btn-ghost" id="downloadGarmentTemplateBtn">⬇ Download Template</button></span>
       </div>
       <div class="dropzone" id="garmentDropzone">
         <div class="dropzone-icon">⬆</div>
@@ -10068,7 +10069,10 @@ function applyServerSnapshot(table) {
   // (staff log receiving, putaway trolley shows it, but the Garment Order line reset to 0). For ~60s after a local
   // save, any SKU line whose qtyReceived is HIGHER locally than in the incoming snapshot keeps the local value,
   // and the merged result is pushed back up so every device converges on it.
-  if (table === 'Garment_Orders' && typeof garmentLocalSaveAt !== 'undefined' && Date.now() - garmentLocalSaveAt < 60000) {
+  // Oct 14, 2026: the deliberate-correction rules (recvAdjustedAt) now apply ALWAYS, not just within 60s of a local save, so a stale device can never
+  // bring back a value that was manually corrected; only the "higher local qty keeps" rule stays limited to the 60s window.
+  if (table === 'Garment_Orders') {
+    const garmentInSaveWindow = typeof garmentLocalSaveAt !== 'undefined' && Date.now() - garmentLocalSaveAt < 60000;
     const localBatches = def.getArray();
     let healed = false;
     const copy = JSON.parse(JSON.stringify(remoteArr));
@@ -10085,7 +10089,7 @@ function applyServerSnapshot(table) {
           healed = true;
         } else if (ls && rs.recvAdjustedAt && rs.recvAdjustedAt >= (ls.recvAdjustedAt || 0)) {
           // The incoming (cloud) copy carries a deliberate manual correction this device doesn't know about yet — keep it.
-        } else if (ls && (Number(ls.qtyReceived) || 0) > (Number(rs.qtyReceived) || 0)) {
+        } else if (garmentInSaveWindow && ls && (Number(ls.qtyReceived) || 0) > (Number(rs.qtyReceived) || 0)) {
           rs.qtyReceived = ls.qtyReceived;
           if (ls.lastReceivedDate) rs.lastReceivedDate = ls.lastReceivedDate;
           healed = true;
@@ -14734,7 +14738,7 @@ function parseCampaignTimelineRows(rows, sheetLabel, rawHeaderRows, deterministi
     // Added per Shaila's column list (Sep 24, 2026) for the redesigned Timeline table.
     // Receive FG / Receive Value / Receiving Variance / Variance Value are read straight from her Google Sheet (Oct 8, 2026,
     // per Shaila: "amik teros dalam google sheet") — no Garment Order linking involved.
-    receiveFg: campaignTimelineFindColContainsOccurrence(headerRow, ['receive', 'fg'], 1, ['value']),
+    receiveFg: bqcOr(campaignTimelineFindColContainsOccurrence(headerRow, ['quantity', 'fg', 'received'], 1, ['value']), () => campaignTimelineFindColContainsOccurrence(headerRow, ['receive', 'fg'], 1, ['value'])),
     receiveValue: campaignTimelineFindColContains(headerRow, ['receive', 'value']),
     variancePcs: campaignTimelineFindColContainsOccurrence(headerRow, ['variance'], 1, ['value']),
     varianceValue: campaignTimelineFindColContains(headerRow, ['variance', 'value']),
@@ -15189,6 +15193,7 @@ async function campaignTimelineFetchGvizRowsReliable(url) {
 function campaignTimelineIsBlankVal(v) {
   return v === undefined || v === null || v === '' || v === 0;
 }
+const campaignTimelineSheetNumKeys = new Set(['sheetReceiveFg', 'sheetReceiveValue', 'sheetVariancePcs', 'sheetVarianceValue']);
 function campaignTimelineMergeFetchedRows(newRows, oldRows, dropMissing) {
   const oldMap = new Map(oldRows.map(r => [r.id, r]));
   const seenIds = new Set();
@@ -15213,6 +15218,9 @@ function campaignTimelineMergeFetchedRows(newRows, oldRows, dropMissing) {
     const allKeys = new Set([...Object.keys(newRec), ...Object.keys(oldRec)]);
     allKeys.forEach(key => {
       if (key === 'id') return;
+      // Sheet-sourced receive/variance figures: a real 0 (column found, cell empty) is the sheet's truth and must overwrite an old value;
+      // only null/undefined (column not found this fetch) counts as a fetch gap.
+      if (campaignTimelineSheetNumKeys.has(key) && newRec[key] === 0) return;
       if (campaignTimelineIsBlankVal(newRec[key]) && !campaignTimelineIsBlankVal(oldRec[key])) {
         combined[key] = oldRec[key]; // new fetch has a gap here — keep what we already had
       }
@@ -30235,6 +30243,78 @@ function saveGarmentOrders() {
   try { pushRmTableNow('Garment_Orders'); } catch (e) { /* sync not ready yet — the periodic tick will push it */ }
 }
 
+// ---- Fix duplicate receives (Oct 14, 2026): trims identical repeat receive logs from SKU lines whose Received is above Qty Order ----
+function garmentDupLogPlan() {
+  const groups = new Map();
+  garmentReceiveLogs.forEach(l => {
+    const k = `${l.batchNo}|${String(l.sku || '').trim().toLowerCase()}`;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(l);
+  });
+  const plan = [];
+  garmentOrders.forEach(b => (b.skus || []).forEach(sk => {
+    const logs = groups.get(`${b.batchNo}|${String(sk.sku || '').trim().toLowerCase()}`) || [];
+    const order = Number(sk.qtyOrder) || 0;
+    if (!logs.length || order <= 0 || logs.some(l => l.adjustment)) return;
+    const logSum = logs.reduce((a, l) => a + (Number(l.qty) || 0), 0);
+    if (logSum <= order) return;
+    const asc = logs.map((l, i) => ({ l, i })).sort((a, c) => String(a.l.date || '').localeCompare(String(c.l.date || '')) || a.i - c.i);
+    const seen = new Set(), dups = [];
+    asc.forEach(({ l }) => { const q = Number(l.qty) || 0; if (seen.has(q)) dups.push(l); else seen.add(q); });
+    dups.reverse(); // latest first
+    dups.sort((x, y) => (Number(y.qty) || 0) - (Number(x.qty) || 0)); // largest repeated qty first (stable → still latest first within equal qty)
+    let sum = logSum; const remove = [];
+    dups.forEach(l => { const q = Number(l.qty) || 0; if (q > 0 && sum - q >= order) { remove.push(l); sum -= q; } });
+    if (remove.length) plan.push({ batch: b, sku: sk, remove, before: Number(sk.qtyReceived) || 0, logSumBefore: logSum, logSumAfter: sum, order });
+  }));
+  return plan;
+}
+// Part B: lines whose Received is at least ~2x Qty Order (an exact repeat of a full receipt) — reset to Qty Order via the app's own "manual correction" path.
+function garmentOverReceivePlan(skipSkus) {
+  const plan = [];
+  garmentOrders.forEach(b => (b.skus || []).forEach(sk => {
+    if (skipSkus.has(sk)) return;
+    const order = Number(sk.qtyOrder) || 0, rec = Number(sk.qtyReceived) || 0;
+    if (order <= 0 || rec < order * 1.9) return;
+    const logs = garmentReceiveLogs.filter(l => l.batchNo === b.batchNo && String(l.sku || '').trim().toLowerCase() === String(sk.sku || '').trim().toLowerCase());
+    plan.push({ batch: b, sku: sk, before: rec, order, logs });
+  }));
+  return plan;
+}
+function garmentFixDuplicateReceives() {
+  const u = getCurrentUser();
+  if (!u || !u.isAdmin) { alert('Admin only.'); return; }
+  const plan = garmentDupLogPlan();
+  const planB = garmentOverReceivePlan(new Set(plan.map(p => p.sku)));
+  if (!plan.length && !planB.length) { alert('Nothing to fix — no SKU line has repeated receive logs or a Received qty at 2x or more of Qty Order.'); return; }
+  const linesA = plan.slice(0, 20).map(p => `${p.sku.sku}: ${formatQty(p.before)} → ${formatQty(p.before - (p.logSumBefore - p.logSumAfter))} (Order ${formatQty(p.order)})`);
+  const linesB = planB.slice(0, 30).map(p => `${p.sku.sku}: ${formatQty(p.before)} → ${formatQty(p.order)} (Order ${formatQty(p.order)})`);
+  const msg = [`Review before applying:`,
+    plan.length ? `\nRepeated identical receive logs (${plan.length}):\n${linesA.join('\n')}${plan.length > 20 ? `\n...and ${plan.length - 20} more` : ''}` : '',
+    planB.length ? `\nReceived at 2x or more of Qty Order — reset to Qty Order (${planB.length}):\n${linesB.join('\n')}${planB.length > 30 ? `\n...and ${planB.length - 30} more` : ''}` : '',
+    `\nApply?`].join('\n');
+  if (!confirm(msg)) return;
+  const removeSet = new Set();
+  plan.forEach(p => {
+    p.remove.forEach(l => removeSet.add(l));
+    p.sku.qtyReceived = Math.max(0, p.before - (p.logSumBefore - p.logSumAfter));
+  });
+  garmentReceiveLogs = garmentReceiveLogs.filter(l => !removeSet.has(l));
+  planB.forEach(p => {
+    const logSum = p.logs.reduce((a, l) => a + (Number(l.qty) || 0), 0);
+    p.sku.qtyReceived = p.order;
+    p.sku.recvAdjustedAt = Date.now(); // deliberate correction — sync/self-heal must not undo it
+    if (logSum !== p.order) garmentReceiveLogs.push({ batchNo: p.batch.batchNo, sku: p.sku.sku, station: '', qty: p.order - logSum, date: todayStr(), adjustment: true });
+  });
+  saveGarmentOrders();
+  saveGarmentReceiveLogs();
+  try { renderGarmentOrderTab(); } catch (e) {}
+  try { renderReceivedByProductTab(); } catch (e) {}
+  try { renderCampaignTimelineTab(); } catch (e) {}
+  try { renderInboundAll(); } catch (e) {}
+  alert(`Done — ${plan.length} SKU line(s) trimmed, ${planB.length} reset to Qty Order. Reload the app on other devices so old values don't come back.`);
+}
+document.getElementById('fixGarmentDupLogsBtn').addEventListener('click', garmentFixDuplicateReceives);
 /* ---------- Garment Order: import from Excel/CSV ----------
    Template layout (see downloadGarmentTemplateBtn below): columns A-D are Batch No., Garment Name,
    SKU, Category — then columns E..N are a 10-wide size grid that means something different
@@ -31440,6 +31520,10 @@ function renderGarmentOrderTab() {
         .find(el => el.dataset.batch === batchNo && Number(el.dataset.sidx) === sidx);
       if (stationSelect && stationSelect.value) myStation = stationSelect.value;
     }
+    // Over-receive guard (Oct 14, 2026): identical repeat logs (e.g. "Mark Complete" pressed again from a stale screen) inflated Received to 3-6x Ordered.
+    { const ordQ = Number(batch.skus[sidx].qtyOrder) || 0, recQ = Number(batch.skus[sidx].qtyReceived) || 0;
+      if (ordQ > 0 && recQ + addQty > ordQ && !batch.skus[sidx].closedShort &&
+          !confirm(`Received would become ${formatQty(recQ + addQty)} but Qty Order is only ${formatQty(ordQ)} (already received ${formatQty(recQ)}). Log ${formatQty(addQty)} more anyway?`)) return; }
     batch.skus[sidx].qtyReceived = (Number(batch.skus[sidx].qtyReceived) || 0) + addQty;
     batch.skus[sidx].lastReceivedDate = todayStr();
     delete batch.skus[sidx].closedShort;
@@ -34430,7 +34514,34 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-try { document.title = document.title.replace(/ · build .*$/, '') + ' · build 14Oct-r87'; } catch (e) {}
+const APP_BUILD_LABEL = '14Oct-r94';
+const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
+try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
+// New-version notice (Oct 14, 2026): the hosted copy (http/https) records its build number in Firebase (AppMeta/latestBuild);
+// any open copy running an older build shows a bar asking to reload. Local file:// copies only read, never advance it.
+try {
+  let verRef = null;
+  const showBar = () => {
+    if (document.getElementById('appNewVersionBar')) return;
+    const bar = document.createElement('div');
+    bar.id = 'appNewVersionBar';
+    bar.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:99999;background:#c79b4a;color:#1b1814;padding:8px 14px;text-align:center;font-size:13px;font-weight:600;cursor:pointer;';
+    bar.textContent = 'A new version is available — click here to reload.';
+    bar.addEventListener('click', () => {
+      if (/^https?:$/.test(location.protocol)) location.href = location.pathname + '?v=' + Date.now(); else location.reload();
+    });
+    document.body.appendChild(bar);
+  };
+  setInterval(() => {
+    if (!fbDb || verRef) return;
+    verRef = fbDb.ref('AppMeta/latestBuild');
+    verRef.on('value', snap => {
+      const v = Number(snap.val()) || 0;
+      if (APP_BUILD_NUM > v) { if (/^https?:$/.test(location.protocol)) verRef.set(APP_BUILD_NUM).catch(() => {}); }
+      else if (v > APP_BUILD_NUM) showBar();
+    });
+  }, 3000);
+} catch (e) { console.warn('version watch failed', e); }
 </script>
 </body>
 </html>
