@@ -34700,9 +34700,19 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '14Oct-r101';
+const APP_BUILD_LABEL = '14Oct-r102';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
+// Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
+try {
+  const dl = document.getElementById('todayLabel');
+  if (dl && !document.getElementById('buildLabel')) {
+    const bl = document.createElement('div');
+    bl.id = 'buildLabel'; bl.className = 'sidebar-date'; bl.style.cssText = 'margin-top:-14px;margin-bottom:14px;opacity:0.75;font-size:11px;';
+    bl.textContent = 'Build ' + APP_BUILD_LABEL;
+    dl.parentNode.insertBefore(bl, dl.nextSibling);
+  }
+} catch (e) {}
 // New-version notice (Oct 14, 2026): the hosted copy (http/https) records its build number in Firebase (AppMeta/latestBuild);
 // any open copy running an older build shows a bar asking to reload. Local file:// copies only read, never advance it.
 try {
