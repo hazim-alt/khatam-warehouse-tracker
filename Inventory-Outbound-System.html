@@ -10094,6 +10094,12 @@ function applyServerSnapshot(table) {
           if (ls.lastReceivedDate) rs.lastReceivedDate = ls.lastReceivedDate;
           healed = true;
         }
+        // Short-close must survive a stale copy: a deliberate close here (closedShortAt newer than any reopen on the incoming copy) wins.
+        if (ls && ls.closedShort && ls.closedShortAt && !rs.closedShort && ls.closedShortAt > (rs.reopenedAt || 0)) {
+          rs.closedShort = ls.closedShort; rs.closedShortRemark = ls.closedShortRemark; rs.closedShortDate = ls.closedShortDate; rs.closedShortAt = ls.closedShortAt;
+          delete rs.reopenedAt;
+          healed = true;
+        }
       });
     });
     if (healed) remoteArr = copy;
@@ -31680,6 +31686,8 @@ function renderGarmentOrderTab() {
       s.closedShort = true;
       s.closedShortRemark = remark.trim();
       s.closedShortDate = todayStr();
+      s.closedShortAt = Date.now(); // lets sync tell a deliberate close from a stale copy
+      delete s.reopenedAt;
       saveGarmentOrders();
       renderGarmentOrderTab();
     });
@@ -31697,6 +31705,8 @@ function renderGarmentOrderTab() {
       delete s.closedShort;
       delete s.closedShortRemark;
       delete s.closedShortDate;
+      delete s.closedShortAt;
+      s.reopenedAt = Date.now();
       saveGarmentOrders();
       renderGarmentOrderTab();
     });
@@ -34514,7 +34524,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '14Oct-r94';
+const APP_BUILD_LABEL = '14Oct-r95';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // New-version notice (Oct 14, 2026): the hosted copy (http/https) records its build number in Firebase (AppMeta/latestBuild);
@@ -34532,13 +34542,28 @@ try {
     });
     document.body.appendChild(bar);
   };
+  // Auto-reload when a newer build exists and the user has been idle for 30s (at most once per 10 min, so a cached page can't loop).
+  let lastActivity = Date.now(), autoTimer = null;
+  ['keydown', 'mousedown', 'touchstart', 'input'].forEach(ev => document.addEventListener(ev, () => { lastActivity = Date.now(); }, true));
+  const scheduleAutoReload = () => {
+    if (autoTimer) return;
+    autoTimer = setInterval(() => {
+      if (Date.now() - lastActivity < 30000) return;
+      const el = document.activeElement;
+      if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) && el.value) return;
+      let last = 0; try { last = Number(localStorage.getItem('appAutoReloadAt')) || 0; } catch (e) {}
+      if (Date.now() - last < 10 * 60 * 1000) return;
+      try { localStorage.setItem('appAutoReloadAt', String(Date.now())); } catch (e) {}
+      if (/^https?:$/.test(location.protocol)) location.href = location.pathname + '?v=' + Date.now(); else location.reload();
+    }, 5000);
+  };
   setInterval(() => {
     if (!fbDb || verRef) return;
     verRef = fbDb.ref('AppMeta/latestBuild');
     verRef.on('value', snap => {
       const v = Number(snap.val()) || 0;
       if (APP_BUILD_NUM > v) { if (/^https?:$/.test(location.protocol)) verRef.set(APP_BUILD_NUM).catch(() => {}); }
-      else if (v > APP_BUILD_NUM) showBar();
+      else if (v > APP_BUILD_NUM) { showBar(); scheduleAutoReload(); }
     });
   }, 3000);
 } catch (e) { console.warn('version watch failed', e); }
