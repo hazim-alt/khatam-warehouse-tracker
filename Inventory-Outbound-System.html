@@ -9761,7 +9761,10 @@ function rmMarkDeletedAndPushNow(table, deletedSyncKeys) {
   if (fbDb && deletedSyncKeys && deletedSyncKeys.length) {
     const directDelete = {};
     deletedSyncKeys.forEach(key => { directDelete[fbSafeKey(key)] = null; });
-    fbDb.ref(table).update(directDelete).catch(e => {
+    const tombFirst = FB_PROTECTED_TABLES.has(table)
+      ? (() => { const tomb = {}; Object.keys(directDelete).forEach(k => { tomb[k] = FB_SV; }); return fbDb.ref('Deleted/' + table).update(tomb); })()
+      : Promise.resolve();
+    tombFirst.then(() => fbDb.ref(table).update(directDelete)).catch(e => {
       cloudSyncStatus = 'error';
       cloudSyncLastError = `${table} (delete): ${(e && e.message) || e}`;
       renderCloudSyncStatus();
@@ -9965,7 +9968,8 @@ function anySetupDirty() {
 // exists at Deleted/<table>/<key>, and only accept a write onto a tombstoned key when the record carries a newer _rv server timestamp. This client writes the
 // tombstone BEFORE deleting and stamps _rv on everything it pushes, so up-to-date devices work normally while OLD cached versions (which do neither) can neither
 // delete live records nor bring deleted ones back. _rv is stripped from every incoming snapshot so local data never contains it.
-const FB_PROTECTED_TABLES = new Set(['STO_Records', 'DO_Records', 'Fleet_Trips', 'Garment_Orders', 'Garment_Receive_Logs', 'Inbound_STO', 'RequestStock', 'Accessories_Receipts', 'ProductionDecisions', 'ProductionRmDecisions', 'PriceTag_Stickers', 'PriceTag_DOs']);
+const FB_PROTECTED_TABLES = new Set(['STO_Records', 'DO_Records', 'Fleet_Trips', 'Garment_Orders', 'Garment_Receive_Logs', 'Inbound_STO', 'RequestStock', 'Accessories_Receipts', 'ProductionDecisions', 'ProductionRmDecisions', 'PriceTag_Stickers', 'PriceTag_DOs',
+  'Users', 'Fleet_Drivers', 'Packing_Stations', 'Receive_Stations', 'Pickers', 'Staff_Roster', 'Rollcages', 'RawMaterial_Rolls', 'RawMaterial_Picks', 'RawMaterial_STOs', 'RawMaterial_DOs']);
 const FB_SV = { '.sv': 'timestamp' };
 function fbStripRvMap(map) {
   const out = {};
@@ -9974,6 +9978,15 @@ function fbStripRvMap(map) {
     if (r && typeof r === 'object' && '_rv' in r) { const c = Object.assign({}, r); delete c._rv; out[k] = c; } else out[k] = r;
   });
   return out;
+}
+// Deletes every record of a table the way the server-side rules require: tombstones first, then per-record deletes (never a table-level set(null)).
+async function fbWipeTable(table) {
+  const snap = await fbDb.ref(table).once('value');
+  const keys = Object.keys(snap.val() || {});
+  if (!keys.length) return;
+  if (FB_PROTECTED_TABLES.has(table)) { const tomb = {}; keys.forEach(k => { tomb[k] = FB_SV; }); await fbChunkedUpdate(fbDb.ref('Deleted/' + table), tomb); }
+  const nul = {}; keys.forEach(k => { nul[k] = null; });
+  await fbChunkedUpdate(fbDb.ref(table), nul);
 }
 const collectionPushInFlight = new Set();
 const fbKnownKeys = {}, fbKnownSig = {}; // table -> Set of record keys this device has held locally (persisted)
@@ -10234,7 +10247,9 @@ function pushPostponedDoNosDiff() {
   fbSetKnown('x_postponed', Object.keys(nowKeyed));
   if (!changed) return;
   fbLastServerSnapshot[FB_POSTPONED_DONOS_TABLE] = nowKeyed;
-  fbDb.ref(FB_POSTPONED_DONOS_TABLE).update(updateObj).catch(e => {
+  const postponedDel = Object.keys(updateObj).filter(k => updateObj[k] === null);
+  const postponedTomb = postponedDel.length ? (() => { const t = {}; postponedDel.forEach(k => { t[k] = FB_SV; }); return fbDb.ref('Deleted/' + FB_POSTPONED_DONOS_TABLE).update(t); })() : Promise.resolve();
+  postponedTomb.then(() => fbDb.ref(FB_POSTPONED_DONOS_TABLE).update(updateObj)).catch(e => {
     cloudSyncStatus = 'error';
     cloudSyncLastError = `Postponed DOs: ${(e && e.message) || e}`;
     renderCloudSyncStatus();
@@ -18016,7 +18031,7 @@ document.getElementById('resetRmBtn').addEventListener('click', async () => {
   // devices' listeners) doesn't get confused about what's now on the server.
   if (fbDb) {
     try {
-      await Promise.all(['RawMaterial_Rolls', 'RawMaterial_Picks', 'RawMaterial_STOs', 'RawMaterial_DOs'].map(t => fbDb.ref(t).set(null)));
+      await Promise.all(['RawMaterial_Rolls', 'RawMaterial_Picks', 'RawMaterial_STOs', 'RawMaterial_DOs'].map(t => fbWipeTable(t)));
       ['RawMaterial_Rolls', 'RawMaterial_Picks', 'RawMaterial_STOs', 'RawMaterial_DOs'].forEach(t => { fbLastServerSnapshot[t] = {}; });
       // Per Shaila (Oct 1, 2026 — even after this fix, a device still running the OLD app file kept
       // pushing its entire stale local copy back up within seconds of every delete, because its own
@@ -34720,7 +34735,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '14Oct-r103';
+const APP_BUILD_LABEL = '14Oct-r104';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
