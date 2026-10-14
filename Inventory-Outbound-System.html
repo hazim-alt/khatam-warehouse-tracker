@@ -9961,6 +9961,20 @@ function anySetupDirty() {
 // race documented in detail on itemMasterPushInFlight below) — most SYNC_COLLECTIONS tables are small
 // enough to always fit in one chunk so this rarely bites, but it costs nothing to guard every table
 // the same way in case one grows past the chunk size.
+// ---- Server-side delete protection (Oct 14, 2026): for these tables, Firebase Rules (see firebase-rules-protected.json) only accept a delete when a tombstone
+// exists at Deleted/<table>/<key>, and only accept a write onto a tombstoned key when the record carries a newer _rv server timestamp. This client writes the
+// tombstone BEFORE deleting and stamps _rv on everything it pushes, so up-to-date devices work normally while OLD cached versions (which do neither) can neither
+// delete live records nor bring deleted ones back. _rv is stripped from every incoming snapshot so local data never contains it.
+const FB_PROTECTED_TABLES = new Set(['STO_Records', 'DO_Records', 'Fleet_Trips', 'Garment_Orders', 'Garment_Receive_Logs', 'Inbound_STO', 'RequestStock', 'Accessories_Receipts', 'ProductionDecisions', 'ProductionRmDecisions', 'PriceTag_Stickers', 'PriceTag_DOs']);
+const FB_SV = { '.sv': 'timestamp' };
+function fbStripRvMap(map) {
+  const out = {};
+  Object.keys(map || {}).forEach(k => {
+    const r = map[k];
+    if (r && typeof r === 'object' && '_rv' in r) { const c = Object.assign({}, r); delete c._rv; out[k] = c; } else out[k] = r;
+  });
+  return out;
+}
 const collectionPushInFlight = new Set();
 const fbKnownKeys = {}, fbKnownSig = {}; // table -> Set of record keys this device has held locally (persisted)
 function fbGetKnown(table) {
@@ -10007,7 +10021,7 @@ function pushCollectionDiff(def, opts) {
   let changed = false;
   Object.keys(nowKeyed).forEach(k => {
     const prevStr = (prev[k] !== undefined) ? stableStringify(prev[k]) : undefined;
-    if (stableStringify(nowKeyed[k]) !== prevStr) { updateObj[k] = nowKeyed[k]; changed = true; }
+    if (stableStringify(nowKeyed[k]) !== prevStr) { updateObj[k] = FB_PROTECTED_TABLES.has(def.table) ? Object.assign({}, nowKeyed[k], { _rv: FB_SV }) : nowKeyed[k]; changed = true; }
   });
   // Oct 14, 2026 (per Shaila: "kalau tkde sapa2 yg delete tkkn hilang" — applies to EVERY table): a push may only delete a record this device itself
   // held in its own array (known keys, persisted across reloads). A record that merely appeared on the server and was never in THIS device's array
@@ -10036,7 +10050,13 @@ function pushCollectionDiff(def, opts) {
   if (!changed) return;
   fbLastServerSnapshot[def.table] = nowKeyed;
   collectionPushInFlight.add(def.table);
-  fbChunkedUpdate(fbDb.ref(def.table), updateObj).catch(e => {
+  const pushMain = () => fbChunkedUpdate(fbDb.ref(def.table), updateObj);
+  let pushAll;
+  if (FB_PROTECTED_TABLES.has(def.table) && deletedNow.length) {
+    const tomb = {}; deletedNow.forEach(d => { tomb[d.k] = FB_SV; });
+    pushAll = fbChunkedUpdate(fbDb.ref('Deleted/' + def.table), tomb).then(pushMain); // tombstone must exist BEFORE the delete is accepted
+  } else pushAll = pushMain();
+  pushAll.catch(e => {
     cloudSyncStatus = 'error';
     cloudSyncLastError = `${def.table}: ${(e && e.message) || e}`;
     renderCloudSyncStatus();
@@ -10189,7 +10209,7 @@ function applyServerSnapshot(table) {
 function attachCollectionListener(def) {
   if (!fbDb) return;
   fbDb.ref(def.table).on('value', snapshot => {
-    fbLastServerSnapshot[def.table] = snapshot.val() || {};
+    fbLastServerSnapshot[def.table] = FB_PROTECTED_TABLES.has(def.table) ? fbStripRvMap(snapshot.val()) : (snapshot.val() || {});
     applyServerSnapshot(def.table);
   }, error => {
     cloudSyncStatus = 'error';
@@ -22942,7 +22962,7 @@ async function initialCloudSync() {
   try {
     await Promise.all(SYNC_COLLECTIONS.map(async def => {
       const snap = await fbDb.ref(def.table).once('value');
-      const remoteObj = snap.val() || {};
+      const remoteObj = FB_PROTECTED_TABLES.has(def.table) ? fbStripRvMap(snap.val()) : (snap.val() || {});
       fbLastServerSnapshot[def.table] = remoteObj;
       const everMergedKey = fbEverMergedKey(def.table);
       if (!localStorage.getItem(everMergedKey)) {
@@ -34700,7 +34720,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '14Oct-r102';
+const APP_BUILD_LABEL = '14Oct-r103';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
