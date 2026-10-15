@@ -245,6 +245,25 @@
      tab version of Release Calendar fills the available viewport height the same way the TV Dashboard
      slide does (#tab-dashboard.active above), instead of sitting at its own small content height with
      empty page below it. */
+  #tab-dashboard-test.active { display: flex; flex-direction: column; zoom: 1.1; height: calc((100vh - 88px) / 1.1); }
+  #tab-dashboard-test table th, #tab-dashboard-test table td { font-size: 13px; }
+  /* Dark premium theme for Dashboard Test (per Shaila's mockup) — scoped */
+  #tab-dashboard-test.active { height: auto; overflow: visible; }
+  #tab-dashboard-test:fullscreen * { scrollbar-width: none; }
+  #tab-dashboard-test:fullscreen *::-webkit-scrollbar { display: none; }
+  #tab-dashboard-test.active #dashTestWrap { flex: none; display: block; }
+  #tab-dashboard-test table th { font-size: 12px; }
+  #tab-dashboard-test tr.dt-high td { background: rgba(224,88,74,.10); }
+  #tab-dashboard-test tr.dt-flash td { animation: dtFlash 1.2s ease-in-out infinite; }
+  @keyframes dtFlash { 0%,100% { background: rgba(224,88,74,.10); } 50% { background: rgba(224,88,74,.45); } }
+  #tab-dashboard-test .dt-scroll thead th { position: sticky; top: 0; z-index: 1; background: var(--card, #211c19); }
+  #tab-dashboard-test .rn-cell { color: var(--text-muted); }
+  #tab-dashboard-test.active > .card { flex: none; }
+  #tab-dashboard-test .dt-bottom { height: auto; flex: none; align-items: stretch; }
+  #tab-dashboard-test .dt-scroll table th { padding: 6px 8px; font-size: 11px; letter-spacing: .05em; }
+  #tab-dashboard-test .dt-scroll table td { padding: 8px 8px; font-size: 13px; }
+  #tab-dashboard-test .dt-scroll .rn-cell { width: 30px; text-align: center; padding-left: 4px; padding-right: 4px; }
+  #tab-dashboard-test:fullscreen { background: var(--bg); padding: 16px 24px; overflow: hidden; zoom: var(--dt-z, 1.1); width: calc(100vw / var(--dt-z, 1.1)); height: calc(100vh / var(--dt-z, 1.1)); }
   #tab-production-release-calendar.active { display: flex; flex-direction: column; height: calc(100vh - 88px); }
   #tab-production-release-calendar.active > .card { flex: 1; min-height: 0; }
   /* The -88px above accounts for `main`'s own top/bottom padding (28px + 60px), which the
@@ -1586,6 +1605,8 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
   <button type="button" class="btn-ghost" id="deviceStationBtn" style="width:100%; text-align:left; padding:4px 10px; font-size:11px; margin:0 0 10px;">📍 <span id="deviceStationBtnLabel">This device's station: — none —</span></button>
   <nav class="tabs">
     <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+    <button class="tab-btn" data-tab="dashboard-test">Dashboard Test</button>
+    <button class="tab-btn" data-tab="release-schedule">Release Schedule</button>
     <button class="tab-btn" data-tab="bulk-qc-result">Bulk QC/Distribution Result</button>
     <button type="button" class="nav-group-toggle" id="navGroupRawMaterialToggle" data-group="navGroupRawMaterial">
       <span>Raw Material</span><span class="nav-group-chevron">▾</span>
@@ -1861,6 +1882,12 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
           <div id="campaignTimelineDashCalendarHeader" style="flex-shrink:0;"></div>
           <div id="campaignTimelineDashCalendarWrap" style="display:flex; flex-direction:column; justify-content:center; flex:1; min-height:0; overflow-y:auto; overflow-x:hidden;"></div>
         </div>
+      </div>
+
+      <div class="dash-slide" data-slide="distribution">
+        <p class="section-title">Distribution Status (Finished Goods)</p>
+        <div id="dashDistKpi" style="margin-bottom:18px;"></div>
+        <div id="dashDistWrap" style="overflow-y:auto;"></div>
       </div>
     </div>
   </section>
@@ -3169,6 +3196,31 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
     </div>
   </section>
 
+  <section class="tab-panel" id="tab-release-schedule">
+    <p class="section-title">Release Schedule</p>
+    <div class="card">
+      <div class="data-note" style="margin-bottom:12px;">Pick a Series from Timeline and its products fill in automatically (you can edit them). Add the collection release dates here manually. The Collection Release Calendar slide (Dashboard Test) shows ONLY what is added on this page.</div>
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:12px; align-items:start;">
+        <div><label style="font-size:12px; color:var(--text-muted);">Series / Collection</label><select id="rsSeries" style="width:100%;"><option value="">Select series…</option></select><input type="text" id="rsSeriesNew" placeholder="…or type a new series name" style="width:100%; margin-top:6px;"></div>
+        <div><label style="font-size:12px; color:var(--text-muted);">Products (one per line)</label><textarea id="rsProducts" rows="3" placeholder="Product name&#10;Product name" style="width:100%;"></textarea></div>
+        <div><label style="font-size:12px; color:var(--text-muted);">Release Date</label><input type="date" id="rsDate" style="width:100%;"></div>
+      </div>
+      <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
+        <button type="button" class="btn-primary" id="rsSaveBtn">+ Add Release</button>
+        <button type="button" class="btn-ghost" id="rsCancelBtn" style="display:none;">Cancel edit</button>
+        <button type="button" class="btn-ghost" id="rsPullBtn">Pull products from Timeline</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px;"><div id="rsListWrap"></div></div>
+  </section>
+
+  <section class="tab-panel" id="tab-dashboard-test">
+    <div style="display:flex; align-items:center; gap:12px;"><p class="section-title" style="flex:1;">Dashboard Test</p><div id="dtNav" style="display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-shrink:0;"><button type="button" class="btn-ghost" id="dtPrev" style="padding:2px 10px;">‹</button><span id="dtDots" style="display:flex; gap:6px; align-items:center;"></span><button type="button" class="btn-ghost" id="dtNext" style="padding:2px 10px;">›</button><button type="button" class="btn-ghost" id="dtPlay" style="padding:2px 10px;">⏸</button></div><button type="button" class="btn-ghost" id="dashTestFsBtn" style="flex-shrink:0; margin-bottom:12px;">⛶ Full Screen</button></div>
+    <div class="card">
+      <div id="dashTestWrap"><div id="dtSlide1"></div><div id="dtSlide2" style="display:none;"></div></div>
+    </div>
+  </section>
+
   <section class="tab-panel" id="tab-bulk-qc-result">
     <p class="section-title">Bulk QC/Distribution Result</p>
     <div class="card">
@@ -3182,6 +3234,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
         <button type="button" class="btn-ghost" id="bqrCollapseAllBtn">Collapse all</button>
       </div>
       <div id="bqrKpiGrid" class="kpi-grid" style="grid-template-columns: repeat(4, 1fr); margin:12px 0;"></div>
+      <div id="bqrDistKpiGrid" class="kpi-grid" style="grid-template-columns: repeat(5, 1fr); margin:0 0 12px;"></div>
       <div style="display:flex; gap:10px; flex-wrap:wrap; margin:12px 0;">
         <input type="text" id="bqrSearch" placeholder="Search series / product / supplier / boutique..." style="flex:1; min-width:200px;">
         <select id="bqrSeries" style="width:auto;"><option value="">All Series</option></select>
@@ -6018,6 +6071,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'inbound-garment-receiving') renderGarmentRecvSummaryTab();
     if (btn.dataset.tab === 'inbound-sto') renderInboundStoTab();
     if (btn.dataset.tab === 'inbound-board') renderInboundKanban();
+    if (btn.dataset.tab === 'dashboard-test') renderDashTest();
+    if (btn.dataset.tab === 'release-schedule') renderReleaseScheduleTab();
     if (btn.dataset.tab === 'inbound-sla') renderInboundSlaTab();
     if (btn.dataset.tab === 'inbound-fg-arriving') renderFgArrivingTab();
     if (btn.dataset.tab === 'rm-fabric-arriving') renderFabricArrivingTab();
@@ -6082,7 +6137,7 @@ document.querySelectorAll('.nav-group-toggle').forEach(toggle => {
 // Campaign Timeline slide removed (Sep 28, 2026 — "Campaign Timeline boleh delete slide ni"): its
 // Fabric/FG Arriving Soon widgets already live on the Raw Material and Inbound slides respectively.
 // Re-ordered per Shaila's request (Sep 28, 2026 — "susun semula slide jadi macam ni").
-const DASH_SLIDES = ['raw-material', 'inbound', 'outbound', 'fleet', 'release-calendar'];
+const DASH_SLIDES = ['raw-material', 'inbound', 'outbound', 'fleet', 'release-calendar', 'distribution'];
 const DASH_SLIDE_INTERVAL_MS = 30000;   // Oct 5, 2026: 15s -> 30s per slide (per Shaila)
 let dashSlideIndex = 0;
 let dashSlideTimer = null;
@@ -6111,6 +6166,7 @@ function goToDashSlide(idx) {
   if (current === 'fleet') renderFleetDashboard();
   if (current === 'raw-material') renderRawMaterialDashboard();
   if (current === 'release-calendar') renderDashReleaseCalendarSlide();
+  if (current === 'distribution') renderDashDistributionSlide();
 }
 
 function restartDashSlideTimer() {
@@ -9368,6 +9424,8 @@ const PERMISSION_TABS = [
   { id: 'production-restock', label: 'Restock Status (Production)' },
   { id: 'production-received-product', label: 'Received by Product (Production)' },
   { id: 'production-bulk-qc', label: 'Bulk QC (Production)' },
+  { id: 'dashboard-test', label: 'Dashboard Test' },
+  { id: 'release-schedule', label: 'Release Schedule' },
   { id: 'bulk-qc-result', label: 'Bulk QC/Distribution Result' },
   { id: 'production-timeline', label: 'Timeline (Production)' },
   { id: 'production-release-calendar', label: 'Release Calendar (Production)' },
@@ -14478,7 +14536,7 @@ let bqrExpandAll = false;
 function bqrGroupedBody(shown, rowFn, cols, field, headTds) {
   const groups = new Map();
   shown.forEach(r => { const k = r.series || '-'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); });
-  const forceOpen = bqrExpandAll || !!(document.getElementById('bqrSearch').value || '').trim() || !!document.getElementById('bqrSeries').value;
+  const forceOpen = bqrExpandAll || !!(document.getElementById('bqrSearch').value || '').trim() || !!document.getElementById('bqrSeries').value || !!bqrDistFilter;
   return [...groups.keys()].sort((a, b) => a.localeCompare(b)).map(name => {
     const list = groups.get(name);
     const cnt = k => list.filter(r => bqcStatusKey(r[field]) === k).length;
@@ -14579,6 +14637,8 @@ setTimeout(bqrUpdateNotify, 1500);
 let bqrDistMap = {}, bqrDistStarted = false;
 try { bqrDistMap = JSON.parse(localStorage.getItem('bqrDistLocalV1') || '{}') || {}; } catch (e) { bqrDistMap = {}; }
 const BQR_DIST_STATUSES = ['Not distributed', 'STO Created', 'Picking / Packing', 'In Transit', 'Distributed'];
+let bqrDistFilter = '';
+function bqrDistStatusOf(r) { const v = bqrDistMap[fbSafeKey(r.id)] || {}; return v.status || (v.done ? 'Distributed' : 'Not distributed'); }
 function bqrDistKey(r) { return fbSafeKey(r.id); }
 function bqrIsDist(r) { const v = bqrDistMap[bqrDistKey(r)]; return !!(v && v.done); }
 function bqrDistStart() {
@@ -14589,6 +14649,7 @@ function bqrDistStart() {
       bqrDistMap = snap.val() || {};
       try { localStorage.setItem('bqrDistLocalV1', JSON.stringify(bqrDistMap)); } catch (e) {}
       if (bqrTabActive()) renderBqrTab();
+      const ds = document.querySelector('.dash-slide.active[data-slide="distribution"]'); if (ds) renderDashDistributionSlide();
     }, () => { bqrDistStarted = false; });
   } catch (e) { bqrDistStarted = false; }
 }
@@ -14607,6 +14668,479 @@ function bqrDistSet(key, status) {
   if (fbDb) { try { fbDb.ref('BqrDistrib/' + key).set(rec).catch(() => {}); } catch (e) {} }
   renderBqrTab();
 }
+// Dashboard slide: Distribution Status summary (FG items with finished QC), from the same BqrDistrib data as the Action column.
+function renderDashDistributionSlide() {
+  const kpi = document.getElementById('dashDistKpi'), wrap = document.getElementById('dashDistWrap');
+  if (!kpi || !wrap) return;
+  bqrDistStart();
+  const rows = (campaignTimelineList || []).filter(r => ['pass', 'pass-with', 'fail'].includes(bqcStatusKey(r.qcFg)));
+  const E = escapeHtml;
+  // Plain 3-step view: Not started -> In progress (STO Created / Picking / In Transit) -> Done (Distributed)
+  const stage = r => { const st = bqrDistStatusOf(r); return st === 'Distributed' ? 'done' : st === 'Not distributed' ? 'todo' : 'doing'; };
+  const C = { todo: '#e0584a', doing: '#e0a23a', done: '#3fb27f' };
+  const total = rows.length;
+  const n = k => rows.filter(r => stage(r) === k).length;
+  const card = (k, icon, label, hint) => `<div style="flex:1;min-width:200px;background:var(--card);border:2px solid ${C[k]};border-radius:14px;padding:18px 22px;"><div style="font-size:15px;font-weight:700;color:${C[k]};">${icon} ${label}</div><div style="font-family:'NumLining',Georgia,serif;font-size:64px;line-height:1.1;color:var(--text);">${n(k)}</div><div style="font-size:13px;color:var(--text-muted);">${hint}</div></div>`;
+  kpi.innerHTML = `<div style="font-size:20px;margin-bottom:12px;color:var(--text);">Items sent to boutiques: <strong style="color:${C.done};font-size:26px;">${n('done')}</strong> of ${total}</div>`
+    + `<div style="display:flex;gap:16px;flex-wrap:wrap;">${card('todo', '⏳', 'NOT STARTED', 'Waiting to be sent')}${card('doing', '🚚', 'IN PROGRESS', 'STO created, packing or on the way')}${card('done', '✅', 'DONE', 'Received by boutique / distributed')}</div>`;
+  if (!rows.length) { wrap.innerHTML = '<div class="empty-state">No finished QC result yet.</div>'; return; }
+  const groups = new Map();
+  rows.forEach(r => { const k = r.series || '-'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); });
+  const info = [...groups.entries()].map(([name, list]) => {
+    const d = list.filter(r => stage(r) === 'done').length;
+    const k = d === list.length ? 'done' : (d > 0 || list.some(r => stage(r) === 'doing')) ? 'doing' : 'todo';
+    return { name, total: list.length, d, k };
+  });
+  const order = { todo: 0, doing: 1, done: 2 };
+  info.sort((a, b) => order[a.k] - order[b.k] || a.name.localeCompare(b.name));
+  const word = { todo: 'Not started', doing: 'In progress', done: 'Done' };
+  wrap.innerHTML = '<div style="font-size:13px;color:var(--text-muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;">By series (what still needs action is on top)</div>'
+    + info.map(g => `<div style="display:flex;align-items:center;gap:18px;padding:10px 4px;border-bottom:1px solid var(--border);"><div style="flex:0 0 22%;font-size:20px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${E(g.name)}</div><div style="flex:1;height:14px;background:var(--border);border-radius:7px;overflow:hidden;"><div style="height:100%;width:${Math.round(g.d / g.total * 100)}%;background:${C.done};"></div></div><div style="flex:0 0 90px;text-align:right;font-size:20px;color:var(--text);">${g.d} / ${g.total}</div><div style="flex:0 0 130px;text-align:center;font-size:14px;font-weight:700;color:#1b1714;background:${C[g.k]};border-radius:20px;padding:5px 0;">${word[g.k]}</div></div>`).join('');
+}
+
+// ===== Dashboard Test (mockup-style one-screen dashboard, real data) =====
+function dtDonut(pct, color, size, thick, centerHtml) {
+  const r = (size - thick) / 2, c = 2 * Math.PI * r, p = Math.max(0, Math.min(100, pct));
+  return `<div style="position:relative;width:${size}px;height:${size}px;flex:0 0 auto;"><svg width="${size}" height="${size}" style="transform:rotate(-90deg);"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="var(--border)" stroke-width="${thick}"/><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${color}" stroke-width="${thick}" stroke-linecap="round" stroke-dasharray="${(c * p / 100).toFixed(1)} ${c.toFixed(1)}"/></svg><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${Math.round(size / 4.2)}px;">${centerHtml != null ? centerHtml : Math.round(p) + '%'}</div></div>`;
+}
+function dtMultiDonut(parts, size, thick, centerHtml) {
+  const r = (size - thick) / 2, c = 2 * Math.PI * r, tot = parts.reduce((a, b) => a + b.n, 0) || 1;
+  let off = 0;
+  const arcs = parts.filter(x => x.n).map(x => { const len = c * x.n / tot; const el = `<circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${x.color}" stroke-width="${thick}" stroke-dasharray="${len.toFixed(1)} ${(c - len).toFixed(1)}" stroke-dashoffset="${(-off).toFixed(1)}"/>`; off += len; return el; }).join('');
+  return `<div style="position:relative;width:${size}px;height:${size}px;flex:0 0 auto;"><svg width="${size}" height="${size}" style="transform:rotate(-90deg);"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="var(--border)" stroke-width="${thick}"/>${arcs}</svg><div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">${centerHtml}</div></div>`;
+}
+function dtBars(vals, labels, color) {
+  const mx = Math.max(1, ...vals), W = 420, H = 150, bw = 30;
+  const step = (W - 20) / vals.length;
+  return `<svg viewBox="0 0 ${W} ${H + 18}" style="width:100%;height:100%;min-height:110px;">${vals.map((v, i) => { const h = Math.max(2, v / mx * (H - 28)), x = 10 + i * step + (step - bw) / 2; return `<rect x="${x}" y="${H - h}" width="${bw}" height="${h}" rx="3" fill="${color}"/><text x="${x + bw / 2}" y="${H - h - 4}" font-size="11" text-anchor="middle" fill="currentColor">${v}</text><text x="${x + bw / 2}" y="${H + 13}" font-size="10" text-anchor="middle" fill="var(--text-muted)">${labels[i]}</text>`; }).join('')}</svg>`;
+}
+function renderDashTest() {
+  const wrap = document.getElementById('dtSlide1');
+  if (!wrap) return;
+  bqrDistStart();
+  const E = escapeHtml, fmt = n => (typeof formatQty === 'function' ? formatQty(Math.round(n)) : String(Math.round(n)));
+  const G = '#6fbf8a', B = '#6aaee8', A = '#e0b860', R = '#e0584a', P = '#9a8be0', IN = '#5b9be0', OUT = '#79c28f', INL = '#d9c7a0';
+  const num = v => parseFloat(v) || 0;
+  const today = todayStr();
+  const dayOff = n => { const d = new Date(); d.setDate(d.getDate() + n); return toIsoLocal(d); };
+  const yest = dayOff(-1);
+  const days = []; for (let i = 6; i >= 0; i--) days.push(dayOff(-i));
+  const dl = d => d.slice(8) + '/' + d.slice(5, 7);
+  const pctOf = (a, b) => b ? Math.round(a / b * 100) : 0;
+  const tint = { [G]: 'rgba(111,191,138,.16)', [A]: 'rgba(224,184,96,.16)', [B]: 'rgba(106,174,232,.16)', [R]: 'rgba(224,88,74,.18)' };
+  const badge = (t, c) => `<span style="background:${tint[c] || 'rgba(255,255,255,.08)'};color:${tint[c] ? c : 'var(--text)'};font-size:11px;font-weight:700;border-radius:12px;padding:3px 10px;white-space:nowrap;">● ${E(t)}</span>`;
+  const stCol = st => st === 'Completed' ? G : st === 'In Progress' ? B : st === 'Pending' ? A : 'var(--border)';
+  const stOf = (a, b) => !b ? 'No data' : a >= b ? 'Completed' : a > 0 ? 'In Progress' : 'Pending';
+
+  // ---------- OUTBOUND (STO batch) ----------
+  const active = outboundActiveRecords();
+  const dates = new Set(active.map(r => r.createdDate).filter(Boolean));
+  const real = records.filter(r => !senaraiIsExcludedBoutique(r.toWarehouse));
+  const batch = dates.size ? real.filter(r => dates.has(r.createdDate)) : active;
+  const bq = batch.reduce((a, r) => a + num(r.totalOrderQty), 0);
+  const qSum = (list, f) => list.filter(f).reduce((a, r) => a + num(r.totalOrderQty), 0);
+  const outPick = qSum(batch, r => r.pickingCompletedDate || r.progress === 'Shipped');
+  const outPack = qSum(batch, r => r.packingCompletedDate || r.progress === 'Shipped');
+  const outShip = qSum(batch, r => r.progress === 'Shipped');
+  const outSto = batch.filter(r => r.progress === 'Shipped').length;
+  const late = active.filter(r => computeAmaran(r) === 'LATE');
+  const outTodayQty = d => qSum(real, r => r.issuedDoDate === d);
+
+  // ---------- INBOUND ----------
+  const inb = typeof inboundRecords !== 'undefined' ? inboundRecords : [];
+  const inbQty = inb.reduce((a, r) => a + num(r.totalOrderQty), 0);
+  const inbDoneQty = qSum(inb, r => r.receivingCompletedDate);
+  const gos = typeof garmentOrders !== 'undefined' ? garmentOrders : [];
+  let gO = 0, gR = 0;
+  gos.forEach(o => (o.skus || []).forEach(k => { gO += num(k.qtyOrder); gR += Math.min(num(k.qtyReceived), num(k.qtyOrder)); }));
+  const gLog = d => garmentReceiveLogs.filter(l => l.date === d && !l.adjustment && num(l.qty) > 0).reduce((a, l) => a + num(l.qty), 0);
+  const inDay = d => qSum(inb, r => r.receivingCompletedDate === d) + gLog(d);
+  const inToday = inDay(today), inYest = inDay(yest);
+  const inTarget = (typeof inboundBacklogQty === 'function' ? inboundBacklogQty() : 0) + inToday;
+  const outToday = outTodayQty(today), outYest = outTodayQty(yest);
+  const totToday = inToday + outToday, totYest = inYest + outYest;
+  const chg = totYest ? Math.round((totToday - totYest) / totYest * 100) : null;
+
+  // ---------- other ----------
+  const rolls = typeof rawMaterialRolls !== 'undefined' ? rawMaterialRolls : [];
+  const inStock = rolls.filter(r => num(r.meterRemaining) > 0).length;
+  const fg = (campaignTimelineList || []).filter(r => ['pass', 'pass-with', 'fail'].includes(bqcStatusKey(r.qcFg)));
+  const fgDone = fg.filter(r => bqrDistStatusOf(r) === 'Distributed').length;
+  const fgFail = fg.filter(r => bqcStatusKey(r.qcFg) === 'fail');
+  const pendingTasks = active.length + inb.filter(r => !r.receivingCompletedDate).length + gos.filter(o => (o.skus || []).some(k => num(k.qtyReceived) < num(k.qtyOrder)) && !o.closedShort).length;
+
+  // ---------- put away (garment SKU lines) ----------
+  const skuLines = []; gos.forEach(o => (o.skus || []).forEach(k => skuLines.push(k)));
+  const recvLines = skuLines.filter(k => num(k.qtyReceived) > 0 && (k.putawayAssignments || []).length);
+  const paDone = k => (k.putawayAssignments || []).length && (k.putawayAssignments || []).every(x => x.status === 'done');
+  const paTarget = recvLines.reduce((a, k) => a + num(k.qtyReceived), 0);
+  const paActual = recvLines.filter(paDone).reduce((a, k) => a + num(k.qtyReceived), 0);
+  const paDay = d => recvLines.filter(k => paDone(k) && (k.putawayAssignments || []).some(x => x.doneDate === d)).reduce((a, k) => a + num(k.qtyReceived), 0);
+  const paPendingLines = recvLines.filter(k => !paDone(k)).length;
+
+  // ---------- KPI row ----------
+  const recvTarget = gO + inbQty, recvActual = gR + inbDoneQty;
+  const inTot = recvTarget + paTarget, inAct = recvActual + paActual;
+  const stoProc = batch.filter(r => (r.progress || 'Active') !== 'Active').length;
+  const outTot = batch.length + bq * 3, outAct = stoProc + outPick + outPack + outShip;
+  const doneCount = outSto + inb.filter(r => r.receivingCompletedDate).length;
+  const stoPend0 = inb.filter(r => !r.receivingCompletedDate).length, gPend0 = skuLines.filter(k => num(k.qtyReceived) < num(k.qtyOrder)).length;
+  const inPend = stoPend0 + gPend0 + paPendingLines, inPendAll = inb.length + skuLines.length + recvLines.length;
+  const sPendActive = batch.filter(r => (r.progress || 'Active') === 'Active').length;
+  const kc = (icon, label, sub, big, sub2, right) => `<div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px;margin:0;"><div style="display:flex;align-items:center;gap:14px;"><div style="width:52px;height:52px;border-radius:50%;border:1px solid #6b5a3a;background:rgba(224,184,96,.08);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">${icon}</div><div><div style="font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">${label}</div><div style="font-family:'NumLining',Georgia,serif;font-size:36px;line-height:1.1;">${big}</div><div style="font-size:12px;color:var(--text-muted);">${sub2}</div></div></div>${right}</div>`;
+  const chgHtml = chg == null ? '<div style="color:var(--text-muted);font-size:12px;">no data yesterday</div>' : `<div style="text-align:center;"><div style="background:${chg >= 0 ? 'rgba(111,191,138,.16)' : 'rgba(224,88,74,.18)'};color:${chg >= 0 ? G : R};font-weight:700;border-radius:8px;padding:4px 10px;">${chg >= 0 ? '↑' : '↓'} ${Math.abs(chg)}%</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px;">vs. yesterday</div></div>`;
+  const kpis = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;flex-shrink:0;">`
+    + kc('📦', 'Pending Tasks (Inbound)', '', inPend, `Garment ${gPend0} · STO ${stoPend0} · Put Away ${paPendingLines}`, dtDonut(pctOf(inPend, inPendAll), R, 64, 8))
+    + kc('📥', 'Inbound Progress', '', `${fmt(inAct)} <span style="font-size:20px;color:var(--text-muted);">/ ${fmt(inTot)}</span>`, 'Receiving + Put Away', dtDonut(pctOf(inAct, inTot), IN, 64, 8))
+    + kc('📤', 'Outbound Progress', '', `${fmt(outAct)} <span style="font-size:20px;color:var(--text-muted);">/ ${fmt(outTot)}</span>`, 'Picking + Packing + Dispatch + STO', dtDonut(pctOf(outAct, outTot), OUT, 64, 8))
+    + kc('✅', 'Pending Tasks (Outbound)', '', active.length, `${late.length} late · ${sPendActive} not started`, dtDonut(pctOf(active.length, batch.length || active.length), R, 64, 8))
+    + `</div>`;
+
+  // ---------- progress panels ----------
+  const stTxt = pc => pc >= 100 ? ['Completed', G] : pc >= 70 ? ['On Track', G] : pc > 0 ? ['In Progress', A] : ['Pending', A];
+  const trow = (name, a, b, color) => { const pc = pctOf(a, b), st = b ? stTxt(pc) : ['No data', 'var(--border)']; return `<tr><td><strong>${name}</strong></td><td style="text-align:right;">${fmt(b)}</td><td style="text-align:right;">${fmt(a)}</td><td style="min-width:120px;"><div style="display:flex;align-items:center;gap:8px;"><div style="flex:1;height:9px;background:var(--border);border-radius:5px;overflow:hidden;"><div style="height:100%;width:${Math.min(100, pc)}%;background:${color};"></div></div><span style="font-size:12px;">${pc}%</span></div></td><td>${badge(st[0], st[1])}</td></tr>`; };
+  const phead = '<thead><tr><th>Process</th><th style="text-align:right;">Target</th><th style="text-align:right;">Actual</th><th>Progress</th><th>Status</th></tr></thead>';
+  const panel = (color, icon, title, subtitle, tgt, done, rows, charts, extra) => `<div class="card" style="margin:0;padding:0;overflow:hidden;display:flex;flex-direction:column;flex:none;border:1px solid ${color === '#1c3f6e' ? '#2d5a94' : '#2d6a4a'};background:${color === '#1c3f6e' ? 'linear-gradient(180deg,rgba(40,90,160,.16),rgba(15,25,45,.3))' : 'linear-gradient(180deg,rgba(40,120,80,.16),rgba(15,35,25,.3))'};"><div style="background:linear-gradient(90deg,${color},rgba(0,0,0,.15));color:#fff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;"><span><strong style="font-size:16px;">${icon} ${title}</strong> <span style="font-size:12px;opacity:.85;">${subtitle}</span></span><span style="font-size:12px;">Target <strong>${fmt(tgt)}</strong> &nbsp;&nbsp; Completed <strong>${fmt(done)} (${pctOf(done, tgt)}%)</strong></span></div><div style="padding:8px 14px 4px;flex-shrink:0;"><div style="font-size:13px;font-weight:700;margin-bottom:4px;">Process Performance</div><table>${phead}<tbody>${rows}</tbody></table></div><div style="display:grid;grid-template-columns:${charts.cols};gap:12px;padding:6px 14px 10px;min-height:190px;">${charts.html}</div>${extra || ''}</div>`;
+  const sub = (title, inner) => `<div style="border:1px solid var(--border);background:rgba(0,0,0,.18);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;min-height:170px;"><div style="font-size:13px;font-weight:700;margin-bottom:6px;flex-shrink:0;">${title}</div><div style="flex:1;min-height:0;">${inner}</div></div>`;
+  const legend = items => `<div style="font-size:12px;flex:1;max-height:100%;overflow:hidden;">${items.map(([l, c, v, p]) => `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c};margin-right:7px;"></span>${E(l)}</span><strong>${p}%</strong></div>`).join('')}</div>`;
+  const donutBox = (items, total, label) => `<div style="display:flex;align-items:center;gap:12px;height:100%;">${dtMultiDonut(items.map(([l, c, v]) => ({ n: v, color: c })), 110, 16, `<div style="font-size:18px;font-weight:700;">${fmt(total)}</div><div style="font-size:10px;color:var(--text-muted);">${label}</div>`)}${legend(items.map(([l, c, v]) => [l, c, v, pctOf(v, total)]))}</div>`;
+  const bars2 = (v1, v2, labels, c1, c2) => { const mx = Math.max(1, ...v1, ...v2), W = 420, H = 140, bw = 14, step = (W - 20) / v1.length; return `<div style="display:flex;gap:14px;font-size:11px;color:var(--text-muted);"><span style="color:${c1};">● Receiving</span><span style="color:${c2};">● Put Away</span></div><svg viewBox="0 0 ${W} ${H + 18}" style="width:100%;height:calc(100% - 18px);min-height:100px;">${v1.map((v, i) => { const x = 10 + i * step + (step - bw * 2 - 2) / 2, h1 = Math.max(2, v / mx * (H - 20)), h2 = Math.max(2, v2[i] / mx * (H - 20)); return `<rect x="${x}" y="${H - h1}" width="${bw}" height="${h1}" rx="2" fill="${c1}"/><rect x="${x + bw + 2}" y="${H - h2}" width="${bw}" height="${h2}" rx="2" fill="${c2}"/><text x="${x + bw}" y="${H + 13}" font-size="10" text-anchor="middle" fill="var(--text-muted)">${labels[i]}</text>`; }).join('')}</svg>`; };
+
+  // inbound
+  const gTot = gR, sTot = inbDoneQty, inTotRecv = gTot + sTot;
+  const inRows = trow('Receiving', recvActual, recvTarget, IN) + trow('Put Away', paActual, paTarget, INL);
+  const stoPend = inb.filter(r => !r.receivingCompletedDate).length, gPend = skuLines.filter(k => num(k.qtyReceived) < num(k.qtyOrder)).length;
+  const pendStrip = `<div style="margin:0 14px 12px;display:grid;grid-template-columns:1fr 1.4fr;gap:12px;flex-shrink:0;"><div style="border:1px solid var(--border);background:rgba(0,0,0,.18);border-radius:10px;padding:8px 14px;display:flex;align-items:center;gap:12px;"><div style="width:40px;height:40px;border-radius:50%;border:1px solid #6b5a3a;display:flex;align-items:center;justify-content:center;">📦</div><div><strong>Inbound Pending</strong><div style="font-family:'NumLining',Georgia,serif;font-size:22px;line-height:1.1;">${stoPend + gPend + paPendingLines}</div></div><div style="font-size:11px;color:var(--text-muted);">not received / awaiting putaway</div></div><div style="border:1px solid var(--border);background:rgba(0,0,0,.18);border-radius:10px;padding:8px 14px;"><strong style="font-size:13px;">Top Pending</strong><div style="font-size:12px;color:var(--text-muted);margin-top:4px;">• Garment SKU not received (${gPend}) &nbsp; • Boutique STO not received (${stoPend}) &nbsp; • Put Away (${paPendingLines})</div></div></div>`;
+  const inPanel = panel('#1c3f6e', '📥', 'INBOUND', 'Receiving & Put Away', inTot, inAct, inRows,
+    { cols: '1fr 1.4fr', html: sub('Inbound by Type', donutBox([['Garment', IN, gTot], ['Boutique STO', INL, sTot]], inTotRecv, 'Received')) + sub('Receiving vs Put Away (pcs, 7 days)', bars2(days.map(inDay), days.map(paDay), days.map(dl), IN, INL)) });
+
+  // outbound
+  const byB = new Map(); batch.forEach(r => { const z = ((sla.zoneByButik || {})[r.toWarehouse] || '').trim() || 'No Zone'; byB.set(z, (byB.get(z) || 0) + num(r.totalOrderQty)); });
+  const topB = [...byB.entries()].sort((a, b) => b[1] - a[1]);
+  const zoneCol = { 'Klang Valley': '#79c28f', 'Utara': '#5b9be0', 'Pantai Timur': '#e0b860', 'Selatan': '#c07be0', 'No Zone': '#8a8178' };
+  const dest = topB.map(([n, v], i) => [n, zoneCol[n] || `hsl(${Math.round((i * 137.5) % 360)},45%,55%)`, v]);
+  const dTot = dest.reduce((a, x) => a + x[2], 0);
+  const sCompleted = outSto, sInProg = batch.filter(r => ['Picking', 'Packing', 'Packed'].includes(r.progress)).length, sPending = batch.filter(r => (r.progress || 'Active') === 'Active').length;
+  const outRows = trow('Order / STO Processing', stoProc, batch.length, OUT) + trow('Picking', outPick, bq, OUT) + trow('Packing', outPack, bq, OUT) + trow('Dispatch', outShip, bq, OUT);
+  const outPanel = panel('#1c4a35', '📤', 'OUTBOUND', 'Picking + Packing + Dispatch + STO', outTot, outAct, outRows,
+    { cols: '1fr 1fr', html: sub('Outbound by Zone', donutBox(dest, dTot, 'Pcs')) + sub('Order / STO Status', donutBox([['Completed', G, sCompleted], ['In Progress', B, sInProg], ['Pending', A, sPending]], batch.length, 'Total Orders')) });
+
+  // ---------- bottom row ----------
+  const fgG = new Map(); fg.forEach(r => { const k = r.series || '-'; if (!fgG.has(k)) fgG.set(k, []); fgG.get(k).push(r); });
+  const fgInfo = [...fgG.entries()].map(([n, l]) => { const d = l.filter(r => bqrDistStatusOf(r) === 'Distributed').length; const doing = l.some(r => !['Not distributed', 'Distributed'].includes(bqrDistStatusOf(r))); const st = d === l.length ? 'Completed' : (d > 0 || doing) ? 'In Progress' : 'Pending'; const al = [...new Set(l.map(r => (r.allocationBoutique || '').trim()).filter(Boolean))].join(', ') || '-'; return { n, d, t: l.length, st, al }; });
+  const stRank = { Pending: 0, 'In Progress': 1, Completed: 2 };
+  fgInfo.sort((a, b) => stRank[a.st] - stRank[b.st] || a.n.localeCompare(b.n));
+  const FG_SHOW = 8;
+  const fgOpen = fgInfo.filter(x => x.st !== 'Completed'), fgDoneSeries = fgInfo.length - fgOpen.length;
+  const hasAl = fgInfo.some(x => x.al !== '-');
+  const fgRows2 = fgOpen.length ? fgOpen.slice(0, FG_SHOW).map(x => `<tr><td><strong>${E(x.n)}</strong></td>${hasAl ? `<td>${E(x.al)}</td>` : ''}<td style="text-align:right;white-space:nowrap;font-weight:700;">${x.d} / ${x.t}</td><td>${badge(x.st, stCol(x.st))}</td></tr>`).join('') + '' : `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);">${fgInfo.length ? '✅ All series distributed to boutique' : 'No finished QC result yet'}</td></tr>`;
+  const sched = `<div class="card" style="margin:0;padding:0;overflow:hidden;display:flex;flex-direction:column;min-height:0;"><div style="background:rgba(255,255,255,.04);color:var(--text);border-bottom:1px solid var(--border);padding:9px 14px;font-weight:700;flex-shrink:0;display:flex;justify-content:space-between;"><span>🏷️ FG DISTRIBUTED TO BOUTIQUE</span><span style="font-weight:400;font-size:12px;">${fgOpen.length > FG_SHOW ? `Showing ${FG_SHOW} of ${fgOpen.length} pending` : `${fgOpen.length} pending / in progress`}${fgDoneSeries ? ` · ${fgDoneSeries} completed` : ''}</span></div><div style="padding:8px 12px;flex:1;min-height:0;overflow:hidden;" class="dt-scroll"><table style="height:100%;"><thead><tr><th>Series</th>${hasAl ? '<th>Allocation Boutique</th>' : ''}<th style="text-align:right;">Distributed</th><th>Status</th></tr></thead><tbody>${fgRows2}</tbody></table></div></div>`;
+  const wrow = (l, v, p, c) => `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;"><span style="flex:0 0 46%;font-size:13px;">${l}</span><strong style="flex:0 0 70px;text-align:right;">${v}</strong>${p == null ? '' : `<span style="flex:0 0 40px;font-size:12px;color:var(--text-muted);">${p}%</span><div style="flex:1;height:7px;background:var(--border);border-radius:4px;overflow:hidden;"><div style="height:100%;width:${Math.min(100, p)}%;background:${c};"></div></div>`}</div>`;
+  const wh = `<div class="card" style="margin:0;padding:0;overflow:hidden;display:flex;flex-direction:column;min-height:0;"><div style="background:rgba(255,255,255,.04);color:var(--text);border-bottom:1px solid var(--border);padding:9px 14px;font-weight:700;flex-shrink:0;">🏢 WAREHOUSE SUMMARY</div><div style="padding:8px 14px;flex:1;min-height:0;overflow:hidden;" class="dt-scroll">${wrow('📥 Total Inbound (today)', fmt(inToday), pctOf(inToday, inTarget), IN)}${wrow('📤 Total Outbound (shipped, batch)', fmt(outShip), pctOf(outShip, bq), OUT)}${wrow('🧵 Fabric rolls in stock', fmt(inStock), pctOf(inStock, rolls.length), P)}${wrow('🏷️ FG distributed to boutique', `${fgDone}/${fg.length}`, pctOf(fgDone, fg.length), G)}${wrow('⏱️ On-time STO', `${active.length - late.length}/${active.length}`, pctOf(active.length - late.length, active.length), G)}</div></div>`;
+
+  const alertsArr = [];
+  const shortB = n => String(n || '').replace(/^KHATAM (BOUTIQUE|HEADQUARTER)\s*[,-]*\s*/i, '') || String(n || '');
+  late.forEach(r => { const d = -daysDiffFromToday(computeDueDate(r)); alertsArr.push({ a: r.orderNumber || '-', b: `${shortB(r.toWarehouse)} · ${d} days late`, txt: `${r.orderNumber || '-'} — ${r.toWarehouse || ''} is ${d} day(s) late`, pr: d > 7 ? 'High' : 'Medium', st: r.progress || 'Active', w: d }); });
+  fgFail.forEach(r => alertsArr.push({ a: 'QC FAIL', b: `${r.series || ''} ${r.officialProductName || ''} ${r.batch || ''}`.trim(), txt: `QC FAIL — ${r.series || ''} ${r.officialProductName || ''} ${r.batch || ''}`, pr: 'High', st: bqrDistStatusOf(r), w: 5 }));
+  gos.forEach(o => { const sk = o.skus || []; const od = sk.reduce((a, k) => a + num(k.qtyOrder), 0), rc = sk.reduce((a, k) => a + Math.min(num(k.qtyReceived), num(k.qtyOrder)), 0); if (od > rc && !o.closedShort) alertsArr.push({ a: `Garment ${o.batchNo || ''}`, b: `${fmt(od - rc)} pcs not yet received`, txt: `Garment ${o.batchNo || ''}: ${fmt(od - rc)} pcs not yet received`, pr: 'Low', st: rc ? 'In Progress' : 'Pending', w: 0 }); });
+  const prW = { High: 3, Medium: 2, Low: 1 }, prC = { High: R, Medium: A, Low: G };
+  // Per Shaila: only show alerts whose status is still "Active" (not yet picking / packing / packed)
+  for (let i = alertsArr.length - 1; i >= 0; i--) if (alertsArr[i].st !== 'Active') alertsArr.splice(i, 1);
+  alertsArr.sort((a, b) => prW[b.pr] - prW[a.pr] || b.w - a.w);
+  const ALERT_SHOW = 5;
+  // New CRITICAL (High) alert since the last refresh -> highlight briefly, then back to normal
+  window._dtSeen = window._dtSeen || null; window._dtFlashUntil = window._dtFlashUntil || {};
+  const nowMs = Date.now();
+  if (window._dtSeen) alertsArr.forEach(x => { if (x.pr === 'High' && !window._dtSeen.has(x.txt)) window._dtFlashUntil[x.txt] = nowMs + 10000; });
+  alertsArr.forEach(x => { x.flash = (window._dtFlashUntil[x.txt] || 0) > nowMs; });
+  window._dtSeen = new Set(alertsArr.map(x => x.txt));
+  const alertRows = alertsArr.length ? alertsArr.slice(0, ALERT_SHOW).map(x => `<tr class="${x.pr === 'High' ? 'dt-high' : ''}${x.flash ? ' dt-flash' : ''}"><td><div style="font-weight:700;">${E(x.a)}</div><div style="font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:230px;">${E(x.b)}</div></td><td>${badge(x.pr, prC[x.pr])}</td><td style="font-size:12px;">${E(x.st)}</td></tr>`).join('') + '' : '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">No alerts</td></tr>';
+  const alerts = `<div class="card" style="margin:0;padding:0;overflow:hidden;display:flex;flex-direction:column;min-height:0;border:1px solid rgba(224,88,74,.5);background:rgba(224,88,74,.06);"><div style="background:rgba(224,88,74,.12);color:var(--text);padding:9px 14px;font-weight:700;display:flex;justify-content:space-between;flex-shrink:0;"><span>⚠ ATTENTION / ALERTS <span style="font-weight:400;font-size:12px;color:var(--text-muted);margin-left:8px;">Showing ${Math.min(ALERT_SHOW, alertsArr.length)} of ${alertsArr.length}</span></span><span style="background:${R};color:#fff;border-radius:12px;padding:0 10px;">${alertsArr.length}</span></div><div style="padding:8px 12px;flex:1;min-height:0;overflow:hidden;" class="dt-scroll"><table><thead><tr><th>Description</th><th>Priority</th><th>Status</th></tr></thead><tbody>${alertRows}</tbody></table></div></div>`;
+
+  const keepScroll = [...wrap.querySelectorAll('.dt-scroll')].map(d => d.scrollTop);
+  wrap.innerHTML = kpis
+    + `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:none;margin-bottom:12px;align-items:stretch;">${inPanel}${outPanel}</div>`
+    + `<div style="display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:12px;" class="dt-bottom">${sched}${wh}${alerts}</div>`;
+  wrap.querySelectorAll('.dt-scroll').forEach((d, k) => { if (keepScroll[k]) d.scrollTop = keepScroll[k]; });
+  try { renderDtSlide2(); } catch (e) {}
+}
+
+
+
+
+// ===== Release Schedule (manual) — Firebase ReleaseSchedule/<id> = { id, series, products[], date:'YYYY-MM-DD', by, at } =====
+let rsMap = {}, rsStarted = false, rsEditId = null;
+try { rsMap = JSON.parse(localStorage.getItem('releaseScheduleV1') || '{}') || {}; } catch (e) { rsMap = {}; }
+function rsList() { return Object.values(rsMap || {}).filter(v => v && v.date); }
+function rsAfterChange() {
+  try { localStorage.setItem('releaseScheduleV1', JSON.stringify(rsMap)); } catch (e) {}
+  const p = document.getElementById('tab-release-schedule'); if (p && p.classList.contains('active')) renderReleaseScheduleTab();
+  try { renderDtSlide2(); } catch (e) {}
+}
+function rsStart() {
+  if (rsStarted || !fbDb) return;
+  rsStarted = true;
+  try { fbDb.ref('ReleaseSchedule').on('value', snap => { rsMap = snap.val() || {}; rsAfterChange(); }, () => { rsStarted = false; }); } catch (e) { rsStarted = false; }
+}
+function rsSave(rec) {
+  rsMap[rec.id] = rec;
+  if (fbDb) { try { fbDb.ref('ReleaseSchedule/' + rec.id).set(rec).catch(() => {}); } catch (e) {} }
+  rsAfterChange();
+}
+function rsDelete(id) {
+  delete rsMap[id];
+  if (fbDb) { try { fbDb.ref('ReleaseSchedule/' + id).remove().catch(() => {}); } catch (e) {} }
+  rsAfterChange();
+}
+function rsResetForm() {
+  rsEditId = null;
+  document.getElementById('rsSeries').value = ''; document.getElementById('rsSeriesNew').value = ''; document.getElementById('rsProducts').value = ''; document.getElementById('rsDate').value = '';
+  document.getElementById('rsSaveBtn').textContent = '+ Add Release'; document.getElementById('rsCancelBtn').style.display = 'none';
+}
+function renderReleaseScheduleTab() {
+  rsStart();
+  const wrap = document.getElementById('rsListWrap'); if (!wrap) return;
+  const sel = document.getElementById('rsSeries');
+  if (sel) {
+    const vals = [...new Set((campaignTimelineList || []).map(r => r.series).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b)));
+    const sig = vals.join('\u0001');
+    if (sel.dataset.sig !== sig) { const cur = sel.value; sel.innerHTML = '<option value="">Select series…</option>' + vals.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join(''); sel.dataset.sig = sig; if (vals.includes(cur)) sel.value = cur; }
+  }
+  const E = escapeHtml, list = rsList().sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const today = todayStr();
+  if (!list.length) { wrap.innerHTML = '<div class="empty-state">No release added yet. Fill the form above and click "Add Release".</div>'; return; }
+  wrap.innerHTML = `<table><thead><tr><th>Release Date</th><th>Series / Collection</th><th>Products</th><th>Countdown</th><th>Updated</th><th></th></tr></thead><tbody>` + list.map(e => {
+    const dd = Math.round((new Date(e.date + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
+    const cd = dd < 0 ? `<span style="color:var(--text-muted);">${-dd} day(s) ago</span>` : dd === 0 ? '<strong style="color:var(--green);">Today</strong>' : dd === 1 ? 'Tomorrow' : `${dd} days`;
+    const pr = (e.products || []).filter(Boolean);
+    return `<tr><td style="white-space:nowrap;">${E(e.date)}</td><td><strong>${E(e.series || '-')}</strong></td><td style="max-width:420px;">${E(pr.slice(0, 3).join(', '))}${pr.length > 3 ? ` <span style="color:var(--text-muted);">+${pr.length - 3}</span>` : ''}</td><td>${cd}</td><td style="font-size:11px;color:var(--text-muted);">${E(e.by || '')}${e.at ? '<br>' + E(String(e.at).slice(0, 10)) : ''}</td><td style="white-space:nowrap;"><button type="button" class="btn-ghost rs-edit" data-id="${E(e.id)}">Edit</button> <button type="button" class="btn-ghost rs-del" data-id="${E(e.id)}">Delete</button></td></tr>`;
+  }).join('') + '</tbody></table>';
+  wrap.querySelectorAll('.rs-edit').forEach(b => b.addEventListener('click', () => {
+    const e = rsMap[b.dataset.id]; if (!e) return;
+    rsEditId = e.id;
+    { const sl = document.getElementById('rsSeries'); sl.value = e.series || ''; document.getElementById('rsSeriesNew').value = (sl.value === (e.series || '')) ? '' : (e.series || ''); }
+    document.getElementById('rsProducts').value = (e.products || []).join('\n'); document.getElementById('rsDate').value = e.date || '';
+    document.getElementById('rsSaveBtn').textContent = 'Save changes'; document.getElementById('rsCancelBtn').style.display = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }));
+  wrap.querySelectorAll('.rs-del').forEach(b => b.addEventListener('click', () => {
+    const e = rsMap[b.dataset.id]; if (!e) return;
+    if (confirm(`Delete release "${e.series}" (${e.date})?`)) rsDelete(e.id);
+  }));
+}
+document.getElementById('rsSaveBtn').addEventListener('click', () => {
+  const series = rsSeriesValue();
+  const date = document.getElementById('rsDate').value;
+  const products = document.getElementById('rsProducts').value.split(/\n+/).map(v => v.trim()).filter(Boolean);
+  if (!series) { alert('Please enter the Series / Collection name.'); return; }
+  if (!date) { alert('Please choose the Release Date.'); return; }
+  const u = getCurrentUser();
+  const id = rsEditId || ('rs_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
+  rsSave({ id, series, products, date, by: u ? (u.name || u.username || '') : '', at: new Date().toISOString() });
+  rsResetForm();
+});
+document.getElementById('rsCancelBtn').addEventListener('click', rsResetForm);
+// Picking a Series that exists in Timeline fills its products automatically (only when the products box is still empty).
+function rsSeriesValue() { return (document.getElementById('rsSeriesNew').value.trim() || document.getElementById('rsSeries').value.trim()); }
+function rsAutoFillProducts() {
+  const series = rsSeriesValue().toLowerCase();
+  const ta = document.getElementById('rsProducts');
+  if (!series || ta.value.trim()) return;
+  const names = [...new Set((campaignTimelineList || []).filter(r => String(r.series || '').trim().toLowerCase() === series).map(r => r.officialProductName).filter(Boolean))];
+  if (names.length) ta.value = names.join('\n');
+}
+document.getElementById('rsSeries').addEventListener('change', rsAutoFillProducts);
+document.getElementById('rsSeriesNew').addEventListener('input', rsAutoFillProducts);
+document.getElementById('rsPullBtn').addEventListener('click', () => {
+  const series = rsSeriesValue().toLowerCase();
+  if (!series) { alert('Select the Series first.'); return; }
+  const names = [...new Set((campaignTimelineList || []).filter(r => String(r.series || '').trim().toLowerCase() === series).map(r => r.officialProductName).filter(Boolean))];
+  if (!names.length) { alert('No product found in Timeline for that series.'); return; }
+  const ta = document.getElementById('rsProducts');
+  ta.value = [...new Set([...ta.value.split(/\n+/).map(v => v.trim()).filter(Boolean), ...names])].join('\n');
+});
+// ===== Dashboard Test slide 2: Series Release Calendar =====
+// The Timeline sheet's Release Date is free text. If it contains an exact day ("15 Nov", "Nov 15") that exact day is used;
+// otherwise "Early / Mid / End <Month>" is placed on day 5 / 15 / 25 and flagged as estimated (shown as "Early Nov" in lists).
+let dtCalOffset = 0, dtCalMode = 'month';
+function dtSlide2Data() {
+  // Manual entries only (Release Schedule tab): one item per product, on the exact date.
+  const items = [];
+  rsList().forEach(e => {
+    const m = String(e.date || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return;
+    const date = new Date(+m[1], +m[2] - 1, +m[3]);
+    const prods = (e.products || []).filter(Boolean);
+    (prods.length ? prods : ['']).forEach((pn, i) => items.push({ rec: { id: e.id + '#' + i, series: e.series || '-', officialProductName: pn }, year: date.getFullYear(), month: date.getMonth(), bucket: -1, day: date.getDate(), est: false, date }));
+  });
+  return items;
+}
+function dtIcon(name) {
+  const P = { cal: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M8 14h2M12 14h2M16 14h.01M8 17h2M12 17h2"/>', hanger: '<path d="M12 7a2 2 0 1 0-2-2M12 7v3L3 17a1 1 0 0 0 .6 1.8h16.8A1 1 0 0 0 21 17l-9-7"/>', star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>', shirt: '<path d="M8 3l-5 3 2.5 4L8 9v12h8V9l2.5 1L21 6l-5-3a4 4 0 0 1-8 0z"/>', check: '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/>' };
+  return `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#e2c58b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${P[name]}</svg>`;
+}
+function renderDtSlide2() {
+  const root = document.getElementById('dtSlide2');
+  if (!root) return;
+  rsStart();
+  const E = escapeHtml;
+  const MON = CAMPAIGN_TIMELINE_MONTH_LABELS, WDS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const items = dtSlide2Data();
+  const now = new Date(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const SERIF = "'Cormorant Garamond','Playfair Display',Georgia,'Times New Roman',serif";
+  const CREAM = '#f1ece1', DARK = '#2a1f17', INK = '#2b2118', MUTED = '#8a7d6c', LINE = '#ddd3c0', GOLD = '#b89355', GOLDL = '#e2c58b';
+  const isRe = r => /restock|re-?release/i.test(r.series || '');
+  const evCol = r => isRe(r) ? ['#d5dcc9', '#4a5a40', '#5b6b50'] : ['#f0d9bd', '#5a3b1c', '#9a7a52'];
+  const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  const pad2 = n => String(n).padStart(2, '0');
+  const fmtDate = d => `${pad2(d.getDate())} ${MON[d.getMonth()].slice(0, 3)} ${d.getFullYear()}`;
+  const prodsOf = x => [...new Set(items.filter(y => y.rec.series === x.rec.series && y.date.getTime() === x.date.getTime()).map(y => y.rec.officialProductName).filter(Boolean))];
+  const shirt = (c, sz) => `<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="${c}" stroke="none" style="flex-shrink:0;"><path d="M8.5 3L3 5.8l2.2 4.4 2.3-1V21h9V9.2l2.3 1L21 5.8 15.5 3a3.7 3.7 0 0 1-7 0z"/></svg>`;
+  const calIcon = (c, sz) => `<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8 14h2M12 14h2M16 14h.01M8 17.5h2M12 17.5h2"/></svg>`;
+  const leaf = `<svg width="190" height="110" viewBox="0 0 190 110" fill="none" stroke="${GOLD}" stroke-width="1" opacity=".5"><path d="M5 105C50 85 95 60 175 8"/>${[[30, 92, -35], [55, 80, -40], [80, 66, -42], [105, 50, -44], [130, 34, -46], [150, 22, -48]].map(([x, y, r]) => `<ellipse cx="${x}" cy="${y - 10}" rx="5" ry="13" transform="rotate(${r} ${x} ${y})" fill="${GOLD}" fill-opacity=".25"/><ellipse cx="${x + 6}" cy="${y + 8}" rx="5" ry="13" transform="rotate(${r + 80} ${x} ${y})" fill="${GOLD}" fill-opacity=".2"/>`).join('')}</svg>`;
+
+  // ---- month grid (Mon-Sun) ----
+  const base = new Date(now.getFullYear(), now.getMonth() + dtCalOffset, 1);
+  const vy = base.getFullYear(), vm = base.getMonth();
+  const start = new Date(base); start.setDate(1 - ((base.getDay() + 6) % 7));
+  const dim = new Date(vy, vm + 1, 0).getDate();
+  const total = Math.ceil((((base.getDay() + 6) % 7) + dim) / 7) * 7;
+  const days = []; for (let i = 0; i < total; i++) { const d = new Date(start); d.setDate(start.getDate() + i); days.push(d); }
+  const evHtml = x => { const c = evCol(x.rec), pr = prodsOf(x), n = pr.length; return `<div class="dt-ev" data-series="${E(x.rec.series || '')}" data-ts="${x.date.getTime()}" style="cursor:pointer;background:${c[0]};border-radius:6px;padding:6px 9px;margin-top:6px;display:flex;align-items:center;gap:8px;">${shirt(c[2], 20)}<div style="min-width:0;"><div style="font-size:12px;font-weight:700;color:${c[1]};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${E(x.rec.series || '-')}</div><div style="font-size:10.5px;color:${c[1]};opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${n > 1 ? n + ' styles' : E(pr[0] || '')}</div></div></div>`; };
+  const cell = d => {
+    const out = d.getMonth() !== vm, raw = out ? [] : items.filter(x => sameDay(x.date, d));
+    const seenS = new Set(), evs = raw.filter(x => { if (seenS.has(x.rec.series)) return false; seenS.add(x.rec.series); return true; }), shown = evs.slice(0, 2);
+    const isT = sameDay(d, today);
+    return `<div style="border-right:1px solid ${LINE};border-bottom:1px solid ${LINE};padding:8px 10px;height:124px;box-sizing:border-box;overflow:hidden;"><div style="font-size:13px;${out ? `color:#c2b8a6;` : `color:${INK};`}${isT ? `font-weight:800;color:${GOLD};` : ''}">${d.getDate()}</div>${shown.map(evHtml).join('')}${evs.length > shown.length ? `<div style="font-size:10px;color:${MUTED};margin-top:3px;">+${evs.length - shown.length} more</div>` : ''}</div>`;
+  };
+  const calendar = `<div style="background:${CREAM};border-radius:14px;padding:16px 18px 18px;color:${INK};">
+    <div style="display:flex;align-items:center;gap:22px;margin:4px 0 14px 8px;"><button type="button" id="dtCalPrev" style="border:none;background:none;font-size:24px;cursor:pointer;color:${INK};">‹</button><div style="font-family:${SERIF};font-size:34px;letter-spacing:.02em;">${MON[vm]} ${vy}</div><button type="button" id="dtCalNext" style="border:none;background:none;font-size:24px;cursor:pointer;color:${INK};">›</button></div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);background:${DARK};color:#efe6d4;border-radius:8px 8px 0 0;">${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(w => `<div style="padding:11px 8px;text-align:center;font-size:13px;font-weight:600;letter-spacing:.04em;">${w}</div>`).join('')}</div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:124px;border-left:1px solid ${LINE};">${days.map(cell).join('')}</div>
+  </div>`;
+
+  // ---- upcoming collections ----
+  const upItems = items.filter(x => x.date >= today).sort((a, b) => a.date - b.date);
+  const gm = new Map(); upItems.forEach(x => { const k = x.rec.series + '|' + x.date.getTime(); if (!gm.has(k)) gm.set(k, x); });
+  const uniq = [...gm.values()];
+  const firstOf = new Set();
+  const pill = (t, bg, col) => `<span style="display:inline-block;min-width:104px;text-align:center;font-size:12px;font-weight:600;border-radius:16px;padding:5px 12px;background:${bg};color:${col};">${t}</span>`;
+  const rows = uniq.slice(0, 8).map((x, i) => {
+    const pr = prodsOf(x), first = !firstOf.has(x.rec.series); firstOf.add(x.rec.series);
+    const dd = Math.round((x.date - today) / 86400000);
+    const txt = dd <= 0 ? 'Today' : dd === 1 ? 'Tomorrow' : `${x.est ? '~' : ''}${dd} days`;
+    const st = dd <= 0 ? pill(txt, '#7d8f6a', '#fff') : dd <= 7 ? pill(txt, '#e8c99a', '#5a3b1c') : pill(txt, '#dad5ca', '#5a5248');
+    const reSer = new RegExp('^' + String(x.rec.series || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s+', 'i');
+    const dateTxt = x.est ? `${['Early', 'Mid', 'End'][x.bucket] || ''} ${MON[x.month]} ${x.date.getFullYear()} (est.)` : `${fmtDate(x.date)} · ${WDS[x.date.getDay()]}`;
+    const list = pr.slice(0, 12).map((n, k) => `<div style="display:flex;gap:10px;align-items:baseline;font-size:13px;line-height:1.35;color:${INK};"><span style="color:${MUTED};font-size:12px;min-width:20px;">${pad2(k + 1)}</span><span>${E(String(n).replace(reSer, ''))}</span></div>`).join('');
+    return `<div style="padding:14px 6px 12px;${i ? `border-top:1px solid ${LINE};` : ''}"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;"><div><div style="font-weight:700;font-size:16px;">${E(x.rec.series || '-')}</div><div style="font-size:11px;letter-spacing:.06em;color:${MUTED};text-transform:uppercase;margin-top:2px;">${E(dateTxt)}${pr.length ? ` · ${pr.length} style${pr.length > 1 ? 's' : ''}` : ''}</div></div><div style="flex-shrink:0;">${st}</div></div>${pr.length ? `<div style="display:grid;grid-template-columns:${pr.length > 2 ? '1fr 1fr' : '1fr'};gap:6px 22px;margin-top:10px;">${list}</div>${pr.length > 12 ? `<div style="font-size:12px;color:${MUTED};margin-top:6px;">+ ${pr.length - 12} more</div>` : ''}` : ''}</div>`;
+  }).join('') || `<div style="padding:34px;color:${MUTED};text-align:center;">No upcoming releases</div>`;
+  const upBox = `<div style="background:${CREAM};border-radius:14px;padding:14px;color:${INK};"><div style="background:${DARK};color:#efe6d4;border-radius:10px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;"><span style="display:flex;align-items:center;gap:12px;font-family:${SERIF};font-size:20px;letter-spacing:.12em;">${shirt(GOLDL, 26)} UPCOMING COLLECTIONS</span></div><div style="padding:4px 6px 0;">${rows}</div></div>`;
+
+  // ---- header band ----
+  const header = `<div style="display:flex;align-items:center;gap:30px;padding:22px 34px;border-bottom:1px solid ${GOLD};">
+    <div style="flex:1;"><div style="font-family:${SERIF};font-size:34px;letter-spacing:.1em;color:#f1e8d8;">COLLECTION RELEASE CALENDAR</div><div style="font-size:11px;letter-spacing:.3em;color:#cdbfa8;margin-top:4px;">NEW COLLECTIONS &amp; STYLE LAUNCHES</div></div>
+    <div style="display:flex;align-items:center;gap:14px;">${calIcon('#d8c8a8', 40)}<div><div style="font-family:${SERIF};font-size:20px;letter-spacing:.1em;color:#f1e8d8;">${MON[vm].toUpperCase()} ${vy}</div><div style="font-size:10px;letter-spacing:.24em;color:#cdbfa8;">RELEASE SCHEDULE</div></div></div>
+  </div>`;
+
+  // ---- footer: next release ----
+  const next = uniq[0];
+  const allSeries = new Set(items.map(x => x.rec.series));
+  const withDate = new Set(items.map(x => x.rec.id));
+  const releasedSet = new Set(items.filter(x => x.date < today && x.date.getFullYear() === today.getFullYear()).map(x => x.rec.series));
+  const upSeries = new Set(uniq.map(x => x.rec.series));
+  const hanger = c => `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7a2 2 0 1 0-2-2M12 7v3L3 17a1 1 0 0 0 .6 1.8h16.8A1 1 0 0 0 21 17l-9-7"/></svg>`;
+  const badgeIc = (inner) => `<div style="width:34px;height:34px;border-radius:50%;background:#efe0c4;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${inner}</div>`;
+  const starSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="#3b2a1f"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>`;
+  const checkSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b2a1f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
+  const stat = (ic, label, n, unit, first) => `<div style="flex:1;display:flex;align-items:center;gap:14px;padding:0 18px;${first ? '' : `border-left:1px solid rgba(226,197,139,.35);`}">${ic}<div><div style="font-size:11px;letter-spacing:.04em;color:#e8dcc4;">${label}</div><div style="font-family:${SERIF};font-size:34px;font-weight:600;color:#f6eddc;line-height:1.1;">${n}</div><div style="font-size:12px;color:#cdbfa8;">${unit}</div></div></div>`;
+  const footer = `<div style="display:grid;grid-template-columns:1fr 1.2fr;gap:16px;padding:16px 20px 20px;">
+    <div style="border:1px solid ${GOLD};border-radius:14px;padding:20px 26px;display:flex;align-items:center;gap:24px;position:relative;overflow:hidden;background:rgba(0,0,0,.12);">
+      ${calIcon('#efe0c4', 40)}
+      <div><div style="font-size:12px;letter-spacing:.14em;color:#e8dcc4;">NEXT RELEASE</div><div style="font-family:${SERIF};font-size:34px;font-weight:600;color:#f6eddc;line-height:1.1;">${next ? (next.est ? `${['Early', 'Mid', 'End'][next.bucket] || ''} ${MON[next.month].slice(0, 3)} ${next.date.getFullYear()}` : fmtDate(next.date)) : '—'}</div><div style="font-size:13px;color:#cdbfa8;">${next ? (next.est ? '(estimated)' : WDS[next.date.getDay()].slice(0, 3)) : ''}</div></div>
+      <div style="width:1px;height:54px;background:${GOLD};opacity:.7;"></div>
+      <div style="flex:1;min-width:0;"><div style="font-family:${SERIF};font-size:22px;font-weight:600;color:#f6eddc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${next ? E(next.rec.series || '-') : ''}</div><div style="font-size:13px;color:#cdbfa8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${next ? E(prodsOf(next).slice(0, 2).join(' & ')) : ''}</div></div>
+    </div>
+    <div style="border:1px solid ${GOLD};border-radius:14px;padding:18px 6px;display:flex;align-items:center;background:rgba(0,0,0,.12);">
+      ${stat(badgeIc(shirt('#3b2a1f', 18)), 'TOTAL RELEASES', allSeries.size, 'Collections', true)}
+      ${stat(hanger('#e2c58b'), 'TOTAL STYLES', withDate.size, 'Styles')}
+      ${stat(badgeIc(starSvg), 'UPCOMING RELEASES', upSeries.size, 'Collections')}
+      ${stat(badgeIc(checkSvg), 'RELEASED COLLECTIONS', releasedSet.size, 'Collections')}
+    </div>
+  </div>`;
+
+  root.innerHTML = `<div style="background:radial-gradient(ellipse at 20% 0%,#3a2c20 0%,${DARK} 55%,#1b1410 100%);border-radius:16px;overflow:hidden;">${header}<div style="display:grid;grid-template-columns:1.62fr 1fr;gap:16px;padding:18px 20px 0;">${calendar}${upBox}</div>${footer}</div>`;
+  const pv = document.getElementById('dtCalPrev'), nx = document.getElementById('dtCalNext');
+  const redo = () => { renderDtSlide2(); dtFitToScreen(); };
+  root.querySelectorAll('.dt-ev').forEach(el => el.addEventListener('click', () => {
+    const ser = el.dataset.series, ts = Number(el.dataset.ts);
+    const prods = [...new Set(items.filter(y => y.rec.series === ser && y.date.getTime() === ts).map(y => y.rec.officialProductName).filter(Boolean))];
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;';
+    ov.innerHTML = `<div style="background:#f1ece1;color:#2b2118;border-radius:14px;padding:22px 26px;min-width:340px;max-width:560px;max-height:80vh;overflow:auto;"><div style="font-family:Georgia,serif;font-size:24px;">${E(ser)}</div><div style="font-size:13px;color:#8a7d6c;margin-bottom:12px;">${fmtDate(new Date(ts))} · ${prods.length} style${prods.length === 1 ? '' : 's'}</div>${prods.map((n, i) => `<div style="padding:7px 0;border-top:1px solid #ddd3c0;font-size:14px;">${i + 1}. ${E(n)}</div>`).join('') || '<div style="color:#8a7d6c;">No product listed</div>'}<div style="text-align:right;margin-top:14px;"><button type="button" style="border:none;background:#2a1f17;color:#efe6d4;border-radius:8px;padding:8px 18px;cursor:pointer;">Close</button></div></div>`;
+    ov.addEventListener('click', e => { if (e.target === ov || e.target.tagName === 'BUTTON') ov.remove(); });
+    (document.fullscreenElement || document.body).appendChild(ov);
+  }));
+  if (pv) pv.addEventListener('click', () => { dtCalOffset--; redo(); });
+  if (nx) nx.addEventListener('click', () => { dtCalOffset++; redo(); });
+}
+// --- Dashboard Test slides: slide 1 = the progress dashboard, slide 2 = placeholder (content TBD) ---
+const DT_SLIDES = ['dtSlide1', 'dtSlide2'];
+let dtIdx = 0, dtPlaying = true, dtLastSwitch = Date.now();
+function dtRenderDots() {
+  const d = document.getElementById('dtDots'); if (!d) return;
+  d.innerHTML = DT_SLIDES.map((s, i) => `<button type="button" class="dash-slide-dot${i === dtIdx ? ' active' : ''}" data-i="${i}" aria-label="Slide ${i + 1}"></button>`).join('');
+  d.querySelectorAll('button').forEach(b => b.addEventListener('click', () => dtGo(Number(b.dataset.i))));
+}
+function dtGo(i) {
+  dtIdx = (i + DT_SLIDES.length) % DT_SLIDES.length;
+  DT_SLIDES.forEach((id, k) => { const el = document.getElementById(id); if (el) el.style.display = k === dtIdx ? '' : 'none'; });
+  dtLastSwitch = Date.now();
+  dtRenderDots();
+  if (dtIdx === 0) { try { renderDashTest(); } catch (e) {} } else { try { renderDtSlide2(); } catch (e) {} }
+  dtFitToScreen();
+}
+document.getElementById('dtPrev').addEventListener('click', () => dtGo(dtIdx - 1));
+document.getElementById('dtNext').addEventListener('click', () => dtGo(dtIdx + 1));
+document.getElementById('dtPlay').addEventListener('click', () => { dtPlaying = !dtPlaying; document.getElementById('dtPlay').textContent = dtPlaying ? '⏸' : '▶'; dtLastSwitch = Date.now(); });
+dtRenderDots();
+setInterval(() => {
+  const p = document.getElementById('tab-dashboard-test');
+  if (!p || !p.classList.contains('active') || !dtPlaying) return;
+  if (Date.now() - dtLastSwitch >= 30000) dtGo(dtIdx + 1);
+}, 1000);
+document.getElementById('dashTestFsBtn').addEventListener('click', () => {
+  const el = document.getElementById('tab-dashboard-test');
+  if (document.fullscreenElement) { document.exitFullscreen(); return; }
+  if (el && el.requestFullscreen) el.requestFullscreen().catch(() => {});
+});
+document.addEventListener('fullscreenchange', () => {
+  const b = document.getElementById('dashTestFsBtn');
+  if (b) b.textContent = document.fullscreenElement && document.fullscreenElement.id === 'tab-dashboard-test' ? '✕ Exit Full Screen' : '⛶ Full Screen';
+  try { renderDashTest(); } catch (e) {}
+  dtFitToScreen();
+});
+window.addEventListener('resize', () => dtFitToScreen());
+// Dashboard Test is a static display: no auto-scroll. Lists show the most relevant rows only (see FG / Alerts boxes).
+
+// In Full Screen, scale the whole dashboard so it fits the screen exactly (no empty gap, no scrolling).
+function dtFitToScreen() {
+  const el = document.getElementById('tab-dashboard-test');
+  if (!el) return;
+  if (!document.fullscreenElement || document.fullscreenElement !== el) { el.style.removeProperty('--dt-z'); return; }
+  let z = 1;
+  for (let i = 0; i < 3; i++) {
+    el.style.setProperty('--dt-z', String(z));
+    const wrapEl = document.getElementById('dashTestWrap');
+    const natural = ((el.firstElementChild ? el.firstElementChild.offsetHeight : 40) + (wrapEl ? wrapEl.offsetHeight : 0) + 44) * z;
+    const target = window.innerHeight;
+    const nz = Math.max(0.5, Math.min(2, z * target / Math.max(1, natural)));
+    if (Math.abs(nz - z) < 0.01) break;
+    z = nz;
+  }
+  el.style.setProperty('--dt-z', String(Math.max(0.5, z * 0.99)));
+}
+setInterval(() => { const p = document.getElementById('tab-dashboard-test'); if (p && p.classList.contains('active')) { try { renderDashTest(); } catch (e) {} } }, 15000);
 function renderBqrTab() {
   const wrap = document.getElementById('bqrWrap');
   if (!wrap) return;
@@ -14632,13 +15166,21 @@ function renderBqrTab() {
   const tailorF = fill('bqrTailor', supField, fabric ? 'All Fabric Suppliers' : 'All Tailors');
   const statusF = document.getElementById('bqrStatus').value;
   const q = (document.getElementById('bqrSearch').value || '').toLowerCase().split(/\s+/).filter(Boolean);
-  const shown = rows.filter(r => {
+  const baseShown = rows.filter(r => {
     if (seriesF && r.series !== seriesF) return false;
     if (tailorF && r[supField] !== tailorF) return false;
     if (statusF && bqcStatusKey(r[field]) !== statusF) return false;
     const text = [r.series, r.officialProductName, r[supField], r.allocationBoutique, r.batch, r.color, r.material].join(' ').toLowerCase();
     return q.every(w => text.includes(w));
   });
+  if (fabric) bqrDistFilter = '';
+  const shown = bqrDistFilter ? baseShown.filter(r => bqrDistStatusOf(r) === bqrDistFilter) : baseShown;
+  const dg = document.getElementById('bqrDistKpiGrid');
+  if (dg) {
+    dg.style.display = fabric ? 'none' : '';
+    dg.innerHTML = fabric ? '' : BQR_DIST_STATUSES.map(st => `<div class="kpi-card bqr-dist-card" data-st="${st}" style="cursor:pointer;${bqrDistFilter === st ? 'outline:2px solid var(--accent,#c9a46a);' : ''}"><div class="kpi-num">${baseShown.filter(r => bqrDistStatusOf(r) === st).length}</div><div class="kpi-label">${st}</div></div>`).join('');
+    dg.querySelectorAll('.bqr-dist-card').forEach(c => c.addEventListener('click', () => { bqrDistFilter = bqrDistFilter === c.dataset.st ? '' : c.dataset.st; renderBqrTab(); }));
+  }
   const cnt = k => shown.filter(r => bqcStatusKey(r[field]) === k).length;
   const kpi = [
     { num: shown.length, label: 'Total QC Done' },
@@ -34818,7 +35360,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '15Oct-r115';
+const APP_BUILD_LABEL = '15Oct-r166';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
