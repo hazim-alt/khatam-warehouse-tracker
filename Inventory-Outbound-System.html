@@ -448,7 +448,8 @@
   .dash-tables-row .card { margin-bottom: 0; }
   .tab-btn.needs-update::after { content:''; display:inline-block; width:8px; height:8px; border-radius:50%; background:#e0453a; margin-left:6px; vertical-align:middle; }
   .tab-btn.has-new::after { content:attr(data-new); display:inline-block; min-width:18px; padding:0 5px; height:18px; line-height:18px; border-radius:9px; background:#e0453a; color:#fff; font-size:11px; font-weight:700; text-align:center; margin-left:8px; vertical-align:middle; }
-  tr.bqr-new td { background:rgba(224,69,58,0.10); }
+  tr.bqr-detail-head td { font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-muted); background:rgba(255,255,255,.04); white-space:nowrap; }
+tr.bqr-new td { background:rgba(224,69,58,0.10); }
   .bqr-new-tag { display:inline-block; background:#e0453a; color:#fff; font-size:10px; font-weight:700; padding:1px 6px; border-radius:8px; margin-right:6px; vertical-align:middle; }
   .needs-update-banner { background:rgba(224,69,58,0.14); border:1px solid #e0453a; color:#f1a39d; border-radius:6px; padding:8px 12px; margin-bottom:12px; font-size:13px; }
   /* Digits (and . , % / : -) always use a clean lining-figure sans font; Georgia's old-style numerals were hard to read. */
@@ -1585,7 +1586,7 @@
   <button type="button" class="btn-ghost" id="deviceStationBtn" style="width:100%; text-align:left; padding:4px 10px; font-size:11px; margin:0 0 10px;">📍 <span id="deviceStationBtnLabel">This device's station: — none —</span></button>
   <nav class="tabs">
     <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
-    <button class="tab-btn" data-tab="bulk-qc-result">Bulk QC Result</button>
+    <button class="tab-btn" data-tab="bulk-qc-result">Bulk QC/Distribution Result</button>
     <button type="button" class="nav-group-toggle" id="navGroupRawMaterialToggle" data-group="navGroupRawMaterial">
       <span>Raw Material</span><span class="nav-group-chevron">▾</span>
     </button>
@@ -3169,13 +3170,16 @@
   </section>
 
   <section class="tab-panel" id="tab-bulk-qc-result">
-    <p class="section-title">Bulk QC Result</p>
+    <p class="section-title">Bulk QC/Distribution Result</p>
     <div class="card">
       <span class="data-note" style="margin:0;">Only items with a finished QC result (Pass, Pass With Condition, Fail) — read from the Google Sheet.</span>
       <div id="bqrNewBanner" class="needs-update-banner" style="display:none; margin:10px 0 0;"></div>
       <div style="display:flex; gap:8px; margin:12px 0 0;">
         <button type="button" class="btn-primary" id="bqrModeFg">Finished Goods (FG)</button>
         <button type="button" class="btn-ghost" id="bqrModeFabric">Fabric</button>
+        <span style="flex:1;"></span>
+        <button type="button" class="btn-ghost" id="bqrExpandAllBtn">Expand all</button>
+        <button type="button" class="btn-ghost" id="bqrCollapseAllBtn">Collapse all</button>
       </div>
       <div id="bqrKpiGrid" class="kpi-grid" style="grid-template-columns: repeat(4, 1fr); margin:12px 0;"></div>
       <div style="display:flex; gap:10px; flex-wrap:wrap; margin:12px 0;">
@@ -9364,7 +9368,7 @@ const PERMISSION_TABS = [
   { id: 'production-restock', label: 'Restock Status (Production)' },
   { id: 'production-received-product', label: 'Received by Product (Production)' },
   { id: 'production-bulk-qc', label: 'Bulk QC (Production)' },
-  { id: 'bulk-qc-result', label: 'Bulk QC Result' },
+  { id: 'bulk-qc-result', label: 'Bulk QC/Distribution Result' },
   { id: 'production-timeline', label: 'Timeline (Production)' },
   { id: 'production-release-calendar', label: 'Release Calendar (Production)' },
   { id: 'finance', label: 'Finance' },
@@ -14167,7 +14171,7 @@ document.getElementById('recvProdExportBtn').addEventListener('click', () => {
 function bqcStatusKey(text) {
   const t = String(text || '').trim().toLowerCase();
   if (!t) return 'none';
-  if (/^pass\s*with/.test(t)) return 'pass-with';
+  if (/^pass\s*(with|in)\b/.test(t) || /^pass\b.*condition/.test(t)) return 'pass-with';
   if (/^pass/.test(t)) return 'pass';
   if (/^(fail|reject)/.test(t)) return 'fail';
   if (/^on\s*hold/.test(t)) return 'on-hold';
@@ -14240,6 +14244,7 @@ async function bqcFetchLinksForUrl(url, key) {
     }
   }
   const comb = combined.map(a => a.join(' '));
+  const cDist = campaignTimelineFindColContains(comb, ['distribution', 'form']);
   const cFg = bqcOr(campaignTimelineFindColContains(comb, ['qc', 'finish', 'goods', 'link']), () => campaignTimelineFindColContains(comb, ['qc', 'report', 'garment']));
   const cWash = bqcOr(campaignTimelineFindColContains(comb, ['qc', 'washing', 'test', 'link']), () => campaignTimelineFindColContains(comb, ['qc', 'result', 'washing', 'fabric']));
   if (cFg === -1 && cWash === -1) {
@@ -14261,7 +14266,7 @@ async function bqcFetchLinksForUrl(url, key) {
     const series = T(i, cSeries), name = T(i, cName);
     if (!series && !name) continue;
     const id = campaignTimelineStableId(series, name, T(i, cBatch), T(i, cColor), T(i, cSup));
-    result[id] = { qcFgLinks: cFg === -1 ? [] : bqcCellLinks(rows[i][cFg]), qcWashLinks: cWash === -1 ? [] : bqcCellLinks(rows[i][cWash]) };
+    result[id] = { qcFgLinks: cFg === -1 ? [] : bqcCellLinks(rows[i][cFg]), qcWashLinks: cWash === -1 ? [] : bqcCellLinks(rows[i][cWash]), distFormLinks: cDist === -1 ? [] : bqcCellLinks(rows[i][cDist]) };
   }
   return result;
 }
@@ -14291,7 +14296,7 @@ async function bqcFetchLinks(opts) {
     campaignTimelineList.forEach(rec => {
       const l = all[rec.id];
       if (!l) return;
-      if (stableStringify(rec.qcFgLinks || []) !== stableStringify(l.qcFgLinks) || stableStringify(rec.qcWashLinks || []) !== stableStringify(l.qcWashLinks)) { rec.qcFgLinks = l.qcFgLinks; rec.qcWashLinks = l.qcWashLinks; changed = true; }
+      if (stableStringify(rec.qcFgLinks || []) !== stableStringify(l.qcFgLinks) || stableStringify(rec.qcWashLinks || []) !== stableStringify(l.qcWashLinks) || stableStringify(rec.distFormLinks || []) !== stableStringify(l.distFormLinks || [])) { rec.qcFgLinks = l.qcFgLinks; rec.qcWashLinks = l.qcWashLinks; rec.distFormLinks = l.distFormLinks || []; changed = true; }
       if (l.qcFgLinks.length || l.qcWashLinks.length) n++;
     });
     if (changed) { saveCampaignTimelineListLocal(); pushCampaignTimelineDiffToFirebase({ skipEmptyGuard: true }); }
@@ -14467,6 +14472,33 @@ function dhRestore(id) {
 }
 document.getElementById('dhSearch').addEventListener('input', renderDeleteHistoryTab);
 document.getElementById('dhModule').addEventListener('change', renderDeleteHistoryTab);
+// Group rows by series (Oct 15, 2026, per Shaila): one collapsible header row per series with Pass / Pass With Condition / Fail counts.
+const bqrExpandedSeries = new Set(), bqrCollapsedSeries = new Set();
+let bqrExpandAll = false;
+function bqrGroupedBody(shown, rowFn, cols, field, headTds) {
+  const groups = new Map();
+  shown.forEach(r => { const k = r.series || '-'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); });
+  const forceOpen = bqrExpandAll || !!(document.getElementById('bqrSearch').value || '').trim() || !!document.getElementById('bqrSeries').value;
+  return [...groups.keys()].sort((a, b) => a.localeCompare(b)).map(name => {
+    const list = groups.get(name);
+    const cnt = k => list.filter(r => bqcStatusKey(r[field]) === k).length;
+    const newN = list.filter(bqrIsNew).length;
+    const open = forceOpen || bqrExpandedSeries.has(name) || (newN > 0 && !bqrCollapsedSeries.has(name));
+    const badges = [['pass', 'badge-green', 'Pass'], ['pass-with', 'badge-amber', 'Pass With Condition'], ['fail', 'badge-red', 'Fail']]
+      .map(([k, c, l]) => cnt(k) ? `<span class="badge ${c}">${cnt(k)} ${l}</span>` : '').join(' ');
+    const alloc = [...new Set(list.map(r => (r.allocationBoutique || '').trim()).filter(Boolean))];
+    const allocHtml = alloc.length ? ` <span style="color:var(--text-muted);">· Allocation Boutique:</span> <strong>${alloc.map(escapeHtml).join(', ')}</strong>` : '';
+    const distN = cols === 13 ? list.filter(bqrIsDist).length : -1;
+    const distHtml = distN >= 0 ? ` <span class="badge ${distN === list.length ? 'badge-green' : 'badge-amber'}">${distN}/${list.length} distributed</span>` : '';
+    return `<tr class="bqr-group" data-series="${escapeHtml(name)}" data-open="${open ? 1 : 0}" style="cursor:pointer;"><td colspan="${cols}"><strong>${open ? '▾' : '▸'} ${escapeHtml(name)}</strong> <span style="color:var(--text-muted);">· ${list.length} item(s)</span>${allocHtml} &nbsp;${badges}${distHtml} ${newN ? `<span class="bqr-new-tag">${newN} NEW</span>` : ''}</td></tr>` + (open ? `<tr class="bqr-detail-head">${headTds}</tr>` + list.map(rowFn).join('') : '');
+  }).join('');
+}
+function bqrDistBadgeHtml(text) {
+  const t = String(text || '').trim();
+  if (!t) return '-';
+  const cls = /distribut|done|complete|sent|released/i.test(t) && !/not|pending|partial/i.test(t) ? 'badge-green' : (/partial|progress|ongoing/i.test(t) ? 'badge-amber' : 'badge-gray');
+  return `<span class="badge ${cls}">${escapeHtml(t)}</span>`;
+}
 let bqrMode = 'fg';
 // ---- Bulk QC Result notifications: red counter on the tab + NEW tags when a QC result is new or changed since the last visit (per device) ----
 const BQR_SEEN_LS = 'bqrSeenV1';
@@ -14543,9 +14575,40 @@ function bqrOnOpen() {
 setInterval(bqrUpdateNotify, 4000);
 setTimeout(bqrUpdateNotify, 1500);
 
+// Distribution Action (staff mark "distributed to boutique"): shared via Firebase BqrDistrib/<id> = {done, by, at}; never deleted, only toggled.
+let bqrDistMap = {}, bqrDistStarted = false;
+try { bqrDistMap = JSON.parse(localStorage.getItem('bqrDistLocalV1') || '{}') || {}; } catch (e) { bqrDistMap = {}; }
+function bqrDistKey(r) { return fbSafeKey(r.id); }
+function bqrIsDist(r) { const v = bqrDistMap[bqrDistKey(r)]; return !!(v && v.done); }
+function bqrDistStart() {
+  if (bqrDistStarted || !fbDb) return;
+  bqrDistStarted = true;
+  try {
+    fbDb.ref('BqrDistrib').on('value', snap => {
+      bqrDistMap = snap.val() || {};
+      try { localStorage.setItem('bqrDistLocalV1', JSON.stringify(bqrDistMap)); } catch (e) {}
+      if (bqrTabActive()) renderBqrTab();
+    }, () => { bqrDistStarted = false; });
+  } catch (e) { bqrDistStarted = false; }
+}
+function bqrActionHtml(r) {
+  const v = bqrDistMap[bqrDistKey(r)] || {};
+  const done = !!v.done;
+  const meta = done && (v.by || v.at) ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${escapeHtml(v.by || '')}${v.at ? ' · ' + escapeHtml(String(v.at).slice(0, 10)) : ''}</div>` : '';
+  return `<select class="bqr-dist-sel" data-k="${escapeHtml(bqrDistKey(r))}" style="min-width:150px;"><option value="0"${done ? '' : ' selected'}>Not distributed</option><option value="1"${done ? ' selected' : ''}>Distributed</option></select>${meta}`;
+}
+function bqrDistSet(key, done) {
+  const u = getCurrentUser();
+  const rec = { done: !!done, by: u ? (u.name || u.username || '') : '', at: new Date().toISOString() };
+  bqrDistMap[key] = rec;
+  try { localStorage.setItem('bqrDistLocalV1', JSON.stringify(bqrDistMap)); } catch (e) {}
+  if (fbDb) { try { fbDb.ref('BqrDistrib/' + key).set(rec).catch(() => {}); } catch (e) {} }
+  renderBqrTab();
+}
 function renderBqrTab() {
   const wrap = document.getElementById('bqrWrap');
   if (!wrap) return;
+  bqrDistStart();
   const fabric = bqrMode === 'fabric';
   document.getElementById('bqrModeFg').className = fabric ? 'btn-ghost' : 'btn-primary';
   document.getElementById('bqrModeFabric').className = fabric ? 'btn-primary' : 'btn-ghost';
@@ -14587,13 +14650,26 @@ function renderBqrTab() {
   if (!shown.length) { wrap.innerHTML = '<div class="empty-state">No finished QC result yet.</div>'; return; }
   const E = escapeHtml;
   if (!fabric) {
-    wrap.innerHTML = `<table><thead><tr><th>Series</th><th>Official Product Name</th><th>Batch</th><th>Color</th><th>Tailor Supplier</th><th style="text-align:right;">Quantity FG Order pcs</th><th>Allocation Boutique</th><th>QC Result Finish Goods</th><th>QC Finish Goods Link</th></tr></thead><tbody>` +
-      shown.map(r => `<tr${bqrIsNew(r) ? ' class="bqr-new"' : ''}><td>${E(r.series || '-')}</td><td>${E(r.officialProductName || '-')}</td><td>${E(r.batch || '-')}</td><td>${E(r.color || '-')}</td><td>${E(r.supplier || '-')}</td><td style="text-align:right;">${formatQty(r.quantity || 0)}</td><td>${E(r.allocationBoutique || '-')}</td><td>${bqrIsNew(r) ? '<span class="bqr-new-tag">NEW</span>' : ''}${bqcBadgeHtml(r.qcFg)}</td><td>${campaignTimelineLinksHtml(r, 'qcFg')}</td></tr>`).join('') + '</tbody></table>';
+    wrap.innerHTML = `<table><tbody>` +
+      bqrGroupedBody(shown, r => `<tr${bqrIsNew(r) ? ' class="bqr-new"' : ''}><td>${E(r.series || '-')}</td><td>${E(r.officialProductName || '-')}</td><td>${E(r.batch || '-')}</td><td>${E(r.color || '-')}</td><td>${E(r.supplier || '-')}</td><td style="text-align:right;">${formatQty(r.quantity || 0)}</td><td>${bqrIsNew(r) ? '<span class="bqr-new-tag">NEW</span>' : ''}${bqcBadgeHtml(r.qcFg)}</td><td>${campaignTimelineLinksHtml(r, 'qcFg')}</td><td>${bqrDistBadgeHtml(r.distStatus)}</td><td>${campaignTimelineLinksHtml(r, 'distForm')}</td><td>${E(r.allocationBoutique || '-')}</td><td>${bqrActionHtml(r)}</td></tr>`, 13, field, `<td>Series</td><td>Official Product Name</td><td>Batch</td><td>Color</td><td>Tailor Supplier</td><td style="text-align:right;">Quantity FG Order pcs</td><td>QC Result Finish Goods</td><td>QC Finish Goods Link</td><td>Distribution Status</td><td>Distribution Form Link</td><td>Allocation Boutique</td><td>Action</td>`) + '</tbody></table>';
   } else {
-    wrap.innerHTML = `<table><thead><tr><th>Series</th><th>Official Product Name</th><th>Material</th><th>Fabric Supplier</th><th style="text-align:right;">Qty Fabrics (Ctn)</th><th style="text-align:right;">Qty Fabrics (Meter)</th><th>QC Result Washing Test</th><th>QC Washing Test Link</th></tr></thead><tbody>` +
-      shown.map(r => `<tr${bqrIsNew(r) ? ' class="bqr-new"' : ''}><td>${E(r.series || '-')}</td><td>${E(r.officialProductName || '-')}</td><td>${E(r.material || '-')}</td><td>${E(r.fabricSupplier || '-')}</td><td style="text-align:right;">${formatQty(r.quantityFabricsCtn || 0)}</td><td style="text-align:right;">${formatQty(r.quantityFabricsMeter || 0)}</td><td>${bqrIsNew(r) ? '<span class="bqr-new-tag">NEW</span>' : ''}${bqcBadgeHtml(r.qcWash)}</td><td>${campaignTimelineLinksHtml(r, 'qcWash')}</td></tr>`).join('') + '</tbody></table>';
+    wrap.innerHTML = `<table><tbody>` +
+      bqrGroupedBody(shown, r => `<tr${bqrIsNew(r) ? ' class="bqr-new"' : ''}><td>${E(r.series || '-')}</td><td>${E(r.officialProductName || '-')}</td><td>${E(r.material || '-')}</td><td>${E(r.fabricSupplier || '-')}</td><td style="text-align:right;">${formatQty(r.quantityFabricsCtn || 0)}</td><td style="text-align:right;">${formatQty(r.quantityFabricsMeter || 0)}</td><td>${bqrIsNew(r) ? '<span class="bqr-new-tag">NEW</span>' : ''}${bqcBadgeHtml(r.qcWash)}</td><td>${campaignTimelineLinksHtml(r, 'qcWash')}</td></tr>`, 8, field, `<td>Series</td><td>Official Product Name</td><td>Material</td><td>Fabric Supplier</td><td style="text-align:right;">Qty Fabrics (Ctn)</td><td style="text-align:right;">Qty Fabrics (Meter)</td><td>QC Result Washing Test</td><td>QC Washing Test Link</td>`) + '</tbody></table>';
   }
+  wrap.querySelectorAll('.bqr-dist-sel').forEach(sel => sel.addEventListener('change', () => bqrDistSet(sel.dataset.k, sel.value === '1')));
+  wrap.querySelectorAll('.bqr-group').forEach(tr => tr.addEventListener('click', () => {
+    const name = tr.dataset.series;
+    if (tr.dataset.open === '1') { bqrExpandedSeries.delete(name); bqrCollapsedSeries.add(name); bqrExpandAll = false; }
+    else { bqrExpandedSeries.add(name); bqrCollapsedSeries.delete(name); }
+    renderBqrTab();
+  }));
 }
+document.getElementById('bqrExpandAllBtn').addEventListener('click', () => { bqrExpandAll = true; bqrCollapsedSeries.clear(); renderBqrTab(); });
+document.getElementById('bqrCollapseAllBtn').addEventListener('click', () => {
+  bqrExpandAll = false; bqrExpandedSeries.clear();
+  document.querySelectorAll('#bqrWrap .bqr-group').forEach(tr => bqrCollapsedSeries.add(tr.dataset.series));
+  renderBqrTab();
+});
 document.getElementById('bqrModeFg').addEventListener('click', () => { bqrMode = 'fg'; ['bqrSeries','bqrTailor'].forEach(id => { document.getElementById(id).dataset.sig = ''; }); renderBqrTab(); });
 document.getElementById('bqrModeFabric').addEventListener('click', () => { bqrMode = 'fabric'; ['bqrSeries','bqrTailor'].forEach(id => { document.getElementById(id).dataset.sig = ''; }); renderBqrTab(); });
 ['bqrSearch', 'bqrSeries', 'bqrTailor', 'bqrStatus'].forEach(id => document.getElementById(id).addEventListener(id === 'bqrSearch' ? 'input' : 'change', renderBqrTab));
@@ -14958,6 +15034,9 @@ function parseCampaignTimelineRows(rows, sheetLabel, rawHeaderRows, deterministi
     qcFgLink: bqcOr(campaignTimelineFindColContains(headerRow, ['qc', 'finish', 'goods', 'link']), () => campaignTimelineFindColContains(headerRow, ['qc', 'report', 'garment'])),
     qcWash: bqcOr(campaignTimelineFindColContainsOccurrence(headerRow, ['qc', 'washing', 'test'], 1, ['link']), () => campaignTimelineFindColContainsOccurrence(headerRow, ['qc', 'washing', 'result'], 1, ['fabric', 'garment'])),
     qcWashLink: bqcOr(campaignTimelineFindColContains(headerRow, ['qc', 'washing', 'test', 'link']), () => campaignTimelineFindColContains(headerRow, ['qc', 'result', 'washing', 'fabric'])),
+    // Oct 15, 2026 (per Shaila): Distribution Status + Distribution Form link columns, shown on Bulk QC Result.
+    distStatus: campaignTimelineFindColContains(headerRow, ['distribution', 'status']),
+    distFormLink: campaignTimelineFindColContains(headerRow, ['distribution', 'form']),
     quantityFabricsCtn: campaignTimelineFindColContains(headerRow, ['quantity', 'fabrics', 'ctn']),
     quantityFabricsMeter: campaignTimelineFindColContains(headerRow, ['quantity', 'fabrics', 'meter']),
     // Added per Shaila's request (Sep 28, 2026 — "nak tambah column 'Fabric Invoice Number'").
@@ -15015,6 +15094,8 @@ function parseCampaignTimelineRows(rows, sheetLabel, rawHeaderRows, deterministi
       qcFgLink: idx.qcFgLink !== -1 ? campaignTimelineCellText(row[idx.qcFgLink]) : '',
       qcWash: idx.qcWash !== -1 ? campaignTimelineCellText(row[idx.qcWash]) : '',
       qcWashLink: idx.qcWashLink !== -1 ? campaignTimelineCellText(row[idx.qcWashLink]) : '',
+      distStatus: idx.distStatus !== -1 ? campaignTimelineCellText(row[idx.distStatus]) : '',
+      distFormLink: idx.distFormLink !== -1 ? campaignTimelineCellText(row[idx.distFormLink]) : '',
       sheetReceiveFg: idx.receiveFg !== -1 ? campaignTimelineCellNum(row[idx.receiveFg]) : null,
       sheetReceiveValue: idx.receiveValue !== -1 ? campaignTimelineCellCurrencyNum(row[idx.receiveValue]) : null,
       sheetVariancePcs: idx.variancePcs !== -1 ? campaignTimelineCellNum(row[idx.variancePcs]) : null,
@@ -34735,7 +34816,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '14Oct-r104';
+const APP_BUILD_LABEL = '15Oct-r114';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
