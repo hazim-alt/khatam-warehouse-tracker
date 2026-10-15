@@ -14578,6 +14578,7 @@ setTimeout(bqrUpdateNotify, 1500);
 // Distribution Action (staff mark "distributed to boutique"): shared via Firebase BqrDistrib/<id> = {done, by, at}; never deleted, only toggled.
 let bqrDistMap = {}, bqrDistStarted = false;
 try { bqrDistMap = JSON.parse(localStorage.getItem('bqrDistLocalV1') || '{}') || {}; } catch (e) { bqrDistMap = {}; }
+const BQR_DIST_STATUSES = ['Not distributed', 'STO Created', 'Picking / Packing', 'In Transit', 'Distributed'];
 function bqrDistKey(r) { return fbSafeKey(r.id); }
 function bqrIsDist(r) { const v = bqrDistMap[bqrDistKey(r)]; return !!(v && v.done); }
 function bqrDistStart() {
@@ -14593,13 +14594,14 @@ function bqrDistStart() {
 }
 function bqrActionHtml(r) {
   const v = bqrDistMap[bqrDistKey(r)] || {};
-  const done = !!v.done;
-  const meta = done && (v.by || v.at) ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${escapeHtml(v.by || '')}${v.at ? ' · ' + escapeHtml(String(v.at).slice(0, 10)) : ''}</div>` : '';
-  return `<select class="bqr-dist-sel" data-k="${escapeHtml(bqrDistKey(r))}" style="min-width:150px;"><option value="0"${done ? '' : ' selected'}>Not distributed</option><option value="1"${done ? ' selected' : ''}>Distributed</option></select>${meta}`;
+  const cur = v.status || (v.done ? 'Distributed' : 'Not distributed');
+  const done = cur === 'Distributed';
+  const meta = (v.status || v.done) && (v.by || v.at) ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${escapeHtml(v.by || '')}${v.at ? ' · ' + escapeHtml(String(v.at).slice(0, 10)) : ''}</div>` : '';
+  return `<select class="bqr-dist-sel" data-k="${escapeHtml(bqrDistKey(r))}" style="min-width:150px;">${BQR_DIST_STATUSES.map(o => `<option value="${o}"${o === cur ? ' selected' : ''}>${o}</option>`).join('')}</select>${meta}`;
 }
-function bqrDistSet(key, done) {
+function bqrDistSet(key, status) {
   const u = getCurrentUser();
-  const rec = { done: !!done, by: u ? (u.name || u.username || '') : '', at: new Date().toISOString() };
+  const rec = { status, done: status === 'Distributed', by: u ? (u.name || u.username || '') : '', at: new Date().toISOString() };
   bqrDistMap[key] = rec;
   try { localStorage.setItem('bqrDistLocalV1', JSON.stringify(bqrDistMap)); } catch (e) {}
   if (fbDb) { try { fbDb.ref('BqrDistrib/' + key).set(rec).catch(() => {}); } catch (e) {} }
@@ -14656,7 +14658,7 @@ function renderBqrTab() {
     wrap.innerHTML = `<table><tbody>` +
       bqrGroupedBody(shown, r => `<tr${bqrIsNew(r) ? ' class="bqr-new"' : ''}><td>${E(r.series || '-')}</td><td>${E(r.officialProductName || '-')}</td><td>${E(r.material || '-')}</td><td>${E(r.fabricSupplier || '-')}</td><td style="text-align:right;">${formatQty(r.quantityFabricsCtn || 0)}</td><td style="text-align:right;">${formatQty(r.quantityFabricsMeter || 0)}</td><td>${bqrIsNew(r) ? '<span class="bqr-new-tag">NEW</span>' : ''}${bqcBadgeHtml(r.qcWash)}</td><td>${campaignTimelineLinksHtml(r, 'qcWash')}</td></tr>`, 8, field, `<td>Series</td><td>Official Product Name</td><td>Material</td><td>Fabric Supplier</td><td style="text-align:right;">Qty Fabrics (Ctn)</td><td style="text-align:right;">Qty Fabrics (Meter)</td><td>QC Result Washing Test</td><td>QC Washing Test Link</td>`) + '</tbody></table>';
   }
-  wrap.querySelectorAll('.bqr-dist-sel').forEach(sel => sel.addEventListener('change', () => bqrDistSet(sel.dataset.k, sel.value === '1')));
+  wrap.querySelectorAll('.bqr-dist-sel').forEach(sel => sel.addEventListener('change', () => bqrDistSet(sel.dataset.k, sel.value)));
   wrap.querySelectorAll('.bqr-group').forEach(tr => tr.addEventListener('click', () => {
     const name = tr.dataset.series;
     if (tr.dataset.open === '1') { bqrExpandedSeries.delete(name); bqrCollapsedSeries.add(name); bqrExpandAll = false; }
@@ -34816,7 +34818,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '15Oct-r114';
+const APP_BUILD_LABEL = '15Oct-r115';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
