@@ -312,6 +312,191 @@
   #psTestWrap .pst-rbar > div { height: 100%; background: #c99a4a; border-radius: 4px; }
   #psTestWrap .pst-rv { text-align: right; color: var(--text-muted); font-variant-numeric: tabular-nums; }
   #psTestWrap .pst-rv b { color: var(--text); }
+  /* Dashboard Summary Test — v2 (mockup: gold-on-black cards) */
+  #psTestWrap { max-width: 1240px; }
+  #psTestWrap .pst-card { border-radius: 14px; box-shadow: inset 0 0 0 1px rgba(232,179,94,.08); }
+  #psTestWrap .pst-ic { width: 62px; height: 62px; flex: 0 0 62px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 28px; background: radial-gradient(circle at 35% 30%, rgba(232,179,94,.35), rgba(232,179,94,.06) 70%); border: 1px solid var(--dtp-ringbd); }
+  #psTestWrap .pst-ic-xl { width: 96px; height: 96px; flex-basis: 96px; font-size: 48px; }
+  #psTestWrap .pst-hero2 { display: flex; align-items: center; gap: 26px; padding: 22px 30px; }
+  #psTestWrap .pst-hmain { flex: 1; min-width: 0; }
+  #psTestWrap .pst-big span { font-size: .55em; margin-left: 2px; }
+  #psTestWrap .pst-hero2 .pst-bar { margin-top: 14px; }
+  #psTestWrap .pst-hero2 .pst-val { border-left: 1px solid var(--dtp-ringbd); padding-left: 30px; text-align: left; }
+  #psTestWrap .pst-valnum { font-size: 46px; color: var(--dtp-accent); line-height: 1.1; margin: 4px 0; }
+  #psTestWrap .pst-stats4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+  #psTestWrap .pst-kpi { display: flex; align-items: center; gap: 16px; padding: 16px 20px; }
+  #psTestWrap .pst-snum { font-size: 34px; line-height: 1.1; color: var(--text); margin-top: 4px; }
+  #psTestWrap .pst-snum small, #psTestWrap .pst-rv small, #psTestWrap .pst-lnum small { font-size: 15px; color: var(--text-muted); font-family: inherit; }
+  #psTestWrap .pst-panel { margin-top: 12px; padding: 14px 22px 10px; }
+  #psTestWrap .pst-sech { display: flex; align-items: center; gap: 10px; color: var(--dtp-accent); font-weight: 700; margin: 0 0 8px; }
+  #psTestWrap .pst-sech::after { content: ''; flex: 1; height: 1px; background: var(--dtp-ringbd); }
+  #psTestWrap .pst-row { grid-template-columns: 200px 1fr 130px 20px; font-size: 14px; padding: 10px 6px; }
+  #psTestWrap .pst-rn { text-transform: uppercase; letter-spacing: .03em; font-weight: 600; }
+  #psTestWrap .pst-rbar { height: 11px; border-radius: 6px; } #psTestWrap .pst-rbar > div { border-radius: 6px; background: linear-gradient(90deg, #c99a4a, #e8b35e); }
+  #psTestWrap .pst-rv b { font-size: 16px; } #psTestWrap .pst-chev { color: var(--text-muted); font-size: 20px; text-align: right; }
+  #psTestWrap .pst-loc { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 4px 0 10px; }
+  #psTestWrap .pst-lc { display: flex; align-items: center; gap: 16px; border: 1px solid var(--dtp-ringbd); border-radius: 12px; padding: 14px 18px; background: rgba(0,0,0,.12); }
+  #psTestWrap .pst-lnum { font-family: Georgia, serif; font-size: 34px; color: var(--text); line-height: 1.1; margin-top: 2px; }
+  @media (max-width: 900px) { #psTestWrap .pst-stats4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } #psTestWrap .pst-loc { grid-template-columns: 1fr; } #psTestWrap .pst-hero2 { flex-wrap: wrap; } #psTestWrap .pst-hero2 .pst-val { border-left: 0; padding-left: 0; } #psTestWrap .pst-row { grid-template-columns: 110px 1fr 90px 14px; } }
+  /* v3: exact mockup look — black, thin gold borders, gold line icons */
+  #psTestWrap .pst-top { justify-content: flex-end; margin-bottom: 10px; }
+  #psTestWrap .pst-chip { padding: 4px 12px; font-size: 11px; }
+  #psTestWrap .pst-card { background: var(--dtp-bg); border: 1px solid var(--dtp-ringbd); border-radius: 10px; box-shadow: none; }
+  #psTestWrap .pst-lbl { font-family: 'Inter', system-ui, sans-serif; font-size: 12px; letter-spacing: .12em; color: var(--text-muted); font-weight: 500; }
+  #psTestWrap .pst-ic { background: radial-gradient(circle at 50% 40%, rgba(232,179,94,.22), rgba(20,16,10,.9) 72%); border: 1px solid #6e5428; box-shadow: 0 0 14px rgba(232,179,94,.15); }
+  #psTestWrap .pst-hero2 { position: relative; overflow: hidden; background: linear-gradient(120deg, #15120d 0%, #0b0a08 70%); }
+  #psTestWrap .pst-hero2::after { content: ''; position: absolute; right: -40px; top: -20px; bottom: -20px; width: 260px; background: repeating-linear-gradient(115deg, transparent 0 26px, rgba(232,179,94,.22) 26px 27px); pointer-events: none; -webkit-mask-image: linear-gradient(90deg, transparent, #000); mask-image: linear-gradient(90deg, transparent, #000); }
+  #psTestWrap .pst-big { font-family: Georgia, 'Times New Roman', serif; font-weight: 700; font-size: 66px; letter-spacing: .02em; color: #f2cf8a; background: linear-gradient(180deg, #ffe3a4, #d8a24d); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  #psTestWrap .pst-mid { font-size: 14px; color: var(--text); } #psTestWrap .pst-mid b { color: #fff; }
+  #psTestWrap .pst-bar { height: 12px; background: #23211d; border-radius: 7px; } #psTestWrap .pst-bar > div { background: linear-gradient(90deg, #a87a32, #f0c36e); border-radius: 7px; }
+  #psTestWrap .pst-valnum { font-family: Georgia, serif; font-weight: 700; font-size: 50px; color: #f2cf8a; background: linear-gradient(180deg, #ffe3a4, #d8a24d); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  #psTestWrap .pst-snum { font-family: 'Inter', system-ui, sans-serif; font-weight: 700; font-size: 36px; color: #f4ead2; }
+  #psTestWrap .pst-lnum { font-family: 'Inter', system-ui, sans-serif; font-weight: 700; font-size: 36px; color: #f4ead2; }
+  #psTestWrap .pst-sech { font-size: 14px; letter-spacing: .1em; text-transform: uppercase; color: #e8b35e; }
+  #psTestWrap .pst-sech::after { background: linear-gradient(90deg, #8c6a2c, transparent); }
+  #psTestWrap .pst-sico { width: 24px; height: 24px; display: inline-flex; }
+  #psTestWrap .pst-row { background: rgba(255,255,255,.025); border-bottom: 1px solid #1d1a14; }
+  #psTestWrap .pst-rbar { background: #1f1d19; } #psTestWrap .pst-rv b { color: #fff; font-size: 17px; }
+  #psTestWrap .pst-lc { background: linear-gradient(180deg, #14120e, #0b0a08); border-color: #6e5428; }
+  /* v4: fill the screen + 3D icons */
+  #tab-production-summary-test.active { display: block; }
+  #psTestWrap { max-width: none; width: 100%; min-height: calc(100vh - 130px); display: flex; flex-direction: column; box-sizing: border-box; }
+  #psTestWrap .pst-hero2 { padding: 30px 40px; flex: 0 0 auto; }
+  #psTestWrap .pst-stats4 { margin-top: 14px; }
+  #psTestWrap .pst-kpi { padding: 24px 26px; }
+  #psTestWrap .pst-panel { flex: 1 1 auto; display: flex; flex-direction: column; margin-top: 14px; padding: 18px 28px 14px; }
+  #psTestWrap .pst-panel .pst-row { flex: 1 1 0; min-height: 44px; }
+  #psTestWrap .pst-snum, #psTestWrap .pst-snum small { white-space: nowrap; }
+  #psTestWrap .pst-snum small { font-size: 16px; margin-left: 4px; }
+  #psTestWrap .pst-ic svg { filter: drop-shadow(0 3px 3px rgba(0,0,0,.65)) drop-shadow(0 0 6px rgba(232,179,94,.25)); }
+  #psTestWrap .pst-ic { width: 70px; height: 70px; flex-basis: 70px; } #psTestWrap .pst-ic-xl { width: 112px; height: 112px; flex-basis: 112px; }
+  #psTestWrap .pst-sico { width: 26px; height: 26px; display: inline-flex; } #psTestWrap .pst-sico svg { width: 100%; height: 100%; }
+  #psTestWrap .pst-big { font-size: 78px; } #psTestWrap .pst-valnum { font-size: 58px; }
+  #psTestWrap .pst-pct { margin-left: auto; align-self: center; font-family: 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 20px; color: #1c140a; background: linear-gradient(180deg, #ffe3a4, #d8a24d); border-radius: 999px; padding: 6px 14px; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+  #psTestWrap .pst-pct-warn { background: transparent; color: #f2cf8a; border: 1.5px solid #8c6a2c; box-shadow: none; }
+  /* v5: keep KPI content inside the card */
+  #psTestWrap .pst-stats4 > .pst-card { min-width: 0; overflow: hidden; }
+  #psTestWrap .pst-kpi { gap: 14px; padding: 20px 20px; }
+  #psTestWrap .pst-kpi > div:not(.pst-pct) { min-width: 0; flex: 1 1 auto; }
+  #psTestWrap .pst-kpi .pst-ic { width: 58px; height: 58px; flex-basis: 58px; }
+  #psTestWrap .pst-kpi .pst-snum { font-size: clamp(22px, 2.3vw, 36px); }
+  #psTestWrap .pst-kpi .pst-snum small { font-size: clamp(11px, 1vw, 16px); }
+  #psTestWrap .pst-pct { flex: 0 0 auto; font-size: clamp(13px, 1.2vw, 19px); padding: 5px 11px; margin-left: 0; }
+  @media (max-width: 1250px) { #psTestWrap .pst-kpi { flex-wrap: wrap; } #psTestWrap .pst-pct { margin-left: 72px; } }
+  /* v6: Production Summary layout (header + 3 cards + by-location + collection status table) */
+  #psTestWrap .pst-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; margin-bottom: 6px; }
+  #psTestWrap .pst-h2 { font-family: Georgia, 'Times New Roman', serif; font-size: 34px; font-weight: 700; color: #f4ead2; line-height: 1.1; }
+  #psTestWrap .pst-meta { display: flex; gap: 10px; flex-wrap: wrap; }
+  #psTestWrap .pst-moodbtn { cursor: pointer; font-family: inherit; font-weight: 600; } #psTestWrap .pst-moodbtn:hover { border-color: var(--dtp-accent); color: var(--dtp-accent); }
+  #psTestWrap .pst-pill { border: 1px solid var(--dtp-ringbd); border-radius: 10px; padding: 8px 14px; font-size: 12.5px; color: var(--text); background: rgba(255,255,255,.03); }
+  #psTestWrap .pst-top { justify-content: center; margin: 4px 0 14px; }
+  #psTestWrap .pst-chip { padding: 8px 30px; font-size: 14px; border-radius: 24px; }
+  #psTestWrap .pst-htitle { font-size: 20px; font-weight: 700; color: #f4ead2; }
+  #psTestWrap .pst-hsub { font-size: 12px; color: var(--text-muted); margin-bottom: 2px; }
+  #psTestWrap .pst-hero2 .pst-val { display: flex; align-items: center; gap: 18px; }
+  #psTestWrap .pst-hero2 .pst-val .pst-ic { width: 84px; height: 84px; flex-basis: 84px; background: none; border: 0; box-shadow: none; }
+  #psTestWrap .pst-hero2 .pst-ic-xl { background: none; border: 0; box-shadow: none; }
+  #psTestWrap .pst-hero2 .pst-mid { color: #e8c783; }
+  #psTestWrap .pst-big { font-size: 64px; }
+  #psTestWrap .pst-valnum { font-size: 44px; }
+  #psTestWrap .pst-stats3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+  #psTestWrap .pst-stats3 > .pst-card { min-width: 0; }
+  #psTestWrap .pst-stats3 .pst-kpi .pst-ic { width: 84px; height: 84px; flex-basis: 84px; background: none; border: 0; box-shadow: none; }
+  #psTestWrap .pst-stats3 .pst-chev { margin-left: auto; font-size: 26px; }
+  #psTestWrap .pst-lrow { display: grid; grid-template-columns: 46px 110px 110px 130px 1fr 60px; gap: 14px; align-items: center; padding: 10px 4px; border-bottom: 1px solid #1d1a14; font-size: 15px; }
+  #psTestWrap .pst-lrow:last-child { border-bottom: 0; }
+  #psTestWrap .pst-lico .pst-ic { width: 38px; height: 38px; flex-basis: 38px; background: none; border: 0; box-shadow: none; }
+  #psTestWrap .pst-lname { font-weight: 700; color: #f4ead2; } #psTestWrap .pst-lser, #psTestWrap .pst-lq { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  #psTestWrap .pst-lpct { text-align: right; font-weight: 700; color: #f4ead2; }
+  #psTestWrap .pst-sech-row { flex-wrap: wrap; } #psTestWrap .pst-sech-row::after { display: none; }
+  #psTestWrap .pst-tools { margin-left: auto; display: flex; gap: 10px; text-transform: none; letter-spacing: 0; font-weight: 400; }
+  #psTestWrap .pst-tools input, #psTestWrap .pst-tools select { background: #0e0c09; color: #f4ead2; border: 1px solid var(--dtp-ringbd); border-radius: 10px; padding: 9px 14px; font-size: 13px; min-width: 190px; font-family: inherit; }
+  #psTestWrap .pst-grow { flex: 1 1 auto; }
+  #psTestWrap .pst-tblwrap { max-height: 460px; overflow: auto; }
+  #psTestWrap .pst-tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+  #psTestWrap .pst-tbl th { position: sticky; top: 0; background: #14110c; text-align: left; font-size: 12px; font-weight: 600; color: var(--text-muted); padding: 12px 14px; border-bottom: 1px solid var(--dtp-ringbd); }
+  #psTestWrap .pst-tbl td { padding: 13px 14px; border-bottom: 1px solid #1d1a14; color: var(--text); }
+  #psTestWrap .pst-tbl .r { text-align: right; } #psTestWrap .pst-tbl small { color: var(--text-muted); }
+  #psTestWrap .pst-tbl tbody tr:hover td { background: rgba(232,179,94,.06); }
+  #psTestWrap .pst-no { color: var(--text-muted); width: 44px; font-variant-numeric: tabular-nums; }
+  #psTestWrap .pst-tsr { font-weight: 700; text-transform: uppercase; letter-spacing: .02em; }
+  #psTestWrap .pst-st { display: inline-block; padding: 5px 16px; border-radius: 999px; font-size: 12.5px; font-weight: 600; border: 1px solid; }
+  #psTestWrap .pst-st.receiving { background: rgba(232,179,94,.14); color: #f2cf8a; border-color: #8c6a2c; }
+  #psTestWrap .pst-st.pending { background: rgba(70,130,200,.14); color: #8fbdf0; border-color: #3b6ea5; }
+  #psTestWrap .pst-st.progress, #psTestWrap .pst-st.done { background: rgba(70,170,110,.14); color: #8fdcaa; border-color: #3b8a5c; }
+  #psTestWrap .pst-st.other, #psTestWrap .pst-st.none { background: rgba(255,255,255,.05); color: var(--text-muted); border-color: #3a3326; }
+  #psTestWrap .pst-mini { height: 4px; border-radius: 3px; background: #23211d; margin-top: 5px; overflow: hidden; } #psTestWrap .pst-mini i { display: block; height: 100%; background: linear-gradient(90deg, #a87a32, #f0c36e); }
+  #psTestWrap .pst-more { text-align: center; padding: 10px; color: var(--text-muted); font-size: 12.5px; }
+  #psTestWrap .pst-more .pst-chip { padding: 6px 18px; font-size: 12.5px; }
+  #psTestWrap .pst-empty { text-align: center; color: var(--text-muted); padding: 26px; }
+  @media (max-width: 980px) { #psTestWrap .pst-stats3 { grid-template-columns: 1fr; } #psTestWrap .pst-lrow { grid-template-columns: 38px 80px 1fr 56px; } #psTestWrap .pst-lser, #psTestWrap .pst-lq { display: none; } #psTestWrap .pst-lrow .pst-rbar { grid-column: 3; } }
+  #psTestWrap .pst-colspanel { border: 1px solid var(--dtp-ringbd); border-radius: 12px; background: #0e0c09; padding: 14px 18px; margin: 4px 0 12px; max-width: 420px; }
+  #psTestWrap .pst-cp-h { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #e8b35e; margin-bottom: 6px; } #psTestWrap .pst-cp-h small { text-transform: none; letter-spacing: 0; color: var(--text-muted); }
+  #psTestWrap .pst-cp-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #1d1a14; font-size: 14px; color: var(--text); }
+  #psTestWrap .pst-cp-row button { background: #1a1610; color: #f2cf8a; border: 1px solid #5c4521; border-radius: 6px; margin-left: 4px; width: 30px; height: 28px; cursor: pointer; } #psTestWrap .pst-cp-row button:disabled { opacity: .3; cursor: default; }
+  #psTestWrap .pst-cp-add { display: flex; flex-wrap: wrap; gap: 6px; } #psTestWrap .pst-cp-add .pst-chip, #psTestWrap .pst-colspanel .pst-chip { padding: 5px 12px; font-size: 12.5px; }
+  #psTestWrap .pst-tools .pst-chip { padding: 8px 16px; font-size: 13px; }
+  /* Production Summary now follows the Dashboard tab theme exactly (same --dtp-* variables, dark + light) */
+  #psTestWrap { background: transparent; padding: 0; }
+  #psTestWrap.dt-mood-light { background: #e9dec6; padding: 16px; border-radius: 14px; }
+  #psTestWrap .pst-card { background: var(--dtp-bg); border: 1px solid var(--dtp-ringbd); box-shadow: none; }
+  #psTestWrap .pst-hero2 { background: var(--dtp-bg); }
+  #psTestWrap .pst-hero2::after { background: repeating-linear-gradient(115deg, transparent 0 26px, color-mix(in srgb, var(--dtp-accent) 28%, transparent) 26px 27px); }
+  #psTestWrap .pst-h2, #psTestWrap .pst-htitle, #psTestWrap .pst-snum, #psTestWrap .pst-lnum, #psTestWrap .pst-lname, #psTestWrap .pst-lpct, #psTestWrap .pst-rv b, #psTestWrap .pst-mid b, #psTestWrap .pst-tsr { color: var(--text); }
+  #psTestWrap .pst-big, #psTestWrap .pst-valnum { background: none; -webkit-text-fill-color: currentColor; color: var(--dtp-accent); }
+  #psTestWrap .pst-hero2 .pst-mid { color: var(--text-muted); }
+  #psTestWrap .pst-lbl, #psTestWrap .pst-hsub, #psTestWrap .pst-sub { color: var(--text-muted); }
+  #psTestWrap .pst-pill { background: var(--dtp-tile); border-color: var(--dtp-ringbd); color: var(--text); }
+  #psTestWrap .pst-chip { color: var(--text-muted); border-color: var(--dtp-ringbd); }
+  #psTestWrap .pst-chip.on { background: var(--dtp-accent); border-color: var(--dtp-accent); color: #1c140a; }
+  #psTestWrap .pst-ic { background: var(--dtp-ring); border-color: var(--dtp-ringbd); box-shadow: none; }
+  #psTestWrap .pst-hero2 .pst-ic, #psTestWrap .pst-stats3 .pst-ic, #psTestWrap .pst-lico .pst-ic { background: none; border: 0; }
+  #psTestWrap .pst-bar, #psTestWrap .pst-rbar, #psTestWrap .pst-mini { background: color-mix(in srgb, var(--text) 14%, transparent); }
+  #psTestWrap .pst-bar > div, #psTestWrap .pst-rbar > div, #psTestWrap .pst-mini i { background: linear-gradient(90deg, color-mix(in srgb, var(--dtp-accent) 65%, #000), var(--dtp-accent)); }
+  #psTestWrap .pst-sech { color: var(--dtp-accent); } #psTestWrap .pst-sech::after { background: linear-gradient(90deg, var(--dtp-ringbd), transparent); }
+  #psTestWrap .pst-lrow, #psTestWrap .pst-row { background: transparent; border-bottom: 1px solid color-mix(in srgb, var(--text) 10%, transparent); }
+  #psTestWrap .pst-tools input, #psTestWrap .pst-tools select { background: var(--dtp-sec); color: var(--text); border-color: var(--dtp-ringbd); }
+  #psTestWrap .pst-tbl th { background: var(--dtp-hdr-in); color: var(--text); border-bottom: 1px solid var(--dtp-ringbd); }
+  #psTestWrap .pst-tbl td { color: var(--text); border-bottom: 1px solid color-mix(in srgb, var(--text) 10%, transparent); }
+  #psTestWrap .pst-tbl tbody tr:hover td { background: color-mix(in srgb, var(--dtp-accent) 10%, transparent); }
+  #psTestWrap .pst-colspanel { background: var(--dtp-bg); border-color: var(--dtp-ringbd); }
+  #psTestWrap .pst-cp-h { color: var(--dtp-accent); } #psTestWrap .pst-cp-row { color: var(--text); border-bottom-color: color-mix(in srgb, var(--text) 10%, transparent); }
+  #psTestWrap .pst-cp-row button { background: var(--dtp-tile); color: var(--dtp-accent); border-color: var(--dtp-ringbd); }
+  #psTestWrap .pst-hero2 .pst-val { border-left-color: var(--dtp-ringbd); }
+  #psTestWrap .pst-ic svg { filter: drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
+  .pst-th { cursor: pointer; user-select: none; white-space: nowrap; } .pst-th .pst-fi { font-style: normal; margin-left: 6px; opacity: .45; font-size: 11px; } .pst-th:hover .pst-fi, .pst-th .pst-fi.on { opacity: 1; color: var(--dtp-accent, #e8a95b); }
+  .pst-pop { position: fixed; z-index: 99990; width: 270px; background: var(--card, #241f1c); color: var(--text, #eee); border: 1px solid #80643F; border-radius: 12px; padding: 10px; box-shadow: 0 12px 34px rgba(0,0,0,.45); }
+  .pst-pop-s { width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px; border: 1px solid #80643F; background: rgba(0,0,0,.2); color: inherit; font-size: 13px; }
+  .pst-pop-a { display: flex; gap: 8px; margin: 8px 0; } .pst-pop-a button { flex: 1; padding: 6px; border-radius: 8px; border: 1px solid #80643F; background: transparent; color: inherit; cursor: pointer; font-size: 12px; }
+  .pst-pop-l { max-height: 280px; overflow-y: auto; } .pst-pop-l label { display: flex; align-items: center; gap: 8px; padding: 6px 4px; font-size: 13px; cursor: pointer; border-radius: 6px; } .pst-pop-l label:hover { background: rgba(232,169,91,.12); } .pst-pop-l input { width: 16px; height: 16px; accent-color: #e8a95b; }
+  #psTestWrap .pst-st.notrec { background: rgba(238,116,104,.14); color: var(--dtp-red, #ee7468); border-color: var(--dtp-red, #ee7468); }
+  #psTestWrap .pst-filters { margin: 4px 0 12px; } #psTestWrap .pst-filters .field label { color: var(--text-muted); }
+  /* QC Result Test (Oct 19, 2026) — mockup-style QC / distribution overview */
+  #qcrWrap { color: var(--text); font-family: 'Inter', system-ui, sans-serif; }
+  #qcrWrap.dt-mood-light { --text: #2b2418; --text-muted: #7a6a4d; --border: #dccfae; background: #e9dec6; padding: 14px; border-radius: 14px; }
+  #qcrWrap .qcr-card { background: var(--dtp-bg); border: 1px solid var(--dtp-ringbd); border-radius: 14px; padding: 14px 18px; min-width: 0; }
+  #qcrWrap .qcr-row { display: grid; gap: 12px; margin-bottom: 12px; }
+  #qcrWrap .qcr-kpi { display: flex; align-items: center; gap: 16px; }
+  #qcrWrap .qcr-ring { width: 58px; height: 58px; min-width: 58px; border-radius: 50%; border: 1px solid var(--dtp-ringbd); background: var(--dtp-ring); display: flex; align-items: center; justify-content: center; font-size: 26px; }
+  #qcrWrap .qcr-lbl { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+  #qcrWrap .qcr-num { font-family: Georgia, serif; font-size: 42px; line-height: 1.05; color: var(--dtp-accent); }
+  #qcrWrap .qcr-bar { height: 12px; border-radius: 7px; background: rgba(128,100,63,.25); overflow: hidden; margin-top: 8px; }
+  #qcrWrap .qcr-bar > div { height: 100%; background: linear-gradient(90deg, #c99a4a, #e8b35e); border-radius: 7px; }
+  #qcrWrap .qcr-filter { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; padding: 10px 14px; border: 1px solid var(--dtp-ringbd); border-radius: 14px; background: var(--dtp-sec); }
+  #qcrWrap .qcr-filter input { flex: 1; min-width: 220px; }
+  #qcrWrap .qcr-toggle { display: inline-flex; border: 1px solid var(--dtp-ringbd); border-radius: 8px; overflow: hidden; }
+  #qcrWrap .qcr-toggle button { background: transparent; border: 0; color: var(--text-muted); padding: 7px 16px; cursor: pointer; font-family: inherit; font-size: 12px; }
+  #qcrWrap .qcr-toggle button.on { background: var(--dtp-accent); color: #1c140a; font-weight: 700; }
+  #qcrWrap .qcr-title { font-family: Georgia, serif; font-weight: 700; font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--dtp-accent); margin-bottom: 8px; }
+  #qcrWrap table { width: 100%; border-collapse: collapse; }
+  #qcrWrap th { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--dtp-ringbd); background: transparent; }
+  #qcrWrap td { font-size: 13px; padding: 9px 10px; border-bottom: 1px solid rgba(128,100,63,.2); background: transparent; vertical-align: middle; }
+  #qcrWrap .qcr-chip { display: inline-block; padding: 3px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; margin: 0 6px 3px 0; white-space: nowrap; }
+  #qcrWrap .qcr-chip.pass { background: #1b7a5a; color: #fff; } #qcrWrap .qcr-chip.cond { background: #a8721c; color: #fff; } #qcrWrap .qcr-chip.fail { background: #b3372f; color: #fff; }
+  #qcrWrap .qcr-chip.dnone { background: rgba(160,120,60,.25); color: var(--text); border: 1px solid var(--dtp-ringbd); } #qcrWrap .qcr-chip.ddone { background: #1b7a5a; color: #fff; } #qcrWrap .qcr-chip.dmid { background: #2a5d9a; color: #fff; }
+  #qcrWrap .qcr-act { background: transparent; border: 1px solid var(--dtp-ringbd); color: var(--text); border-radius: 8px; padding: 6px 16px; cursor: pointer; font-family: inherit; font-size: 12px; }
+  #qcrWrap .qcr-act:hover { border-color: var(--dtp-accent); color: var(--dtp-accent); }
+  #qcrWrap .qcr-sub td { background: rgba(0,0,0,.12); font-size: 12px; }
   /* Raw Material slide (Oct 18, 2026 redesign — mockup layout) */
   #rmDashWrap { display: flex; flex-direction: column; gap: 12px; color: var(--text); }
   #rmDashWrap .rmx-card { background: var(--dtp-bg); border: 1px solid var(--dtp-ringbd); border-radius: 14px; padding: 12px 16px; min-width: 0; }
@@ -396,10 +581,10 @@
   #tab-production-summary.ps-mood-light > .card .pscf-search { background: #fffaf0 !important; color: #2b2418 !important; }
   #tab-production-summary.ps-mood-light > .card .pscf-option:hover { background: rgba(154,106,31,.1) !important; }
   /* Dashboard Test slide 1: Dark Mood (default) / Light Mood — toggled by #dtMoodBtn */
-  #dtSlide1, #rmDashWrap, #fleetDashSlide, #psTestWrap { --dtp-bg: linear-gradient(180deg,#27201b,#1e1915); --dtp-bd: #4a3b2c; --dtp-hdr-in: linear-gradient(90deg,#34291f,#2b221b); --dtp-hdr-out: linear-gradient(90deg,#1b3a2d,#26503c); --dtp-fg-in: #f2ece3; --dtp-fg-out: #f4ecdc; --dtp-sec: rgba(0,0,0,.22); --dtp-tile: rgba(255,255,255,.05); --dtp-red: #ee7468; --dtp-accent: #e8a95b; --dtp-ring: linear-gradient(145deg,#403128,#29211C); --dtp-ringbd: #80643F; }
-  #dtSlide1.dt-mood-light, #rmDashWrap.dt-mood-light, #fleetDashSlide.dt-mood-light, #psTestWrap.dt-mood-light { --dtp-bg: #f1e8d4; --dtp-bd: #cdbb94; --dtp-hdr-in: linear-gradient(90deg,#eadfc6,#f4ebd8); --dtp-hdr-out: linear-gradient(90deg,#d3e4d6,#e4efe2); --dtp-fg-in: #2b2418; --dtp-fg-out: #1f3d2f; --dtp-sec: rgba(255,255,255,.6); --dtp-tile: var(--dtp-tile); --dtp-red: #a8362b; --dtp-accent: #a8641a; --dtp-ring: linear-gradient(145deg,#f6ead2,#e6d3ae); --dtp-ringbd: #b8975c;
+  #dtSlide1, #rmDashWrap, #fleetDashSlide, #psTestWrap, #qcrWrap { --dtp-bg: linear-gradient(180deg,#27201b,#1e1915); --dtp-bd: #4a3b2c; --dtp-hdr-in: linear-gradient(90deg,#34291f,#2b221b); --dtp-hdr-out: linear-gradient(90deg,#1b3a2d,#26503c); --dtp-fg-in: #f2ece3; --dtp-fg-out: #f4ecdc; --dtp-sec: rgba(0,0,0,.22); --dtp-tile: rgba(255,255,255,.05); --dtp-red: #ee7468; --dtp-accent: #e8a95b; --dtp-ring: linear-gradient(145deg,#403128,#29211C); --dtp-ringbd: #80643F; }
+  #dtSlide1.dt-mood-light, #rmDashWrap.dt-mood-light, #fleetDashSlide.dt-mood-light, #psTestWrap.dt-mood-light, #qcrWrap.dt-mood-light { --dtp-bg: #f1e8d4; --dtp-bd: #cdbb94; --dtp-hdr-in: linear-gradient(90deg,#eadfc6,#f4ebd8); --dtp-hdr-out: linear-gradient(90deg,#d3e4d6,#e4efe2); --dtp-fg-in: #2b2418; --dtp-fg-out: #1f3d2f; --dtp-sec: rgba(255,255,255,.6); --dtp-tile: var(--dtp-tile); --dtp-red: #a8362b; --dtp-accent: #a8641a; --dtp-ring: linear-gradient(145deg,#f6ead2,#e6d3ae); --dtp-ringbd: #b8975c;
     --text: #2b2418; --text-muted: #7a6a4d; --border: #dccfae; --card: #f7f0e0; --bg: #e9dec6; background: #e9dec6; color: #2b2418; padding: 12px; border-radius: 14px; }
-  #fleetDashSlide.dt-mood-light table th, #fleetDashSlide.dt-mood-light table td, #rmDashWrap.dt-mood-light table th, #rmDashWrap.dt-mood-light table td, #dtSlide1.dt-mood-light table th, #dtSlide1.dt-mood-light table td { background: transparent; color: var(--text); border-bottom: 1px solid var(--border); }
+  #qcrWrap.dt-mood-light table th, #qcrWrap.dt-mood-light table td, #fleetDashSlide.dt-mood-light table th, #fleetDashSlide.dt-mood-light table td, #rmDashWrap.dt-mood-light table th, #rmDashWrap.dt-mood-light table td, #dtSlide1.dt-mood-light table th, #dtSlide1.dt-mood-light table td { background: transparent; color: var(--text); border-bottom: 1px solid var(--border); }
   #dtSlide1.dt-mood-light table th { color: var(--text-muted); }
   #dtSlide1.dt-mood-light tr:hover td { background: transparent; }
   #dtSlide1.dt-mood-light tr.dt-high td { background: rgba(224,88,74,.12); }
@@ -1757,7 +1942,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
   <button type="button" class="btn-ghost" id="deviceStationBtn" style="width:100%; text-align:left; padding:4px 10px; font-size:11px; margin:0 0 10px;">📍 <span id="deviceStationBtnLabel">This device's station: — none —</span></button>
   <nav class="tabs">
     <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
-    <button class="tab-btn" data-tab="garment-order-test">Garment Order Test</button>
+    <button class="tab-btn" data-tab="production-summary-test">Production Summary Dashboard</button>
     <button class="tab-btn" data-tab="release-schedule">Release Schedule</button>
     <button class="tab-btn" data-tab="bulk-qc-result">Bulk QC/Distribution Result</button>
     <button type="button" class="nav-group-toggle" id="navGroupRawMaterialToggle" data-group="navGroupRawMaterial">
@@ -1808,7 +1993,6 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
     </button>
     <div class="nav-group" id="navGroupProduction">
       <button class="tab-btn" data-tab="production-summary">Summary Dashboard</button>
-      <button class="tab-btn" data-tab="production-summary-test">Dashboard Summary Test</button>
       <button class="tab-btn" data-tab="production-release-calendar">Release Calendar</button>
       <button class="tab-btn" data-tab="production-stock-balance">Stock Balance</button>
       <button class="tab-btn" data-tab="production-fg">Stock Level Finish Good</button>
@@ -3304,13 +3488,32 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
   </section>
 
   <section class="tab-panel" id="tab-production-summary-test">
-    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;"><button type="button" class="btn-ghost" id="pstMoodBtn" title="Switch between Dark Mood and Light Mood">Dark Mood</button></div>
+    <div style="display:none;"><button type="button" class="btn-ghost" id="pstMoodBtn" title="Switch between Dark Mood and Light Mood">Dark Mood</button></div>
     <div id="psTestWrap"></div>
   </section>
 
   <section class="tab-panel" id="tab-garment-order-test">
     <p class="section-title">Garment Order Test</p>
-    <div class="card"><div class="empty-state">Empty for now.</div></div>
+    <div class="card" style="margin-bottom:12px;">
+      <p class="rm-form-section-label" style="margin-top:0;">Google Sheet links (2 tabs)</p>
+      <div style="display:grid;grid-template-columns:150px 1fr;gap:8px;align-items:center;margin-bottom:8px;">
+        <label style="font-size:12px;">Finished Goods</label><input type="text" id="gotUrlFg" placeholder="Link of the Finished Goods tab (Anyone with the link: Viewer)">
+        <label style="font-size:12px;">Merchandise / Accessories</label><input type="text" id="gotUrlMerch" placeholder="Link of the Merchandise-Accessories tab">
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button type="button" class="btn-primary" id="gotLoadBtn">Save &amp; Load</button>
+        <button type="button" class="btn-ghost" id="gotRefreshBtn">&#8635; Refresh</button>
+      </div>
+      <div class="data-note" id="gotStatus" style="margin:8px 0 0;">Read-only preview: nothing here changes the real Garment Order tab. Batch = DO Date + Batch + Supplier &middot; Qty Order = TAILOR &middot; Received = USABLE.</div>
+    </div>
+    <div id="gotSummary"></div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+      <input type="text" id="gotSearch" placeholder="Search Batch / Supplier / SKU / Color..." style="flex:1; min-width:220px;">
+      <select id="gotTypeFilter"><option value="">All Types</option><option value="Finished Goods">Finished Goods</option><option value="Merchandise / Accessories">Merchandise / Accessories</option></select>
+      <button type="button" class="btn-ghost" id="gotBulkPutBtn" title="Mark Putaway Done for every batch whose receiving is already Complete">Mark all Complete batches as Putaway Done</button>
+      <select id="gotStatusFilter"><option value="">All Status</option><option value="Pending">Pending</option><option value="Partial">Partial</option><option value="Complete">Complete</option></select>
+    </div>
+    <div id="gotWrap"><div class="empty-state">No data loaded yet.</div></div>
   </section>
 
   <section class="tab-panel" id="tab-release-schedule">
@@ -3336,6 +3539,20 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
     <div id="dtNav"><button type="button" id="dtPrev">‹</button><span id="dtDots"></span><button type="button" id="dtNext">›</button><button type="button" id="dtPlay">⏸</button></div>
     <button type="button" id="dashTestFsBtn">⛶ Full Screen</button>
     <div id="dashTestWrap"></div>
+  </section>
+
+  <section class="tab-panel" id="tab-qc-result-test">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;"><button type="button" class="btn-ghost" id="qcrMoodBtn" title="Switch between Dark Mood and Light Mood">Dark Mood</button></div>
+    <div id="qcrWrap">
+      <div class="qcr-filter">
+        <input type="text" id="qcrSearch" placeholder="Search series / product / supplier / boutique...">
+        <div class="qcr-toggle"><button type="button" id="qcrModeFg" class="on">Finished Goods (FG)</button><button type="button" id="qcrModeFabric">Fabric</button></div>
+        <select id="qcrQc"><option value="">QC Result: All</option><option value="pass">Pass</option><option value="pass-with">Pass With Condition</option><option value="fail">Fail</option></select>
+        <select id="qcrTailor"><option value="">Tailor: All</option></select>
+        <select id="qcrDist"><option value="">Distribution: All</option></select>
+      </div>
+      <div id="qcrBody"></div>
+    </div>
   </section>
 
   <section class="tab-panel" id="tab-bulk-qc-result">
@@ -6200,6 +6417,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'stock-available') { renderStockAvailableTab(); refreshStockAvailableFromServer(); }
     if (btn.dataset.tab === 'production-summary') renderProductionSummaryTab();
     if (btn.dataset.tab === 'production-summary-test') renderPsTest();
+    if (btn.dataset.tab === 'garment-order-test') gotOpen();
     if (btn.dataset.tab === 'production-stock-balance') renderProductionStockBalanceTab();
     if (btn.dataset.tab === 'production-fg') renderProductionStockFgTab();
     if (btn.dataset.tab === 'production-rm') renderProductionRmTab();
@@ -6207,6 +6425,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'production-received-product') renderReceivedByProductTab();
     if (btn.dataset.tab === 'production-bulk-qc') renderBulkQcTab();
     if (btn.dataset.tab === 'bulk-qc-result') bqrOnOpen();
+    if (btn.dataset.tab === 'qc-result-test') { try { bqrDistStart(); } catch (e) {} renderQcr(); }
     if (btn.dataset.tab === 'team-delete-history') renderDeleteHistoryTab();
     if (btn.dataset.tab === 'production-timeline') renderCampaignTimelineTab();
     if (btn.dataset.tab === 'production-release-calendar') renderProductionReleaseCalendarTab();
@@ -9538,8 +9757,8 @@ const PERMISSION_TABS = [
   { id: 'staff-schedule', label: 'Staff Schedule' },
   { id: 'item-master', label: 'Item Master List' },
   { id: 'stock-available', label: 'Available Stock' },
+  { id: 'production-summary-test', label: 'Production Summary Dashboard' },
   { id: 'production-summary', label: 'Summary Dashboard (Production)' },
-  { id: 'production-summary-test', label: 'Dashboard Summary Test (Production)' },
   { id: 'production-stock-balance', label: 'Stock Balance (Production)' },
   { id: 'production-fg', label: 'Stock Level Finish Good (Production)' },
   { id: 'production-rm', label: 'Stock Level Raw Materials (Production)' },
@@ -9547,7 +9766,6 @@ const PERMISSION_TABS = [
   { id: 'production-received-product', label: 'Received by Product (Production)' },
   { id: 'production-bulk-qc', label: 'Bulk QC (Production)' },
   { id: 'dashboard-test', label: 'Dashboard Test' },
-  { id: 'garment-order-test', label: 'Garment Order Test' },
   { id: 'release-schedule', label: 'Release Schedule' },
   { id: 'bulk-qc-result', label: 'Bulk QC/Distribution Result' },
   { id: 'production-timeline', label: 'Timeline (Production)' },
@@ -14883,6 +15101,7 @@ function bqrDistStart() {
       bqrDistMap = snap.val() || {};
       try { localStorage.setItem('bqrDistLocalV1', JSON.stringify(bqrDistMap)); } catch (e) {}
       if (bqrTabActive()) renderBqrTab();
+      try { const qt = document.getElementById('tab-qc-result-test'); if (qt && qt.classList.contains('active')) renderQcr(); } catch (e) {}
       const ds = document.querySelector('.dash-slide.active[data-slide="distribution"]'); if (ds) renderDashDistributionSlide();
     }, () => { bqrDistStarted = false; });
   } catch (e) { bqrDistStarted = false; }
@@ -15032,6 +15251,8 @@ function dtApplyMood() {
   const ps = document.getElementById('tab-production-summary'); if (ps && ps.classList) ps.classList.toggle('ps-mood-light', dtMood === 'light');
   const pb = document.getElementById('psMoodBtn'); if (pb) pb.textContent = dtMood === 'light' ? 'Light Mood' : 'Dark Mood';
   const w = document.getElementById('dtSlide1'); if (w && w.classList) w.classList.toggle('dt-mood-light', dtMood === 'light');
+  const qw = document.getElementById('qcrWrap'); if (qw) qw.classList.toggle('dt-mood-light', dtMood === 'light');
+  const qb = document.getElementById('qcrMoodBtn'); if (qb) qb.textContent = dtMood === 'light' ? 'Light Mood' : 'Dark Mood';
   const pw = document.getElementById('psTestWrap'); if (pw) pw.classList.toggle('dt-mood-light', dtMood === 'light');
   const pt = document.getElementById('pstMoodBtn'); if (pt) pt.textContent = dtMood === 'light' ? 'Light Mood' : 'Dark Mood';
   const fw = document.getElementById('fleetDashSlide'); if (fw) fw.classList.toggle('dt-mood-light', dtMood === 'light');
@@ -15467,8 +15688,336 @@ function dtRenderDots() {
   d.querySelectorAll('button').forEach(b => b.addEventListener('click', () => dtGo(Number(b.dataset.i))));
 }
 function dtGo(i) { /* legacy: slides now rotate via Dashboard tab */ }
+// ---------- QC Result Test: mockup-style overview of QC results + distribution (read-only; same data as Bulk QC/Distribution Result) ----------
+var qcrMode = 'fg', qcrOpen = new Set();
+function renderQcr() {
+  const body = document.getElementById('qcrBody');
+  if (!body) return;
+  try { dtApplyMood(); } catch (e) {}
+  const E = escapeHtml, fabric = qcrMode === 'fabric';
+  document.getElementById('qcrModeFg').classList.toggle('on', !fabric);
+  document.getElementById('qcrModeFabric').classList.toggle('on', fabric);
+  const field = fabric ? 'qcWash' : 'qcFg', supField = fabric ? 'fabricSupplier' : 'supplier';
+  const DONE = ['pass', 'pass-with', 'fail'];
+  const base = (campaignTimelineList || []).filter(r => (!fabric || campaignTimelineFabricRowHasDetails(r) || r.material || r.fabricSupplier) && DONE.includes(bqcStatusKey(r[field])));
+  // dropdowns
+  const tSel = document.getElementById('qcrTailor'), dSel = document.getElementById('qcrDist');
+  const tVals = [...new Set(base.map(r => r[supField]).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b)));
+  const sig = tVals.join('\u0001') + '|' + qcrMode;
+  if (tSel.dataset.sig !== sig) { const cur = tSel.value; tSel.innerHTML = '<option value="">' + (fabric ? 'Fabric Supplier' : 'Tailor') + ': All</option>' + tVals.map(v => `<option value="${E(v)}">${E(v)}</option>`).join(''); tSel.dataset.sig = sig; tSel.value = tVals.includes(cur) ? cur : ''; }
+  if (!dSel.dataset.init) { dSel.innerHTML = '<option value="">Distribution: All</option>' + BQR_DIST_STATUSES.map(v => `<option value="${v}">${v}</option>`).join(''); dSel.dataset.init = '1'; }
+  dSel.style.display = fabric ? 'none' : '';
+  const qcF = document.getElementById('qcrQc').value, tF = tSel.value, dF = fabric ? '' : dSel.value;
+  const q = (document.getElementById('qcrSearch').value || '').toLowerCase().split(/\s+/).filter(Boolean);
+  const shown = base.filter(r => {
+    if (qcF && bqcStatusKey(r[field]) !== qcF) return false;
+    if (tF && r[supField] !== tF) return false;
+    if (dF && bqrDistStatusOf(r) !== dF) return false;
+    const text = [r.series, r.officialProductName, r[supField], r.allocationBoutique, r.batch, r.color, r.material].join(' ').toLowerCase();
+    return q.every(w => text.includes(w));
+  });
+  const cnt = k => shown.filter(r => bqcStatusKey(r[field]) === k).length;
+  const kpi = (icon, label, n) => `<div class="qcr-card qcr-kpi"><div class="qcr-ring">${icon}</div><div><div class="qcr-lbl">${label}</div><div class="qcr-num">${n}</div></div></div>`;
+  const okIc = '<svg width="34" height="34" viewBox="0 0 34 34"><circle cx="17" cy="17" r="15" fill="#2fa66a"/><path d="M9 17.5l5.5 5.5L25 11.5" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const xIc = '<svg width="34" height="34" viewBox="0 0 34 34"><circle cx="17" cy="17" r="15" fill="#d6403a"/><path d="M11 11l12 12M23 11L11 23" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/></svg>';
+  let html = `<div class="qcr-row" style="grid-template-columns:repeat(4,1fr);">${kpi(dtIco3('clipboard', 36), 'Total QC Done', shown.length)}${kpi(okIc, 'Pass', cnt('pass'))}${kpi(dtIco3('warn', 36), 'Pass With Condition', cnt('pass-with'))}${kpi(xIc, 'Fail', cnt('fail'))}</div>`;
+  const distOf = r => bqrDistStatusOf(r);
+  if (!fabric) {
+    const nDist = shown.filter(r => distOf(r) === 'Distributed').length, nNot = shown.filter(r => distOf(r) === 'Not distributed').length, nProg = shown.length - nDist - nNot;
+    const elig = shown.filter(r => bqcStatusKey(r[field]) !== 'fail'), eligDone = elig.filter(r => distOf(r) === 'Distributed').length;
+    const pct = elig.length ? Math.round(eligDone / elig.length * 100) : 0;
+    html += `<div class="qcr-row" style="grid-template-columns:repeat(3,1fr);">${kpi(dtIco3('truck', 38), 'Distributed', nDist)}${kpi(dtIco3('clock', 38), 'Not Distributed', nNot)}${kpi('<span style="color:#e8b35e;">&#9881;</span>', 'In Progress', nProg)}</div>
+      <div class="qcr-card" style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;align-items:baseline;"><div class="qcr-title" style="margin:0;">Distribution Progress</div><div><b style="font-size:20px;color:var(--dtp-accent);">${pct}%</b> <span class="qcr-lbl" style="text-transform:none;">(${eligDone} of ${elig.length} eligible items)</span></div></div><div class="qcr-bar"><div style="width:${pct}%"></div></div></div>`;
+  }
+  // Series table
+  const groups = new Map();
+  shown.forEach(r => { const k = r.series || '-'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); });
+  const list = [...groups.entries()].map(([series, items]) => {
+    const c = { pass: 0, cond: 0, fail: 0 }; items.forEach(r => { const k = bqcStatusKey(r[field]); if (k === 'pass') c.pass++; else if (k === 'pass-with') c.cond++; else if (k === 'fail') c.fail++; });
+    const dd = items.filter(r => distOf(r) === 'Distributed').length;
+    const dist = dd === items.length ? 'done' : (items.every(r => distOf(r) === 'Not distributed') ? 'none' : 'mid');
+    return { series, items, c, dd, dist, score: (c.fail ? 0 : c.cond ? 1 : dist === 'none' ? 2 : dist === 'mid' ? 3 : 4) };
+  }).sort((a, b) => a.score - b.score || a.series.localeCompare(b.series));
+  const qcChips = c => [c.pass ? `<span class="qcr-chip pass">&#10003; ${c.pass} Pass</span>` : '', c.cond ? `<span class="qcr-chip cond">&#9888; ${c.cond} Pass With Condition</span>` : '', c.fail ? `<span class="qcr-chip fail">&#10007; ${c.fail} Fail</span>` : ''].join('');
+  const distChip = g => g.dist === 'done' ? '<span class="qcr-chip ddone">&#10003; Distributed</span>' : g.dist === 'none' ? '<span class="qcr-chip dnone">&#8856; Not distributed</span>' : `<span class="qcr-chip dmid">${g.dd}/${g.items.length} distributed</span>`;
+  const rowsHtml = list.map(g => {
+    const open = qcrOpen.has(g.series);
+    const act = g.c.fail ? 'Review fail' : g.c.cond ? 'Review condition' : (g.dist === 'done' ? 'View details' : 'View items');
+    let h = `<tr><td><b>${E(g.series)}</b></td><td>${qcChips(g.c)}</td><td>${g.items.length} item${g.items.length === 1 ? '' : 's'}</td>${fabric ? '' : `<td>${distChip(g)}</td>`}<td><button type="button" class="qcr-act" data-s="${E(g.series)}">${open ? 'Hide' : act} &rsaquo;</button></td></tr>`;
+    if (open) h += `<tr class="qcr-sub"><td></td><td colspan="${fabric ? 3 : 4}" style="padding:4px 0 10px;"><table>${g.items.map(r => `<tr class="qcr-sub"><td>${E(r.officialProductName || '-')}</td><td>${E((fabric ? r.material : r.batch) || '-')}</td><td>${E((fabric ? '' : r.color) || '')}</td><td>${E(r[supField] || '-')}</td><td style="text-align:right;">${formatQty((fabric ? r.quantityFabricsCtn : r.quantity) || 0)}</td><td>${bqcBadgeHtml(r[field])}</td><td>${campaignTimelineLinksHtml(r, field)}</td>${fabric ? '' : `<td>${bqrActionHtml(r)}</td>`}</tr>`).join('')}</table>${fabric || g.dd === g.items.length ? '' : `<div style="padding:8px 10px 0;"><button type="button" class="qcr-act qcr-all-dist" data-s="${E(g.series)}">&#10003; Mark all ${g.items.length - g.dd} remaining as Distributed</button></div>`}</td></tr>`;
+    return h;
+  }).join('');
+  html += `<div class="qcr-card"><div class="qcr-title">&#128276; Series Requiring Attention <span class="qcr-lbl" style="text-transform:none;letter-spacing:0;">(${list.length} series)</span></div>${list.length ? `<table><thead><tr><th>Series</th><th>QC Result</th><th>Items</th>${fabric ? '' : '<th>Distribution</th>'}<th>Next Action</th></tr></thead><tbody>${rowsHtml}</tbody></table>` : '<div class="empty-state">No finished QC result matches.</div>'}</div>`;
+  body.innerHTML = html;
+  body.querySelectorAll('.bqr-dist-sel').forEach(sel => sel.addEventListener('change', () => { bqrDistSet(sel.dataset.k, sel.value); renderQcr(); }));
+  body.querySelectorAll('.qcr-all-dist').forEach(b => b.addEventListener('click', () => {
+    const g = list.find(x => x.series === b.dataset.s); if (!g) return;
+    const todo = g.items.filter(r => distOf(r) !== 'Distributed');
+    if (!confirm(`Mark ${todo.length} item(s) of ${g.series} as Distributed?`)) return;
+    todo.forEach(r => bqrDistSet(bqrDistKey(r), 'Distributed')); renderQcr();
+  }));
+  body.querySelectorAll('.qcr-act:not(.qcr-all-dist)').forEach(b => b.addEventListener('click', () => { const k = b.dataset.s; if (qcrOpen.has(k)) qcrOpen.delete(k); else qcrOpen.add(k); renderQcr(); }));
+}
+document.getElementById('qcrModeFg').addEventListener('click', () => { qcrMode = 'fg'; renderQcr(); });
+document.getElementById('qcrModeFabric').addEventListener('click', () => { qcrMode = 'fabric'; renderQcr(); });
+['qcrSearch', 'qcrQc', 'qcrTailor', 'qcrDist'].forEach(id => document.getElementById(id).addEventListener(id === 'qcrSearch' ? 'input' : 'change', () => renderQcr()));
+// ---------- Garment Order Test: read-only preview straight from a Google Sheet ----------
+// Sheet layout (per Shaila, Oct 19, 2026): row 1 = totals, row 2 = headers (DO DATE, BATCH, SUPPLIER, ..., SKU, SERIES,
+// TYPE, COLOR, SIZE, PRICE, TAILOR, USABLE, ...). One row = one SKU/size. Batch = DO DATE + BATCH + SUPPLIER,
+// Qty Order = TAILOR, Received = USABLE. VALID/INVALID/NOT REGISTERED/UNUSABLE are ignored.
+const GOT_URL_KEY = 'sto_got_gsheet_url_v1';
+var gotLines = [], gotLoaded = false, gotOpenBatches = new Set();
+function gotFetchRows(url) {
+  return new Promise((resolve, reject) => {
+    const parsed = campaignTimelineParseSheetUrl(url);
+    if (parsed && parsed.publishedLinkError) { reject(new Error('Paste the normal Share link (not "Publish to web").')); return; }
+    if (!parsed) { reject(new Error('Not a Google Sheets link (should contain docs.google.com/spreadsheets/d/...).')); return; }
+    const cb = `_gotCb${_campaignTimelineGvizCallbackSeq++}`;
+    const script = document.createElement('script');
+    const timer = setTimeout(() => { cleanup(); reject(new Error('Timed out — check internet and that the sheet is shared as "Anyone with the link" (Viewer).')); }, 60000);
+    function cleanup() { delete window[cb]; if (script.parentNode) script.parentNode.removeChild(script); clearTimeout(timer); }
+    window[cb] = (resp) => {
+      cleanup();
+      if (!resp || resp.status === 'error') { const d = resp && resp.errors && resp.errors[0] && resp.errors[0].detailed_message; reject(new Error((d || 'Google rejected the request.') + ' Check sharing and the tab.')); return; }
+      const t = resp.table, n = t.cols.length;
+      // headers=0: every sheet row (incl. the totals row and the header row) comes back as plain data
+      resolve(t.rows.map(r => { const o = new Array(n).fill(''); (r.c || []).forEach((c, i) => { if (c) o[i] = c.f != null ? c.f : (c.v != null ? c.v : ''); }); return o; }));
+    };
+    script.onerror = () => { cleanup(); reject(new Error('Could not reach Google Sheets.')); };
+    script.src = `https://docs.google.com/spreadsheets/d/${parsed.sheetId}/gviz/tq?gid=${parsed.gid}&range=A1:Z5000&headers=0&tqx=out:json;responseHandler:${cb}&_cb=${Date.now()}_${cb}`;
+    document.head.appendChild(script);
+  });
+}
+function gotParseDmy(v) {
+  const m = String(v || '').trim().match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/);
+  return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : '';
+}
+function gotNum(v) { const n = parseFloat(String(v == null ? '' : v).replace(/,/g, '')); return isNaN(n) ? 0 : n; }
+function gotParseRows(rows) {
+  const norm = v => String(v == null ? '' : v).trim().toUpperCase();
+  // gviz blanks out header text sitting above a NUMERIC or DATE column (BATCH, PRICE, TAILOR, USABLE, ...), so only the text
+  // headers (SUPPLIER, SKU, SERIES, TYPE, COLOR) are reliable to find the header row. Numeric columns are then located by
+  // name when present, otherwise by their fixed position next to COLOR: COLOR, SIZE, PRICE, TAILOR, USABLE.
+  const hi = rows.findIndex(r => r.some(c => norm(c) === 'SUPPLIER') && r.some(c => norm(c) === 'COLOR'));
+  if (hi < 0) throw new Error('Could not find the header row (needs SUPPLIER and COLOR columns). Check the link points to the right tab.');
+  const H = rows[hi].map(norm);
+  const find = (...names) => { for (const nm of names) { const i = H.indexOf(nm); if (i >= 0) return i; } return -1; };
+  const sup = find('SUPPLIER'), colr = find('COLOR');
+  const pick = (names, fb) => { const i = find(...names); return i >= 0 ? i : fb; };
+  const c = {
+    doDate: pick(['DO DATE'], sup - 2), dateRec: pick(['DATE'], sup + 2), batch: pick(['BATCH'], sup - 1), supplier: sup,
+    sku: pick(['SKU', 'SKU 1'], -1), series: find('SERIES'), type: find('TYPE'), color: colr,
+    size: pick(['SIZE'], colr + 1), price: pick(['PRICE'], colr + 2), tailor: pick(['TAILOR'], colr + 3), usable: pick(['USABLE'], colr + 4)
+  };
+  if (c.sku < 0 || c.doDate < 0 || c.batch < 0) throw new Error('Missing SKU / DO DATE / BATCH column.');
+  const get = (r, i) => i >= 0 ? String(r[i] == null ? '' : r[i]).trim() : '';
+  return rows.slice(hi + 1).filter(r => get(r, c.sku)).map(r => ({
+    doDate: gotParseDmy(get(r, c.doDate)), dateRec: gotParseDmy(get(r, c.dateRec)), batch: get(r, c.batch), supplier: get(r, c.supplier), sku: get(r, c.sku),
+    series: get(r, c.series), type: get(r, c.type), color: get(r, c.color), size: get(r, c.size), price: gotNum(get(r, c.price)),
+    qtyOrder: gotNum(get(r, c.tailor)), qtyReceived: gotNum(get(r, c.usable))
+  }));
+}
+async function gotLoad() {
+  const st = document.getElementById('gotStatus');
+  const urls = [['Finished Goods', (document.getElementById('gotUrlFg').value || '').trim()], ['Merchandise / Accessories', (document.getElementById('gotUrlMerch').value || '').trim()]].filter(x => x[1]);
+  if (!urls.length) { st.textContent = 'Paste at least one Google Sheet link first.'; st.style.color = '#e0685c'; return; }
+  try { localStorage.setItem(GOT_URL_KEY, JSON.stringify({ fg: document.getElementById('gotUrlFg').value.trim(), merch: document.getElementById('gotUrlMerch').value.trim() })); } catch (e) {}
+  st.textContent = 'Loading from Google Sheets...'; st.style.color = '';
+  const all = [], errs = [];
+  for (const [label, url] of urls) {
+    try { gotParseRows(await gotFetchRows(url)).forEach(l => { l.source = label; all.push(l); }); }
+    catch (e) { errs.push(label + ': ' + e.message); }
+  }
+  if (all.length) { gotLines = all; gotLoaded = true; }
+  st.textContent = (all.length ? `Loaded ${all.length} SKU line(s) at ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}. ` : '') + errs.join(' | ');
+  st.style.color = errs.length ? '#e0685c' : '#7cc47c';
+  renderGot();
+}
+function gotOpen() {
+  const a = document.getElementById('gotUrlFg'), b = document.getElementById('gotUrlMerch');
+  if (a && !a.value && !b.value) { try { const o = JSON.parse(localStorage.getItem(GOT_URL_KEY) || '{}'); a.value = o.fg || ''; b.value = o.merch || ''; } catch (e) {} }
+  if (!gotLoaded && (a.value || b.value)) gotLoad(); else renderGot();
+}
+// ---- receiving state (app side): append-only log records + a putaway record per batch, synced via Firebase table GarmentTest_State ----
+const GOT_STATE_KEY = 'sto_got_state_v1';
+var gotState = []; try { gotState = JSON.parse(localStorage.getItem(GOT_STATE_KEY) || '[]') || []; } catch (e) { gotState = []; }
+function gotSaveLocal() { try { localStorage.setItem(GOT_STATE_KEY, JSON.stringify(gotState)); } catch (e) {} }
+function gotSave() { gotSaveLocal(); try { pushRmTableNow('GarmentTest_State'); } catch (e) {} }
+function gotId() { return 'gtl_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function gotBatchModels() {
+  const map = new Map();
+  gotLines.forEach(l => {
+    const key = [l.source, l.doDate, l.batch, l.supplier].join('|');
+    if (!map.has(key)) map.set(key, { key, source: l.source, doDate: l.doDate, batch: l.batch, supplier: l.supplier, skuMap: new Map(),
+      label: `Batch-${l.batch || '?'}-${l.supplier || ''}-${(l.doDate || '').replace(/-/g, '')}` });
+    const b = map.get(key);
+    if (!b.skuMap.has(l.sku)) b.skuMap.set(l.sku, { sku: l.sku, color: l.color, size: l.size, type: l.type, series: l.series, price: l.price, qtyOrder: 0, sheetRec: 0, sheetDate: '' });
+    const sk = b.skuMap.get(l.sku); sk.qtyOrder += l.qtyOrder;
+    // Baseline (Oct 19, 2026): whatever the sheet already says was received (USABLE, dated by its DATE column) counts first; app logs add on top.
+    sk.sheetRec += l.qtyReceived; if (l.qtyReceived > 0 && l.dateRec && l.dateRec > sk.sheetDate) sk.sheetDate = l.dateRec;
+  });
+  const logs = gotState.filter(r => r.type === 'log');
+  const recBy = new Map(), dateBy = new Map();
+  logs.forEach(r => { const k = r.batchKey + '::' + r.sku; recBy.set(k, (recBy.get(k) || 0) + (Number(r.qty) || 0)); if (!dateBy.has(k) || r.date > dateBy.get(k)) dateBy.set(k, r.date); });
+  const putBy = new Map(); gotState.filter(r => r.type === 'put').forEach(r => putBy.set(r.batchKey, r));
+  const shortBy = new Map(); gotState.filter(r => r.type === 'short' && r.closed).forEach(r => shortBy.set(r.batchKey, r));
+  return [...map.values()].map(b => {
+    b.skus = [...b.skuMap.values()].map(k => { const kk = b.key + '::' + k.sku; k.appRec = recBy.get(kk) || 0; k.rec = k.sheetRec + k.appRec; k.lastDate = [dateBy.get(kk) || '', k.sheetRec > 0 ? k.sheetDate : ''].sort().pop(); k.status = k.rec <= 0 ? 'Pending' : (k.qtyOrder > 0 && k.rec >= k.qtyOrder ? 'Complete' : 'Partial'); return k; });
+    // Close Short (batch level): every SKU still short is treated as finished — whatever hasn't arrived is written off, no per-SKU clicking.
+    const sh = shortBy.get(b.key); b.shortRec = sh || null;
+    b.shortQty = 0;
+    if (sh) b.skus.forEach(k => { const rem = Math.max(0, k.qtyOrder - k.rec); if (rem > 0) { k.short = rem; k.status = 'Complete'; b.shortQty += rem; } });
+    b.ord = b.skus.reduce((a, k) => a + k.qtyOrder, 0); b.rec = b.skus.reduce((a, k) => a + k.rec, 0);
+    b.status = b.skus.every(k => k.status === 'Complete') ? 'Complete' : (b.skus.some(k => k.rec > 0) ? 'Partial' : 'Pending');
+    b.lastReceived = b.skus.map(k => k.lastDate).filter(Boolean).sort().pop() || '';
+    const pr = putBy.get(b.key);
+    b.putaway = pr && pr.done ? 'Done' : (b.rec > 0 ? 'Pending' : null); b.putawayDate = pr && pr.done ? pr.date : '';
+    b.fullyDone = b.status === 'Complete' && b.putaway === 'Done';
+    return b;
+  });
+}
+function gotLogQty(batchKey, sku, qty) {
+  if (!(qty > 0)) return;
+  gotState.push({ id: gotId(), type: 'log', batchKey, sku, qty, date: todayStr(), ts: Date.now() });
+  gotSave(); renderGot();
+}
+var gotExpanded = new Set();
+function renderGot() {
+  const wrap = document.getElementById('gotWrap'), sum = document.getElementById('gotSummary');
+  if (!wrap) return;
+  if (!gotLines.length) { sum.innerHTML = ''; wrap.innerHTML = '<div class="empty-state">No data loaded yet.</div>'; return; }
+  const E = escapeHtml, fmt = n => formatQty(Math.round(n));
+  const all = gotBatchModels();
+  const q = (document.getElementById('gotSearch').value || '').trim().toLowerCase();
+  const tf = document.getElementById('gotTypeFilter').value, sf = document.getElementById('gotStatusFilter').value;
+  const vis = all.filter(b => (!tf || b.source === tf) && (!sf || b.status === sf)
+    && (!q || [b.label, b.supplier, b.batch, ...b.skus.map(k => k.sku + ' ' + k.color)].join(' ').toLowerCase().includes(q)))
+    .sort((a, b) => (b.doDate || '').localeCompare(a.doDate || '') || String(a.batch).localeCompare(String(b.batch)));
+  const ordT = all.reduce((a, b) => a + b.ord, 0), recT = all.reduce((a, b) => a + b.rec, 0);
+  const card = (l, v) => `<div class="card" style="padding:12px 16px;margin:0;"><div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);">${l}</div><div style="font-family:'NumLining',Georgia,serif;font-size:26px;margin-top:2px;">${v}</div></div>`;
+  sum.innerHTML = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;">${card('Batches', all.length)}${card('SKU lines', gotLines.length)}${card('Qty Order (Sheet)', fmt(ordT))}${card('Received', fmt(recT) + ' <span style="font-size:14px;color:var(--text-muted);">' + (ordT ? Math.round(recT / ordT * 100) : 0) + '%</span>')}</div>`;
+  const badge = st => st === 'Complete' ? 'badge-green' : st === 'Partial' ? 'badge-amber' : 'badge-red';
+  const shortBtn = b => b.shortRec
+    ? `<button type="button" class="btn-ghost got-short-btn" data-k="${E(b.key)}" data-act="reopen" title="Reopen this order (undo Close Short)">Reopen (Short ${fmt(b.shortQty)})</button>`
+    : (b.status !== 'Complete' && b.rec > 0 ? `<button type="button" class="btn-ghost got-short-btn" data-k="${E(b.key)}" data-act="close" title="Close the whole order — every SKU still short is closed in one go">Close Short</button>` : '');
+  const putBtn = b => b.rec > 0 && b.putaway !== 'Done' ? `<button type="button" class="btn-primary got-put-btn" data-k="${E(b.key)}" data-done="1">Mark Putaway Done</button>` : '';
+  const body = b => {
+    const rows = b.skus.filter(k => !q || b.label.toLowerCase().includes(q) || b.supplier.toLowerCase().includes(q) || (k.sku + ' ' + k.color).toLowerCase().includes(q)).map(k => `<tr>
+      <td class="mono-name">${E(k.sku)}</td><td>${E(k.color)}</td><td>${E(k.size)}</td><td>${k.price ? k.price.toFixed(2) : '-'}</td>
+      <td>${fmt(k.qtyOrder)}</td><td title="${k.sheetRec ? 'From sheet: ' + fmt(k.sheetRec) + (k.appRec ? ' + logged in app: ' + fmt(k.appRec) : '') : ''}">${fmt(k.rec)}</td><td>${k.short ? `<span style="color:var(--red);">Short ${fmt(k.short)}</span>` : fmt(Math.max(0, k.qtyOrder - k.rec))}</td><td><span class="badge ${badge(k.status)}">${k.status}${k.short ? ' (Short)' : ''}</span></td>
+      <td class="row-actions"><input type="number" class="got-log-input" min="0" placeholder="e.g. 50" style="width:70px;" data-k="${E(b.key)}" data-sku="${E(k.sku)}">
+        <button type="button" class="btn-ghost got-log-btn" data-k="${E(b.key)}" data-sku="${E(k.sku)}">+ Log</button>
+        ${k.status !== 'Complete' ? `<button type="button" class="btn-primary got-complete-btn" data-k="${E(b.key)}" data-sku="${E(k.sku)}">Mark Complete</button>` : ''}
+        ${k.appRec > 0 ? `<button type="button" class="btn-ghost got-undo-btn" data-k="${E(b.key)}" data-sku="${E(k.sku)}" title="Remove the last logged receive for this SKU">Undo</button>` : ''}</td></tr>`).join('');
+    return `<div style="padding:14px 16px 16px;border-top:1px solid var(--border);">
+      <table><thead><tr><th>SKU</th><th>Color</th><th>Size</th><th>Price</th><th>Qty Order</th><th>Qty Received</th><th>Remaining</th><th>Status</th><th>Log Received</th></tr></thead><tbody>${rows}</tbody></table>
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        ${shortBtn(b)}
+        ${b.rec > 0 ? (b.putaway === 'Done' ? `<button type="button" class="btn-ghost got-put-btn" data-k="${E(b.key)}" data-done="0">Undo Putaway</button>` : `<button type="button" class="btn-primary got-put-btn" data-k="${E(b.key)}" data-done="1">Mark Putaway Done</button>`) : '<span class="data-note" style="margin:0;">Putaway can be marked once something is received.</span>'}
+      </div></div>`;
+  };
+  const cardHtml = b => {
+    const open = gotExpanded.has(b.key) || !!q;
+    const row = (l, v) => `<div class="data-note" style="margin:0 0 4px;display:flex;gap:6px;"><span style="color:var(--text-muted);font-size:10px;text-transform:uppercase;letter-spacing:.03em;">${l}:</span><span>${v}</span></div>`;
+    return `<div class="card garment-batch-card" style="padding:0;overflow:hidden;${open ? 'grid-column:1 / -1;' : ''}">
+      <div class="got-head" data-k="${E(b.key)}" style="padding:14px 16px;cursor:pointer;">
+        <div style="margin-bottom:6px;"><span class="mono-name" style="font-size:15px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${E(b.label)}">${E(b.label)}</span></div>
+        ${row('Type', E(b.source))}${row('Garment Name', E(b.supplier || '-'))}${row('Order', b.doDate ? E(formatDateLabel(b.doDate)) : '-')}
+        ${b.lastReceived ? row('Received', E(formatDateLabel(b.lastReceived))) : ''}${b.putawayDate ? row('Putaway', E(formatDateLabel(b.putawayDate))) : ''}
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 6px;">
+          <span class="data-note" style="margin:0;">${b.skus.length} SKU · ${fmt(b.rec)}/${fmt(b.ord)} pcs</span>
+          <span class="badge ${badge(b.status)}">Receive: ${b.status}</span></div>
+        <div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;flex-wrap:wrap;">${b.shortRec ? `<span class="data-note" style="margin:0;color:var(--red);">Short ${fmt(b.shortQty)} pcs${b.shortRec.remark ? ' — ' + E(b.shortRec.remark) : ''}</span>` : shortBtn(b)}${putBtn(b)}${b.putaway ? `<span class="badge ${b.putaway === 'Done' ? 'badge-green' : 'badge-amber'}">Putaway: ${b.putaway}</span>` : ''}</div>
+        <div style="text-align:center;margin-top:8px;"><span style="font-size:11px;color:var(--text-muted);display:inline-block;transform:rotate(${open ? 0 : -90}deg);">▾</span></div>
+      </div>${open ? body(b) : ''}</div>`;
+  };
+  const pend = vis.filter(b => !b.fullyDone), done = vis.filter(b => b.fullyDone);
+  let html = '';
+  if (pend.length) html += `<div class="data-note" style="margin:0 0 8px;font-weight:600;color:var(--text-secondary);">Pending (${pend.length})</div><div class="garment-batch-grid">${pend.map(cardHtml).join('')}</div>`;
+  if (done.length) html += `<div class="data-note" style="margin:${pend.length ? '20px' : '0'} 0 8px;font-weight:600;color:var(--text-secondary);">Completed — Receiving &amp; Putaway (${done.length})</div><div class="garment-batch-grid" style="opacity:.7;">${done.map(cardHtml).join('')}</div>`;
+  wrap.innerHTML = html || '<div class="empty-state">No batches match your search/filter.</div>';
+}
+(function gotWire() {
+  const wrap = document.getElementById('gotWrap');
+  wrap.addEventListener('click', (e) => {
+    const t = e.target;
+    const btn = t.closest('button');
+    if (btn && btn.classList.contains('got-log-btn')) {
+      const inp = wrap.querySelector(`.got-log-input[data-k="${CSS.escape(btn.dataset.k)}"][data-sku="${CSS.escape(btn.dataset.sku)}"]`);
+      const n = Number(inp && inp.value); if (!(n > 0)) { alert('Enter a quantity first.'); return; }
+      const b = gotBatchModels().find(x => x.key === btn.dataset.k), k = b && b.skus.find(x => x.sku === btn.dataset.sku);
+      if (k && k.rec + n > k.qtyOrder && !confirm(`This makes Received (${k.rec + n}) more than Qty Order (${k.qtyOrder}). Continue?`)) return;
+      gotLogQty(btn.dataset.k, btn.dataset.sku, n); return;
+    }
+    if (btn && btn.classList.contains('got-complete-btn')) {
+      const b = gotBatchModels().find(x => x.key === btn.dataset.k), k = b && b.skus.find(x => x.sku === btn.dataset.sku);
+      if (k) gotLogQty(btn.dataset.k, btn.dataset.sku, Math.max(0, k.qtyOrder - k.rec)); return;
+    }
+    if (btn && btn.classList.contains('got-undo-btn')) {
+      const logs = gotState.filter(r => r.type === 'log' && r.batchKey === btn.dataset.k && r.sku === btn.dataset.sku).sort((a, b) => (a.ts || 0) - (b.ts || 0));
+      const last = logs[logs.length - 1]; if (!last) return;
+      if (!confirm(`Remove the last logged receive (${last.qty} pcs on ${last.date}) for ${btn.dataset.sku}?`)) return;
+      gotState = gotState.filter(r => r.id !== last.id); gotSave(); renderGot(); return;
+    }
+    if (btn && btn.classList.contains('got-short-btn')) {
+      const key = btn.dataset.k, id = key + '::SHORT';
+      let r = gotState.find(x => x.id === id);
+      if (btn.dataset.act === 'close') {
+        const b = gotBatchModels().find(x => x.key === key); if (!b) return;
+        const open = b.skus.filter(k => k.qtyOrder > k.rec);
+        const left = open.reduce((a, k) => a + (k.qtyOrder - k.rec), 0);
+        if (!open.length) { alert('Nothing is short in this batch.'); return; }
+        const remark = prompt(`Close Short: ${open.length} SKU(s), ${left} pcs not received will be written off and the order marked Complete.\nRemark (optional):`);
+        if (remark === null) return;
+        if (!r) { r = { id, type: 'short', batchKey: key }; gotState.push(r); }
+        r.closed = true; r.date = todayStr(); r.remark = remark.trim();
+      } else if (r) { r.closed = false; r.remark = ''; }
+      gotSave(); renderGot(); return;
+    }
+    if (btn && btn.classList.contains('got-put-btn')) {
+      const id = btn.dataset.k + '::PUTAWAY', done = btn.dataset.done === '1';
+      let r = gotState.find(x => x.id === id);
+      if (!r) { r = { id, type: 'put', batchKey: btn.dataset.k }; gotState.push(r); }
+      r.done = done; r.date = done ? todayStr() : '';
+      gotSave(); renderGot(); return;
+    }
+    const head = t.closest('.got-head');
+    if (head && !t.closest('button, input')) { const k = head.dataset.k; if (gotExpanded.has(k)) gotExpanded.delete(k); else gotExpanded.add(k); renderGot(); }
+  });
+  document.getElementById('gotBulkPutBtn').addEventListener('click', () => {
+    const todo = gotBatchModels().filter(b => b.status === 'Complete' && b.putaway !== 'Done');
+    if (!todo.length) { alert('No Complete batch is waiting for Putaway.'); return; }
+    if (!confirm(`Mark Putaway Done for ${todo.length} batch(es) whose receiving is Complete? (Putaway date = their last received date)`)) return;
+    todo.forEach(b => {
+      const id = b.key + '::PUTAWAY'; let r = gotState.find(x => x.id === id);
+      if (!r) { r = { id, type: 'put', batchKey: b.key }; gotState.push(r); }
+      r.done = true; r.date = b.lastReceived || todayStr();
+    });
+    gotSave(); renderGot();
+  });
+  ['gotSearch', 'gotTypeFilter', 'gotStatusFilter'].forEach(id => document.getElementById(id).addEventListener(id === 'gotSearch' ? 'input' : 'change', () => renderGot()));
+  // keep orders in step with the sheet: silent refresh every 2 min while the tab is open (skipped while someone is typing)
+  setInterval(() => {
+    const tab = document.getElementById('tab-garment-order-test');
+    if (!tab || !tab.classList.contains('active') || !gotLoaded) return;
+    if (document.activeElement && document.activeElement.closest && document.activeElement.closest('#gotWrap')) return;
+    gotLoad();
+  }, 120000);
+})();
+document.getElementById('gotLoadBtn').addEventListener('click', gotLoad);
+document.getElementById('gotRefreshBtn').addEventListener('click', gotLoad);
 // ---------- Dashboard Summary Test (Production): simplified view — one headline number ----------
-var pstFilter = 'all';
+var pstFilter = 'all', pstSearch = '', pstShown = 40, pstColsOpen = false, pstColFilters = {};
+var PST_COLS_DEFAULT = ['no', 'series', 'type', 'category', 'product', 'projected', 'received', 'rstatus'];
+var PST_COL_DEFS = [
+  ['no', 'No'], ['series', 'Series'], ['type', 'Type'], ['category', 'Category'], ['product', 'Official Product Name'], ['batch', 'Batch'], ['supplier', 'Supplier'],
+  ['color', 'Colour'], ['material', 'Material'], ['boutique', 'Allocation Boutique'], ['pstatus', 'Production Status'],
+  ['projected', 'Quantity FG Order (pcs)'], ['received', 'Quantity FG Received (pcs)'], ['balance', 'Balance'], ['pct', 'Received %'], ['rstatus', 'Status'], ['value', 'Total Value']
+];
+var pstCols = (function () { try { const a = JSON.parse(localStorage.getItem('pstColsV3') || 'null'); if (Array.isArray(a) && a.length) return a.filter(k => PST_COL_DEFS.some(d => d[0] === k)); } catch (e) {} return PST_COLS_DEFAULT; })();
+PST_COL_DEFS.forEach(d => { pstColFilters[d[0]] = []; });
+function pstRecvStatus(x) { return x.got > 0 ? 'Received' : 'Not Received'; }
+function pstSaveCols() { try { localStorage.setItem('pstColsV3', JSON.stringify(pstCols)); } catch (e) {} }
 function renderPsTest() {
   const wrap = document.getElementById('psTestWrap');
   if (!wrap) return;
@@ -15476,40 +16025,173 @@ function renderPsTest() {
   const E = escapeHtml, fmt = n => formatQty(Math.round(n));
   const rmFmt = v => v >= 1e6 ? 'RM' + (v / 1e6).toFixed(1) + 'M' : v >= 1e3 ? 'RM' + (v / 1e3).toFixed(1) + 'K' : 'RM' + Math.round(v);
   const bucketOf = productionSummarySeriesBuckets();
-  const rows = productionSummaryFgRows().filter(r => pstFilter === 'all' || bucketOf.get(r.series) === pstFilter);
-  let proj = 0, rec = 0, projVal = 0, recVal = 0;
+  const allRows = productionSummaryFgRows();
+  const rows = allRows.filter(r => pstFilter === 'all' || bucketOf.get(r.series) === pstFilter);
+  // 3D gold icons: gradient-shaded faces (light top / mid left / dark right) + soft shadow
+  const G1 = 'url(#pg1)', G2 = 'url(#pg2)', G3 = 'url(#pg3)';
+  const P = (pts, f, extra) => `<polygon points="${pts}" fill="${f}" stroke="#fff0c2" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round" ${extra || ''}/>`;
+  const cube = (x, y, w) => { const h = w / 2; return P(`${x},${y} ${x + w},${y + h} ${x},${y + w} ${x - w},${y + h}`, G1) + P(`${x - w},${y + h} ${x},${y + w} ${x},${y + 2 * w} ${x - w},${y + 1.5 * w}`, G2) + P(`${x},${y + w} ${x + w},${y + h} ${x + w},${y + 1.5 * w} ${x},${y + 2 * w}`, G3); };
+  const SVG3 = (d) => `<svg viewBox="0 0 48 48" width="64%" height="64%">${d}</svg>`;
+  const ICONS = {
+    box: SVG3(cube(24, 5, 19) + P('24,5 28,7 10,16 6,14', 'rgba(255,255,255,.35)', 'stroke="none"') + P('22,15 26,17 26,28 22,26', 'rgba(60,35,5,.35)', 'stroke="none"')),
+    boxes: SVG3(cube(14, 9, 11) + cube(34, 9, 11) + cube(24, 24, 11)),
+    check: SVG3('<rect x="12" y="10" width="28" height="35" rx="4" fill="#5a3b10"/><rect x="9" y="7" width="28" height="35" rx="4" fill="url(#pg2)" stroke="#fff0c2" stroke-opacity=".55" stroke-width=".8"/><rect x="13" y="12" width="20" height="26" rx="2" fill="#2a1d08"/><rect x="16" y="3" width="14" height="8" rx="3" fill="url(#pg1)" stroke="#fff0c2" stroke-opacity=".6" stroke-width=".8"/><path d="M17 25l5 5 9-11" fill="none" stroke="url(#pg1)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>'),
+    hour: SVG3('<rect x="9" y="3" width="30" height="5" rx="2.5" fill="url(#pg1)"/><rect x="9" y="40" width="30" height="5" rx="2.5" fill="url(#pg3)"/><path d="M13 8h22c0 9-8 11-8 16s8 7 8 16H13c0-9 8-11 8-16S13 17 13 8z" fill="rgba(255,225,160,.14)" stroke="#fff0c2" stroke-opacity=".7" stroke-width="1"/><path d="M17 9h14c-1 5-7 7-7 10 0-3-6-5-7-10z" fill="url(#pg2)"/><path d="M24 25c0 4-6 6-7 14h14c-1-8-7-10-7-14z" fill="url(#pg1)"/>'),
+    target: SVG3('<circle cx="22" cy="27" r="17" fill="url(#pg3)" stroke="#fff0c2" stroke-opacity=".5" stroke-width=".8"/><circle cx="22" cy="27" r="12" fill="url(#pg1)"/><circle cx="22" cy="27" r="7" fill="url(#pg3)"/><circle cx="22" cy="27" r="3" fill="url(#pg1)"/><path d="M22 27 40 9" stroke="#fff0c2" stroke-width="2.4" stroke-linecap="round"/><path d="M34 5l1 7 7 1-3-3 3-3z" fill="url(#pg1)"/>'),
+    shop: SVG3('<path d="M6 8h36l3 12H3z" fill="url(#pg2)" stroke="#fff0c2" stroke-opacity=".5" stroke-width=".8"/><path d="M9 8l-2 12M17 8l-1 12M25 8v12M33 8l1 12M41 8l1 12" stroke="url(#pg1)" stroke-width="3"/><path d="M3 20c0 4 4 5 7 5s7-1 7-5c0 4 3 5 7 5s7-1 7-5c0 4 3 5 7 5s7-1 7-5" fill="url(#pg1)"/><rect x="8" y="25" width="32" height="19" fill="url(#pg3)"/><rect x="12" y="29" width="10" height="15" fill="#2a1d08"/><rect x="26" y="29" width="10" height="8" fill="url(#pg1)"/>'),
+    ship: SVG3('<rect x="14" y="14" width="20" height="8" fill="url(#pg1)" stroke="#fff0c2" stroke-opacity=".5" stroke-width=".6"/><rect x="18" y="7" width="12" height="7" fill="url(#pg2)"/><rect x="8" y="22" width="32" height="8" fill="url(#pg2)"/><path d="M3 30h42l-6 11H9z" fill="url(#pg3)" stroke="#fff0c2" stroke-opacity=".5" stroke-width=".8"/><path d="M2 44c4 0 4-2 8-2s4 2 8 2 4-2 8-2 4 2 8 2 4-2 8-2 4 2 8 2" fill="none" stroke="url(#pg1)" stroke-width="2"/>'),
+    coins: SVG3('<ellipse cx="17" cy="38" rx="12" ry="5" fill="url(#pg3)"/><path d="M5 38v-5c0 3 5 5 12 5s12-2 12-5v5c0 3-5 5-12 5S5 41 5 38z" fill="url(#pg2)"/><ellipse cx="17" cy="33" rx="12" ry="5" fill="url(#pg1)" stroke="#fff0c2" stroke-opacity=".6" stroke-width=".7"/><ellipse cx="32" cy="22" rx="12" ry="5" fill="url(#pg3)"/><path d="M20 22v-5c0 3 5 5 12 5s12-2 12-5v5c0 3-5 5-12 5s-12-2-12-5z" fill="url(#pg2)"/><ellipse cx="32" cy="17" rx="12" ry="5" fill="url(#pg1)" stroke="#fff0c2" stroke-opacity=".6" stroke-width=".7"/><ellipse cx="32" cy="9" rx="10" ry="4" fill="url(#pg1)" stroke="#fff0c2" stroke-opacity=".6" stroke-width=".7"/>'),
+    globe: SVG3('<circle cx="24" cy="24" r="19" fill="url(#pg3)" stroke="#fff0c2" stroke-opacity=".6" stroke-width=".9"/><ellipse cx="24" cy="24" rx="8" ry="19" fill="none" stroke="url(#pg1)" stroke-width="2"/><path d="M5 24h38M8 14h32M8 34h32" stroke="url(#pg1)" stroke-width="2" fill="none"/>'),
+    pin: SVG3('<path d="M24 45S9 30 9 19a15 15 0 0 1 30 0C39 30 24 45 24 45z" fill="url(#pg2)" stroke="#fff0c2" stroke-opacity=".6" stroke-width=".9"/><circle cx="24" cy="19" r="6" fill="#2a1d08"/>'),
+    chart: SVG3('<rect x="6" y="26" width="9" height="16" rx="1.5" fill="url(#pg2)"/><rect x="19" y="10" width="9" height="32" rx="1.5" fill="url(#pg1)"/><rect x="32" y="20" width="9" height="22" rx="1.5" fill="url(#pg3)"/>'),
+  };
+  const PST_DEFS = '<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="pg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff0b8"/><stop offset=".5" stop-color="#f2c46a"/><stop offset="1" stop-color="#c8903a"/></linearGradient><linearGradient id="pg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e8b35e"/><stop offset="1" stop-color="#9a6a24"/></linearGradient><linearGradient id="pg3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a87530"/><stop offset="1" stop-color="#4f3210"/></linearGradient></defs></svg>';
+  const ic = (g) => `<span class="pst-ic">${ICONS[g] || ''}</span>`;
+  let proj = 0, rec = 0, projVal = 0, recVal = 0, outVal = 0;
   const bySeries = new Map();
   rows.forEach(r => {
     const q = Number(r.quantity) || 0;
     const m = campaignTimelineMatchReceiving(r);
     const got = (m.acc && Number(m.acc.totalReceived)) || 0;
     proj += q; rec += got;
-    projVal += Number(r.totalValue) || 0; recVal += campaignTimelineLinkedReceiveValue(r);
+    const tv = Number(r.totalValue) || 0;
+    projVal += tv; recVal += campaignTimelineLinkedReceiveValue(r);
+    if (q > 0 && tv > 0) outVal += tv / q * Math.max(0, q - got);
     const k = r.series || '-';
     if (!bySeries.has(k)) bySeries.set(k, { series: k, q: 0, got: 0 });
     const g = bySeries.get(k); g.q += q; g.got += got;
   });
-  const bal = Math.max(0, proj - rec);
+  let still = 0, extra = 0;
+  bySeries.forEach(g => { still += Math.max(0, g.q - g.got); extra += Math.max(0, g.got - g.q); });
   const pct = proj ? Math.round(rec / proj * 1000) / 10 : 0;
   const chips = [['all', 'All'], ['local', 'Local'], ['overseas', 'Overseas'], ['mixed', 'Mixed']].map(([k, l]) => `<button type="button" class="pst-chip${pstFilter === k ? ' on' : ''}" data-f="${k}">${l}</button>`).join('');
-  const top = [...bySeries.values()].map(g => ({ ...g, bal: Math.max(0, g.q - g.got) })).filter(g => g.bal > 0).sort((a, b) => b.bal - a.bal).slice(0, 5);
-  const maxBal = Math.max(...top.map(g => g.bal), 1);
-  wrap.innerHTML = `
-    <div class="pst-top"><div><div class="pst-h">Production receiving</div><div class="pst-sub">${bySeries.size} series &middot; ${pstFilter === 'all' ? 'all locations' : pstFilter}</div></div><div class="pst-chips">${chips}</div></div>
-    <div class="pst-card">
-      <div class="pst-hero">
-        <div><div class="pst-lbl">Received vs. projected</div><div class="pst-big">${pct}%</div><div class="pst-mid"><b>${fmt(rec)}</b> of ${fmt(proj)} pcs received</div></div>
-        <div class="pst-val"><div class="pst-lbl">Received value</div><div class="pst-valnum">${projVal || recVal ? rmFmt(recVal) : '&mdash;'}</div><div class="pst-mid">${projVal ? 'of ' + rmFmt(projVal) : ''}</div></div>
+  // Location rows always cover ALL series (they are the breakdown), independent of the chip filter.
+  const loc = { local: { n: new Set(), q: 0 }, overseas: { n: new Set(), q: 0 }, mixed: { n: new Set(), q: 0 } };
+  allRows.forEach(r => { const k = bucketOf.get(r.series); if (loc[k]) { loc[k].n.add(r.series); loc[k].q += Number(r.quantity) || 0; } });
+  const locTot = loc.local.q + loc.overseas.q + loc.mixed.q;
+  const locMax = Math.max(loc.local.q, loc.overseas.q, loc.mixed.q, 1);
+  const locRow = (k, label, icon) => `<div class="pst-lrow"><div class="pst-lico">${ic(icon)}</div><div class="pst-lname">${label}</div><div class="pst-lser">${loc[k].n.size} series</div><div class="pst-lq">${fmt(loc[k].q)} pcs</div><div class="pst-rbar"><div style="width:${loc[k].q / locMax * 100}%"></div></div><div class="pst-lpct">${locTot ? (Math.round(loc[k].q / locTot * 1000) / 10) : 0}%</div></div>`;
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  wrap.innerHTML = PST_DEFS + `
+    <div class="pst-head">
+      <div><div class="pst-h2">Production Summary</div><div class="pst-sub">${pstFilter === 'all' ? 'All locations' : E(pstFilter.charAt(0).toUpperCase() + pstFilter.slice(1))} &middot; Production overview</div></div>
+      <div class="pst-meta"><span class="pst-pill">&#128197; ${dateStr}</span><span class="pst-pill">&#128339; Last updated : ${timeStr}</span><button type="button" class="pst-pill pst-moodbtn" id="pstMoodBtn2" title="Switch between Dark Mood and Light Mood">${dtMood === 'light' ? '&#9728;&#65039; Light Mood' : '&#127769; Dark Mood'}</button></div>
+    </div>
+    <div class="pst-top"><div class="pst-chips">${chips}</div></div>
+    <div class="pst-card pst-hero2">
+      ${ic('box').replace('pst-ic', 'pst-ic pst-ic-xl')}
+      <div class="pst-hmain">
+        <div class="pst-htitle">Production Receiving Progress</div>
+        <div class="pst-hsub">Received so far &middot; ${pstFilter === 'all' ? 'All locations' : E(pstFilter)}</div>
+        <div class="pst-big">${pct}<span>%</span></div>
+        <div class="pst-mid"><b>${fmt(rec)}</b> of ${fmt(proj)} pcs received</div>
+        <div class="pst-bar"><div style="width:${Math.min(100, pct)}%"></div></div>
       </div>
-      <div class="pst-bar"><div style="width:${Math.min(100, pct)}%"></div></div>
+      <div class="pst-val">${ic('coins')}<div><div class="pst-lbl">Received Value</div><div class="pst-valnum">${projVal || recVal ? rmFmt(recVal) : '&mdash;'}</div><div class="pst-mid">${projVal ? 'of ' + rmFmt(projVal) : ''}</div></div></div>
     </div>
-    <div class="pst-stats">
-      <div class="pst-card"><div class="pst-lbl">Received</div><div class="pst-snum">${fmt(rec)} pcs</div><div class="pst-ssub">${rmFmt(recVal)}</div></div>
-      <div class="pst-card"><div class="pst-lbl">Balance</div><div class="pst-snum">${fmt(bal)} pcs</div><div class="pst-ssub">${proj ? Math.round(bal / proj * 1000) / 10 : 0}% still to come</div></div>
-      <div class="pst-card"><div class="pst-lbl">Projected</div><div class="pst-snum">${fmt(proj)} pcs</div><div class="pst-ssub">${projVal ? rmFmt(projVal) : ''}</div></div>
+    <div class="pst-stats3">
+      <div class="pst-card pst-kpi">${ic('box')}<div><div class="pst-lbl">Still to Receive</div><div class="pst-snum">${fmt(still)} <small>pcs</small></div><div class="pst-ssub">${outVal ? rmFmt(outVal) + ' outstanding' : ''}</div></div><div class="pst-chev">&rsaquo;</div></div>
+      <div class="pst-card pst-kpi">${ic('check')}<div><div class="pst-lbl">Series in Production</div><div class="pst-snum">${bySeries.size}</div></div><div class="pst-chev">&rsaquo;</div></div>
+      <div class="pst-card pst-kpi">${ic('coins')}<div><div class="pst-lbl">Extra Received</div><div class="pst-snum">${fmt(extra)} <small>pcs</small></div></div><div class="pst-chev">&rsaquo;</div></div>
     </div>
-    <div class="pst-sec"><div class="pst-sech">Biggest balance by series</div><div class="pst-card" style="padding:8px 20px;">${top.length ? top.map(g => `<div class="pst-row"><div class="pst-rn" title="${E(g.series)}">${E(g.series)}</div><div class="pst-rbar"><div style="width:${g.bal / maxBal * 100}%"></div></div><div class="pst-rv"><b>${fmt(g.bal)}</b> pcs left</div></div>`).join('') : '<div class="pst-ssub" style="padding:14px 0;text-align:center;">Nothing left to receive.</div>'}</div></div>`;
-  wrap.querySelectorAll('.pst-chip').forEach(b => b.addEventListener('click', () => { pstFilter = b.dataset.f; renderPsTest(); }));
+    <div class="pst-card pst-panel"><div class="pst-sech"><span class="pst-sico">${ICONS.pin}</span> By production location</div>
+      ${locRow('local', 'Local', 'pin')}${locRow('overseas', 'Overseas', 'globe')}${locRow('mixed', 'Mixed', 'boxes')}
+    </div>
+    <div class="pst-card pst-panel pst-grow"><div class="pst-sech pst-sech-row"><span class="pst-sico">${ICONS.chart}</span> Collection status
+      </div>
+      <div id="pstColsPanel" class="pst-colspanel" style="display:none;"></div>
+      <div id="pstFiltersWrap" class="pst-filters"></div>
+      <div class="pst-tblwrap"><table class="pst-tbl"><thead id="pstThead"></thead><tbody id="pstTbody"></tbody></table></div>
+      <div class="pst-more" id="pstMore"></div>
+    </div>`;
+  const statusKey = (t) => { t = String(t || '').toLowerCase(); if (/receiv|arriv/.test(t)) return 'receiving'; if (/pend|not start|waiting|plan/.test(t)) return 'pending'; if (/complet|done|finish|shipped/.test(t)) return 'done'; if (/progress|produc|sewing|cutting|sampl/.test(t)) return 'progress'; return t ? 'other' : 'none'; };
+  const statusLbl = { receiving: 'Receiving', pending: 'Pending', progress: 'In Progress', done: 'Completed', other: '', none: '-' };
+  const items = rows.map(r => {
+    const m = campaignTimelineMatchReceiving(r);
+    return { r, qty: Number(r.quantity) || 0, got: (m.acc && Number(m.acc.totalReceived)) || 0 };
+  });
+  const valOf = (k, x) => {
+    const r = x.r;
+    switch (k) {
+      case 'series': return r.series || '-'; case 'type': return productionSummaryRowType(r); case 'category': return r.category || '-';
+      case 'product': return campaignTimelineProductLabel(r) || '-'; case 'batch': return r.batch || '-'; case 'supplier': return r.supplier || '-';
+      case 'color': return r.color || '-'; case 'material': return r.material || '-'; case 'boutique': return r.allocationBoutique || '-'; case 'pstatus': return r.productionStatus || '-';
+      case 'rstatus': return pstRecvStatus(x);
+      case 'projected': return String(Math.round(x.qty)); case 'received': return String(Math.round(x.got)); case 'balance': return String(Math.round(Math.max(0, x.qty - x.got)));
+      case 'pct': return (x.qty ? Math.round(x.got / x.qty * 1000) / 10 : 0) + '%'; case 'value': return Number(r.totalValue) ? rmFmt(Number(r.totalValue)) : '-';
+    }
+    return '';
+  };
+  const renderFilterBar = () => {
+    const isNum = k => ['projected', 'received', 'balance', 'value', 'pct'].includes(k);
+    const fields = pstCols.filter(k => !['no', 'projected', 'received', 'balance', 'pct', 'value'].includes(k)).map(k => {
+      const opts = [...new Set(items.map(x => valOf(k, x)))];
+      opts.sort((a, b) => isNum(k) ? (parseFloat(a.replace(/[^0-9.\-]/g, '')) || 0) - (parseFloat(b.replace(/[^0-9.\-]/g, '')) || 0) : a.localeCompare(b));
+      return { key: k, label: (PST_COL_DEFS.find(d => d[0] === k) || [0, k])[1], options: opts, getValue: x => valOf(k, x) };
+    });
+    renderPscfFilterBar('pstFiltersWrap', fields, pstColFilters, () => { pstShown = 40; renderTable(); renderFilterBar(); }, items);
+  };
+  const renderTable = () => {
+    const q = (pstSearch || '').toLowerCase().split(/\s+/).filter(Boolean);
+    const base = items.filter(x => !q.length || q.every(w => [x.r.series, x.r.category, x.r.batch, x.r.officialProductName, x.r.productionStatus].join(' ').toLowerCase().includes(w)));
+    let list = base.filter(x => pstCols.every(k => { const sel = pstColFilters[k]; return !sel || !sel.length || sel.includes(valOf(k, x)); }));
+    list.sort((a, b) => (b.qty - b.got) - (a.qty - a.got));
+    const shown = list.slice(0, pstShown);
+    const NUM = { projected: 1, received: 1, balance: 1, pct: 1, value: 1 };
+    const cell = (k, x, i) => {
+      const r = x.r, pc = x.qty ? Math.min(100, Math.round(x.got / x.qty * 100)) : 0;
+      switch (k) {
+        case 'rstatus': { const t = pstRecvStatus(x); return `<td><span class="pst-st ${t === 'Received' ? 'done' : 'notrec'}">${t}</span></td>`; }
+        case 'no': return `<td class="pst-no">${i + 1}</td>`;
+        case 'type': return `<td>${E(productionSummaryRowType(r))}</td>`;
+        case 'series': return `<td class="pst-tsr">${E(r.series || '-')}</td>`;
+        case 'category': return `<td>${E(r.category || '-')}</td>`;
+        case 'product': return `<td>${E(campaignTimelineProductLabel(r) || '-')}</td>`;
+        case 'batch': return `<td>${E(r.batch || '-')}</td>`;
+        case 'supplier': return `<td>${E(r.supplier || '-')}</td>`;
+        case 'color': return `<td>${E(r.color || '-')}</td>`;
+        case 'material': return `<td>${E(r.material || '-')}</td>`;
+        case 'boutique': return `<td>${E(r.allocationBoutique || '-')}</td>`;
+        case 'pstatus': return `<td>${E(r.productionStatus || '-')}</td>`;
+        case 'projected': return `<td class="r">${fmt(x.qty)} <small>pcs</small></td>`;
+        case 'received': return `<td class="r"><b>${fmt(x.got)}</b> <small>pcs</small><div class="pst-mini"><i style="width:${pc}%"></i></div></td>`;
+        case 'balance': return `<td class="r">${fmt(Math.max(0, x.qty - x.got))} <small>pcs</small></td>`;
+        case 'pct': return `<td class="r">${x.qty ? Math.round(x.got / x.qty * 1000) / 10 : 0}%</td>`;
+        case 'value': return `<td class="r">${Number(r.totalValue) ? rmFmt(Number(r.totalValue)) : '-'}</td>`;
+      }
+      return '<td></td>';
+    };
+    const cols = pstCols.length ? pstCols : ['series'];
+    document.getElementById('pstThead').innerHTML = '<tr>' + cols.map(k => `<th class="${NUM[k] ? 'r' : ''}">${E((PST_COL_DEFS.find(d => d[0] === k) || [0, k])[1])}</th>`).join('') + '</tr>';
+    document.getElementById('pstTbody').innerHTML = shown.length ? shown.map((x, i) => '<tr>' + cols.map(k => cell(k, x, i)).join('') + '</tr>').join('') : `<tr><td colspan="${cols.length}" class="pst-empty">No rows match.</td></tr>`;
+    const more = document.getElementById('pstMore');
+    more.innerHTML = list.length > pstShown ? `<button type="button" class="pst-chip" id="pstMoreBtn">Show more (${list.length - pstShown} left)</button>` : `<span>${list.length} row(s)</span>`;
+    const mb = document.getElementById('pstMoreBtn');
+    if (mb) mb.addEventListener('click', () => { pstShown += 40; renderTable(); });
+  };
+  const renderColsPanel = () => {
+    const pan = document.getElementById('pstColsPanel');
+    pan.style.display = pstColsOpen ? 'block' : 'none';
+    if (!pstColsOpen) return;
+    const hidden = PST_COL_DEFS.filter(d => !pstCols.includes(d[0]));
+    pan.innerHTML = `<div class="pst-cp-h">Shown columns <small>(use arrows to reorder)</small></div>` + pstCols.map((k, i) => `<div class="pst-cp-row"><span>${E((PST_COL_DEFS.find(d => d[0] === k) || [0, k])[1])}</span><span><button type="button" data-a="up" data-k="${k}" ${i === 0 ? 'disabled' : ''}>&#9650;</button><button type="button" data-a="dn" data-k="${k}" ${i === pstCols.length - 1 ? 'disabled' : ''}>&#9660;</button><button type="button" data-a="rm" data-k="${k}" ${pstCols.length <= 1 ? 'disabled' : ''}>&#10005;</button></span></div>`).join('') + (hidden.length ? `<div class="pst-cp-h" style="margin-top:10px;">Add column</div><div class="pst-cp-add">${hidden.map(d => `<button type="button" class="pst-chip" data-a="add" data-k="${d[0]}">+ ${E(d[1])}</button>`).join('')}</div>` : '') + `<div style="margin-top:10px;"><button type="button" class="pst-chip" data-a="reset">Reset</button></div>`;
+    pan.querySelectorAll('button[data-a]').forEach(b => b.addEventListener('click', () => {
+      const k = b.dataset.k, i = pstCols.indexOf(k), a = b.dataset.a;
+      if (a === 'up' && i > 0) [pstCols[i - 1], pstCols[i]] = [pstCols[i], pstCols[i - 1]];
+      else if (a === 'dn' && i < pstCols.length - 1) [pstCols[i + 1], pstCols[i]] = [pstCols[i], pstCols[i + 1]];
+      else if (a === 'rm') pstCols = pstCols.filter(c => c !== k);
+      else if (a === 'add') pstCols.push(k);
+      else if (a === 'reset') pstCols = PST_COLS_DEFAULT.slice();
+      pstSaveCols(); renderColsPanel(); renderTable(); renderFilterBar();
+    }));
+  };
+  renderColsPanel();
+  renderFilterBar();
+  document.getElementById('pstMoodBtn2').addEventListener('click', dtToggleMood);
+  renderTable();
+  wrap.querySelectorAll('.pst-chip[data-f]').forEach(b => b.addEventListener('click', () => { pstFilter = b.dataset.f; pstShown = 40; renderPsTest(); }));
 }
 function dtToggleMood() {
   dtMood = dtMood === 'light' ? 'dark' : 'light';
@@ -15518,11 +16200,13 @@ function dtToggleMood() {
   try { renderDashTest(); } catch (e) {}   // slide 1 (also re-renders slide 2)
   try { renderDtSlide2(); } catch (e) {}
   try { renderPsTest(); } catch (e) {}
+  try { renderQcr(); } catch (e) {}
   try { dtFitToScreen(); } catch (e) {}
 }
 document.getElementById('dtMoodBtn').addEventListener('click', dtToggleMood);
 document.getElementById('psMoodBtn').addEventListener('click', dtToggleMood);
 document.getElementById('pstMoodBtn').addEventListener('click', dtToggleMood);
+document.getElementById('qcrMoodBtn').addEventListener('click', dtToggleMood);
 try { dtApplyMood(); } catch (e) {}
 document.getElementById('dtPrev').addEventListener('click', () => dtGo(dtIdx - 1));
 document.getElementById('dtNext').addEventListener('click', () => dtGo(dtIdx + 1));
@@ -23991,6 +24675,7 @@ const SYNC_COLLECTIONS = [
   { table: 'Fleet_Trips', getArray: () => fleetTrips, setArray: (a) => { fleetTrips = a; saveFleetTrips(); } },
   { table: 'Garment_Orders', getArray: () => garmentOrders, setArray: (a) => { garmentOrders = a; saveGarmentOrders(); } },
   { table: 'Garment_Receive_Logs', getArray: () => garmentReceiveLogs, setArray: (a) => { garmentReceiveLogs = a; saveGarmentReceiveLogs(); } },
+  { table: 'GarmentTest_State', getArray: () => gotState, setArray: (a) => { gotState = a; gotSaveLocal(); try { if (document.getElementById('tab-garment-order-test').classList.contains('active')) renderGot(); } catch (e) {} } },
   { table: 'Inbound_STO', getArray: () => inboundRecords, setArray: (a) => { inboundRecords = a; saveInboundRecords(); } },
   { table: 'Packing_Stations', getArray: () => packingStations, setArray: (a) => { packingStations = a; savePackingStations(); }, sortKey: (s) => s.name || '' },
   { table: 'Receive_Stations', getArray: () => receiveStations, setArray: (a) => { receiveStations = a; saveReceiveStations(); }, sortKey: (s) => s.name || '' },
@@ -35842,7 +36527,7 @@ try {
 // tab panel gets a leading "No." column, added/renumbered automatically whenever a table is (re)rendered. Skipped: Today's Trips,
 // the TV dashboard, and tables marked data-no-rownum.
 try {
-  const RN_SKIP = '#tab-fleet-today, #tab-dashboard, [data-no-rownum]';
+  const RN_SKIP = '#tab-fleet-today, #tab-dashboard, #psTestWrap, [data-no-rownum]';
   let rnBusy = false, rnTimer = null;
   const rnProcess = (table) => {
     if (table.closest(RN_SKIP) || !table.closest('.tab-panel')) return;
@@ -35905,7 +36590,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '19Oct-r234';
+const APP_BUILD_LABEL = '19Oct-r269';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
