@@ -284,8 +284,8 @@
   #rmDashWrap { display: flex; flex-direction: column; gap: 12px; color: var(--text); }
   #rmDashWrap .rmx-card { background: var(--dtp-bg); border: 1px solid var(--dtp-ringbd); border-radius: 14px; padding: 12px 16px; min-width: 0; }
   #rmDashWrap .rmx-row { display: grid; gap: 12px; }
-  .dash-slide[data-slide="raw-material"].active > #rmDashWrap { flex: 1 1 auto; min-height: 0; }
-  #rmDashWrap .rmx-row.grow { flex: 1 1 auto; min-height: 0; }
+  .dash-slide[data-slide="raw-material"].active > #rmDashWrap { flex: 1 0 auto; min-height: auto; }
+  #rmDashWrap .rmx-row.grow { flex: 1 0 auto; min-height: auto; }
   #rmDashWrap .rmx-row.grow > .rmx-card { display: flex; flex-direction: column; }
   #tab-dashboard.dt-fit .dash-slide[data-slide="raw-material"].active, #tab-dashboard.dt-fit .dash-slide[data-slide="raw-material"].active > #rmDashWrap { flex: none !important; }
   #rmDashWrap .rmx-kpi { display: flex; align-items: center; gap: 16px; }
@@ -297,7 +297,7 @@
   #rmDashWrap .rmx-title .n { font-family: inherit; font-size: 11px; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--text-muted); }
   #rmDashWrap table { width: 100%; border-collapse: collapse; }
   #rmDashWrap th { font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--dtp-ringbd); background: transparent; }
-  #rmDashWrap td { font-size: 12.5px; padding: 6px 8px; border-bottom: 1px solid rgba(128,100,63,.25); background: transparent; }
+  #rmDashWrap td { font-size: 12.5px; padding: 4px 8px; border-bottom: 1px solid rgba(128,100,63,.25); background: transparent; }
   #rmDashWrap .rmx-num { text-align: right; font-variant-numeric: tabular-nums; }
   #rmDashWrap .rmx-ctr { text-align: center; }
   #rmDashWrap .rmx-st { display: inline-block; min-width: 54px; text-align: center; font-size: 11px; font-weight: 700; border-radius: 4px; padding: 2px 10px; color: #fff; }
@@ -15074,7 +15074,7 @@ function renderDashTest() {
   const dActive = dList.filter(x => x[2] > 0);
   const dRemain = dOpen.reduce((a, x) => a + (x[2] - x[1]), 0);
   const inTot = dInT, inAct = Math.min(paToday, dInT);   // complete = put away (received goods only count once stored)
-  const outTot = dDpT, outAct = Math.min(dDpAch, dDpT);   // complete = DO issued (after pick + pack)
+  const outTot = Math.max(dDpT, dPaAch), outAct = Math.min(dPaAch, outTot);   // Oct 19, 2026 (per Shaila): today's packing progress (packed today / target)
   const kc = (icon, label, sub, big, sub2, right) => `<div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 18px;margin:0;height:96px;box-sizing:border-box;overflow:hidden;"><div style="display:flex;align-items:center;gap:14px;min-width:0;">${String(icon).includes('dt-ring') ? icon : `<div style="width:52px;height:52px;border-radius:50%;border:1px solid #6b5a3a;background:rgba(224,184,96,.08);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">${icon}</div>`}<div style="min-width:0;white-space:nowrap;"><div style="font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">${label}</div><div style="font-family:'NumLining',Georgia,serif;font-size:34px;line-height:1.1;">${big}</div><div style="font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;">${sub2}</div></div></div>${right}</div>`;
   const ordT = bq, ordA = qSum(batch, r => (r.progress || 'Active') !== 'Active');
   // Pending = whole garment orders not fully received / put away, and STOs not yet DO Issued
@@ -27892,7 +27892,7 @@ function renderRawMaterialDashboard() {
     ${kpi(dtIco3('box', 40), 'Accessories In Stock', formatQty(accTotal), `<b>${accIn}</b> of ${acc.length} items in stock`)}
     ${kpi(dtIco3('truck', 40), 'Upcoming Arrivals', arrivals.length, 'Within 2 weeks')}</div>`;
   const stBadge = st => `<span class="rmx-st ${st}">${st === 'ok' ? 'Good' : st === 'low' ? 'Low' : 'Out'}</span>`;
-  const MAXR = 8;
+  const MAXR = 6;
   const more = (n, t) => n > MAXR ? `<tr><td colspan="9" class="rmx-sub" style="text-align:center;">+${n - MAXR} more ${t}</td></tr>` : '';
   const fabRows = fabrics.slice(0, MAXR).map((f, i) => `<tr><td style="width:36px;">${i + 1}</td><td style="max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${E(f.name)}">${E(f.name)}</td><td class="rmx-num">${(Math.round(f.remaining * 100) / 100).toFixed(2)}</td><td class="rmx-ctr">${stBadge(f.status)}</td></tr>`).join('');
   const accRows = acc.slice(0, MAXR).map((x, i) => `<tr><td style="width:36px;">${i + 1}</td><td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${E(x.name)}">${E(x.name)}</td><td class="rmx-num">${formatQty(x.received)}</td><td class="rmx-num">${formatQty(x.bal)}</td><td class="rmx-ctr">${stBadge(x.status)}</td></tr>`).join('');
@@ -27901,7 +27901,7 @@ function renderRawMaterialDashboard() {
       ${fabrics.length ? `<table><thead><tr><th>No.</th><th>Fabric Code / Name</th><th class="rmx-num">Remaining (m)</th><th class="rmx-ctr">Status</th></tr></thead><tbody>${fabRows}${more(fabrics.length, 'fabrics')}</tbody></table>` : '<div class="rmx-empty">No fabric rolls received yet.</div>'}</div>
     <div class="rmx-card"><div class="rmx-title">${dtIco3('box', 26)} Accessories Stock Summary <span class="n">(${acc.length} item${acc.length === 1 ? '' : 's'})</span></div>
       ${acc.length ? `<table><thead><tr><th>No.</th><th>Item</th><th class="rmx-num">Received</th><th class="rmx-num">Balance</th><th class="rmx-ctr">Status</th></tr></thead><tbody>${accRows}${more(acc.length, 'items')}</tbody></table>` : '<div class="rmx-empty">No accessories received yet.</div>'}</div></div>`;
-  const arrRows = arrivals.slice(0, 6).map((m, i) => {
+  const arrRows = arrivals.slice(0, 5).map((m, i) => {
     const r = m.rec, d = new Date(m.iso + 'T00:00:00');
     const eta = isNaN(d) ? formatDateLabel(m.iso) : d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
     const nm = [r.series, r.material].filter(Boolean).join(' - ') || '-';
@@ -27912,7 +27912,7 @@ function renderRawMaterialDashboard() {
     : `<div class="rmx-empty" style="color:#6fbf8a;">&#10003; No pending STO &mdash; everything has been picked and sent.</div>`;
   const bottom = `<div class="rmx-row grow" style="grid-template-columns:1.6fr 1fr;align-items:stretch;">
     <div class="rmx-card"><div class="rmx-title">${dtIco3('truck', 26)} Upcoming Fabric Arrivals <span class="n">(Next 2 weeks, from Campaign Timeline &middot; ${arrivals.length})</span></div>
-      ${arrivals.length ? `<table><thead><tr><th>No.</th><th>Fabric Name</th><th>Supplier</th><th>ETA</th><th class="rmx-num">Qty (ctn)</th></tr></thead><tbody>${arrRows}${arrivals.length > 6 ? `<tr><td colspan="5" class="rmx-sub" style="text-align:center;">+${arrivals.length - 6} more</td></tr>` : ''}</tbody></table>` : '<div class="rmx-empty">Nothing arriving in the next 2 weeks.</div>'}</div>
+      ${arrivals.length ? `<table><thead><tr><th>No.</th><th>Fabric Name</th><th>Supplier</th><th>ETA</th><th class="rmx-num">Qty (ctn)</th></tr></thead><tbody>${arrRows}${arrivals.length > 5 ? `<tr><td colspan="5" class="rmx-sub" style="text-align:center;">+${arrivals.length - 5} more</td></tr>` : ''}</tbody></table>` : '<div class="rmx-empty">Nothing arriving in the next 2 weeks.</div>'}</div>
     <div class="rmx-card"><div class="rmx-title">${dtIco3('clipboard', 26)} Pending STOs <span class="n">(${pending.length} not yet fully sent)</span></div>${stoHtml}</div></div>`;
   wrap.innerHTML = manpower + kpis + mid + bottom;
 }
@@ -35775,7 +35775,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '19Oct-r227';
+const APP_BUILD_LABEL = '19Oct-r230';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
