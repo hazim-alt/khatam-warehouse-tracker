@@ -280,6 +280,38 @@
   #fleetDashSlide .badge { display: inline-block; min-width: 84px; text-align: center; border-radius: 12px; padding: 3px 10px; font-size: 11px; font-weight: 600; }
   #fleetDashSlide .badge-gray { background: #4d5f73; color: #e6edf5; }
   #fleetDashSlide .badge-purple { background: #1565d8; color: #fff; }
+  /* Dashboard Summary Test (Production) — simplified "one headline number" view */
+  #psTestWrap { max-width: 1100px; margin: 0 auto; color: var(--text); font-family: 'Inter', system-ui, sans-serif; }
+  #psTestWrap.dt-mood-light { --text: #2b2418; --text-muted: #7a6a4d; --border: #dccfae; background: #e9dec6; padding: 16px; border-radius: 14px; }
+  #psTestWrap .pst-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  #psTestWrap .pst-h { font-family: Georgia, serif; font-size: 28px; line-height: 1.1; }
+  #psTestWrap .pst-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  #psTestWrap .pst-chips { display: flex; gap: 6px; }
+  #psTestWrap .pst-chip { border: 1px solid var(--dtp-ringbd); background: transparent; color: var(--text-muted); border-radius: 18px; padding: 6px 16px; font-size: 12px; cursor: pointer; font-family: inherit; }
+  #psTestWrap .pst-chip.on { background: var(--dtp-accent); border-color: var(--dtp-accent); color: #1c140a; font-weight: 700; }
+  #psTestWrap .pst-card { background: var(--dtp-bg); border: 1px solid var(--dtp-ringbd); border-radius: 16px; padding: 22px 26px; }
+  #psTestWrap .pst-hero { display: flex; justify-content: space-between; gap: 24px; align-items: flex-end; flex-wrap: wrap; }
+  #psTestWrap .pst-lbl { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); }
+  #psTestWrap .pst-big { font-family: Georgia, serif; font-size: 72px; line-height: 1; color: var(--dtp-accent); margin: 6px 0 4px; }
+  #psTestWrap .pst-mid { font-size: 14px; color: var(--text-muted); }
+  #psTestWrap .pst-mid b { color: var(--text); }
+  #psTestWrap .pst-val { text-align: right; }
+  #psTestWrap .pst-valnum { font-family: Georgia, serif; font-size: 32px; color: var(--text); }
+  #psTestWrap .pst-bar { height: 10px; border-radius: 6px; background: rgba(128,100,63,.25); overflow: hidden; margin-top: 18px; }
+  #psTestWrap .pst-bar > div { height: 100%; border-radius: 6px; background: linear-gradient(90deg, #c99a4a, #e8b35e); }
+  #psTestWrap .pst-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; }
+  #psTestWrap .pst-stats .pst-card { padding: 16px 20px; }
+  #psTestWrap .pst-snum { font-family: Georgia, serif; font-size: 28px; margin-top: 4px; }
+  #psTestWrap .pst-ssub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  #psTestWrap .pst-sec { margin-top: 18px; }
+  #psTestWrap .pst-sech { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); margin: 0 0 8px 4px; }
+  #psTestWrap .pst-row { display: grid; grid-template-columns: 220px 1fr 130px; gap: 14px; align-items: center; padding: 9px 4px; border-bottom: 1px solid rgba(128,100,63,.2); font-size: 13px; }
+  #psTestWrap .pst-row:last-child { border-bottom: 0; }
+  #psTestWrap .pst-rn { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #psTestWrap .pst-rbar { height: 6px; border-radius: 4px; background: rgba(128,100,63,.25); overflow: hidden; }
+  #psTestWrap .pst-rbar > div { height: 100%; background: #c99a4a; border-radius: 4px; }
+  #psTestWrap .pst-rv { text-align: right; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  #psTestWrap .pst-rv b { color: var(--text); }
   /* Raw Material slide (Oct 18, 2026 redesign — mockup layout) */
   #rmDashWrap { display: flex; flex-direction: column; gap: 12px; color: var(--text); }
   #rmDashWrap .rmx-card { background: var(--dtp-bg); border: 1px solid var(--dtp-ringbd); border-radius: 14px; padding: 12px 16px; min-width: 0; }
@@ -364,8 +396,8 @@
   #tab-production-summary.ps-mood-light > .card .pscf-search { background: #fffaf0 !important; color: #2b2418 !important; }
   #tab-production-summary.ps-mood-light > .card .pscf-option:hover { background: rgba(154,106,31,.1) !important; }
   /* Dashboard Test slide 1: Dark Mood (default) / Light Mood — toggled by #dtMoodBtn */
-  #dtSlide1, #rmDashWrap, #fleetDashSlide { --dtp-bg: linear-gradient(180deg,#27201b,#1e1915); --dtp-bd: #4a3b2c; --dtp-hdr-in: linear-gradient(90deg,#34291f,#2b221b); --dtp-hdr-out: linear-gradient(90deg,#1b3a2d,#26503c); --dtp-fg-in: #f2ece3; --dtp-fg-out: #f4ecdc; --dtp-sec: rgba(0,0,0,.22); --dtp-tile: rgba(255,255,255,.05); --dtp-red: #ee7468; --dtp-accent: #e8a95b; --dtp-ring: linear-gradient(145deg,#403128,#29211C); --dtp-ringbd: #80643F; }
-  #dtSlide1.dt-mood-light, #rmDashWrap.dt-mood-light, #fleetDashSlide.dt-mood-light { --dtp-bg: #f1e8d4; --dtp-bd: #cdbb94; --dtp-hdr-in: linear-gradient(90deg,#eadfc6,#f4ebd8); --dtp-hdr-out: linear-gradient(90deg,#d3e4d6,#e4efe2); --dtp-fg-in: #2b2418; --dtp-fg-out: #1f3d2f; --dtp-sec: rgba(255,255,255,.6); --dtp-tile: var(--dtp-tile); --dtp-red: #a8362b; --dtp-accent: #a8641a; --dtp-ring: linear-gradient(145deg,#f6ead2,#e6d3ae); --dtp-ringbd: #b8975c;
+  #dtSlide1, #rmDashWrap, #fleetDashSlide, #psTestWrap { --dtp-bg: linear-gradient(180deg,#27201b,#1e1915); --dtp-bd: #4a3b2c; --dtp-hdr-in: linear-gradient(90deg,#34291f,#2b221b); --dtp-hdr-out: linear-gradient(90deg,#1b3a2d,#26503c); --dtp-fg-in: #f2ece3; --dtp-fg-out: #f4ecdc; --dtp-sec: rgba(0,0,0,.22); --dtp-tile: rgba(255,255,255,.05); --dtp-red: #ee7468; --dtp-accent: #e8a95b; --dtp-ring: linear-gradient(145deg,#403128,#29211C); --dtp-ringbd: #80643F; }
+  #dtSlide1.dt-mood-light, #rmDashWrap.dt-mood-light, #fleetDashSlide.dt-mood-light, #psTestWrap.dt-mood-light { --dtp-bg: #f1e8d4; --dtp-bd: #cdbb94; --dtp-hdr-in: linear-gradient(90deg,#eadfc6,#f4ebd8); --dtp-hdr-out: linear-gradient(90deg,#d3e4d6,#e4efe2); --dtp-fg-in: #2b2418; --dtp-fg-out: #1f3d2f; --dtp-sec: rgba(255,255,255,.6); --dtp-tile: var(--dtp-tile); --dtp-red: #a8362b; --dtp-accent: #a8641a; --dtp-ring: linear-gradient(145deg,#f6ead2,#e6d3ae); --dtp-ringbd: #b8975c;
     --text: #2b2418; --text-muted: #7a6a4d; --border: #dccfae; --card: #f7f0e0; --bg: #e9dec6; background: #e9dec6; color: #2b2418; padding: 12px; border-radius: 14px; }
   #fleetDashSlide.dt-mood-light table th, #fleetDashSlide.dt-mood-light table td, #rmDashWrap.dt-mood-light table th, #rmDashWrap.dt-mood-light table td, #dtSlide1.dt-mood-light table th, #dtSlide1.dt-mood-light table td { background: transparent; color: var(--text); border-bottom: 1px solid var(--border); }
   #dtSlide1.dt-mood-light table th { color: var(--text-muted); }
@@ -1725,6 +1757,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
   <button type="button" class="btn-ghost" id="deviceStationBtn" style="width:100%; text-align:left; padding:4px 10px; font-size:11px; margin:0 0 10px;">📍 <span id="deviceStationBtnLabel">This device's station: — none —</span></button>
   <nav class="tabs">
     <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+    <button class="tab-btn" data-tab="garment-order-test">Garment Order Test</button>
     <button class="tab-btn" data-tab="release-schedule">Release Schedule</button>
     <button class="tab-btn" data-tab="bulk-qc-result">Bulk QC/Distribution Result</button>
     <button type="button" class="nav-group-toggle" id="navGroupRawMaterialToggle" data-group="navGroupRawMaterial">
@@ -1775,6 +1808,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
     </button>
     <div class="nav-group" id="navGroupProduction">
       <button class="tab-btn" data-tab="production-summary">Summary Dashboard</button>
+      <button class="tab-btn" data-tab="production-summary-test">Dashboard Summary Test</button>
       <button class="tab-btn" data-tab="production-release-calendar">Release Calendar</button>
       <button class="tab-btn" data-tab="production-stock-balance">Stock Balance</button>
       <button class="tab-btn" data-tab="production-fg">Stock Level Finish Good</button>
@@ -3267,6 +3301,16 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
       </div>
       <div id="bqcWrap" class="scroll-table" style="max-height:calc(100vh - 360px); min-height:300px;"></div>
     </div>
+  </section>
+
+  <section class="tab-panel" id="tab-production-summary-test">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;"><button type="button" class="btn-ghost" id="pstMoodBtn" title="Switch between Dark Mood and Light Mood">Dark Mood</button></div>
+    <div id="psTestWrap"></div>
+  </section>
+
+  <section class="tab-panel" id="tab-garment-order-test">
+    <p class="section-title">Garment Order Test</p>
+    <div class="card"><div class="empty-state">Empty for now.</div></div>
   </section>
 
   <section class="tab-panel" id="tab-release-schedule">
@@ -6155,6 +6199,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'item-master') renderItemMasterTab();
     if (btn.dataset.tab === 'stock-available') { renderStockAvailableTab(); refreshStockAvailableFromServer(); }
     if (btn.dataset.tab === 'production-summary') renderProductionSummaryTab();
+    if (btn.dataset.tab === 'production-summary-test') renderPsTest();
     if (btn.dataset.tab === 'production-stock-balance') renderProductionStockBalanceTab();
     if (btn.dataset.tab === 'production-fg') renderProductionStockFgTab();
     if (btn.dataset.tab === 'production-rm') renderProductionRmTab();
@@ -9494,6 +9539,7 @@ const PERMISSION_TABS = [
   { id: 'item-master', label: 'Item Master List' },
   { id: 'stock-available', label: 'Available Stock' },
   { id: 'production-summary', label: 'Summary Dashboard (Production)' },
+  { id: 'production-summary-test', label: 'Dashboard Summary Test (Production)' },
   { id: 'production-stock-balance', label: 'Stock Balance (Production)' },
   { id: 'production-fg', label: 'Stock Level Finish Good (Production)' },
   { id: 'production-rm', label: 'Stock Level Raw Materials (Production)' },
@@ -9501,6 +9547,7 @@ const PERMISSION_TABS = [
   { id: 'production-received-product', label: 'Received by Product (Production)' },
   { id: 'production-bulk-qc', label: 'Bulk QC (Production)' },
   { id: 'dashboard-test', label: 'Dashboard Test' },
+  { id: 'garment-order-test', label: 'Garment Order Test' },
   { id: 'release-schedule', label: 'Release Schedule' },
   { id: 'bulk-qc-result', label: 'Bulk QC/Distribution Result' },
   { id: 'production-timeline', label: 'Timeline (Production)' },
@@ -14985,6 +15032,8 @@ function dtApplyMood() {
   const ps = document.getElementById('tab-production-summary'); if (ps && ps.classList) ps.classList.toggle('ps-mood-light', dtMood === 'light');
   const pb = document.getElementById('psMoodBtn'); if (pb) pb.textContent = dtMood === 'light' ? 'Light Mood' : 'Dark Mood';
   const w = document.getElementById('dtSlide1'); if (w && w.classList) w.classList.toggle('dt-mood-light', dtMood === 'light');
+  const pw = document.getElementById('psTestWrap'); if (pw) pw.classList.toggle('dt-mood-light', dtMood === 'light');
+  const pt = document.getElementById('pstMoodBtn'); if (pt) pt.textContent = dtMood === 'light' ? 'Light Mood' : 'Dark Mood';
   const fw = document.getElementById('fleetDashSlide'); if (fw) fw.classList.toggle('dt-mood-light', dtMood === 'light');
   const rw = document.getElementById('rmDashWrap'); if (rw) rw.classList.toggle('dt-mood-light', dtMood === 'light');
   const b = document.getElementById('dtMoodBtn'); if (b) { b.textContent = dtMood === 'light' ? 'Light Mood' : 'Dark Mood'; }
@@ -15418,16 +15467,62 @@ function dtRenderDots() {
   d.querySelectorAll('button').forEach(b => b.addEventListener('click', () => dtGo(Number(b.dataset.i))));
 }
 function dtGo(i) { /* legacy: slides now rotate via Dashboard tab */ }
+// ---------- Dashboard Summary Test (Production): simplified view — one headline number ----------
+var pstFilter = 'all';
+function renderPsTest() {
+  const wrap = document.getElementById('psTestWrap');
+  if (!wrap) return;
+  try { dtApplyMood(); } catch (e) {}
+  const E = escapeHtml, fmt = n => formatQty(Math.round(n));
+  const rmFmt = v => v >= 1e6 ? 'RM' + (v / 1e6).toFixed(1) + 'M' : v >= 1e3 ? 'RM' + (v / 1e3).toFixed(1) + 'K' : 'RM' + Math.round(v);
+  const bucketOf = productionSummarySeriesBuckets();
+  const rows = productionSummaryFgRows().filter(r => pstFilter === 'all' || bucketOf.get(r.series) === pstFilter);
+  let proj = 0, rec = 0, projVal = 0, recVal = 0;
+  const bySeries = new Map();
+  rows.forEach(r => {
+    const q = Number(r.quantity) || 0;
+    const m = campaignTimelineMatchReceiving(r);
+    const got = (m.acc && Number(m.acc.totalReceived)) || 0;
+    proj += q; rec += got;
+    projVal += Number(r.totalValue) || 0; recVal += campaignTimelineLinkedReceiveValue(r);
+    const k = r.series || '-';
+    if (!bySeries.has(k)) bySeries.set(k, { series: k, q: 0, got: 0 });
+    const g = bySeries.get(k); g.q += q; g.got += got;
+  });
+  const bal = Math.max(0, proj - rec);
+  const pct = proj ? Math.round(rec / proj * 1000) / 10 : 0;
+  const chips = [['all', 'All'], ['local', 'Local'], ['overseas', 'Overseas'], ['mixed', 'Mixed']].map(([k, l]) => `<button type="button" class="pst-chip${pstFilter === k ? ' on' : ''}" data-f="${k}">${l}</button>`).join('');
+  const top = [...bySeries.values()].map(g => ({ ...g, bal: Math.max(0, g.q - g.got) })).filter(g => g.bal > 0).sort((a, b) => b.bal - a.bal).slice(0, 5);
+  const maxBal = Math.max(...top.map(g => g.bal), 1);
+  wrap.innerHTML = `
+    <div class="pst-top"><div><div class="pst-h">Production receiving</div><div class="pst-sub">${bySeries.size} series &middot; ${pstFilter === 'all' ? 'all locations' : pstFilter}</div></div><div class="pst-chips">${chips}</div></div>
+    <div class="pst-card">
+      <div class="pst-hero">
+        <div><div class="pst-lbl">Received vs. projected</div><div class="pst-big">${pct}%</div><div class="pst-mid"><b>${fmt(rec)}</b> of ${fmt(proj)} pcs received</div></div>
+        <div class="pst-val"><div class="pst-lbl">Received value</div><div class="pst-valnum">${projVal || recVal ? rmFmt(recVal) : '&mdash;'}</div><div class="pst-mid">${projVal ? 'of ' + rmFmt(projVal) : ''}</div></div>
+      </div>
+      <div class="pst-bar"><div style="width:${Math.min(100, pct)}%"></div></div>
+    </div>
+    <div class="pst-stats">
+      <div class="pst-card"><div class="pst-lbl">Received</div><div class="pst-snum">${fmt(rec)} pcs</div><div class="pst-ssub">${rmFmt(recVal)}</div></div>
+      <div class="pst-card"><div class="pst-lbl">Balance</div><div class="pst-snum">${fmt(bal)} pcs</div><div class="pst-ssub">${proj ? Math.round(bal / proj * 1000) / 10 : 0}% still to come</div></div>
+      <div class="pst-card"><div class="pst-lbl">Projected</div><div class="pst-snum">${fmt(proj)} pcs</div><div class="pst-ssub">${projVal ? rmFmt(projVal) : ''}</div></div>
+    </div>
+    <div class="pst-sec"><div class="pst-sech">Biggest balance by series</div><div class="pst-card" style="padding:8px 20px;">${top.length ? top.map(g => `<div class="pst-row"><div class="pst-rn" title="${E(g.series)}">${E(g.series)}</div><div class="pst-rbar"><div style="width:${g.bal / maxBal * 100}%"></div></div><div class="pst-rv"><b>${fmt(g.bal)}</b> pcs left</div></div>`).join('') : '<div class="pst-ssub" style="padding:14px 0;text-align:center;">Nothing left to receive.</div>'}</div></div>`;
+  wrap.querySelectorAll('.pst-chip').forEach(b => b.addEventListener('click', () => { pstFilter = b.dataset.f; renderPsTest(); }));
+}
 function dtToggleMood() {
   dtMood = dtMood === 'light' ? 'dark' : 'light';
   try { localStorage.setItem('dtMoodV1', dtMood); } catch (e) {}
   dtApplyMood();
   try { renderDashTest(); } catch (e) {}   // slide 1 (also re-renders slide 2)
   try { renderDtSlide2(); } catch (e) {}
+  try { renderPsTest(); } catch (e) {}
   try { dtFitToScreen(); } catch (e) {}
 }
 document.getElementById('dtMoodBtn').addEventListener('click', dtToggleMood);
 document.getElementById('psMoodBtn').addEventListener('click', dtToggleMood);
+document.getElementById('pstMoodBtn').addEventListener('click', dtToggleMood);
 try { dtApplyMood(); } catch (e) {}
 document.getElementById('dtPrev').addEventListener('click', () => dtGo(dtIdx - 1));
 document.getElementById('dtNext').addEventListener('click', () => dtGo(dtIdx + 1));
@@ -20408,7 +20503,7 @@ function renderRmPickToPickList() {
           <div class="rm-card-meter-label">roll needed</div>
         </div>
       </div>
-      <div class="rm-card-row"><span class="badge ${isDone ? 'badge-green' : 'badge-blue'}">${isDone ? 'All picked' : `${remaining} more to pick`}</span></div>
+      <div class="rm-card-row"><span class="badge ${isDone ? 'badge-green' : 'badge-blue'}">${isDone ? 'All picked' : `${remaining} more to pick`}</span>${isDone ? '' : `<button type="button" class="btn-ghost rm-pick-manual" data-key="${escapeHtml([g.fabricName || '', g.colorCode || '', g.colorName || ''].join('|||'))}" style="margin-left:auto;padding:2px 8px;font-size:11px;" title="Use only if the roll was physically sent but can't be scanned">Mark as sent</button>`}</div>
     </div>`;
   });
   // Accessories carton-based items — grouped by NAME only (same as fabric roll's fabric+colour
@@ -20475,6 +20570,7 @@ function renderRmPickToPickList() {
   });
   html += `</div>`;
   wrap.innerHTML = html;
+  wrap.querySelectorAll('.rm-pick-manual').forEach(b => b.addEventListener('click', () => rmPickManualComplete(stoSelect.value, b.dataset.key)));
   wrap.querySelectorAll('.rm-pick-acc-send-btn').forEach(btn => {
     btn.addEventListener('click', () => promptRmPickAccessoriesItem(btn.dataset.id));
   });
@@ -20655,6 +20751,40 @@ function scanRmPickAccessoriesCarton(stoNo, cartonNo, resultEl) {
   renderRmPickToPickList();
   renderRmPickStoItems();
   return true;
+}
+// Manual fallback (Oct 19, 2026): a roll was physically sent but its scan won't go through (e.g. reserved by another STO,
+// already marked Completed elsewhere). Completes ONE open fabric line of the group; stock is only deducted if the roll
+// is known and still has meters left, so nothing is double-deducted.
+function rmPickManualComplete(stoNo, key) {
+  if (!stoNo) return;
+  const item = rawMaterialStos.find(s => s.stoNo === stoNo && s.itemType !== 'accessories' && s.status !== 'Completed'
+    && [s.fabricName || '', s.colorCode || '', s.colorName || ''].join('|||') === key);
+  if (!item) { alert('No open item left for this fabric/colour.'); return; }
+  const input = prompt('Roll No. that was actually sent (e.g. R-1208).\nLeave blank if unknown — the item is just marked as sent, stock is not changed.');
+  if (input === null) return;
+  const rollNo = input.trim();
+  const roll = rollNo ? rawMaterialRolls.find(r => (r.rollNo || '').toLowerCase() === rollNo.toLowerCase()) : null;
+  if (rollNo && !roll) { alert('Roll "' + rollNo + '" not found in stock. Check the number, or leave it blank.'); return; }
+  if (roll) {
+    const sentElsewhere = rawMaterialStos.some(s => s.rollId === roll.id && s.status === 'Completed');
+    if (item.rollId !== roll.id) {
+      // release nothing else; just point this slot at the real roll
+      item.rollId = roll.id; item.rollNo = roll.rollNo; item.fabricCode = roll.fabricCode;
+    }
+    if (!sentElsewhere && (Number(roll.meterRemaining) || 0) > 0) {
+      item.meter = Number(roll.meterRemaining) || 0;
+      roll.meterRemaining = 0;
+      saveRawMaterialRolls(); pushRmTableNow('RawMaterial_Rolls');
+    }
+  }
+  item.status = 'Completed';
+  item.date = (document.getElementById('rmPickDate') && document.getElementById('rmPickDate').value) || todayStr();
+  item.notes = ((item.notes ? item.notes + ' | ' : '') + 'Marked as sent manually').trim();
+  saveRawMaterialStos(); pushRmTableNow('RawMaterial_STOs');
+  const stoItems = rawMaterialStos.filter(s => s.stoNo === stoNo);
+  if (stoItems.length && stoItems.every(s => s.status === 'Completed')) createAndPrintRmDo(stoNo);
+  renderRmPickToPickList();
+  renderRmPickStoItems();
 }
 function scanRmPickRoll() {
   const stoSelect = document.getElementById('rmPickStoSelect');
@@ -35775,7 +35905,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '19Oct-r231';
+const APP_BUILD_LABEL = '19Oct-r234';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
