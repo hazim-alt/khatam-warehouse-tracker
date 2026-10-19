@@ -271,8 +271,8 @@
   #fleetDashSlide .ft-cal { font-size: 30px; }
   #fleetDashSlide .ft-month { font-family: Georgia, serif; font-size: 14px; letter-spacing: .05em; color: var(--dtp-accent); }
   #fleetDashSlide .ft-upd { font-size: 10px; color: var(--text-muted); }
-  #fleetDashSlide .ft-frame { border: 1px solid var(--dtp-ringbd); border-radius: 14px; padding: 12px; background: var(--dtp-sec); flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
-  #fleetDashSlide .ft-scroll { flex: 1 1 auto; min-height: 0; max-height: calc(100vh - 230px); overflow-y: auto; }
+  #fleetDashSlide .ft-frame { border: 1px solid var(--dtp-ringbd); border-radius: 14px; padding: 12px; background: var(--dtp-sec); flex: none; display: block; }
+  #fleetDashSlide .ft-scroll { flex: none; overflow: visible; max-height: none; height: auto; }
   #fleetDashSlide table { width: 100%; border-collapse: collapse; height: auto !important; }
   #fleetDashSlide th { position: sticky; top: 0; z-index: 1; background: var(--dtp-hdr-in); color: var(--text); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--dtp-ringbd); }
   #fleetDashSlide td { padding: 5px 10px; font-size: 12.5px; border-bottom: 1px solid rgba(128,100,63,.18); background: transparent; }
@@ -287,7 +287,7 @@
   .dash-slide[data-slide="raw-material"].active > #rmDashWrap { flex: 1 0 auto; min-height: auto; }
   #rmDashWrap .rmx-row.grow { flex: 1 0 auto; min-height: auto; }
   #rmDashWrap .rmx-row.grow > .rmx-card { display: flex; flex-direction: column; }
-  #tab-dashboard.dt-fit .dash-slide[data-slide="raw-material"].active, #tab-dashboard.dt-fit .dash-slide[data-slide="raw-material"].active > #rmDashWrap { flex: none !important; }
+  #tab-dashboard.dt-fit .dash-slide[data-slide="raw-material"].active, #tab-dashboard.dt-fit .dash-slide[data-slide="fleet"].active, #tab-dashboard.dt-fit .dash-slide[data-slide="raw-material"].active > #rmDashWrap { flex: none !important; }
   #rmDashWrap .rmx-kpi { display: flex; align-items: center; gap: 16px; }
   #rmDashWrap .rmx-ring { width: 64px; height: 64px; min-width: 64px; border-radius: 50%; border: 1px solid var(--dtp-ringbd); background: var(--dtp-ring); display: flex; align-items: center; justify-content: center; }
   #rmDashWrap .rmx-lbl { font-family: Georgia, serif; font-weight: 700; font-size: 15px; letter-spacing: .06em; text-transform: uppercase; }
@@ -15456,12 +15456,12 @@ function dtFitToScreen() {
   const el = document.getElementById('tab-dashboard');
   if (!el) return;
   const cur = DASH_SLIDES[dashSlideIndex];
-  const isDt = cur === 'dt-main' || cur === 'dt-calendar' || cur === 'raw-material';
+  const isDt = cur === 'dt-main' || cur === 'dt-calendar' || cur === 'raw-material' || cur === 'fleet';
   if (!isDt || document.fullscreenElement !== el) {
     el.classList.remove('dt-fit'); el.style.removeProperty('zoom'); el.style.removeProperty('--dash-zoom'); return;
   }
   el.classList.add('dt-fit');
-  const inner = document.getElementById(cur === 'dt-main' ? 'dtSlide1' : cur === 'raw-material' ? 'rmDashWrap' : 'dtSlide2');
+  const inner = document.getElementById(cur === 'dt-main' ? 'dtSlide1' : cur === 'raw-material' ? 'rmDashWrap' : cur === 'fleet' ? 'fleetDashSlide' : 'dtSlide2');
   const topbar = el.querySelector('.dash-topbar'), prog = el.querySelector('.dash-slide-progress');
   let z = 1;
   for (let i = 0; i < 4; i++) {
@@ -35775,7 +35775,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '19Oct-r230';
+const APP_BUILD_LABEL = '19Oct-r231';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
