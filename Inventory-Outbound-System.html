@@ -522,6 +522,8 @@
   #tab-garment-order-test .got-tritems > div { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; border-bottom: 1px dashed var(--border); padding-bottom: 5px; } #tab-garment-order-test .got-tritems small { grid-column: 1; color: var(--text-muted); font-size: 11px; } #tab-garment-order-test .got-tritems em { grid-row: 1 / span 2; grid-column: 2; font-style: normal; align-self: center; font-weight: 600; }
   #tab-garment-order-test .got-final .row-actions > *, #tab-garment-order-test .got-final .got-batchbtns { display: none !important; }
   #tab-garment-order-test .got-final .row-actions::before { content: 'Final (sheet)'; font-size: 12px; color: var(--text-muted); }
+  #tab-garment-order-test .got-skusheet .row-actions > * { display: none !important; }
+  #tab-garment-order-test .got-skusheet .row-actions::before { content: 'From sheet (update in sheet)'; font-size: 12px; color: var(--text-muted); }
   #tab-garment-order-test .got-skufinal .row-actions > * { display: none !important; }
   #tab-garment-order-test .got-skufinal .row-actions::before { content: 'Final (sheet)'; font-size: 12px; color: var(--text-muted); }
   /* QC Result Test (Oct 19, 2026) — mockup-style QC / distribution overview */
@@ -1998,6 +2000,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
     <button class="tab-btn" data-tab="production-summary-test">Production Summary Dashboard</button>
     <button class="tab-btn" data-tab="release-schedule">Release Schedule</button>
     <button class="tab-btn" data-tab="bulk-qc-result">Bulk QC/Distribution Result</button>
+    <button class="tab-btn" data-tab="distribution-status">Distribution Status</button>
     <button type="button" class="nav-group-toggle" id="navGroupRawMaterialToggle" data-group="navGroupRawMaterial">
       <span>Raw Material</span><span class="nav-group-chevron">▾</span>
     </button>
@@ -2018,7 +2021,6 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
       <button class="tab-btn" data-tab="inbound-garment-receiving">Receiving Summary</button>
       <button class="tab-btn" data-tab="inbound-sto">STO From Boutique</button>
       <button class="tab-btn" data-tab="inbound-board">Progress Board</button>
-      <button class="tab-btn" data-tab="inbound-putaway">Putaway</button>
       <button class="tab-btn" data-tab="inbound-fg-arriving">FG Arriving Soon</button>
       <button class="tab-btn" data-tab="inbound-sla">SLA Settings</button>
     </div>
@@ -3521,7 +3523,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
         <select id="recvProdProduct" style="width:auto; max-width:220px;"><option value="">All Products</option></select>
         <select id="recvProdColor" style="width:auto;"><option value="">All Colors</option></select>
         <select id="recvProdTailor" style="width:auto;"><option value="">All Tailors</option></select>
-        <select id="recvProdStatus" style="width:auto;"><option value="">All Status</option><option value="pending">Pending</option><option value="in-progress">In Progress</option><option value="complete">Complete Receive</option><option value="complete-short">Complete (Short)</option><option value="not-received">Not Received</option></select>
+        <select id="recvProdStatus" style="width:auto;"><option value="">All Status</option><option value="complete">Complete Receive</option><option value="complete-short">Complete (Short)</option></select>
         <button type="button" class="btn-ghost" id="recvProdExportBtn">Export CSV</button>
       </div>
       <div id="recvProdKpi" class="data-note" style="margin:0 0 8px;"></div>
@@ -3613,27 +3615,197 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
     </div>
   </section>
 
-  <section class="tab-panel" id="tab-bulk-qc-result">
+  <section class="tab-panel" id="tab-bulk-qc-result" data-no-rownum>
     <p class="section-title">Bulk QC/Distribution Result</p>
-    <div class="card">
+<style>
+#tab-bulk-qc-result{--rq-gold:#c9954a;--rq-green:#3fb984;--rq-red:#e0524a;--rq-amber:#e8b04a;--rq-line:rgba(201,149,74,.28);}
+#tab-bulk-qc-result .rq-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin:12px 0 14px;}
+#tab-bulk-qc-result .rq-kpis.four{grid-template-columns:repeat(4,1fr);}
+#tab-bulk-qc-result .rq-kpi{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--rq-line);border-radius:14px;background:linear-gradient(135deg,rgba(201,149,74,.10),rgba(0,0,0,.12));min-width:0;}
+#tab-bulk-qc-result .rq-ico{flex:0 0 auto;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:21px;border:1.5px solid var(--rq-gold);background:radial-gradient(circle at 30% 25%,rgba(201,149,74,.30),rgba(201,149,74,.05));}
+#tab-bulk-qc-result .rq-ico.g{border-color:var(--rq-green);}#tab-bulk-qc-result .rq-ico.a{border-color:var(--rq-amber);}#tab-bulk-qc-result .rq-ico.r{border-color:var(--rq-red);}
+#tab-bulk-qc-result .rq-lbl{font-size:12px;opacity:.9;}
+#tab-bulk-qc-result .rq-num{font-size:clamp(22px,2.4vw,32px);font-weight:700;line-height:1.1;font-family:'NumLining',Georgia,serif;}
+#tab-bulk-qc-result .rq-sub{font-size:11px;opacity:.65;}
+#tab-bulk-qc-result .rq-mid{display:grid;grid-template-columns:1fr 1.6fr;gap:14px;margin-bottom:14px;}
+#tab-bulk-qc-result .rq-card{border:1px solid var(--rq-line);border-radius:14px;padding:16px 18px;background:rgba(0,0,0,.10);}
+#tab-bulk-qc-result .rq-card h3{margin:0 0 12px;font-size:16px;}
+#tab-bulk-qc-result .rq-donutrow{display:flex;align-items:center;gap:22px;flex-wrap:wrap;}
+#tab-bulk-qc-result .rq-donut{position:relative;width:140px;height:140px;border-radius:50%;flex:0 0 auto;}
+#tab-bulk-qc-result .rq-donut::after{content:'';position:absolute;inset:22px;border-radius:50%;background:var(--card,#241f1c);}
+#tab-bulk-qc-result .rq-donut-c{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;opacity:1;}
+#tab-bulk-qc-result .rq-donut-c b{font-size:26px;font-family:'NumLining',Georgia,serif;}
+#tab-bulk-qc-result .rq-leg{flex:1;min-width:180px;}
+#tab-bulk-qc-result .rq-leg div{display:grid;grid-template-columns:14px 1fr auto auto;gap:10px;align-items:center;font-size:13px;padding:5px 0;}
+#tab-bulk-qc-result .rq-leg i{width:10px;height:10px;border-radius:50%;display:inline-block;}
+#tab-bulk-qc-result .rq-ph{display:flex;align-items:center;gap:14px;margin-bottom:10px;}
+#tab-bulk-qc-result .rq-ph h3{margin:0;}
+#tab-bulk-qc-result .rq-bar{flex:1;height:14px;border-radius:8px;background:rgba(255,255,255,.08);overflow:hidden;}
+#tab-bulk-qc-result .rq-bar i{display:block;height:100%;background:linear-gradient(90deg,#c9954a,#e8b04a);}
+#tab-bulk-qc-result .rq-pct{font-size:22px;font-weight:700;font-family:'NumLining',Georgia,serif;}
+#tab-bulk-qc-result .rq-stages{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
+#tab-bulk-qc-result .rq-stage{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border:1px solid var(--rq-line);border-radius:12px;cursor:pointer;min-width:0;}
+#tab-bulk-qc-result .rq-stage.on{outline:2px solid var(--rq-gold);}
+#tab-bulk-qc-result .rq-stage .t{display:flex;align-items:center;gap:8px;font-size:11px;}
+#tab-bulk-qc-result .rq-stage .ico{width:28px;height:28px;border-radius:50%;border:1.3px solid var(--rq-gold);display:flex;align-items:center;justify-content:center;font-size:14px;flex:0 0 auto;}
+#tab-bulk-qc-result .rq-stage .n{font-size:24px;font-weight:700;font-family:'NumLining',Georgia,serif;line-height:1.1;}
+#tab-bulk-qc-result .rq-stage .p{font-size:11px;opacity:.65;}
+#tab-bulk-qc-result .rq-filter{border:1px solid var(--rq-line);border-radius:14px;padding:14px 16px;margin-bottom:12px;}
+#tab-bulk-qc-result .rq-filter-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center;}
+#tab-bulk-qc-result #bqrModeFg,#tab-bulk-qc-result #bqrModeFabric{border-radius:10px;padding:8px 18px;border:1px solid var(--rq-line);}
+#tab-bulk-qc-result #bqrWrap{border:1px solid var(--rq-line);border-radius:12px;background:rgba(0,0,0,.14);}
+#tab-bulk-qc-result #bqrWrap tr.bqr-group td{background:rgba(201,149,74,.10);border-bottom:1px solid var(--rq-line);padding:11px 10px;}
+#tab-bulk-qc-result #bqrWrap tbody td{border-bottom:1px solid rgba(255,255,255,.06);}
+#tab-bulk-qc-result #bqrWrap tr.bqr-detail-head td{background:rgba(201,149,74,.06);}
+#tab-bulk-qc-result .rq-grow{display:grid;grid-template-columns:2.2fr 1.6fr 2.2fr 1.6fr 1fr;gap:12px;align-items:center;}
+#tab-bulk-qc-result .rq-g1{display:flex;align-items:center;gap:12px;}
+#tab-bulk-qc-result .rq-g1 small{display:block;opacity:.65;font-size:11px;margin-top:2px;}
+#tab-bulk-qc-result .rq-g1 b{font-size:14px;}
+#tab-bulk-qc-result .rq-chev{width:22px;height:22px;border-radius:6px;border:1px solid var(--rq-line);display:flex;align-items:center;justify-content:center;font-size:12px;flex:0 0 auto;}
+#tab-bulk-qc-result .rq-g2{text-align:center;}
+#tab-bulk-qc-result tr.rq-thead .rq-g1,#tab-bulk-qc-result tr.rq-thead .rq-g3,#tab-bulk-qc-result tr.rq-thead .rq-g4{text-align:left;}
+#tab-bulk-qc-result tr.rq-thead .rq-g5{text-align:right;justify-content:flex-end;}
+#tab-bulk-qc-result .rq-g3{display:flex;gap:6px;flex-wrap:wrap;}
+#tab-bulk-qc-result .rq-g5{display:flex;gap:8px;align-items:center;justify-content:flex-end;}
+#tab-bulk-qc-result .rq-vbtn{padding:4px 12px;border:1px solid var(--rq-line);border-radius:8px;font-size:12px;}
+#tab-bulk-qc-result tr.bqr-group:hover .rq-vbtn{border-color:var(--rq-gold);}
+#tab-bulk-qc-result tr.rq-thead td{background:rgba(201,149,74,.10);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:12px 10px;border-bottom:1px solid var(--rq-line);}
+#tab-bulk-qc-result .rq-dtxt{font-size:12px;color:var(--rq-amber);margin-bottom:4px;}#tab-bulk-qc-result .rq-dtxt.ok{color:#4fd39b;}
+#tab-bulk-qc-result .rq-mbar{display:block;height:5px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden;}
+#tab-bulk-qc-result .rq-mbar i{display:block;height:100%;background:var(--rq-green);}
+#tab-bulk-qc-result .rq-body{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:start;}
+#tab-bulk-qc-result .rq-body.nodetail{grid-template-columns:minmax(0,1fr);}
+#tab-bulk-qc-result .rq-body.nodetail .rq-detail{display:none;}
+#tab-bulk-qc-result .rq-stages{grid-template-columns:repeat(4,1fr);}
+#tab-bulk-qc-result .rq-detail{border:1px solid var(--rq-line);border-radius:14px;background:rgba(0,0,0,.12);padding:16px 16px 18px;position:sticky;top:10px;font-size:13px;}
+#tab-bulk-qc-result .rq-dh{display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:12px;}
+#tab-bulk-qc-result .rq-dt{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+#tab-bulk-qc-result .rq-dt b{font-size:20px;color:var(--rq-gold);}
+#tab-bulk-qc-result .rq-dg{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;margin-bottom:14px;}
+#tab-bulk-qc-result .rq-dg span{display:block;font-size:11px;opacity:.65;margin-bottom:2px;}
+#tab-bulk-qc-result .rq-dbox{border:1px solid var(--rq-line);border-radius:10px;padding:10px 12px;margin-bottom:10px;}
+#tab-bulk-qc-result .rq-dbox h5{margin:0 0 8px;font-size:13px;}
+#tab-bulk-qc-result .rq-drow{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+#tab-bulk-qc-result .rq-dbtn{padding:5px 12px;border:1px solid var(--rq-line);border-radius:8px;color:inherit;text-decoration:none;font-size:12px;background:transparent;cursor:pointer;}
+#tab-bulk-qc-result .rq-dbtn:hover{border-color:var(--rq-gold);}
+#tab-bulk-qc-result .rq-doc{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);}
+#tab-bulk-qc-result .rq-doc small{display:block;opacity:.6;font-size:11px;}
+#tab-bulk-qc-result .rq-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:14px;font-size:12px;font-weight:600;white-space:nowrap;}
+#tab-bulk-qc-result .rq-pill::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor;}
+#tab-bulk-qc-result .rq-pill.pass{background:rgba(63,185,132,.18);color:#4fd39b;}
+#tab-bulk-qc-result .rq-pill.cond{background:rgba(232,176,74,.2);color:#e8b04a;}
+#tab-bulk-qc-result .rq-pill.fail,#tab-bulk-qc-result .rq-pill.s0{background:rgba(224,82,74,.2);color:#f06a62;}
+#tab-bulk-qc-result .rq-pill.s1,#tab-bulk-qc-result .rq-pill.s2{background:rgba(232,176,74,.2);color:#e8b04a;}
+#tab-bulk-qc-result .rq-pill.s3{background:rgba(91,155,213,.2);color:#7db6e8;}
+#tab-bulk-qc-result .rq-pill.s4{background:rgba(63,185,132,.18);color:#4fd39b;}
+#tab-bulk-qc-result .rq-flat{width:100%;border-collapse:collapse;}
+#tab-bulk-qc-result .rq-flat thead th{background:rgba(201,149,74,.10);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:12px 10px;border-bottom:1px solid var(--rq-line);text-align:left;white-space:nowrap;}
+#tab-bulk-qc-result .rq-flat tbody td{padding:11px 10px;border-bottom:1px solid rgba(255,255,255,.06);}
+#tab-bulk-qc-result .rq-flat tbody tr{cursor:pointer;}
+#tab-bulk-qc-result .rq-flat tbody tr:hover td{background:rgba(201,149,74,.07);}
+#tab-bulk-qc-result .rq-flat tbody tr.sel td{background:rgba(201,149,74,.14);}
+#tab-bulk-qc-result .rq-foot{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;font-size:12px;}
+#tab-bulk-qc-result .rq-pg button{min-width:30px;height:30px;margin-left:6px;border:1px solid var(--rq-line);border-radius:8px;background:transparent;color:inherit;cursor:pointer;}
+#tab-bulk-qc-result .rq-pg button.on{background:var(--rq-gold);color:#1b1614;font-weight:700;}
+@media (max-width:1250px){#tab-bulk-qc-result .rq-body{grid-template-columns:minmax(0,1fr);}#tab-bulk-qc-result .rq-detail{position:static;}}
+@media (max-width:1100px){#tab-bulk-qc-result .rq-kpis{grid-template-columns:repeat(2,1fr);}#tab-bulk-qc-result .rq-mid{grid-template-columns:1fr;}#tab-bulk-qc-result .rq-stages{grid-template-columns:repeat(2,1fr);}}
+</style>
+    <div class="card" style="border:1px solid rgba(201,149,74,.28);border-radius:14px;">
       <span class="data-note" style="margin:0;">Only items with a finished QC result (Pass, Pass With Condition, Fail) — read from the Google Sheet.</span>
       <div id="bqrNewBanner" class="needs-update-banner" style="display:none; margin:10px 0 0;"></div>
-      <div style="display:flex; gap:8px; margin:12px 0 0;">
-        <button type="button" class="btn-primary" id="bqrModeFg">Finished Goods (FG)</button>
-        <button type="button" class="btn-ghost" id="bqrModeFabric">Fabric</button>
-        <span style="flex:1;"></span>
-        <button type="button" class="btn-ghost" id="bqrExpandAllBtn">Expand all</button>
-        <button type="button" class="btn-ghost" id="bqrCollapseAllBtn">Collapse all</button>
+      <div id="bqrKpiGrid" class="rq-kpis"></div>
+      <div class="rq-mid">
+        <div class="rq-card"><h3>QC Result Distribution</h3><div id="bqrDonutWrap"></div></div>
+        <div class="rq-card" id="bqrProgCard"><div class="rq-ph"><h3>Distribution Progress</h3><div class="rq-bar"><i id="bqrProgBar" style="width:0%"></i></div><span class="rq-pct" id="bqrProgPct">0%</span></div><div id="bqrDistKpiGrid" class="rq-stages"></div></div>
       </div>
-      <div id="bqrKpiGrid" class="kpi-grid" style="grid-template-columns: repeat(4, 1fr); margin:12px 0;"></div>
-      <div id="bqrDistKpiGrid" class="kpi-grid" style="grid-template-columns: repeat(5, 1fr); margin:0 0 12px;"></div>
-      <div style="display:flex; gap:10px; flex-wrap:wrap; margin:12px 0;">
-        <input type="text" id="bqrSearch" placeholder="Search series / product / supplier / boutique..." style="flex:1; min-width:200px;">
-        <select id="bqrSeries" style="width:auto;"><option value="">All Series</option></select>
-        <select id="bqrTailor" style="width:auto;"><option value="">All Tailors</option></select>
-        <select id="bqrStatus" style="width:auto;"><option value="">Result: All</option><option value="pass">Pass</option><option value="pass-with">Pass With Condition</option><option value="fail">Fail</option></select>
+      <div class="rq-body" id="bqrBody"><div class="rq-left">
+      <div class="rq-filter">
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button type="button" class="btn-primary" id="bqrModeFg">Finished Goods (FG)</button>
+          <button type="button" class="btn-ghost" id="bqrModeFabric">Fabric</button>
+          <span style="flex:1;"></span>
+          <button type="button" class="btn-ghost" id="bqrExpandAllBtn">Expand all</button>
+          <button type="button" class="btn-ghost" id="bqrCollapseAllBtn">Collapse all</button>
+        </div>
+        <div class="rq-filter-row">
+          <input type="text" id="bqrSearch" placeholder="&#128269;  Search series / product / supplier / boutique..." style="flex:1; min-width:220px;">
+          <select id="bqrStatus" style="width:auto;"><option value="">Result: All</option><option value="pass">Pass</option><option value="pass-with">Pass With Condition</option><option value="fail">Fail</option></select>
+          <span id="bqrDateRange" style="display:inline-flex;gap:6px;align-items:center;font-size:12px;"><span style="opacity:.75;">Updated</span><input type="date" id="bqrFrom" style="width:auto;"><span>to</span><input type="date" id="bqrTo" style="width:auto;"></span>
+          <select id="bqrDistSel" style="width:auto;"><option value="">Distribution: All</option></select>
+          <select id="bqrSeries" style="width:auto;"><option value="">All Series</option></select>
+          <select id="bqrTailor" style="width:auto;"><option value="">All Tailors</option></select>
+          <button type="button" class="btn-ghost" id="bqrResetBtn">&#8635; Reset</button>
+        </div>
       </div>
       <div id="bqrWrap" class="scroll-table" style="max-height:calc(100vh - 330px); min-height:300px;"></div>
+      </div>
+      <aside class="rq-detail" id="bqrDetail"></aside></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-distribution-status" data-no-rownum>
+    <p class="section-title">Distribution Status</p>
+<style>
+#tab-distribution-status{--dst-gold:#c9954a;--dst-green:#3fb984;--dst-red:#e0524a;--dst-amber:#e8b04a;--dst-blue:#5b9bd5;--dst-line:rgba(201,149,74,.28);}
+#tab-distribution-status .dst-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px;}
+#tab-distribution-status .dst-kpi{display:flex;align-items:center;gap:14px;padding:16px 18px;border:1px solid var(--dst-line);border-radius:14px;background:linear-gradient(135deg,rgba(201,149,74,.10),rgba(0,0,0,.12));}
+#tab-distribution-status .dst-ico{width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:23px;border:1.5px solid var(--dst-gold);background:radial-gradient(circle at 30% 25%,rgba(201,149,74,.30),rgba(201,149,74,.05));flex:0 0 auto;}
+#tab-distribution-status .dst-lbl{font-size:13px;opacity:.9;}
+#tab-distribution-status .dst-num{font-size:clamp(24px,2.6vw,34px);font-weight:700;line-height:1.1;font-family:'NumLining',Georgia,serif;}
+#tab-distribution-status .dst-sub{font-size:11px;opacity:.65;}
+#tab-distribution-status .dst-filter{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;border:1px solid var(--dst-line);border-radius:14px;padding:12px 16px;margin-bottom:14px;}
+#tab-distribution-status .dst-f label{display:block;font-size:11px;opacity:.75;margin-bottom:4px;}
+#tab-distribution-status .dst-f input,#tab-distribution-status .dst-f select{margin:0;box-sizing:border-box;}
+#tab-distribution-status .dst-main{display:grid;grid-template-columns:1.7fr 1fr;gap:14px;align-items:start;}
+#tab-distribution-status .dst-card{border:1px solid var(--dst-line);border-radius:14px;background:rgba(0,0,0,.12);padding:6px 0 12px;}
+#tab-distribution-status table{width:100%;border-collapse:collapse;}
+#tab-distribution-status thead th{background:rgba(201,149,74,.10);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:12px 10px;border-bottom:1px solid var(--dst-line);text-align:left;}
+#tab-distribution-status tbody td{padding:11px 10px;border-bottom:1px solid rgba(255,255,255,.06);}
+#tab-distribution-status tbody tr{cursor:pointer;}
+#tab-distribution-status tbody tr:hover td{background:rgba(201,149,74,.07);}
+#tab-distribution-status tbody tr.sel td{background:rgba(201,149,74,.14);}
+#tab-distribution-status .dst-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:14px;font-size:12px;font-weight:600;white-space:nowrap;}
+#tab-distribution-status .dst-pill::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor;}
+#tab-distribution-status .dst-pill.pass{background:rgba(63,185,132,.18);color:#4fd39b;}
+#tab-distribution-status .dst-pill.cond{background:rgba(232,176,74,.2);color:#e8b04a;}
+#tab-distribution-status .dst-pill.s0{background:rgba(224,82,74,.2);color:#f06a62;}
+#tab-distribution-status .dst-pill.s1,#tab-distribution-status .dst-pill.s2{background:rgba(232,176,74,.2);color:#e8b04a;}
+#tab-distribution-status .dst-pill.s3{background:rgba(91,155,213,.2);color:#7db6e8;}
+#tab-distribution-status .dst-pill.s4{background:rgba(63,185,132,.18);color:#4fd39b;}
+#tab-distribution-status .dst-upd{padding:4px 14px;border:1px solid var(--dst-line);border-radius:8px;background:transparent;color:inherit;cursor:pointer;font-size:12px;}
+#tab-distribution-status .dst-upd:hover{border-color:var(--dst-gold);}
+#tab-distribution-status .dst-foot{display:flex;justify-content:space-between;align-items:center;padding:12px 14px 0;font-size:12px;opacity:.9;}
+#tab-distribution-status .dst-pg button{min-width:30px;height:30px;margin-left:6px;border:1px solid var(--dst-line);border-radius:8px;background:transparent;color:inherit;cursor:pointer;}
+#tab-distribution-status .dst-pg button.on{background:var(--dst-gold);color:#1b1614;font-weight:700;}
+#tab-distribution-status .dst-panel{padding:18px 20px;}
+#tab-distribution-status .dst-ph{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+#tab-distribution-status .dst-ph .dst-ico{width:56px;height:56px;border-radius:12px;}
+#tab-distribution-status .dst-ph h3{margin:0;font-size:18px;}
+#tab-distribution-status .dst-ph small{opacity:.7;display:block;}
+#tab-distribution-status .dst-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;font-size:13px;margin-bottom:16px;}
+#tab-distribution-status .dst-grid span{display:block;font-size:11px;opacity:.65;margin-bottom:2px;}
+#tab-distribution-status .dst-cur{padding:12px 14px;border-radius:10px;background:rgba(201,149,74,.18);border:1px solid var(--dst-line);margin:6px 0 16px;font-weight:600;}
+#tab-distribution-status .dst-panel h4{margin:0 0 8px;font-size:14px;}
+#tab-distribution-status .dst-panel select,#tab-distribution-status .dst-panel textarea{width:100%;box-sizing:border-box;}
+#tab-distribution-status .dst-panel textarea{min-height:74px;resize:vertical;margin-top:4px;}
+#tab-distribution-status .dst-save{width:100%;margin-top:14px;padding:12px;border-radius:10px;border:0;background:linear-gradient(90deg,#c9954a,#e8b04a);color:#1b1614;font-weight:700;cursor:pointer;font-size:14px;}
+#tab-distribution-status .dst-flash{animation:dstFlash 1.2s ease;}
+@keyframes dstFlash{0%{box-shadow:0 0 0 3px rgba(232,176,74,.9);}100%{box-shadow:0 0 0 3px rgba(232,176,74,0);}}
+#tab-distribution-status .dst-msg{font-size:12px;margin-top:8px;min-height:16px;}
+@media (max-width:1100px){#tab-distribution-status .dst-kpis{grid-template-columns:repeat(2,1fr);}#tab-distribution-status .dst-main{grid-template-columns:1fr;}}
+</style>
+    <div class="dst-kpis" id="dstKpis"></div>
+    <div class="dst-filter">
+      <div class="dst-f" style="flex:1;min-width:220px;"><label>&nbsp;</label><input type="text" id="dstSearch" placeholder="&#128269;  Search series / product / supplier / boutique..." style="width:100%;"></div>
+      <div class="dst-f"><label>Series</label><select id="dstSeries"><option value="">All</option></select></div>
+      <div class="dst-f"><label>Status</label><select id="dstStatus"><option value="">All</option></select></div>
+      <div class="dst-f"><label>Allocation Boutique</label><select id="dstSupplier"><option value="">All</option></select></div>
+      <div class="dst-f"><label>Last Updated</label><input type="date" id="dstDate"></div>
+      <div class="dst-f"><label>&nbsp;</label><button type="button" class="btn-ghost" id="dstReset">&#8635; Reset</button></div>
+    </div>
+    <div class="dst-main">
+      <div class="dst-card"><div id="dstTableWrap"></div><div class="dst-foot"><span id="dstShowing"></span><span class="dst-pg" id="dstPager"></span></div></div>
+      <div class="dst-card dst-panel" id="dstPanel"></div>
     </div>
   </section>
 
@@ -6545,6 +6717,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'production-received-product') renderReceivedByProductTab();
     if (btn.dataset.tab === 'production-bulk-qc') renderBulkQcTab();
     if (btn.dataset.tab === 'bulk-qc-result') bqrOnOpen();
+    if (btn.dataset.tab === 'distribution-status') { try { renderDistStatusTab(); } catch (e) { console.warn(e); } }
     if (btn.dataset.tab === 'qc-result-test') { try { bqrDistStart(); } catch (e) {} renderQcr(); }
     if (btn.dataset.tab === 'team-delete-history') renderDeleteHistoryTab();
     if (btn.dataset.tab === 'production-timeline') renderCampaignTimelineTab();
@@ -9888,6 +10061,7 @@ const PERMISSION_TABS = [
   { id: 'dashboard-test', label: 'Dashboard Test' },
   { id: 'release-schedule', label: 'Release Schedule' },
   { id: 'bulk-qc-result', label: 'Bulk QC/Distribution Result' },
+  { id: 'distribution-status', label: 'Distribution Status' },
   { id: 'production-timeline', label: 'Timeline (Production)' },
   { id: 'production-release-calendar', label: 'Release Calendar (Production)' },
   { id: 'finance', label: 'Finance' },
@@ -14710,7 +14884,8 @@ function renderReceivedByProductTab(...a) { return gotWithSheetData(() => render
 function renderReceivedByProductTab__orig() {
   const wrap = document.getElementById('recvProdWrap');
   if (!wrap) return;
-  const rows = recvProdBuildRows();
+  // Only fully received products (Complete Receive or Complete (Short)) are listed here (Oct 20, 2026, per Shaila).
+  const rows = recvProdBuildRows().filter(r => { const k = campaignTimelineStatusLabel({ totalOrder: r.stOrder, totalReceived: r.stReceived, closedShort: r.closedShort }, false).key; return k === 'complete' || k === 'complete-short'; });
   const fillSel = (id, field, allLabel) => {
     const sel = document.getElementById(id);
     if (!sel) return '';
@@ -15125,7 +15300,9 @@ function bqrGroupedBody(shown, rowFn, cols, field, headTds) {
     const allocHtml = alloc.length ? ` <span style="color:var(--text-muted);">· Allocation Boutique:</span> <strong>${alloc.map(escapeHtml).join(', ')}</strong>` : '';
     const distN = cols === 13 ? list.filter(bqrIsDist).length : -1;
     const distHtml = distN >= 0 ? ` <span class="badge ${distN === list.length ? 'badge-green' : 'badge-amber'}">${distN}/${list.length} distributed</span>` : '';
-    return `<tr class="bqr-group" data-series="${escapeHtml(name)}" data-open="${open ? 1 : 0}" style="cursor:pointer;"><td colspan="${cols}"><strong>${open ? '▾' : '▸'} ${escapeHtml(name)}</strong> <span style="color:var(--text-muted);">· ${list.length} item(s)</span>${allocHtml} &nbsp;${badges}${distHtml} ${newN ? `<span class="bqr-new-tag">${newN} NEW</span>` : ''}</td></tr>` + (open ? `<tr class="bqr-detail-head">${headTds}</tr>` + list.map(rowFn).join('') : '');
+    const alocTxt = alloc.length ? alloc.map(escapeHtml).join(', ') : '-';
+    const distCell = distN >= 0 ? `<div class="rq-dtxt ${distN === list.length ? 'ok' : ''}">${distN}/${list.length} distributed</div><span class="rq-mbar"><i style="width:${list.length ? (distN / list.length * 100) : 0}%"></i></span>` : '';
+    return `<tr class="bqr-group" data-series="${escapeHtml(name)}" data-open="${open ? 1 : 0}" style="cursor:pointer;"><td colspan="${cols}"><div class="rq-grow"><div class="rq-g1"><span class="rq-chev">${open ? '▾' : '▸'}</span><div><b>${escapeHtml(name)}</b><small>${list.length} item(s)</small></div></div><div class="rq-g2">${alocTxt}</div><div class="rq-g3">${badges}</div><div class="rq-g4">${distCell}</div><div class="rq-g5">${newN ? `<span class="bqr-new-tag">${newN} NEW</span>` : ''}<span class="rq-vbtn">${open ? 'Hide' : 'View'} &rsaquo;</span></div></div></td></tr>` + (open ? `<tr class="bqr-detail-head">${headTds}</tr>` + list.map(rowFn).join('') : '');
   }).join('');
 }
 function bqrDistBadgeHtml(text) {
@@ -15226,6 +15403,7 @@ function bqrDistStart() {
       bqrDistMap = snap.val() || {};
       try { localStorage.setItem('bqrDistLocalV1', JSON.stringify(bqrDistMap)); } catch (e) {}
       if (bqrTabActive()) renderBqrTab();
+      try { const dp = document.getElementById('tab-distribution-status'); if (dp && dp.classList.contains('active')) renderDistStatusTab(); } catch (e) {}
       try { const qt = document.getElementById('tab-qc-result-test'); if (qt && qt.classList.contains('active')) renderQcr(); } catch (e) {}
       const ds = document.querySelector('.dash-slide.active[data-slide="distribution"]'); if (ds) renderDashDistributionSlide();
     }, () => { bqrDistStarted = false; });
@@ -15246,6 +15424,197 @@ function bqrDistSet(key, status) {
   if (fbDb) { try { fbDb.ref('BqrDistrib/' + key).set(rec).catch(() => {}); } catch (e) {} }
   renderBqrTab();
 }
+
+
+// ---- Bulk QC/Distribution Result: flat table + Batch Details panel (Oct 20, 2026 redesign), FG and Fabric. Same data/links/BqrDistrib as before. ----
+const RQ_PAGE = 8;
+var rqPage = 1, rqSel = '', rqWired = false, rqChecked = new Set(), rqFabric = false;
+function rqKey(r) { return rqFabric ? 'fab_' + r.id : bqrDistKey(r); }
+function rqLinks(r, which) {
+  const arr = r && r[which + 'Links'];
+  if (Array.isArray(arr) && arr.length) return arr.filter(l => l && l.url).map(l => ({ url: l.url, text: l.text || 'Open' }));
+  const t = String((r && r[which + 'Link']) || '').trim();
+  return /^https?:\/\//i.test(t) ? [{ url: t, text: 'Open' }] : [];
+}
+function rqQcPill(r) { const k = bqcStatusKey(rqFabric ? r.qcWash : r.qcFg); return k === 'pass' ? '<span class="rq-pill pass">Pass</span>' : k === 'pass-with' ? '<span class="rq-pill cond">Pass With Condition</span>' : '<span class="rq-pill fail">Fail</span>'; }
+function rqDistPill(st) { const i = Math.max(0, BQR_DIST_STATUSES.indexOf(st)); return `<span class="rq-pill s${i}">${escapeHtml(st === 'Not distributed' ? 'Not Distributed' : st)}</span>`; }
+function rqFmtAt(v) { return v && v.at ? new Date(v.at).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'; }
+function rqRenderFlat(wrap, shown, fabric) {
+  const E = escapeHtml; rqFabric = !!fabric;
+  const list = shown.slice().sort((a, b) => String(a.series || '').localeCompare(String(b.series || '')) || String(a.officialProductName || '').localeCompare(String(b.officialProductName || '')));
+  const pages = Math.max(1, Math.ceil(list.length / RQ_PAGE)); if (rqPage > pages) rqPage = pages;
+  const st = (rqPage - 1) * RQ_PAGE, slice = list.slice(st, st + RQ_PAGE);
+  if (!rqSel || !list.some(r => rqKey(r) === rqSel)) rqSel = slice.length ? rqKey(slice[0]) : '';
+  const validKeys = new Set(list.map(rqKey)); [...rqChecked].forEach(k => { if (!validKeys.has(k)) rqChecked.delete(k); });
+  const allOn = slice.length && slice.every(r => rqChecked.has(rqKey(r)));
+  const docsOf = r => fabric ? rqLinks(r, 'qcWash') : rqLinks(r, 'qcFg').concat(rqLinks(r, 'distForm'));
+  const head = fabric
+    ? '<th>Series</th><th>Product</th><th>Material</th><th>Fabric Supplier</th><th style="text-align:right;">Qty (Ctn)</th><th style="text-align:right;">Qty (Meter)</th><th>QC Result (Washing)</th><th>Documents</th>'
+    : '<th>Series</th><th>Product</th><th>Allocation Boutique</th><th>QC Result</th><th>Distribution Status</th><th>Last Updated</th><th>Actions</th><th>Documents</th>';
+  wrap.innerHTML = `<table class="rq-flat"><thead><tr><th style="width:28px;"><input type="checkbox" id="rqCheckAll"${allOn ? ' checked' : ''}${fabric ? ' style="display:none;"' : ''}></th><th>No.</th>${head}</tr></thead><tbody>`
+    + slice.map((r, i) => { const k = rqKey(r), v = bqrDistMap[bqrDistKey(r)] || {}, nd = docsOf(r).length, dt = nd ? nd + ' file' + (nd > 1 ? 's' : '') + ' &rsaquo;' : '-';
+      const nw = bqrIsNew(r) ? ' <span class="bqr-new-tag">NEW</span>' : '';
+      const cells = fabric
+        ? `<td><b>${E(r.series || '-')}</b>${nw}</td><td>${E(r.officialProductName || '-')}</td><td>${E(r.material || '-')}</td><td>${E(r.fabricSupplier || '-')}</td><td style="text-align:right;">${formatQty(r.quantityFabricsCtn || 0)}</td><td style="text-align:right;">${formatQty(r.quantityFabricsMeter || 0)}</td><td>${rqQcPill(r)}</td><td>${dt}</td>`
+        : `<td><b>${E(r.series || '-')}</b>${nw}</td><td>${E(r.officialProductName || '-')}</td><td>${E(r.allocationBoutique || '-')}</td><td>${rqQcPill(r)}</td><td>${rqDistPill(bqrDistStatusOf(r))}</td><td>${E(rqFmtAt(v))}</td><td><button type="button" class="rq-dbtn rq-view" data-k="${E(k)}">View</button></td><td>${dt}</td>`;
+      return `<tr data-k="${E(k)}" class="${k === rqSel ? 'sel' : ''}${bqrIsNew(r) ? ' bqr-new' : ''}"><td><input type="checkbox" class="rq-chk" data-k="${E(k)}"${rqChecked.has(k) ? ' checked' : ''}${fabric ? ' style="display:none;"' : ''}></td><td>${st + i + 1}</td>${cells}</tr>`; }).join('')
+    + `</tbody></table><div class="rq-foot"><span>Showing ${list.length ? st + 1 : 0} - ${st + slice.length} of ${list.length} item(s)</span><span class="rq-pg">${pages > 1 ? Array.from({ length: pages }, (_, i) => `<button type="button" data-p="${i + 1}" class="${i + 1 === rqPage ? 'on' : ''}">${i + 1}</button>`).join('') : ''}</span></div>`;
+  rqRenderDetail(list);
+  if (!rqWired) {
+    rqWired = true;
+    wrap.addEventListener('click', e => {
+      const t = e.target;
+      if (t.id === 'rqCheckAll') { wrap.querySelectorAll('.rq-chk').forEach(c => { if (t.checked) rqChecked.add(c.dataset.k); else rqChecked.delete(c.dataset.k); c.checked = t.checked; }); rqRenderDetail(rqLastList); return; }
+      if (t.classList.contains('rq-chk')) { if (t.checked) rqChecked.add(t.dataset.k); else rqChecked.delete(t.dataset.k); rqRenderDetail(rqLastList); return; }
+      const pg = t.closest('[data-p]'); if (pg) { rqPage = Number(pg.dataset.p) || 1; renderBqrTab(); return; }
+      const row = t.closest('tr[data-k]'); if (row) { rqSel = row.dataset.k; renderBqrTab(); }
+    });
+    const det = document.getElementById('bqrDetail');
+    det.addEventListener('change', e => { if (e.target.id === 'bqrDetSel') bqrDistSet(bqrDistKey(rqLastList.find(x => rqKey(x) === rqSel)), e.target.value); });
+    det.addEventListener('click', e => { if (e.target.id === 'rqBulkApply') rqBulkApply(); });
+  }
+}
+var rqLastList = [];
+function rqBulkApply() {
+  const st = document.getElementById('rqBulkSel').value, msg = document.getElementById('rqBulkMsg');
+  const rows = rqLastList.filter(r => rqChecked.has(rqKey(r)));
+  if (!rows.length) return;
+  if (!fbDb) { msg.style.color = '#e0685c'; msg.textContent = 'Not saved — no cloud connection.'; return; }
+  const u = getCurrentUser(), by = u ? (u.name || u.username || '') : '', at = new Date().toISOString();
+  msg.style.color = ''; msg.textContent = 'Saving...';
+  const recs = rows.map(r => ({ key: bqrDistKey(r), rec: Object.assign({}, bqrDistMap[bqrDistKey(r)] || {}, { status: st, done: st === 'Distributed', by, at }) }));
+  Promise.all(recs.map(x => fbDb.ref('BqrDistrib/' + x.key).set(x.rec))).then(() => {
+    recs.forEach(x => { bqrDistMap[x.key] = x.rec; });
+    try { localStorage.setItem('bqrDistLocalV1', JSON.stringify(bqrDistMap)); } catch (e) {}
+    rqChecked.clear(); renderBqrTab();
+  }).catch(e => { msg.style.color = '#e0685c'; msg.textContent = 'Not saved: ' + (e && e.message ? e.message : 'error'); });
+}
+function rqRenderDetail(list) {
+  rqLastList = list;
+  const el = document.getElementById('bqrDetail'), E = escapeHtml;
+  const r = list.find(x => rqKey(x) === rqSel);
+  if (!r) { el.innerHTML = ''; return; }
+  const bulk = !rqFabric && rqChecked.size ? `<div class="rq-dbox" style="border-color:var(--rq-gold);"><h5>${rqChecked.size} item(s) selected</h5><select id="rqBulkSel" style="width:100%;margin-bottom:8px;">${BQR_DIST_STATUSES.map(o => `<option value="${E(o)}">${E(o)}</option>`).join('')}</select><button type="button" class="rq-dbtn" id="rqBulkApply" style="width:100%;">Apply to selected</button><div id="rqBulkMsg" style="font-size:12px;margin-top:6px;"></div></div>` : '';
+  if (rqFabric) {
+    const qc = rqLinks(r, 'qcWash');
+    el.innerHTML = `<div class="rq-dh">📋 Batch Details</div><div class="rq-dt"><b>${E(r.series || '-')}</b>${rqQcPill(r)}</div>
+      <div class="rq-dg"><div><span>Product</span>${E(r.officialProductName || '-')}</div><div><span>Material</span>${E(r.material || '-')}</div><div><span>Fabric Supplier</span>${E(r.fabricSupplier || '-')}</div><div><span>Qty (Ctn)</span>${formatQty(r.quantityFabricsCtn || 0)}</div><div><span>Qty (Meter)</span>${formatQty(r.quantityFabricsMeter || 0)}</div></div>
+      <div class="rq-dbox"><h5>QC Result (Washing Test)</h5><div class="rq-drow">${rqQcPill(r)}${qc[0] ? `<a class="rq-dbtn" href="${E(qc[0].url)}" target="_blank" rel="noopener noreferrer">View QC Report</a>` : '<span style="opacity:.6;font-size:12px;">No report linked</span>'}</div></div>
+      <div class="rq-dh" style="margin:14px 0 4px;">📎 Related Documents</div>${qc.map(l => `<div class="rq-doc"><div>📄 QC Washing Test<small>${E(l.text)}</small></div><a class="rq-dbtn" href="${E(l.url)}" target="_blank" rel="noopener noreferrer">Open</a></div>`).join('') || '<div style="opacity:.6;font-size:12px;padding:6px 0;">No documents linked yet.</div>'}`;
+    return;
+  }
+  const k = bqrDistKey(r), v = bqrDistMap[k] || {}, cur = bqrDistStatusOf(r);
+  const qc = rqLinks(r, 'qcFg'), df = rqLinks(r, 'distForm');
+  const doc = (ico, name, src, l) => `<div class="rq-doc"><div>${ico} ${name}<small>${src}</small></div><a class="rq-dbtn" href="${E(l.url)}" target="_blank" rel="noopener noreferrer">Open</a></div>`;
+  el.innerHTML = `<div class="rq-dh">📋 Batch Details</div>${bulk}
+    <div class="rq-dt"><b>${E(r.series || '-')}</b>${rqQcPill(r)}</div>
+    <div class="rq-dg"><div><span>Product</span>${E(r.officialProductName || '-')}</div><div><span>Batch</span>${E(r.batch || '-')}</div><div><span>Supplier</span>${E(r.supplier || '-')}</div><div><span>Allocation Boutique</span>${E(r.allocationBoutique || '-')}</div><div><span>Colour</span>${E(r.color || '-')}</div><div><span>Quantity</span>${formatQty(r.quantity || 0)}</div><div><span>Last Updated</span>${E(rqFmtAt(v))}</div><div><span>Updated By</span>${E(v.by || '-')}</div></div>
+    <div class="rq-dbox"><h5>QC Result</h5><div class="rq-drow">${rqQcPill(r)}${qc[0] ? `<a class="rq-dbtn" href="${E(qc[0].url)}" target="_blank" rel="noopener noreferrer">View QC Report</a>` : '<span style="opacity:.6;font-size:12px;">No report linked</span>'}</div></div>
+    <div class="rq-dbox"><h5>Distribution Status</h5><div class="rq-drow" style="margin-bottom:8px;">${rqDistPill(cur)}</div><select id="bqrDetSel" style="width:100%;">${BQR_DIST_STATUSES.map(o => `<option value="${E(o)}"${o === cur ? ' selected' : ''}>${E(o)}</option>`).join('')}</select>${v.note ? `<div style="font-size:12px;opacity:.75;margin-top:8px;">📝 ${E(v.note)}</div>` : ''}</div>
+    <div class="rq-dh" style="margin:14px 0 4px;">📎 Related Documents</div>
+    ${qc.map(l => doc('📄', 'QC Result / Report', E(l.text), l)).join('')}${df.map(l => doc('📑', 'Distribution Form', E(l.text), l)).join('')}${!qc.length && !df.length ? '<div style="opacity:.6;font-size:12px;padding:6px 0;">No documents linked yet.</div>' : ''}`;
+}
+// ---- Distribution Status tab (Oct 20, 2026): per-item distribution tracking for FG items whose QC is Pass / Pass With Condition.
+// Uses the SAME BqrDistrib data as Bulk QC/Distribution Result (so both tabs always agree); only addition is an optional `note` field on the record. ----
+const DS_PAGE = 10;
+var dstPage = 1, dstSel = '', dstChecked = new Set(), dstWired = false;
+function dstAllRows() { return (campaignTimelineList || []).filter(r => ['pass', 'pass-with'].includes(bqcStatusKey(r.qcFg))); }
+function dstStIdx(st) { const i = BQR_DIST_STATUSES.indexOf(st); return i < 0 ? 0 : i; }
+function dstPill(st) { return `<span class="dst-pill s${dstStIdx(st)}">${escapeHtml(st === 'Not distributed' ? 'Not Distributed' : st)}</span>`; }
+function dstQcPill(r) { return bqcStatusKey(r.qcFg) === 'pass' ? '<span class="dst-pill pass">Pass</span>' : '<span class="dst-pill cond">Pass With Condition</span>'; }
+function dstFiltered() {
+  const q = (document.getElementById('dstSearch').value || '').toLowerCase().split(/\s+/).filter(Boolean);
+  const se = document.getElementById('dstSeries').value, st = document.getElementById('dstStatus').value, su = document.getElementById('dstSupplier').value, dt = document.getElementById('dstDate').value;
+  return dstAllRows().filter(r => {
+    if (se && r.series !== se) return false;
+    if (st && bqrDistStatusOf(r) !== st) return false;
+    const sup = r.allocationBoutique || '';
+    if (su && sup !== su) return false;
+    if (dt) { const v = bqrDistMap[bqrDistKey(r)]; if (!v || String(v.at || '').slice(0, 10) !== dt) return false; }
+    return q.every(w => [r.series, r.officialProductName, r.supplier, r.allocationBoutique, r.batch, r.color].join(' ').toLowerCase().includes(w));
+  });
+}
+function dstFillSel(id, vals, allLabel) {
+  const el = document.getElementById(id), cur = el.value, sig = vals.join('\u0001');
+  if (el.dataset.sig === sig) return;
+  el.innerHTML = `<option value="">${allLabel}</option>` + vals.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+  el.dataset.sig = sig; el.value = vals.includes(cur) ? cur : '';
+}
+function renderDistStatusTab() {
+  if (!document.getElementById('dstKpis')) return;
+  bqrDistStart();
+  const all = dstAllRows();
+  const qcDone = (campaignTimelineList || []).filter(r => ['pass', 'pass-with', 'fail'].includes(bqcStatusKey(r.qcFg))).length;
+  const nDist = all.filter(r => bqrDistStatusOf(r) === 'Distributed').length;
+  const kc = (ico, lbl, n, sub) => `<div class="dst-kpi"><div class="dst-ico">${ico}</div><div><div class="dst-lbl">${lbl}</div><div class="dst-num">${n}</div><div class="dst-sub">${sub}</div></div></div>`;
+  document.getElementById('dstKpis').innerHTML = kc('📦', 'Total Items', qcDone, 'QC finished (all results)') + kc('✅', 'QC Approved', all.length, 'Ready for distribution') + kc('🚚', 'Distributed', nDist, 'Completed') + kc('🕒', 'Pending Distribution', all.length - nDist, 'Not yet distributed');
+  dstFillSel('dstSeries', [...new Set(all.map(r => r.series).filter(Boolean))].sort(), 'All');
+  dstFillSel('dstStatus', BQR_DIST_STATUSES, 'All');
+  dstFillSel('dstSupplier', [...new Set(all.map(r => r.allocationBoutique).filter(Boolean))].sort(), 'All');
+  const list = dstFiltered().sort((a, b) => String(a.series || '').localeCompare(String(b.series || '')) || String(a.officialProductName || '').localeCompare(String(b.officialProductName || '')));
+  const pages = Math.max(1, Math.ceil(list.length / DS_PAGE)); if (dstPage > pages) dstPage = pages;
+  const slice = list.slice((dstPage - 1) * DS_PAGE, dstPage * DS_PAGE);
+  if (!dstSel || !all.some(r => bqrDistKey(r) === dstSel)) dstSel = slice.length ? bqrDistKey(slice[0]) : '';
+  const E = escapeHtml, start = (dstPage - 1) * DS_PAGE;
+  document.getElementById('dstTableWrap').innerHTML = !list.length ? '<div class="empty-state" style="padding:18px;">No item matches.</div>'
+    : `<table><thead><tr><th style="width:30px;"><input type="checkbox" id="dstCheckAll"></th><th>No.</th><th>Series</th><th>Product</th><th>Allocation Boutique</th><th>QC Status</th><th>Distribution Status</th><th>Action</th></tr></thead><tbody>`
+      + slice.map((r, i) => { const k = bqrDistKey(r); return `<tr data-k="${E(k)}" class="${k === dstSel ? 'sel' : ''}"><td><input type="checkbox" class="dst-chk" data-k="${E(k)}"${dstChecked.has(k) ? ' checked' : ''}></td><td>${start + i + 1}</td><td><b>${E(r.series || '-')}</b></td><td>${E(r.officialProductName || '-')}</td><td>${E(r.allocationBoutique || '-')}</td><td>${dstQcPill(r)}</td><td>${dstPill(bqrDistStatusOf(r))}</td><td><button type="button" class="dst-upd" data-k="${E(k)}">Update</button></td></tr>`; }).join('') + '</tbody></table>';
+  document.getElementById('dstShowing').textContent = list.length ? `Showing ${start + 1} - ${start + slice.length} of ${list.length} item(s)` : '';
+  document.getElementById('dstPager').innerHTML = pages > 1 ? Array.from({ length: pages }, (_, i) => `<button type="button" data-p="${i + 1}" class="${i + 1 === dstPage ? 'on' : ''}">${i + 1}</button>`).join('') : '';
+  dstRenderPanel();
+}
+function dstRenderPanel() {
+  const el = document.getElementById('dstPanel'), E = escapeHtml;
+  const r = dstAllRows().find(x => bqrDistKey(x) === dstSel);
+  if (!r) { el.innerHTML = '<div class="empty-state">Select an item to update its distribution status.</div>'; return; }
+  const v = bqrDistMap[dstSel] || {}, cur = bqrDistStatusOf(r), multi = dstChecked.size > 1;
+  const at = v.at ? new Date(v.at).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+  el.innerHTML = `<div class="dst-ph"><div class="dst-ico">📦</div><div style="flex:1;"><h3>${E(r.series || '-')}</h3><small>${E(r.officialProductName || '-')}</small></div>${dstQcPill(r)}</div>
+    <div class="dst-grid"><div><span>Allocation Boutique</span>${E(r.allocationBoutique || '-')}</div><div><span>Batch</span>${E(r.batch || '-')}</div><div><span>Colour</span>${E(r.color || '-')}</div><div><span>Quantity</span>${formatQty(r.quantity || 0)}</div><div><span>Last Updated</span>${E(at)}</div><div><span>Updated By</span>${E(v.by || '-')}</div></div>
+    <h4>Current Distribution Status</h4><div class="dst-cur">${dstPill(cur)}</div>
+    <h4>Update Distribution Status${multi ? ` <span style="font-weight:400;opacity:.75;">— applies to ${dstChecked.size} selected items</span>` : ''}</h4>
+    <select id="dstNewStatus">${BQR_DIST_STATUSES.map(o => `<option value="${E(o)}"${o === cur ? ' selected' : ''}>${E(o)}</option>`).join('')}</select>
+    <h4 style="margin-top:14px;">Notes (Optional)</h4><textarea id="dstNote" maxlength="200" placeholder="Add remarks (e.g. quantity, destination, special instruction...)">${E(v.note || '')}</textarea>
+    <div style="text-align:right;font-size:11px;opacity:.6;" id="dstNoteCnt">${(v.note || '').length}/200</div>
+    <button type="button" class="dst-save" id="dstSaveBtn">💾 Save Update</button><div class="dst-msg" id="dstMsg"></div>`;
+  document.getElementById('dstNote').addEventListener('input', e => { document.getElementById('dstNoteCnt').textContent = e.target.value.length + '/200'; });
+  document.getElementById('dstSaveBtn').addEventListener('click', dstSave);
+}
+function dstSave() {
+  const keys = dstChecked.size ? [...dstChecked] : [dstSel];
+  const st = document.getElementById('dstNewStatus').value, note = document.getElementById('dstNote').value.trim().slice(0, 200), msg = document.getElementById('dstMsg');
+  const u = getCurrentUser(), by = u ? (u.name || u.username || '') : '', at = new Date().toISOString();
+  const recs = {};
+  keys.forEach(k => { recs[k] = { status: st, done: st === 'Distributed', by, at, note: keys.length > 1 && !note ? ((bqrDistMap[k] || {}).note || '') : note }; });
+  if (!fbDb) { msg.style.color = '#e0685c'; msg.textContent = 'Not saved — no cloud connection. Try again when online.'; return; }
+  msg.style.color = ''; msg.textContent = 'Saving...';
+  Promise.all(keys.map(k => fbDb.ref('BqrDistrib/' + k).set(recs[k]))).then(() => {
+    keys.forEach(k => { bqrDistMap[k] = recs[k]; });
+    try { localStorage.setItem('bqrDistLocalV1', JSON.stringify(bqrDistMap)); } catch (e) {}
+    dstChecked.clear(); renderDistStatusTab();
+    const m = document.getElementById('dstMsg'); if (m) { m.style.color = '#7cc47c'; m.textContent = `Saved (${keys.length} item${keys.length > 1 ? 's' : ''}).`; }
+  }).catch(e => { msg.style.color = '#e0685c'; msg.textContent = 'Not saved: ' + (e && e.message ? e.message : 'error'); });
+}
+(function dstWire() {
+  const p = document.getElementById('tab-distribution-status'); if (!p) return;
+  ['dstSearch', 'dstSeries', 'dstStatus', 'dstSupplier', 'dstDate'].forEach(id => document.getElementById(id).addEventListener(id === 'dstSearch' ? 'input' : 'change', () => { dstPage = 1; renderDistStatusTab(); }));
+  document.getElementById('dstReset').addEventListener('click', () => { ['dstSearch', 'dstSeries', 'dstStatus', 'dstSupplier', 'dstDate'].forEach(id => { document.getElementById(id).value = ''; }); dstPage = 1; renderDistStatusTab(); });
+  p.addEventListener('click', e => {
+    const t = e.target;
+    if (t.id === 'dstCheckAll') { p.querySelectorAll('.dst-chk').forEach(c => { c.checked = t.checked; if (t.checked) dstChecked.add(c.dataset.k); else dstChecked.delete(c.dataset.k); }); dstRenderPanel(); return; }
+    if (t.classList.contains('dst-chk')) { if (t.checked) dstChecked.add(t.dataset.k); else dstChecked.delete(t.dataset.k); dstRenderPanel(); return; }
+    const ub = t.closest('.dst-upd');
+    if (ub) {
+      dstSel = ub.dataset.k; renderDistStatusTab();
+      const pn = document.getElementById('dstPanel'); pn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      pn.classList.remove('dst-flash'); void pn.offsetWidth; pn.classList.add('dst-flash');
+      const sel = document.getElementById('dstNewStatus'); if (sel) sel.focus();
+      return;
+    }
+    const pg = t.closest('[data-p]'); if (pg) { dstPage = Number(pg.dataset.p) || 1; renderDistStatusTab(); return; }
+    const row = t.closest('tr[data-k]'); if (row) { dstSel = row.dataset.k; renderDistStatusTab(); }
+  });
+})();
 // Dashboard slide: Distribution Status summary (FG items with finished QC), from the same BqrDistrib data as the Action column.
 function renderDashDistributionSlide() {
   const kpi = document.getElementById('dashDistKpi'), wrap = document.getElementById('dashDistWrap');
@@ -16022,7 +16391,7 @@ function gotBatchModels() {
   const shortBy = new Map(); gotState.filter(r => r.type === 'short' && r.closed).forEach(r => shortBy.set(r.batchKey, r));
   const startBy = new Map(); gotState.filter(r => r.type === 'start' && r.on).forEach(r => startBy.set(r.batchKey, r));
   return [...map.values()].map(b => {
-    b.skus = [...b.skuMap.values()].map(k => { const kk = b.key + '::' + k.sku; k.appRec = recBy.get(kk) || 0; k.trolleys = [...(rcBy.get(kk) || new Map()).entries()]; k.rec = k.sheetRec > 0 ? k.sheetRec : k.appRec; k.lastDate = [dateBy.get(kk) || '', k.sheetRec > 0 ? k.sheetDate : ''].sort().pop(); k.status = k.rec <= 0 ? 'Pending' : (k.rec >= k.qtyOrder ? 'Complete' : 'Partial'); return k; });
+    b.skus = [...b.skuMap.values()].map(k => { const kk = b.key + '::' + k.sku; k.appRec = recBy.get(kk) || 0; k.trolleys = [...(rcBy.get(kk) || new Map()).entries()]; k.sheetDone = k.sheetRec > 0 && k.sheetRec >= k.qtyOrder; k.rec = k.sheetDone ? k.sheetRec : k.sheetRec + k.appRec; k.lastDate = [dateBy.get(kk) || '', k.sheetRec > 0 ? k.sheetDate : ''].sort().pop(); k.status = k.rec <= 0 ? 'Pending' : (k.rec >= k.qtyOrder ? 'Complete' : 'Partial'); return k; });
     // Close Short (batch level): every SKU still short is treated as finished — whatever hasn't arrived is written off, no per-SKU clicking.
     const sh = shortBy.get(b.key); b.shortRec = sh || null;
     b.started = startBy.get(b.key) || null;
@@ -16030,7 +16399,7 @@ function gotBatchModels() {
     if (sh) b.skus.forEach(k => { const rem = Math.max(0, k.qtyOrder - k.rec); if (rem > 0) { k.short = rem; k.status = 'Complete'; b.shortQty += rem; } });
     // The sheet's RECEIVING column is the FINAL amount (Oct 20, 2026, per Shaila): as soon as any SKU in the batch has a RECEIVING figure,
     // the sheet wins over anything logged in the app (no adding on top) and the whole batch counts as Receive Complete + Putaway Done.
-    b.sheetFinal = b.skus.length > 0 && b.skus.every(k => k.sheetRec > 0);
+    b.sheetFinal = b.skus.length > 0 && b.skus.every(k => k.sheetRec > 0 && k.sheetRec >= k.qtyOrder);
     if (b.sheetFinal) {
       b.shortRec = null; b.shortQty = 0; b.started = null;
       b.skus.forEach(k => { k.rec = k.sheetRec; k.status = 'Complete'; k.lastDate = k.sheetDate || ''; k.trolleys = []; const rem = Math.max(0, k.qtyOrder - k.rec); k.short = rem > 0 ? rem : 0; b.shortQty += k.short; });
@@ -16101,7 +16470,7 @@ function gotAsLegacy() {
     orders.push({ batchNo: b.label, garmentName: b.supplier || '', orderDate: b.doDate || '', skus, closedShort: !!b.shortRec, gotSeries: [...new Set(b.skus.map(k => String(k.series || '').trim()).filter(Boolean))] });
     b.skus.forEach(k => {
       if (k.sheetRec > 0) logs.push({ batchNo: b.label, sku: k.sku, station: 'Sheet', qty: k.sheetRec, date: [k.sheetDate, b.lastReceived, b.doDate].find(d => d && d >= '2000') || '', adjustment: false });
-      else gotState.filter(r => r.type === 'log' && r.batchKey === b.key && r.sku === k.sku).forEach(r => logs.push({ batchNo: b.label, sku: k.sku, station: 'App', qty: Number(r.qty) || 0, date: r.date, adjustment: false }));
+      if (!k.sheetDone) gotState.filter(r => r.type === 'log' && r.batchKey === b.key && r.sku === k.sku).forEach(r => logs.push({ batchNo: b.label, sku: k.sku, station: 'App', qty: Number(r.qty) || 0, date: r.date, adjustment: false }));
     });
   });
   return { orders, logs, rollcages: pend.length ? [{ name: '(sheet)', putawayItems: pend }] : [] };
@@ -16200,7 +16569,7 @@ function renderGot() {
     : (b.status !== 'Complete' && b.rec > 0 ? `<button type="button" class="btn-ghost got-short-btn" data-k="${E(b.key)}" data-act="close" title="Close the whole order — every SKU still short is closed in one go">Close Short</button>` : '');
   const putBtn = b => b.rec > 0 && b.putaway !== 'Done' ? `<button type="button" class="btn-primary got-put-btn" data-k="${E(b.key)}" data-done="1">Mark Putaway Done</button>` : '';
   const body = b => {
-    const rows = b.skus.filter(k => !q || b.label.toLowerCase().includes(q) || b.supplier.toLowerCase().includes(q) || (k.sku + ' ' + k.color).toLowerCase().includes(q)).map(k => `<tr class="${k.sheetRec > 0 ? 'got-skufinal' : ''}">
+    const rows = b.skus.filter(k => !q || b.label.toLowerCase().includes(q) || b.supplier.toLowerCase().includes(q) || (k.sku + ' ' + k.color).toLowerCase().includes(q)).map(k => `<tr class="${k.sheetDone ? 'got-skufinal' : ''}">
       <td class="mono-name">${E(k.sku)}${k.trolleys && k.trolleys.length ? `<div class="got-sub" style="font-family:inherit;font-weight:400;">&#128722; ${k.trolleys.map(t => E(t[0]) + ' (' + fmt(t[1]) + ')').join(', ')}</div>` : ''}</td><td>${E(k.color)}</td><td>${E(k.size)}</td><td>${k.price ? k.price.toFixed(2) : '-'}</td>
       <td>${fmt(k.qtyOrder)}</td><td title="${k.sheetRec ? 'From sheet: ' + fmt(k.sheetRec) + (k.appRec ? ' + logged in app: ' + fmt(k.appRec) : '') : ''}">${fmt(k.rec)}</td><td>${k.short ? `<span style="color:var(--red);">Short ${fmt(k.short)}</span>` : fmt(Math.max(0, k.qtyOrder - k.rec))}</td><td><span class="badge ${badge(k.status)}">${k.status}${k.short ? ' (Short)' : ''}</span></td>
       <td class="row-actions"><input type="number" class="got-log-input" min="0" placeholder="e.g. 50" style="width:70px;" data-k="${E(b.key)}" data-sku="${E(k.sku)}">
@@ -16208,7 +16577,7 @@ function renderGot() {
         ${k.status !== 'Complete' ? `<button type="button" class="btn-primary got-complete-btn" data-k="${E(b.key)}" data-sku="${E(k.sku)}">Mark Complete</button>` : ''}
         ${k.appRec > 0 ? `<button type="button" class="btn-ghost got-undo-btn" data-k="${E(b.key)}" data-sku="${E(k.sku)}" title="Remove the last logged receive for this SKU">Undo</button>` : ''}</td></tr>`).join('');
     return `<div class="got-bodywrap${b.sheetFinal ? ' got-final' : ''}" style="padding:14px 16px 16px;border-top:1px solid var(--border);">
-      ${b.sheetFinal ? '<div class="data-note" style="margin:0 0 10px;color:#7fd7a0;">&#10003; Every SKU in this batch has a final amount in the Google Sheet (RECEIVING column) — Receive and Putaway are complete. To change it, update the sheet.</div>' : ''}
+      ${b.sheetFinal ? '<div class="data-note" style="margin:0 0 10px;color:#7fd7a0;">&#10003; Every SKU in this batch is fully received per the Google Sheet (RECEIVING column) — Receive and Putaway are complete. To change it, update the sheet.</div>' : (b.skus.some(k => k.sheetRec > 0 && !k.sheetDone) ? `<div class="data-note" style="margin:0 0 10px;">&#9432; ${b.skus.filter(k => k.sheetRec > 0).length} SKU(s) already have a starting amount from the Google Sheet (RECEIVING column). Anything you log here is added on top; a SKU is locked as final only when the sheet itself reaches the order qty. Do not also raise the sheet figure for the same pcs (it would be counted twice). Use Close Short when the rest will not arrive.</div>` : '')}
       <table><thead><tr><th>SKU</th><th>Color</th><th>Size</th><th>Price</th><th>Qty Order</th><th>Qty Received</th><th>Remaining</th><th>Status</th><th>Log Received</th></tr></thead><tbody>${rows}</tbody></table>
       <div class="got-batchbtns" style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         ${shortBtn(b)}
@@ -16665,35 +17034,52 @@ function renderBqrTab() {
     if (seriesF && r.series !== seriesF) return false;
     if (tailorF && r[supField] !== tailorF) return false;
     if (statusF && bqcStatusKey(r[field]) !== statusF) return false;
+    const dFrom = document.getElementById('bqrFrom').value, dTo = document.getElementById('bqrTo').value;
+    if ((dFrom || dTo) && !fabric) { const d = String((bqrDistMap[fbSafeKey(r.id)] || {}).at || '').slice(0, 10); if (!d || (dFrom && d < dFrom) || (dTo && d > dTo)) return false; }
     const text = [r.series, r.officialProductName, r[supField], r.allocationBoutique, r.batch, r.color, r.material].join(' ').toLowerCase();
     return q.every(w => text.includes(w));
   });
   if (fabric) bqrDistFilter = '';
   const shown = bqrDistFilter ? baseShown.filter(r => bqrDistStatusOf(r) === bqrDistFilter) : baseShown;
   const dg = document.getElementById('bqrDistKpiGrid');
-  if (dg) {
-    dg.style.display = fabric ? 'none' : '';
-    dg.innerHTML = fabric ? '' : BQR_DIST_STATUSES.map(st => `<div class="kpi-card bqr-dist-card" data-st="${st}" style="cursor:pointer;${bqrDistFilter === st ? 'outline:2px solid var(--accent,#c9a46a);' : ''}"><div class="kpi-num">${baseShown.filter(r => bqrDistStatusOf(r) === st).length}</div><div class="kpi-label">${st}</div></div>`).join('');
+  const progCard = document.getElementById('bqrProgCard');
+  if (progCard) progCard.style.display = fabric ? 'none' : '';
+  const midEl = document.querySelector('#tab-bulk-qc-result .rq-mid'); if (midEl) midEl.style.gridTemplateColumns = fabric ? '1fr' : '';
+  if (dg && !fabric) {
+    const ICON = { 'Not distributed': '📍', 'STO Created': '📋', 'Picking / Packing': '📦', 'In Transit': '🚚', 'Distributed': '✅' };
+    const totB = baseShown.length || 0;
+    dg.innerHTML = BQR_DIST_STATUSES.filter(st => st !== 'Distributed').map(st => { const n = baseShown.filter(r => bqrDistStatusOf(r) === st).length; return `<div class="rq-stage bqr-dist-card${bqrDistFilter === st ? ' on' : ''}" data-st="${st}"><div class="t"><span class="ico">${ICON[st] || ''}</span>${st === 'Not distributed' ? 'Not Distributed' : st}</div><div class="n">${n}</div><div class="p">${totB ? (n / totB * 100).toFixed(1) : '0.0'}%</div></div>`; }).join('');
     dg.querySelectorAll('.bqr-dist-card').forEach(c => c.addEventListener('click', () => { bqrDistFilter = bqrDistFilter === c.dataset.st ? '' : c.dataset.st; renderBqrTab(); }));
+    const dn = baseShown.filter(r => bqrDistStatusOf(r) === 'Distributed').length, dp = totB ? dn / totB * 100 : 0;
+    const pb = document.getElementById('bqrProgBar'), pp = document.getElementById('bqrProgPct');
+    if (pb) pb.style.width = dp.toFixed(1) + '%'; if (pp) pp.textContent = dp.toFixed(1) + '%';
   }
   const cnt = k => shown.filter(r => bqcStatusKey(r[field]) === k).length;
-  const kpi = [
-    { num: shown.length, label: 'Total QC Done' },
-    { num: cnt('pass'), label: 'Pass' },
-    { num: cnt('pass-with'), label: 'Pass With Condition' },
-    { num: cnt('fail'), label: 'Fail' },
-  ];
-  document.getElementById('bqrKpiGrid').innerHTML = kpi.map(c => `<div class="kpi-card"><div class="kpi-num">${c.num}</div><div class="kpi-label">${c.label}</div></div>`).join('');
+  const tot = shown.length, pc = n => tot ? (n / tot * 100).toFixed(1) + '% of total' : '0.0% of total';
+  const nPass = cnt('pass'), nCond = cnt('pass-with'), nFail = cnt('fail');
+  const nDist = fabric ? 0 : shown.filter(r => bqrDistStatusOf(r) === 'Distributed').length;
+  const kc = (ico, cls, lbl, n, sub) => `<div class="rq-kpi"><div class="rq-ico ${cls}">${ico}</div><div><div class="rq-lbl">${lbl}</div><div class="rq-num">${n}</div><div class="rq-sub">${sub}</div></div></div>`;
+  const kg = document.getElementById('bqrKpiGrid');
+  kg.classList.toggle('four', fabric);
+  kg.innerHTML = kc('📋', '', 'Total QC Done', tot, 'All categories') + kc('✔️', 'g', 'Pass', nPass, pc(nPass)) + kc('⚠️', 'a', 'Pass With Condition', nCond, pc(nCond)) + kc('✖️', 'r', 'Fail', nFail, pc(nFail)) + (fabric ? '' : kc('🚚', '', 'Distributed', nDist, pc(nDist)));
+  const dw = document.getElementById('bqrDonutWrap');
+  if (dw) {
+    const a1 = tot ? nPass / tot * 360 : 0, a2 = a1 + (tot ? nCond / tot * 360 : 0);
+    const bg = tot ? `conic-gradient(#3fb984 0 ${a1}deg,#e8b04a ${a1}deg ${a2}deg,#e0524a ${a2}deg 360deg)` : 'rgba(255,255,255,.1)';
+    const lg = (c, l, n) => `<div><i style="background:${c}"></i><span>${l}</span><b>${n}</b><span style="opacity:.65;">${tot ? (n / tot * 100).toFixed(1) : '0.0'}%</span></div>`;
+    dw.innerHTML = `<div class="rq-donutrow"><div class="rq-donut" style="background:${bg}"><div class="rq-donut-c"><b>${tot}</b>Total QC Done</div></div><div class="rq-leg">${lg('#3fb984', 'Pass', nPass)}${lg('#e8b04a', 'Pass With Condition', nCond)}${lg('#e0524a', 'Fail', nFail)}</div></div>`;
+  }
   const nb = document.getElementById('bqrNewBanner');
   if (nb) { nb.style.display = bqrHighlight.size ? '' : 'none'; nb.textContent = bqrHighlight.size + ' new / updated QC result(s) since your last visit.'; }
-  if (!shown.length) { wrap.innerHTML = '<div class="empty-state">No finished QC result yet.</div>'; return; }
+  const rqBody = document.getElementById('bqrBody'); if (rqBody) rqBody.classList.remove('nodetail'); const rqDr = document.getElementById('bqrDateRange'); if (rqDr) rqDr.style.display = fabric ? 'none' : 'inline-flex';
+  const rqDs = document.getElementById('bqrDistSel'); if (rqDs) { if (!rqDs.dataset.init) { rqDs.innerHTML = '<option value="">Distribution: All</option>' + BQR_DIST_STATUSES.map(o => `<option value="${o}">${o}</option>`).join(''); rqDs.dataset.init = '1'; } rqDs.value = bqrDistFilter; }
+  ['bqrExpandAllBtn', 'bqrCollapseAllBtn'].forEach(id => { const b = document.getElementById(id); if (b) b.style.display = 'none'; });
+  if (!shown.length) { wrap.innerHTML = '<div class="empty-state">No finished QC result yet.</div>'; const dd = document.getElementById('bqrDetail'); if (dd) dd.innerHTML = ''; rqLastList = []; return; }
   const E = escapeHtml;
   if (!fabric) {
-    wrap.innerHTML = `<table><tbody>` +
-      bqrGroupedBody(shown, r => `<tr${bqrIsNew(r) ? ' class="bqr-new"' : ''}><td>${E(r.series || '-')}</td><td>${E(r.officialProductName || '-')}</td><td>${E(r.batch || '-')}</td><td>${E(r.color || '-')}</td><td>${E(r.supplier || '-')}</td><td style="text-align:right;">${formatQty(r.quantity || 0)}</td><td>${bqrIsNew(r) ? '<span class="bqr-new-tag">NEW</span>' : ''}${bqcBadgeHtml(r.qcFg)}</td><td>${campaignTimelineLinksHtml(r, 'qcFg')}</td><td>${bqrDistBadgeHtml(r.distStatus)}</td><td>${campaignTimelineLinksHtml(r, 'distForm')}</td><td>${E(r.allocationBoutique || '-')}</td><td>${bqrActionHtml(r)}</td></tr>`, 13, field, `<td>Series</td><td>Official Product Name</td><td>Batch</td><td>Color</td><td>Tailor Supplier</td><td style="text-align:right;">Quantity FG Order pcs</td><td>QC Result Finish Goods</td><td>QC Finish Goods Link</td><td>Distribution Status</td><td>Distribution Form Link</td><td>Allocation Boutique</td><td>Action</td>`) + '</tbody></table>';
+    rqRenderFlat(wrap, shown);
   } else {
-    wrap.innerHTML = `<table><tbody>` +
-      bqrGroupedBody(shown, r => `<tr${bqrIsNew(r) ? ' class="bqr-new"' : ''}><td>${E(r.series || '-')}</td><td>${E(r.officialProductName || '-')}</td><td>${E(r.material || '-')}</td><td>${E(r.fabricSupplier || '-')}</td><td style="text-align:right;">${formatQty(r.quantityFabricsCtn || 0)}</td><td style="text-align:right;">${formatQty(r.quantityFabricsMeter || 0)}</td><td>${bqrIsNew(r) ? '<span class="bqr-new-tag">NEW</span>' : ''}${bqcBadgeHtml(r.qcWash)}</td><td>${campaignTimelineLinksHtml(r, 'qcWash')}</td></tr>`, 8, field, `<td>Series</td><td>Official Product Name</td><td>Material</td><td>Fabric Supplier</td><td style="text-align:right;">Qty Fabrics (Ctn)</td><td style="text-align:right;">Qty Fabrics (Meter)</td><td>QC Result Washing Test</td><td>QC Washing Test Link</td>`) + '</tbody></table>';
+    rqRenderFlat(wrap, shown, true);
   }
   wrap.querySelectorAll('.bqr-dist-sel').forEach(sel => sel.addEventListener('change', () => bqrDistSet(sel.dataset.k, sel.value)));
   wrap.querySelectorAll('.bqr-group').forEach(tr => tr.addEventListener('click', () => {
@@ -16703,6 +17089,8 @@ function renderBqrTab() {
     renderBqrTab();
   }));
 }
+document.getElementById('bqrResetBtn').addEventListener('click', () => { ['bqrSearch', 'bqrSeries', 'bqrTailor', 'bqrStatus', 'bqrFrom', 'bqrTo'].forEach(id => { document.getElementById(id).value = ''; }); bqrDistFilter = ''; rqChecked.clear(); renderBqrTab(); });
+document.getElementById('bqrDistSel').addEventListener('change', e => { bqrDistFilter = e.target.value; rqPage = 1; renderBqrTab(); });
 document.getElementById('bqrExpandAllBtn').addEventListener('click', () => { bqrExpandAll = true; bqrCollapsedSeries.clear(); renderBqrTab(); });
 document.getElementById('bqrCollapseAllBtn').addEventListener('click', () => {
   bqrExpandAll = false; bqrExpandedSeries.clear();
@@ -16711,7 +17099,7 @@ document.getElementById('bqrCollapseAllBtn').addEventListener('click', () => {
 });
 document.getElementById('bqrModeFg').addEventListener('click', () => { bqrMode = 'fg'; ['bqrSeries','bqrTailor'].forEach(id => { document.getElementById(id).dataset.sig = ''; }); renderBqrTab(); });
 document.getElementById('bqrModeFabric').addEventListener('click', () => { bqrMode = 'fabric'; ['bqrSeries','bqrTailor'].forEach(id => { document.getElementById(id).dataset.sig = ''; }); renderBqrTab(); });
-['bqrSearch', 'bqrSeries', 'bqrTailor', 'bqrStatus'].forEach(id => document.getElementById(id).addEventListener(id === 'bqrSearch' ? 'input' : 'change', renderBqrTab));
+['bqrSearch', 'bqrSeries', 'bqrTailor', 'bqrStatus', 'bqrFrom', 'bqrTo'].forEach(id => document.getElementById(id).addEventListener(id === 'bqrSearch' ? 'input' : 'change', () => { rqPage = 1; renderBqrTab(); }));
 document.getElementById('bqcModeFg').addEventListener('click', () => { bqcMode = 'fg'; ['bqcSeries','bqcTailor'].forEach(id => { const e = document.getElementById(id); if (e) { e.dataset.sig = ''; } }); renderBulkQcTab(); });
 document.getElementById('bqcLinkBtn').addEventListener('click', () => bqcFetchLinks());
 document.getElementById('bqcKeyBtn').addEventListener('click', () => bqcFetchLinks({ changeKey: true }));
@@ -37023,7 +37411,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '20Oct-r302';
+const APP_BUILD_LABEL = '20Oct-r317';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
