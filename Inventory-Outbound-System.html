@@ -1996,7 +1996,6 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
   <nav class="tabs">
     <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
     <button class="tab-btn" data-tab="production-summary-test">Production Summary Dashboard</button>
-    <button class="tab-btn" data-tab="garment-order-test">Garment Order Test</button>
     <button class="tab-btn" data-tab="release-schedule">Release Schedule</button>
     <button class="tab-btn" data-tab="bulk-qc-result">Bulk QC/Distribution Result</button>
     <button type="button" class="nav-group-toggle" id="navGroupRawMaterialToggle" data-group="navGroupRawMaterial">
@@ -2015,7 +2014,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
       <span>Inbound</span><span class="nav-group-chevron">▾</span>
     </button>
     <div class="nav-group" id="navGroupInbound">
-      <button class="tab-btn" data-tab="inbound-garment">Garment Order</button>
+      <button class="tab-btn" data-tab="garment-order-test" data-perm="inbound-garment">Garment Order</button>
       <button class="tab-btn" data-tab="inbound-garment-receiving">Receiving Summary</button>
       <button class="tab-btn" data-tab="inbound-sto">STO From Boutique</button>
       <button class="tab-btn" data-tab="inbound-board">Progress Board</button>
@@ -3547,7 +3546,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
   </section>
 
   <section class="tab-panel" id="tab-garment-order-test">
-    <p class="section-title">Garment Order Test</p>
+    <p class="section-title">Garment Order</p>
     <div class="card" style="margin-bottom:12px;">
       <p class="rm-form-section-label" style="margin-top:0;">Google Sheet links (2 tabs)</p>
       <div style="display:grid;grid-template-columns:150px 1fr;gap:8px;align-items:center;margin-bottom:8px;">
@@ -9832,7 +9831,6 @@ const PERMISSION_TABS = [
   { id: 'item-master', label: 'Item Master List' },
   { id: 'stock-available', label: 'Available Stock' },
   { id: 'production-summary-test', label: 'Production Summary Dashboard' },
-  { id: 'garment-order-test', label: 'Garment Order Test' },
   { id: 'production-summary', label: 'Summary Dashboard (Production)' },
   { id: 'production-stock-balance', label: 'Stock Balance (Production)' },
   { id: 'production-fg', label: 'Stock Level Finish Good (Production)' },
@@ -13699,6 +13697,7 @@ function renderProductionSummaryTab() {
 // resolved series → Local/Overseas/Mixed bucket, so the Production Location Overview cards above
 // "reflex" this table too when active.
 function productionSummaryBatchSeriesList(batch) {
+  if (batch.gotSeries) return batch.gotSeries.slice();
   const ids = batch.timelineIds || (batch.timelineId ? [batch.timelineId] : []);
   if (!ids.length) return [];
   const seriesSet = new Set();
@@ -13708,7 +13707,8 @@ function productionSummaryBatchSeriesList(batch) {
   });
   return [...seriesSet];
 }
-function productionSummaryReceivingRows() {
+function productionSummaryReceivingRows(...a) { return gotWithSheetData(() => productionSummaryReceivingRows__orig(...a)); }
+function productionSummaryReceivingRows__orig() {
   const bucketOf = productionSummarySeriesBuckets();
   const rows = [];
   (garmentOrders || []).forEach(batch => {
@@ -13727,14 +13727,15 @@ function productionSummaryReceivingRows() {
       if (!qtyReceived) return;
       const im = itemMasterLookupBySku(s.sku);
       const qtyOrder = Number(s.qtyOrder) || 0;
-      const price = skuPriceLookup(s.sku);
-      const priceNum = skuPriceNumeric(price);
+      let price = skuPriceLookup(s.sku);
+      let priceNum = skuPriceNumeric(price);
+      if (!priceNum && Number(s.price) > 0) { priceNum = Number(s.price); price = String(s.price); }
       const variance = qtyReceived - qtyOrder;
       rows.push({
         series: seriesLabel,
-        group: (im && im.itemGroup) || '-',
-        color: (im && im.itemColor) || '-',
-        size: (im && im.itemSize) || '-',
+        group: (im && im.itemGroup) || s.type || '-',
+        color: (im && im.itemColor) || s.color || '-',
+        size: (im && im.itemSize) || s.size || '-',
         price, priceNum,
         qtyOrder, qtyReceived,
         // Per Shaila's request (Sep 25, 2026 — "nak tambah column receive value... variance value"):
@@ -14588,20 +14589,21 @@ function renderProductionRestockTab() {
    Aggregates every Garment Order SKU line by Item Master Brand + Group. */
 // Reverted Oct 8, 2026 (per Shaila: "tukar semula"): Ordered / Ordered Value come from Garment Order again. Set true to use Timeline's Quantity FG Order pcs / Total Value instead.
 const RECV_PROD_USE_TIMELINE_ORDER = false;
-function recvProdBuildRows() {
+function recvProdBuildRows(...a) { return gotWithSheetData(() => recvProdBuildRows__orig(...a)); }
+function recvProdBuildRows__orig() {
   const map = new Map();
   (garmentOrders || []).forEach(b => {
     (b.skus || []).forEach(sk => {
       const im = itemMasterLookupBySku(sk.sku);
-      const brand = ((im && im.itemBrand) || '').trim() || '(Unmapped SKU)';
-      const group = ((im && im.itemGroup) || '').trim() || '(No group)';
-      const color = ((im && im.itemColor) || '').trim() || '-';
+      const brand = ((im && im.itemBrand) || '').trim() || String(sk.series || '').trim() || '(Unmapped SKU)';
+      const group = ((im && im.itemGroup) || '').trim() || String(sk.type || '').trim() || '(No group)';
+      const color = ((im && im.itemColor) || '').trim() || String(sk.color || '').trim() || '-';
       const tailor = String(b.garmentName || '').trim() || '-';
       const key = brand + '\u0001' + group + '\u0001' + color + '\u0001' + tailor;
       if (!map.has(key)) map.set(key, { brand, group, color, tailor, order: 0, received: 0, orderValue: 0, receivedValue: 0, closedShort: false, batches: new Map() });
       const r = map.get(key);
       const o = Number(sk.qtyOrder) || 0, rc = Number(sk.qtyReceived) || 0;
-      const price = skuPriceNumeric(skuPriceLookup(sk.sku)) || 0;
+      const price = skuPriceNumeric(skuPriceLookup(sk.sku)) || Number(sk.price) || 0;
       r.order += o; r.received += rc; r.orderValue += o * price; r.receivedValue += rc * price;
       if (sk.closedShort) r.closedShort = true;
       const bn = b.batchNo || '(batch)';
@@ -14657,7 +14659,8 @@ function recvProdBuildRows() {
   }
   return out;
 }
-function renderReceivedByProductTab() {
+function renderReceivedByProductTab(...a) { return gotWithSheetData(() => renderReceivedByProductTab__orig(...a)); }
+function renderReceivedByProductTab__orig() {
   const wrap = document.getElementById('recvProdWrap');
   if (!wrap) return;
   const rows = recvProdBuildRows();
@@ -15334,7 +15337,8 @@ function dtApplyMood() {
   const rw = document.getElementById('rmDashWrap'); if (rw) rw.classList.toggle('dt-mood-light', dtMood === 'light');
   const b = document.getElementById('dtMoodBtn'); if (b) { b.textContent = dtMood === 'light' ? 'Light Mood' : 'Dark Mood'; }
 }
-function renderDashTest() {
+function renderDashTest(...a) { return gotWithSheetData(() => renderDashTest__orig(...a)); }
+function renderDashTest__orig() {
   const wrap = document.getElementById('dtSlide1');
   if (!wrap) return;
   bqrDistStart();
@@ -15988,6 +15992,69 @@ function gotBatchModels() {
     return b;
   });
 }
+
+// ---- Stage 2 (Oct 20, 2026): Dashboard Inbound cards, Receiving Summary and Received by Product read the NEW Google-Sheet-driven
+// Garment Order data. Read-only: the legacy globals are swapped for a derived copy only while those views render, saving is blocked
+// during the swap, and nothing is written to Garment_Orders / Garment_Receive_Logs / rollcages. ----
+window.gotSwapActive = false; var gotSwapDepth = 0, gotEnsureBusy = false;
+function gotLoadCacheIfEmpty() {
+  if (gotLines.length) return;
+  try { const c = JSON.parse(localStorage.getItem(GOT_LINES_CACHE_KEY) || 'null'); if (c && Array.isArray(c.lines) && c.lines.length) gotLines = c.lines; } catch (e) {}
+}
+function gotEnsureLoaded() {
+  if (gotLoaded || gotEnsureBusy) return;
+  const a = document.getElementById('gotUrlFg'), b = document.getElementById('gotUrlMerch');
+  if (!a || !b) return;
+  if (!a.value && !b.value) { try { const o = JSON.parse(localStorage.getItem(GOT_URL_KEY) || '{}'); a.value = o.fg || ''; b.value = o.merch || ''; } catch (e) {} }
+  if (!a.value && !b.value) return;
+  gotEnsureBusy = true;
+  Promise.resolve(gotLoad()).catch(() => {}).then(() => {
+    gotEnsureBusy = false;
+    if (!gotLoaded) return;
+    try {
+      const act = id => { const el = document.getElementById(id); return el && el.classList.contains('active'); };
+      if (act('tab-dashboard')) renderDashTest();
+      if (act('tab-inbound-garment-receiving')) renderGarmentRecvSummaryTab();
+      if (act('tab-production-received-product')) renderReceivedByProductTab();
+      if (act('tab-production-summary')) renderProductionSummaryTab();
+    } catch (e) {}
+  });
+}
+function gotAsLegacy() {
+  const isQty = b => /merch|accessor/i.test(String(b.source || '') + ' ' + '');
+  const orders = [], logs = [], pend = [];
+  const putrc = gotState.filter(r => r.type === 'putrc');
+  gotBatchModels().forEach(b => {
+    const qtyOnly = isQty(b);
+    const skus = b.skus.map(k => {
+      const kk = b.key + '::' + k.sku, as = [];
+      if (b.sheetFinal) { if (k.rec > 0) as.push({ rollcage: 'Sheet', status: 'done', doneDate: b.putawayDate || b.lastReceived || '' }); }
+      else putrc.filter(r => r.batchKey === b.key && r.sku === k.sku).forEach(r => (r.rollcages || []).forEach(c => {
+        const done = !!(r.doneRc && r.doneRc[c.name]) || b.putaway === 'Done';
+        as.push({ rollcage: c.name, status: done ? 'done' : 'pending', doneDate: done ? ((r.doneDates && r.doneDates[c.name]) || b.putawayDate || r.date || '') : '' });
+        if (!done) pend.push({ batchNo: b.label, sku: k.sku, done: false });
+      }));
+      return { sku: k.sku, size: k.size, color: k.color, type: k.type, series: k.series, price: k.price, qtyOrder: k.qtyOrder, qtyReceived: k.rec, lastReceivedDate: k.lastDate || '', closedShort: !!(b.shortRec || b.sheetFinal),
+        category: qtyOnly ? 'Merchandise' : 'FG', putawayAssignments: as };
+    });
+    orders.push({ batchNo: b.label, garmentName: b.supplier || '', orderDate: b.doDate || '', skus, closedShort: !!b.shortRec, gotSeries: [...new Set(b.skus.map(k => String(k.series || '').trim()).filter(Boolean))] });
+    b.skus.forEach(k => {
+      if (k.sheetRec > 0) logs.push({ batchNo: b.label, sku: k.sku, station: 'Sheet', qty: k.sheetRec, date: k.sheetDate || b.lastReceived || b.doDate || '', adjustment: false });
+      else gotState.filter(r => r.type === 'log' && r.batchKey === b.key && r.sku === k.sku).forEach(r => logs.push({ batchNo: b.label, sku: k.sku, station: 'App', qty: Number(r.qty) || 0, date: r.date, adjustment: false }));
+    });
+  });
+  return { orders, logs, rollcages: pend.length ? [{ name: '(sheet)', putawayItems: pend }] : [] };
+}
+function gotWithSheetData(fn) {
+  if (gotSwapDepth > 0) return fn();
+  gotLoadCacheIfEmpty(); gotEnsureLoaded();
+  let A; try { A = gotAsLegacy(); } catch (e) { A = { orders: [], logs: [], rollcages: [] }; }
+  const o = garmentOrders, l = garmentReceiveLogs, r = rollcages;
+  gotSwapDepth++; window.gotSwapActive = true;
+  garmentOrders = A.orders; garmentReceiveLogs = A.logs; rollcages = A.rollcages;
+  try { return fn(); }
+  finally { garmentOrders = o; garmentReceiveLogs = l; rollcages = r; gotSwapDepth--; if (!gotSwapDepth) window.gotSwapActive = false; }
+}
 function gotLogQty(batchKey, sku, qty) {
   if (!(qty > 0)) return;
   const logId = gotId();
@@ -16193,13 +16260,13 @@ function renderGot() {
     if (btn && btn.classList.contains('got-tr-open')) { const nm = btn.dataset.name; if (gotTrExpanded.has(nm)) gotTrExpanded.delete(nm); else gotTrExpanded.add(nm); renderGot(); return; }
     if (btn && btn.classList.contains('got-item-done')) {
       const nm = btn.dataset.name, on = btn.dataset.on === '1', r = gotState.find(x => x.id === btn.dataset.id);
-      if (r) { r.doneRc = r.doneRc || {}; if (on) r.doneRc[nm] = true; else delete r.doneRc[nm]; gotSave(); renderGot(); }
+      if (r) { r.doneRc = r.doneRc || {}; r.doneDates = r.doneDates || {}; if (on) { r.doneRc[nm] = true; r.doneDates[nm] = todayStr(); } else { delete r.doneRc[nm]; delete r.doneDates[nm]; } gotSave(); renderGot(); }
       return;
     }
     if (btn && btn.classList.contains('got-trolley-done')) {
       const nm = btn.dataset.name;
       if (!confirm(`Mark everything still on "${nm}" as putaway done?`)) return;
-      gotState.filter(r => r.type === 'putrc' && (r.rollcages || []).some(c => c.name === nm)).forEach(r => { r.doneRc = r.doneRc || {}; r.doneRc[nm] = true; });
+      gotState.filter(r => r.type === 'putrc' && (r.rollcages || []).some(c => c.name === nm)).forEach(r => { r.doneRc = r.doneRc || {}; r.doneDates = r.doneDates || {}; if (!r.doneRc[nm]) r.doneDates[nm] = todayStr(); r.doneRc[nm] = true; });
       gotSave(); renderGot(); return;
     }
     const trr = t.closest('.got-trrow');
@@ -32550,6 +32617,7 @@ let garmentLocalSaveAt = 0; // timestamp of this device's last Garment Order sav
 // Batches created on this device that the server hasn't confirmed yet (key -> time). An incoming snapshot must not wipe them before their push lands.
 const garmentPendingNew = new Map();
 function saveGarmentOrders() {
+  if (window.gotSwapActive) return;
   try {
     const prevSnap = fbLastServerSnapshot['Garment_Orders'] || {};
     garmentOrders.forEach(b => { const k = fbSafeKey(syncKeyOf(b)); if (!(k in prevSnap) && !garmentPendingNew.has(k)) garmentPendingNew.set(k, Date.now()); });
@@ -32924,7 +32992,7 @@ let garmentReceiveLogs = []; // [{ batchNo, sku, station, qty, date }]
 function loadGarmentReceiveLogs() {
   try { garmentReceiveLogs = JSON.parse(localStorage.getItem(GARMENT_RECEIVE_LOGS_KEY)) || []; } catch (e) { garmentReceiveLogs = []; }
 }
-function saveGarmentReceiveLogs() { localStorage.setItem(GARMENT_RECEIVE_LOGS_KEY, JSON.stringify(garmentReceiveLogs));  try { pushRmTableNow('Garment_Receive_Logs'); } catch (e) { /* periodic tick will push */ } }
+function saveGarmentReceiveLogs() { if (window.gotSwapActive) return; localStorage.setItem(GARMENT_RECEIVE_LOGS_KEY, JSON.stringify(garmentReceiveLogs));  try { pushRmTableNow('Garment_Receive_Logs'); } catch (e) { /* periodic tick will push */ } }
 // One-time cleanup run on every load, for installs that already had orphaned data from BEFORE
 // deleting a Garment Order batch also cleaned up after itself (see the batch delete handler) —
 // garmentReceiveLogs is a separate append-only log, so a deleted batch's pcs kept counting toward
@@ -33299,6 +33367,7 @@ function garmentBatchMatchesSearch(batch, q) {
 // ever removed together with its whole batch — so a SKU's qtyReceived can never legitimately be LOWER than the sum
 // of its logs. If it is (a stale cloud copy overwrote it), raise it back to the logged total.
 function garmentHealReceivedFromLogs() {
+  if (window.gotSwapActive) return false;
   if (!garmentOrders.length || !garmentReceiveLogs.length) return false;
   const sums = new Map();
   garmentReceiveLogs.forEach(l => {
@@ -34205,7 +34274,8 @@ let garmentRecvSummaryExpandedDates = new Set();
 // Brand/Color/Size filters read straight off Item Master (joined by SKU) — a SKU with no Item
 // Master match gets filtered OUT the moment any one of these three is set, same logic as the By
 // SKU table's "-" columns just made strict instead of cosmetic.
-function garmentRecvSummarySkuMatchesAttrFilters(sku) {
+function garmentRecvSummarySkuMatchesAttrFilters(...a) { return gotWithSheetData(() => garmentRecvSummarySkuMatchesAttrFilters__orig(...a)); }
+function garmentRecvSummarySkuMatchesAttrFilters__orig(sku) {
   const brand = document.getElementById('garmentRecvSummaryBrandFilter').value;
   const color = document.getElementById('garmentRecvSummaryColorFilter').value;
   const size = document.getElementById('garmentRecvSummarySizeFilter').value;
@@ -34221,7 +34291,8 @@ function garmentRecvSummarySkuMatchesAttrFilters(sku) {
 // lists every brand seen in Garment Order, unfiltered) — so picking a Brand first narrows Color
 // and Size down to only what that brand actually has, instead of showing every color/size across
 // all brands. Re-run this (not just at tab-open) whenever the Brand dropdown changes.
-function garmentRecvSummaryPopulateAttrFilters() {
+function garmentRecvSummaryPopulateAttrFilters(...a) { return gotWithSheetData(() => garmentRecvSummaryPopulateAttrFilters__orig(...a)); }
+function garmentRecvSummaryPopulateAttrFilters__orig() {
   const skuSet = new Set();
   garmentOrders.forEach(b => b.skus.forEach(s => { if (s.sku) skuSet.add(s.sku); }));
   const selectedBrand = document.getElementById('garmentRecvSummaryBrandFilter').value;
@@ -34246,14 +34317,16 @@ function garmentRecvSummaryPopulateAttrFilters() {
   fill('garmentRecvSummaryColorFilter', colors);
   fill('garmentRecvSummarySizeFilter', sizes);
 }
-function garmentRecvSummaryLogMatchesSearch(l) {
+function garmentRecvSummaryLogMatchesSearch(...a) { return gotWithSheetData(() => garmentRecvSummaryLogMatchesSearch__orig(...a)); }
+function garmentRecvSummaryLogMatchesSearch__orig(l) {
   const q = (document.getElementById('garmentRecvSummarySearchInput').value || '').trim().toLowerCase();
   if (!q) return true;
   const batch = garmentOrders.find(b => b.batchNo === l.batchNo);
   const hay = [l.batchNo, l.sku, batch ? batch.garmentName : ''].filter(Boolean).join(' ').toLowerCase();
   return hay.includes(q);
 }
-function garmentRecvSummaryFilteredLogs() {
+function garmentRecvSummaryFilteredLogs(...a) { return gotWithSheetData(() => garmentRecvSummaryFilteredLogs__orig(...a)); }
+function garmentRecvSummaryFilteredLogs__orig() {
   const fromVal = document.getElementById('garmentRecvSummaryFromInput').value;
   const toVal = document.getElementById('garmentRecvSummaryToInput').value;
   return (garmentReceiveLogs || []).filter(l => {
@@ -34268,7 +34341,8 @@ function garmentRecvSummaryFilteredLogs() {
 // shared basis for the KPI cards and the By SKU view, so both count the exact same set of lines.
 // NOT date-scoped (a SKU line either belongs to the filtered set or it doesn't; the date range only
 // narrows how much of its qty counts as "received", via garmentRecvSummaryFilteredLogs above).
-function garmentRecvSummaryFilteredSkuLines() {
+function garmentRecvSummaryFilteredSkuLines(...a) { return gotWithSheetData(() => garmentRecvSummaryFilteredSkuLines__orig(...a)); }
+function garmentRecvSummaryFilteredSkuLines__orig() {
   const q = (document.getElementById('garmentRecvSummarySearchInput').value || '').trim().toLowerCase();
   const lines = [];
   garmentOrders.forEach(b => {
@@ -34288,7 +34362,8 @@ function garmentRecvSummaryFilteredSkuLines() {
 // totals (qtyOrder/qtyReceived) still show the WHOLE batch though, since garmentBatchTotals()
 // isn't SKU-filtered; that's fine for "does this batch contain a red / size M / Brand X item?"
 // but not for "how much of Brand X arrived in this batch" — the By SKU view answers that instead.
-function garmentRecvSummarySearchFilteredBatches() {
+function garmentRecvSummarySearchFilteredBatches(...a) { return gotWithSheetData(() => garmentRecvSummarySearchFilteredBatches__orig(...a)); }
+function garmentRecvSummarySearchFilteredBatches__orig() {
   const q = (document.getElementById('garmentRecvSummarySearchInput').value || '').trim().toLowerCase();
   let list = garmentOrders.slice();
   if (q) list = list.filter(b => [b.batchNo, b.garmentName].filter(Boolean).join(' ').toLowerCase().includes(q) || b.skus.some(s => (s.sku || '').toLowerCase().includes(q)));
@@ -34298,7 +34373,8 @@ function garmentRecvSummarySearchFilteredBatches() {
 // All 4 KPI cards now follow every active filter (date range, search, Brand/Color/Size) — same
 // filtered basis as the charts and the 3 views below, so the top row always matches what she's
 // currently looking at instead of always showing the unfiltered grand total.
-function renderGarmentRecvSummaryKpis() {
+function renderGarmentRecvSummaryKpis(...a) { return gotWithSheetData(() => renderGarmentRecvSummaryKpis__orig(...a)); }
+function renderGarmentRecvSummaryKpis__orig() {
   const wrap = document.getElementById('garmentRecvSummaryKpiGrid');
   if (!wrap) return;
   const hasRange = document.getElementById('garmentRecvSummaryFromInput').value || document.getElementById('garmentRecvSummaryToInput').value;
@@ -34324,7 +34400,8 @@ function renderGarmentRecvSummaryKpis() {
     + card(`Qty Received${hasRange ? ' (Range)' : ''} / Ordered`, '📊', `${formatQty(qtyReceived)} / ${formatQty(qtyOrder)}`)
     + card('Received Today', '📅', formatQty(todayQty));
 }
-function setGarmentRecvSummaryView(view) {
+function setGarmentRecvSummaryView(...a) { return gotWithSheetData(() => setGarmentRecvSummaryView__orig(...a)); }
+function setGarmentRecvSummaryView__orig(view) {
   garmentRecvSummaryView = view;
   document.querySelectorAll('.garment-recv-summary-subnav-btn').forEach(btn => {
     const active = btn.dataset.view === view;
@@ -34334,7 +34411,8 @@ function setGarmentRecvSummaryView(view) {
   renderGarmentRecvSummaryCharts();
   renderGarmentRecvSummaryView();
 }
-function renderGarmentRecvSummaryRangeNote() {
+function renderGarmentRecvSummaryRangeNote(...a) { return gotWithSheetData(() => renderGarmentRecvSummaryRangeNote__orig(...a)); }
+function renderGarmentRecvSummaryRangeNote__orig() {
   const el = document.getElementById('garmentRecvSummaryRangeNote');
   if (!el) return;
   const fromVal = document.getElementById('garmentRecvSummaryFromInput').value;
@@ -34351,7 +34429,8 @@ function renderGarmentRecvSummaryRangeNote() {
 // Returns { text, cls }: a real date once every relevant assignment is done, "Pending" if any of
 // them still isn't, or "—" when nothing in this group was ever loaded into a rollcage for putaway
 // at all (received straight through / prompt skipped — see garmentBatchPutawayStatus's comment).
-function garmentRecvSummaryDateGroupPutaway(lines) {
+function garmentRecvSummaryDateGroupPutaway(...a) { return gotWithSheetData(() => garmentRecvSummaryDateGroupPutaway__orig(...a)); }
+function garmentRecvSummaryDateGroupPutaway__orig(lines) {
   const pairs = new Set();
   lines.forEach(l => pairs.add(`${l.batchNo}::${l.sku}`));
   let anyAssignment = false, anyPending = false, lastDone = '';
@@ -34371,7 +34450,8 @@ function garmentRecvSummaryDateGroupPutaway(lines) {
   if (anyPending) return { text: 'Pending', cls: 'badge badge-amber' };
   return { text: lastDone ? formatDateLabel(lastDone) : '—', cls: 'badge badge-green' };
 }
-function renderGarmentRecvSummaryByDate(wrap) {
+function renderGarmentRecvSummaryByDate(...a) { return gotWithSheetData(() => renderGarmentRecvSummaryByDate__orig(...a)); }
+function renderGarmentRecvSummaryByDate__orig(wrap) {
   const logs = garmentRecvSummaryFilteredLogs();
   if (!logs.length) { wrap.innerHTML = `<div class="empty-state">No receiving logged yet for this range/search.</div>`; return; }
   const groups = new Map();
@@ -34420,7 +34500,8 @@ function renderGarmentRecvSummaryByDate(wrap) {
     });
   });
 }
-function renderGarmentRecvSummaryByBatch(wrap) {
+function renderGarmentRecvSummaryByBatch(...a) { return gotWithSheetData(() => renderGarmentRecvSummaryByBatch__orig(...a)); }
+function renderGarmentRecvSummaryByBatch__orig(wrap) {
   const logs = garmentRecvSummaryFilteredLogs();
   const receivedInRangeByBatch = new Map();
   logs.forEach(l => receivedInRangeByBatch.set(l.batchNo, (receivedInRangeByBatch.get(l.batchNo) || 0) + (Number(l.qty) || 0)));
@@ -34445,7 +34526,8 @@ function renderGarmentRecvSummaryByBatch(wrap) {
   html += `</tbody></table>`;
   wrap.innerHTML = html;
 }
-function renderGarmentRecvSummaryBySku(wrap) {
+function renderGarmentRecvSummaryBySku(...a) { return gotWithSheetData(() => renderGarmentRecvSummaryBySku__orig(...a)); }
+function renderGarmentRecvSummaryBySku__orig(wrap) {
   const q = (document.getElementById('garmentRecvSummarySearchInput').value || '').trim().toLowerCase();
   const logs = garmentRecvSummaryFilteredLogs();
   const receivedInRangeBySku = new Map();
@@ -34485,7 +34567,8 @@ function renderGarmentRecvSummaryBySku(wrap) {
   html += `</tbody></table>`;
   wrap.innerHTML = html;
 }
-function renderGarmentRecvSummaryView() {
+function renderGarmentRecvSummaryView(...a) { return gotWithSheetData(() => renderGarmentRecvSummaryView__orig(...a)); }
+function renderGarmentRecvSummaryView__orig() {
   const wrap = document.getElementById('garmentRecvSummaryViewWrap');
   if (!wrap) return;
   renderGarmentRecvSummaryRangeNote();
@@ -34497,7 +34580,8 @@ function renderGarmentRecvSummaryView() {
 // batch, summing ONLY the matching SKU lines' own qtyOrder/qtyReceived — this is what makes the
 // charts actually shrink to "just this SKU" or "just this Brand" instead of always showing each
 // batch's grand total regardless of the SKU-level filter.
-function garmentRecvSummaryFilteredBatchTotals() {
+function garmentRecvSummaryFilteredBatchTotals(...a) { return gotWithSheetData(() => garmentRecvSummaryFilteredBatchTotals__orig(...a)); }
+function garmentRecvSummaryFilteredBatchTotals__orig() {
   const map = new Map();
   garmentRecvSummaryFilteredSkuLines().forEach(l => {
     if (!map.has(l.batch.batchNo)) map.set(l.batch.batchNo, { batch: l.batch, qtyOrder: 0, qtyReceived: 0 });
@@ -34509,7 +34593,8 @@ function garmentRecvSummaryFilteredBatchTotals() {
 }
 // Same idea as garmentRecvSummaryFilteredBatchTotals, grouped by SKU instead of by batch — powers
 // the charts when the SKU subnav is active.
-function garmentRecvSummaryFilteredSkuGroupTotals() {
+function garmentRecvSummaryFilteredSkuGroupTotals(...a) { return gotWithSheetData(() => garmentRecvSummaryFilteredSkuGroupTotals__orig(...a)); }
+function garmentRecvSummaryFilteredSkuGroupTotals__orig() {
   const map = new Map();
   garmentRecvSummaryFilteredSkuLines().forEach(l => {
     const key = l.sku.sku || '(no SKU)';
@@ -34520,7 +34605,8 @@ function garmentRecvSummaryFilteredSkuGroupTotals() {
   });
   return [...map.values()];
 }
-function garmentRecvSummaryBarChart(labels, datasets) {
+function garmentRecvSummaryBarChart(...a) { return gotWithSheetData(() => garmentRecvSummaryBarChart__orig(...a)); }
+function garmentRecvSummaryBarChart__orig(labels, datasets) {
   const barCtx = document.getElementById('garmentRecvSummaryOrderVsRecvChart');
   if (!barCtx) return;
   if (garmentRecvSummaryOrderVsRecvChart) { garmentRecvSummaryOrderVsRecvChart.destroy(); garmentRecvSummaryOrderVsRecvChart = null; }
@@ -34534,7 +34620,8 @@ function garmentRecvSummaryBarChart(labels, datasets) {
     }
   });
 }
-function garmentRecvSummarySetChartLabels(title, desc) {
+function garmentRecvSummarySetChartLabels(...a) { return gotWithSheetData(() => garmentRecvSummarySetChartLabels__orig(...a)); }
+function garmentRecvSummarySetChartLabels__orig(title, desc) {
   const t = document.getElementById('garmentRecvSummaryStatusTitle');
   const d = document.getElementById('garmentRecvSummaryStatusDesc');
   if (t) t.textContent = title;
@@ -34545,7 +34632,8 @@ function garmentRecvSummarySetChartLabels(title, desc) {
 // match whichever subnav is currently open — By Date groups by date, By Batch by batch, By SKU by
 // SKU — so the charts always mirror the table underneath instead of always showing "by batch".
 let garmentRecvSummaryOrderVsRecvChart = null;
-function renderGarmentRecvSummaryCharts() {
+function renderGarmentRecvSummaryCharts(...a) { return gotWithSheetData(() => renderGarmentRecvSummaryCharts__orig(...a)); }
+function renderGarmentRecvSummaryCharts__orig() {
   const barTitleEl = document.getElementById('garmentRecvSummaryBarTitle');
 
   if (garmentRecvSummaryView === 'date') {
@@ -34631,11 +34719,13 @@ function renderGarmentRecvSummaryCharts() {
 // of sync with whatever's picked below it. Goes through setGarmentRecvSummaryView (not a direct
 // renderGarmentRecvSummaryCharts() call) so the charts also stay in sync with whichever subnav
 // (Date/Batch/SKU) is currently active, same as the table.
-function garmentRecvSummaryRefreshAll() {
+function garmentRecvSummaryRefreshAll(...a) { return gotWithSheetData(() => garmentRecvSummaryRefreshAll__orig(...a)); }
+function garmentRecvSummaryRefreshAll__orig() {
   renderGarmentRecvSummaryKpis();
   setGarmentRecvSummaryView(garmentRecvSummaryView);
 }
-function renderGarmentRecvSummaryTab() {
+function renderGarmentRecvSummaryTab(...a) { return gotWithSheetData(() => renderGarmentRecvSummaryTab__orig(...a)); }
+function renderGarmentRecvSummaryTab__orig() {
   garmentHealReceivedFromLogs();
   garmentRecvSummaryPopulateAttrFilters();
   garmentRecvSummaryRefreshAll();
@@ -36835,7 +36925,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '20Oct-r289';
+const APP_BUILD_LABEL = '20Oct-r294';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
