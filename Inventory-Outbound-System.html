@@ -16335,6 +16335,7 @@ function renderPsTest() {
   if (!wrap) return;
   try { dtApplyMood(); } catch (e) {}
   const E = escapeHtml, fmt = n => formatQty(Math.round(n));
+  const rmFull = v => 'RM' + Math.round(v || 0).toLocaleString('en-US');
   const rmFmt = v => v >= 1e6 ? 'RM' + (v / 1e6).toFixed(1) + 'M' : v >= 1e3 ? 'RM' + (v / 1e3).toFixed(1) + 'K' : 'RM' + Math.round(v);
   const bucketOf = productionSummarySeriesBuckets();
   const allRows = productionSummaryFgRows();
@@ -16401,7 +16402,7 @@ function renderPsTest() {
         <div class="pst-mid"><b>${fmt(rec)}</b> of ${fmt(proj)} pcs received</div>
         <div class="pst-bar"><div style="width:${Math.min(100, pct)}%"></div></div>
       </div>
-      <div class="pst-val">${ic('coins')}<div><div class="pst-lbl">Received Value</div><div class="pst-valnum">${projVal || recVal ? rmFmt(recVal).replace('RM', 'RM ') : '&mdash;'}${projVal ? ` <span class="pst-valof">/ ${rmFmt(projVal).replace('RM', 'RM ')}</span>` : ''}</div></div></div>
+      <div class="pst-val">${ic('coins')}<div><div class="pst-lbl">Received Value</div><div class="pst-valnum">${projVal || recVal ? rmFull(recVal) : '&mdash;'}${projVal ? ` <span class="pst-valof">/ ${rmFull(projVal)}</span>` : ''}</div></div></div>
     </div>
     <div class="pst-stats3">
       <div class="pst-card pst-kpi">${ic('box')}<div><div class="pst-lbl">Still to Receive</div><div class="pst-snum">${fmt(still)} <small>pcs</small></div><div class="pst-ssub">${outVal ? rmFmt(outVal) + ' outstanding' : ''}</div></div></div>
@@ -36925,7 +36926,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '20Oct-r294';
+const APP_BUILD_LABEL = '20Oct-r295';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
