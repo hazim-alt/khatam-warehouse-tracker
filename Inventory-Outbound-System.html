@@ -3092,6 +3092,20 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
     <div class="data-note" style="margin-bottom:14px;">Every Google Sheets link the app reads from, in one place. Paste the NORMAL Share link ("Anyone with the link" - Viewer) of the exact tab, click Save Links, then Refresh. Links are saved and shared across every account/device.</div>
     <div id="gsheetLinksItemMaster"><p class="section-title" style="margin:6px 0 8px;">Item Master List &amp; Price</p></div>
     <div id="gsheetLinksStock" style="margin-top:18px;"><p class="section-title" style="margin:6px 0 8px;">Available Stock</p></div>
+    <div id="gsheetLinksGarment" style="margin-top:18px;"><p class="section-title" style="margin:6px 0 8px;">Garment Order (Finished Goods &amp; Merchandise / Accessories)</p>
+    <div class="card">
+      
+      <div style="display:grid;grid-template-columns:150px 1fr;gap:8px;align-items:center;margin-bottom:8px;">
+        <label style="font-size:12px;">Finished Goods</label><input type="text" id="gotUrlFg" placeholder="Link of the Finished Goods tab (Anyone with the link: Viewer)">
+        <label style="font-size:12px;">Merchandise / Accessories</label><input type="text" id="gotUrlMerch" placeholder="Link of the Merchandise-Accessories tab">
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button type="button" class="btn-primary" id="gotLoadBtn">Save &amp; Load</button>
+        <button type="button" class="btn-ghost" id="gotRefreshBtn">&#8635; Refresh</button>
+      </div>
+      <div class="data-note" id="gotStatus" style="margin:8px 0 0;">Used by Garment Order, Dashboard, Receiving Summary, Received by Product and Summary Receiving. Batch = DO Date + Batch + Supplier &middot; Qty Order = TAILOR &middot; Received = USABLE.</div>
+    </div>
+    </div>
     <div id="gsheetLinksTimeline" style="margin-top:18px;"><p class="section-title" style="margin:6px 0 8px;">Production Timeline (Summary / Patawali / Accessories)</p></div>
   </section>
 
@@ -3547,18 +3561,6 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
 
   <section class="tab-panel" id="tab-garment-order-test">
     <p class="section-title">Garment Order</p>
-    <div class="card" style="margin-bottom:12px;">
-      <p class="rm-form-section-label" style="margin-top:0;">Google Sheet links (2 tabs)</p>
-      <div style="display:grid;grid-template-columns:150px 1fr;gap:8px;align-items:center;margin-bottom:8px;">
-        <label style="font-size:12px;">Finished Goods</label><input type="text" id="gotUrlFg" placeholder="Link of the Finished Goods tab (Anyone with the link: Viewer)">
-        <label style="font-size:12px;">Merchandise / Accessories</label><input type="text" id="gotUrlMerch" placeholder="Link of the Merchandise-Accessories tab">
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button type="button" class="btn-primary" id="gotLoadBtn">Save &amp; Load</button>
-        <button type="button" class="btn-ghost" id="gotRefreshBtn">&#8635; Refresh</button>
-      </div>
-      <div class="data-note" id="gotStatus" style="margin:8px 0 0;">Read-only preview: nothing here changes the real Garment Order tab. Batch = DO Date + Batch + Supplier &middot; Qty Order = TAILOR &middot; Received = USABLE.</div>
-    </div>
     <div id="gotSummary"></div>
     <div class="got-bar">
       <div class="got-search"><span class="got-search-ico">&#9906;</span><input type="text" id="gotSearch" placeholder="Search batch no, garment name, supplier, SKU, colour..."></div>
@@ -4002,11 +4004,62 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
 
   <section class="tab-panel" id="tab-inbound-garment-receiving">
     <p class="section-title">Receiving Summary (Garment Order)</p>
-    <div class="card" style="margin-bottom:16px;">
-      <div class="kpi-grid" id="garmentRecvSummaryKpiGrid" style="grid-template-columns: repeat(4, 1fr); margin-bottom:0;"></div>
-    </div>
-    <div class="charts-row" style="grid-template-columns: 1fr 1.4fr;">
-      <div class="chart-card">
+<style>
+#tab-inbound-garment-receiving{--rs-gold:#c9954a;--rs-green:#3fb984;--rs-red:#e0524a;--rs-line:rgba(201,149,74,.28);}
+#tab-inbound-garment-receiving .card,#tab-inbound-garment-receiving .chart-card{border:1px solid var(--rs-line);border-radius:14px;}
+#tab-inbound-garment-receiving .rs-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px;}
+#tab-inbound-garment-receiving .rs-kpi{display:flex;align-items:center;gap:14px;padding:16px 18px;border:1px solid var(--rs-line);border-radius:14px;background:linear-gradient(135deg,rgba(201,149,74,.10),rgba(0,0,0,.12));min-width:0;}
+#tab-inbound-garment-receiving .rs-kpi-ico{flex:0 0 auto;width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;border:1.5px solid var(--rs-gold);background:radial-gradient(circle at 30% 25%,rgba(201,149,74,.35),rgba(201,149,74,.06));}
+#tab-inbound-garment-receiving .rs-kpi-body{flex:1;min-width:0;}
+#tab-inbound-garment-receiving .rs-kpi-lbl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.85;}
+#tab-inbound-garment-receiving .rs-kpi-num{font-size:clamp(20px,2.4vw,32px);font-weight:700;line-height:1.15;font-family:'NumLining',Georgia,serif;white-space:nowrap;}
+#tab-inbound-garment-receiving .rs-kpi-sub{font-size:11px;opacity:.65;}
+#tab-inbound-garment-receiving .rs-kpi-chev{opacity:.5;font-size:20px;}
+#tab-inbound-garment-receiving .rs-top{display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:14px;}
+#tab-inbound-garment-receiving .rs-top > .chart-card:not(.rs-hero){display:none;}
+#tab-inbound-garment-receiving .rs-top .chart-card{margin:0;}
+#tab-inbound-garment-receiving .rs-hero{padding:18px 20px;}
+#tab-inbound-garment-receiving .rs-hero-h{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:14px;margin-bottom:14px;}
+#tab-inbound-garment-receiving .rs-bar{display:flex;height:14px;border-radius:8px;overflow:hidden;background:rgba(255,255,255,.08);margin-bottom:16px;}
+#tab-inbound-garment-receiving .rs-hero-row{display:flex;gap:20px;align-items:center;flex-wrap:wrap;}
+#tab-inbound-garment-receiving .rs-pct{font-size:clamp(34px,4.5vw,56px);font-weight:700;font-family:'NumLining',Georgia,serif;line-height:1;}
+#tab-inbound-garment-receiving .rs-pct small{font-size:.5em;}
+#tab-inbound-garment-receiving .rs-pct-sub{font-size:12px;opacity:.75;margin-top:6px;}
+#tab-inbound-garment-receiving .rs-legend{flex:1;min-width:210px;border:1px solid var(--rs-line);border-radius:10px;padding:10px 14px;}
+#tab-inbound-garment-receiving .rs-legend div{display:grid;grid-template-columns:14px 1fr auto auto;gap:10px;align-items:center;font-size:12px;padding:3px 0;}
+#tab-inbound-garment-receiving .rs-legend i{width:10px;height:10px;border-radius:50%;display:inline-block;}
+#tab-inbound-garment-receiving .garment-recv-summary-subnav-btn{border-radius:10px;padding:9px 18px;border:1px solid var(--rs-line);}
+#tab-inbound-garment-receiving .garment-recv-summary-subnav-btn.btn-primary{border-color:var(--rs-gold);box-shadow:0 0 0 1px rgba(201,149,74,.35);}
+#tab-inbound-garment-receiving .rs-pill{display:inline-flex;align-items:center;gap:6px;padding:3px 12px;border-radius:14px;font-size:12px;font-weight:600;}
+#tab-inbound-garment-receiving .rs-pill::before{content:'';width:8px;height:8px;border-radius:50%;background:currentColor;}
+#tab-inbound-garment-receiving .rs-pill.c{background:rgba(63,185,132,.18);color:#4fd39b;}
+#tab-inbound-garment-receiving .rs-pill.p{background:rgba(201,149,74,.2);color:#e0a85a;}
+#tab-inbound-garment-receiving .rs-pill.n{background:rgba(224,82,74,.2);color:#f06a62;}
+#tab-inbound-garment-receiving .rs-view{padding:3px 12px;border:1px solid var(--rs-line);border-radius:8px;background:transparent;color:inherit;cursor:pointer;font-size:12px;}
+#tab-inbound-garment-receiving .rs-view:hover{border-color:var(--rs-gold);}
+#tab-inbound-garment-receiving td.rs-num,#tab-inbound-garment-receiving th.rs-num{text-align:right;}
+@media (max-width:1100px){#tab-inbound-garment-receiving .rs-kpis{grid-template-columns:repeat(2,1fr);}#tab-inbound-garment-receiving .rs-top{grid-template-columns:1fr;}}
+#tab-inbound-garment-receiving .rs-top{align-items:stretch;}
+#tab-inbound-garment-receiving .rs-hero{display:flex;flex-direction:column;justify-content:center;}
+#tab-inbound-garment-receiving .rs-filters{display:grid;grid-template-columns:auto minmax(200px,1.6fr) repeat(4,minmax(110px,.6fr)) auto;gap:12px;align-items:end;margin-bottom:12px;}
+#tab-inbound-garment-receiving .rs-f label{display:block;font-size:11px;opacity:.75;margin-bottom:5px;}
+#tab-inbound-garment-receiving .rs-f input,#tab-inbound-garment-receiving .rs-f select{width:100%;margin:0;box-sizing:border-box;}
+#tab-inbound-garment-receiving .rs-f-row{display:flex;gap:8px;align-items:center;}
+#tab-inbound-garment-receiving .rs-f-row input{width:auto;}
+#tab-inbound-garment-receiving .rs-f-row span{font-size:12px;opacity:.7;}
+#tab-inbound-garment-receiving #garmentRecvSummaryViewWrap{border:1px solid var(--rs-line);border-radius:12px;overflow:hidden;background:rgba(0,0,0,.14);}
+#tab-inbound-garment-receiving #garmentRecvSummaryViewWrap table{width:100%;border-collapse:collapse;}
+#tab-inbound-garment-receiving #garmentRecvSummaryViewWrap thead th{background:rgba(201,149,74,.10);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:12px 10px;border-bottom:1px solid var(--rs-line);}
+#tab-inbound-garment-receiving #garmentRecvSummaryViewWrap tbody td{padding:11px 10px;border-bottom:1px solid rgba(255,255,255,.06);}
+#tab-inbound-garment-receiving #garmentRecvSummaryViewWrap tbody tr:hover td{background:rgba(201,149,74,.07);}
+#tab-inbound-garment-receiving .rs-minibar{display:block;height:4px;border-radius:3px;background:rgba(255,255,255,.1);margin-top:4px;overflow:hidden;}
+#tab-inbound-garment-receiving .rs-minibar i{display:block;height:100%;background:var(--rs-green);}
+@media (max-width:1100px){#tab-inbound-garment-receiving .rs-filters{grid-template-columns:1fr 1fr;}}
+</style>
+    <div class="rs-kpis" id="garmentRecvSummaryKpiGrid"></div>
+    <div class="rs-top">
+      <div class="chart-card rs-hero"><div id="garmentRecvSummaryHero"></div>
+      <div style="display:none;">
         <h3 id="garmentRecvSummaryStatusTitle">Overall % Received</h3>
         <div style="display:flex; flex-direction:row; align-items:flex-start; gap:14px;">
           <div style="display:flex; flex-direction:column; align-items:center; flex:0 0 auto;">
@@ -4020,7 +4073,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
           </div>
           <div id="garmentRecvSummaryStatusDesc" style="flex:1; min-width:0; font-size:11px; color:var(--text-muted);">Batch status by count — how many batches are fully received (Complete), still coming in (Partial), or not started (Pending). Follows the search box below.</div>
         </div>
-      </div>
+      </div></div>
       <div class="chart-card">
         <h3 id="garmentRecvSummaryBarTitle">Order vs Actual Received by Batch</h3>
         <div class="chart-wrap"><canvas id="garmentRecvSummaryOrderVsRecvChart"></canvas></div>
@@ -4028,26 +4081,19 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
     </div>
     <div class="card">
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
-        <button type="button" class="btn-primary garment-recv-summary-subnav-btn" data-view="date">📅 By Date</button>
+        <button type="button" class="btn-ghost garment-recv-summary-subnav-btn" data-view="date">📅 Overview</button>
         <button type="button" class="btn-ghost garment-recv-summary-subnav-btn" data-view="batch">📦 By Batch</button>
-        <button type="button" class="btn-ghost garment-recv-summary-subnav-btn" data-view="sku">🏷 By SKU</button>
+        <button type="button" class="btn-primary garment-recv-summary-subnav-btn" data-view="sku">🏷 By SKU</button>
       </div>
-      <div class="filters" style="align-items:center; margin-bottom:10px; flex-wrap:wrap;">
-        <span class="data-note" style="margin-top:0;">Date:</span>
-        <input type="date" id="garmentRecvSummaryFromInput">
-        <span class="data-note" style="margin-top:0;">to</span>
-        <input type="date" id="garmentRecvSummaryToInput">
-        <button type="button" class="btn-ghost" id="garmentRecvSummaryRangeClearBtn">All</button>
-        <input type="text" id="garmentRecvSummarySearchInput" placeholder="Search batch / garment / SKU..." style="flex:1; min-width:220px; margin:0;">
-      </div>
-      <div class="filters" style="align-items:center; margin-bottom:10px; flex-wrap:wrap;">
-        <span class="data-note" style="margin-top:0;">Brand:</span>
-        <select id="garmentRecvSummaryBrandFilter"><option value="">All</option></select>
-        <span class="data-note" style="margin-top:0;">Color:</span>
-        <select id="garmentRecvSummaryColorFilter"><option value="">All</option></select>
-        <span class="data-note" style="margin-top:0;">Size:</span>
-        <select id="garmentRecvSummarySizeFilter"><option value="">All</option></select>
-        <button type="button" class="btn-ghost" id="garmentRecvSummaryAttrClearBtn">Clear</button>
+      <div class="rs-filters">
+        <div class="rs-f rs-f-date"><label>Date Range</label><div class="rs-f-row"><input type="date" id="garmentRecvSummaryFromInput"><span>to</span><input type="date" id="garmentRecvSummaryToInput"><button type="button" class="btn-ghost" id="garmentRecvSummaryRangeClearBtn">All</button></div></div>
+        <div class="rs-f rs-f-search"><label>&nbsp;</label><input type="text" id="garmentRecvSummarySearchInput" placeholder="&#128269;  Search batch / garment / SKU..."></div>
+        <div class="rs-f"><label>Brand</label><select id="garmentRecvSummaryBrandFilter"><option value="">All</option></select></div>
+        <div class="rs-f"><label>Colour</label><select id="garmentRecvSummaryColorFilter"><option value="">All</option></select></div>
+        <div class="rs-f"><label>Size</label><select id="garmentRecvSummarySizeFilter"><option value="">All</option></select></div>
+        <div class="rs-f"><label>Status</label><select id="garmentRecvSummaryStatusFilter"><option value="">All</option><option value="Complete">Complete</option><option value="Partial">Partial</option><option value="Pending">Pending</option><option value="Received">Received (Complete + Partial)</option></select></div>
+        <div class="rs-f"><label>&nbsp;</label><button type="button" class="btn-ghost" id="garmentRecvSummaryResetBtn">&#8635; Reset</button></div>
+        <button type="button" class="btn-ghost" id="garmentRecvSummaryAttrClearBtn" style="display:none;">Clear</button>
       </div>
       <div class="data-note" id="garmentRecvSummaryRangeNote" style="margin-bottom:10px;"></div>
       <div id="garmentRecvSummaryViewWrap"></div>
@@ -6489,6 +6535,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'item-master') renderItemMasterTab();
     if (btn.dataset.tab === 'stock-available') { renderStockAvailableTab(); refreshStockAvailableFromServer(); }
     if (btn.dataset.tab === 'production-summary') renderProductionSummaryTab();
+    if (btn.dataset.tab === 'team-gsheet-links') { try { gotFillUrls(); } catch (e) {} }
     if (btn.dataset.tab === 'production-summary-test') renderPsTest();
     if (btn.dataset.tab === 'garment-order-test') gotOpen();
     if (btn.dataset.tab === 'production-stock-balance') renderProductionStockBalanceTab();
@@ -15913,7 +15960,7 @@ function gotParseRows(rows) {
 async function gotLoad() {
   const st = document.getElementById('gotStatus');
   const urls = [['Finished Goods', (document.getElementById('gotUrlFg').value || '').trim()], ['Merchandise / Accessories', (document.getElementById('gotUrlMerch').value || '').trim()]].filter(x => x[1]);
-  if (!urls.length) { st.textContent = 'Paste at least one Google Sheet link first.'; st.style.color = '#e0685c'; return; }
+  if (!urls.length) { st.textContent = 'Add the Garment Order Google Sheet links in Team Setup > Google Sheets Links first.'; st.style.color = '#e0685c'; return; }
   try { localStorage.setItem(GOT_URL_KEY, JSON.stringify({ fg: document.getElementById('gotUrlFg').value.trim(), merch: document.getElementById('gotUrlMerch').value.trim() })); } catch (e) {}
   st.textContent = 'Loading from Google Sheets...'; st.style.color = '';
   const all = [], errs = [], recvSrcs = [];
@@ -16001,6 +16048,10 @@ function gotLoadCacheIfEmpty() {
   if (gotLines.length) return;
   try { const c = JSON.parse(localStorage.getItem(GOT_LINES_CACHE_KEY) || 'null'); if (c && Array.isArray(c.lines) && c.lines.length) gotLines = c.lines; } catch (e) {}
 }
+function gotFillUrls() {
+  const a = document.getElementById('gotUrlFg'), b = document.getElementById('gotUrlMerch');
+  if (a && b && !a.value && !b.value) { try { const o = JSON.parse(localStorage.getItem(GOT_URL_KEY) || '{}'); a.value = o.fg || ''; b.value = o.merch || ''; } catch (e) {} }
+}
 function gotEnsureLoaded() {
   if (gotLoaded || gotEnsureBusy) return;
   const a = document.getElementById('gotUrlFg'), b = document.getElementById('gotUrlMerch');
@@ -16039,7 +16090,7 @@ function gotAsLegacy() {
     });
     orders.push({ batchNo: b.label, garmentName: b.supplier || '', orderDate: b.doDate || '', skus, closedShort: !!b.shortRec, gotSeries: [...new Set(b.skus.map(k => String(k.series || '').trim()).filter(Boolean))] });
     b.skus.forEach(k => {
-      if (k.sheetRec > 0) logs.push({ batchNo: b.label, sku: k.sku, station: 'Sheet', qty: k.sheetRec, date: k.sheetDate || b.lastReceived || b.doDate || '', adjustment: false });
+      if (k.sheetRec > 0) logs.push({ batchNo: b.label, sku: k.sku, station: 'Sheet', qty: k.sheetRec, date: [k.sheetDate, b.lastReceived, b.doDate].find(d => d && d >= '2000') || '', adjustment: false });
       else gotState.filter(r => r.type === 'log' && r.batchKey === b.key && r.sku === k.sku).forEach(r => logs.push({ batchNo: b.label, sku: k.sku, station: 'App', qty: Number(r.qty) || 0, date: r.date, adjustment: false }));
     });
   });
@@ -34270,7 +34321,7 @@ document.getElementById('garmentOrderStatusFilter').addEventListener('change', (
    date range is picked; the "Qty Ordered (Total)" / "Qty Received (All-Time)" columns instead read
    straight off the batch/SKU's own running totals (garmentBatchTotals), since those aren't
    date-scoped by nature. ---------- */
-let garmentRecvSummaryView = 'date';
+let garmentRecvSummaryView = 'sku';
 let garmentRecvSummaryExpandedDates = new Set();
 // Brand/Color/Size filters read straight off Item Master (joined by SKU) — a SKU with no Item
 // Master match gets filtered OUT the moment any one of these three is set, same logic as the By
@@ -34395,11 +34446,27 @@ function renderGarmentRecvSummaryKpis__orig() {
     ? garmentRecvSummaryFilteredLogs().reduce((sum, l) => sum + (Number(l.qty) || 0), 0)
     : lines.reduce((sum, l) => sum + (Number(l.sku.qtyReceived) || 0), 0);
   const todayQty = (garmentReceiveLogs || []).filter(l => l.date === todayStr() && garmentRecvSummarySkuMatchesAttrFilters(l.sku) && garmentRecvSummaryLogMatchesSearch(l)).reduce((sum, l) => sum + (Number(l.qty) || 0), 0);
-  const card = (label, icon, value) => `<div class="kpi-card"><div class="kpi-label">${icon} ${label}</div><div class="kpi-num">${value}</div></div>`;
-  wrap.innerHTML = card('Total Batches', '📦', formatQty(totalBatches))
-    + card('Total SKU Lines', '🏷', formatQty(totalSkuLines))
-    + card(`Qty Received${hasRange ? ' (Range)' : ''} / Ordered`, '📊', `${formatQty(qtyReceived)} / ${formatQty(qtyOrder)}`)
-    + card('Received Today', '📅', formatQty(todayQty));
+  const card = (label, icon, value, sub) => `<div class="rs-kpi"><div class="rs-kpi-ico">${icon}</div><div class="rs-kpi-body"><div class="rs-kpi-lbl">${label}</div><div class="rs-kpi-num">${value}</div><div class="rs-kpi-sub">${sub}</div></div><div class="rs-kpi-chev">&rsaquo;</div></div>`;
+  wrap.innerHTML = card('Total Batches', '📦', formatQty(totalBatches), 'All batches (garment order)')
+    + card('Total SKU Lines', '📋', formatQty(totalSkuLines), 'All SKU lines')
+    + card(`Qty Received${hasRange ? ' (Range)' : ''} / Ordered`, '📦', `${formatQty(qtyReceived)} / ${formatQty(qtyOrder)}`, 'pcs')
+    + card('Received Today', '📅', formatQty(todayQty), 'pcs');
+  try { garmentRecvSummaryRenderHero(qtyReceived, qtyOrder); } catch (e) {}
+}
+function garmentRecvSummaryStatusOk(label) {
+  const v = (document.getElementById('garmentRecvSummaryStatusFilter') || {}).value || '';
+  return !v || v === label || (v === 'Received' && label !== 'Pending');
+}
+function garmentRecvSummaryRenderHero(qtyReceived, qtyOrder) {
+  const el = document.getElementById('garmentRecvSummaryHero'); if (!el) return;
+  let c = 0, p = 0, n = 0;
+  garmentRecvSummaryFilteredBatchTotals().forEach(g => { if (g.qtyOrder > 0 && g.qtyReceived >= g.qtyOrder) c++; else if (g.qtyReceived > 0) p++; else n++; });
+  const t = c + p + n, pct = qtyOrder ? qtyReceived / qtyOrder * 100 : 0, sp = x => t ? (x / t * 100) : 0;
+  const row = (col, lbl, k) => `<div><i style="background:${col}"></i><span>${lbl}</span><span>${k} batch${k === 1 ? '' : 'es'}</span><span style="opacity:.7;">${sp(k).toFixed(1)}%</span></div>`;
+  el.innerHTML = `<div class="rs-hero-h"><span style="font-size:24px;">📦</span>Receiving Progress</div>
+    <div class="rs-bar"><span style="width:${sp(c)}%;background:#3fb984"></span><span style="width:${sp(p)}%;background:#c9954a"></span><span style="width:${sp(n)}%;background:#e0524a"></span></div>
+    <div class="rs-hero-row"><div><div class="rs-pct">${pct.toFixed(1)}<small>%</small></div><div class="rs-pct-sub">${formatQty(qtyReceived)} / ${formatQty(qtyOrder)} pcs ordered</div></div>
+    <div class="rs-legend">${row('#3fb984', 'Complete', c)}${row('#c9954a', 'Partial', p)}${row('#e0524a', 'Pending', n)}</div></div>`;
 }
 function setGarmentRecvSummaryView(...a) { return gotWithSheetData(() => setGarmentRecvSummaryView__orig(...a)); }
 function setGarmentRecvSummaryView__orig(view) {
@@ -34506,21 +34573,26 @@ function renderGarmentRecvSummaryByBatch__orig(wrap) {
   const logs = garmentRecvSummaryFilteredLogs();
   const receivedInRangeByBatch = new Map();
   logs.forEach(l => receivedInRangeByBatch.set(l.batchNo, (receivedInRangeByBatch.get(l.batchNo) || 0) + (Number(l.qty) || 0)));
-  const list = garmentRecvSummarySearchFilteredBatches();
+  const list = garmentRecvSummarySearchFilteredBatches().filter(b => garmentRecvSummaryStatusOk(garmentBatchStatus(b)));
   if (!list.length) { wrap.innerHTML = `<div class="empty-state">No batch matches the search.</div>`; return; }
   list.sort((a, b) => (b.orderDate || '').localeCompare(a.orderDate || ''));
-  let html = `<table><thead><tr><th>Batch No.</th><th>Garment Name</th><th>Order Date</th><th>Qty Received (Range)</th><th>Qty Received / Ordered (All-Time)</th><th>Status</th><th>Last Received</th></tr></thead><tbody>`;
+  const hasRngB = !!(document.getElementById('garmentRecvSummaryFromInput').value || document.getElementById('garmentRecvSummaryToInput').value);
+  let html = `<table><thead><tr><th>Batch No.</th><th>Garment Name</th><th>Order Date</th>${hasRngB ? '<th class="rs-num">Received (Range)</th>' : ''}<th class="rs-num">Qty Received</th><th class="rs-num">Qty Ordered</th><th class="rs-num">Received %</th><th>Status</th><th>Last Received</th></tr></thead><tbody>`;
   list.forEach(b => {
     const totals = garmentBatchTotals(b);
     const status = garmentBatchStatus(b);
     const lastDate = garmentBatchLastReceivedDate(b);
+    const pc = totals.qtyOrder ? totals.qtyReceived / totals.qtyOrder * 100 : (totals.qtyReceived > 0 ? 100 : 0);
+    const pcl = status === 'Complete' ? 'c' : (status === 'Partial' ? 'p' : 'n');
     html += `<tr>
       <td class="mono-name">${escapeHtml(b.batchNo)}</td>
       <td>${escapeHtml(b.garmentName || '-')}</td>
       <td>${b.orderDate ? formatDateLabel(b.orderDate) : '-'}</td>
-      <td>${formatQty(receivedInRangeByBatch.get(b.batchNo) || 0)}</td>
-      <td>${formatQty(totals.qtyReceived)} / ${formatQty(totals.qtyOrder)}</td>
-      <td><span class="badge ${garmentStatusBadgeClass(status)}">${status}</span></td>
+      ${hasRngB ? `<td class="rs-num">${formatQty(receivedInRangeByBatch.get(b.batchNo) || 0)}</td>` : ''}
+      <td class="rs-num">${formatQty(totals.qtyReceived)}</td>
+      <td class="rs-num">${formatQty(totals.qtyOrder)}</td>
+      <td class="rs-num">${pc.toFixed(1)}%<span class="rs-minibar"><i style="width:${Math.min(100, pc)}%"></i></span></td>
+      <td><span class="rs-pill ${pcl}">${status}</span></td>
       <td>${lastDate ? formatDateLabel(lastDate) : '-'}</td>
     </tr>`;
   });
@@ -34539,34 +34611,43 @@ function renderGarmentRecvSummaryBySku__orig(wrap) {
       const key = s.sku || '(no SKU)';
       if (q && !key.toLowerCase().includes(q) && !(b.batchNo || '').toLowerCase().includes(q) && !(b.garmentName || '').toLowerCase().includes(q)) return;
       if (!garmentRecvSummarySkuMatchesAttrFilters(s.sku)) return;
-      if (!groups.has(key)) groups.set(key, { sku: key, qtyOrder: 0, qtyReceived: 0, batchNos: new Set() });
+      if (!groups.has(key)) groups.set(key, { sku: key, series: s.series, color: s.color, size: s.size, qtyOrder: 0, qtyReceived: 0, batchNos: new Set() });
       const g = groups.get(key);
       g.qtyOrder += Number(s.qtyOrder) || 0;
       g.qtyReceived += Number(s.qtyReceived) || 0;
       g.batchNos.add(b.batchNo);
     });
   });
-  const list = [...groups.values()].sort((a, b) => a.sku.localeCompare(b.sku));
+  const skuStat = g => (g.qtyOrder > 0 && g.qtyReceived >= g.qtyOrder) || (g.qtyOrder === 0 && g.qtyReceived > 0) ? 'Complete' : (g.qtyReceived > 0 ? 'Partial' : 'Pending');
+  const list = [...groups.values()].filter(g => garmentRecvSummaryStatusOk(skuStat(g))).sort((a, b) => a.sku.localeCompare(b.sku));
   if (!list.length) { wrap.innerHTML = `<div class="empty-state">No SKU matches the search.</div>`; return; }
   // Description/Brand/Color/Size pulled from Item Master by SKU — Garment Order itself only tracks
   // sku/qtyOrder/qtyReceived, so this is a join, not a stored field. If a SKU isn't in Item Master
   // yet (not uploaded, or a typo), those columns just show "-" rather than blocking the row.
-  let html = `<table><thead><tr><th>SKU</th><th>Description</th><th>Brand</th><th>Color</th><th>Size</th><th>Batches</th><th>Qty Received (Range)</th><th>Qty Received / Ordered (All-Time)</th></tr></thead><tbody>`;
+  const hasRng = !!(document.getElementById('garmentRecvSummaryFromInput').value || document.getElementById('garmentRecvSummaryToInput').value);
+  let html = `<table><thead><tr><th>SKU</th><th>Description</th><th>Brand</th><th>Colour</th><th>Size</th><th>Batches</th>${hasRng ? '<th class="rs-num">Received (Range)</th>' : ''}<th class="rs-num">Qty Received</th><th class="rs-num">Qty Ordered</th><th class="rs-num">Received %</th><th>Status</th><th>Action</th></tr></thead><tbody>`;
   list.forEach(g => {
     const im = itemMasterLookupBySku(g.sku);
+    const pc = g.qtyOrder ? g.qtyReceived / g.qtyOrder * 100 : (g.qtyReceived > 0 ? 100 : 0);
+    const st = g.qtyOrder > 0 && g.qtyReceived >= g.qtyOrder ? ['c', 'Complete'] : (g.qtyReceived > 0 ? (g.qtyOrder === 0 ? ['c', 'Complete'] : ['p', 'Partial']) : ['n', 'Pending']);
     html += `<tr>
       <td class="mono-name">${escapeHtml(g.sku)}</td>
       <td>${escapeHtml(im && im.description ? im.description : '-')}</td>
-      <td>${escapeHtml(im && im.itemBrand ? im.itemBrand : '-')}</td>
-      <td>${escapeHtml(im && im.itemColor ? im.itemColor : '-')}</td>
-      <td>${escapeHtml(im && im.itemSize ? im.itemSize : '-')}</td>
+      <td>${escapeHtml(im && im.itemBrand ? im.itemBrand : (g.series || '-'))}</td>
+      <td>${escapeHtml(im && im.itemColor ? im.itemColor : (g.color || '-'))}</td>
+      <td>${escapeHtml(im && im.itemSize ? im.itemSize : (g.size || '-'))}</td>
       <td>${g.batchNos.size}</td>
-      <td>${formatQty(receivedInRangeBySku.get(g.sku) || 0)}</td>
-      <td>${formatQty(g.qtyReceived)} / ${formatQty(g.qtyOrder)}</td>
+      ${hasRng ? `<td class="rs-num">${formatQty(receivedInRangeBySku.get(g.sku) || 0)}</td>` : ''}
+      <td class="rs-num">${formatQty(g.qtyReceived)}</td>
+      <td class="rs-num">${formatQty(g.qtyOrder)}</td>
+      <td class="rs-num">${pc.toFixed(1)}%</td>
+      <td><span class="rs-pill ${st[0]}">${st[1]}</span></td>
+      <td><button type="button" class="rs-view" data-sku="${escapeHtml(g.sku)}">View &rsaquo;</button></td>
     </tr>`;
   });
   html += `</tbody></table>`;
   wrap.innerHTML = html;
+  wrap.querySelectorAll('.rs-view').forEach(b => b.addEventListener('click', () => { document.getElementById('garmentRecvSummarySearchInput').value = b.dataset.sku; setGarmentRecvSummaryView('batch'); }));
 }
 function renderGarmentRecvSummaryView(...a) { return gotWithSheetData(() => renderGarmentRecvSummaryView__orig(...a)); }
 function renderGarmentRecvSummaryView__orig() {
@@ -34616,7 +34697,7 @@ function garmentRecvSummaryBarChart__orig(labels, datasets) {
     data: { labels, datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: datasets.length > 1, position: 'top', labels: { boxWidth: 10, font: { size: 11 } } } },
+      plugins: { legend: { display: datasets.length > 1, position: 'top', align: 'end', labels: { boxWidth: 10, font: { size: 11 } } } },
       scales: { y: { beginAtZero: true, ticks: { precision: 0, font: { size: 11 } } }, x: { ticks: { font: { size: 10 } } } }
     }
   });
@@ -34675,7 +34756,7 @@ function renderGarmentRecvSummaryCharts__orig() {
     logs.forEach(l => byDate.set(l.date, (byDate.get(l.date) || 0) + (Number(l.qty) || 0)));
     const dates = [...byDate.keys()].sort().slice(-20); // last 20 dates in range, oldest-to-newest
     garmentRecvSummaryBarChart(dates.map(formatDateLabel), [
-      { label: 'Received', data: dates.map(d => byDate.get(d)), backgroundColor: KPI_COLOR_HEX.green, borderRadius: 3 },
+      { label: 'Received', data: dates.map(d => byDate.get(d)), backgroundColor: '#3fb984', borderRadius: 3 },
     ]);
     return;
   }
@@ -34711,7 +34792,7 @@ function renderGarmentRecvSummaryCharts__orig() {
   // table below still has every row if she needs to check one that's not shown here.
   const barGroups = groups.slice().sort((a, b) => b.qtyOrder - a.qtyOrder).slice(0, 15);
   garmentRecvSummaryBarChart(barGroups.map(g => garmentRecvSummaryView === 'sku' ? g.sku : g.batch.batchNo), [
-    { label: 'Ordered', data: barGroups.map(g => g.qtyOrder), backgroundColor: KPI_COLOR_HEX.track, borderRadius: 3 },
+    { label: 'Ordered', data: barGroups.map(g => g.qtyOrder), backgroundColor: '#c9954a', borderRadius: 3 },
     { label: 'Received', data: barGroups.map(g => g.qtyReceived), backgroundColor: KPI_COLOR_HEX.green, borderRadius: 3 },
   ]);
 }
@@ -34750,6 +34831,12 @@ document.getElementById('garmentRecvSummaryRangeClearBtn').addEventListener('cli
     garmentRecvSummaryRefreshAll();
   });
 });
+document.getElementById('garmentRecvSummaryResetBtn').addEventListener('click', () => {
+  ['garmentRecvSummaryFromInput', 'garmentRecvSummaryToInput', 'garmentRecvSummarySearchInput', 'garmentRecvSummaryBrandFilter', 'garmentRecvSummaryColorFilter', 'garmentRecvSummarySizeFilter', 'garmentRecvSummaryStatusFilter'].forEach(id => { document.getElementById(id).value = ''; });
+  garmentRecvSummaryPopulateAttrFilters();
+  garmentRecvSummaryRefreshAll();
+});
+document.getElementById('garmentRecvSummaryStatusFilter').addEventListener('change', garmentRecvSummaryRefreshAll);
 document.getElementById('garmentRecvSummaryAttrClearBtn').addEventListener('click', () => {
   document.getElementById('garmentRecvSummaryBrandFilter').value = '';
   document.getElementById('garmentRecvSummaryColorFilter').value = '';
@@ -36926,7 +37013,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '20Oct-r295';
+const APP_BUILD_LABEL = '20Oct-r301';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
