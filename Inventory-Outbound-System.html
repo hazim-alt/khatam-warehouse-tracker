@@ -15962,6 +15962,12 @@ async function gotLoad() {
   const urls = [['Finished Goods', (document.getElementById('gotUrlFg').value || '').trim()], ['Merchandise / Accessories', (document.getElementById('gotUrlMerch').value || '').trim()]].filter(x => x[1]);
   if (!urls.length) { st.textContent = 'Add the Garment Order Google Sheet links in Team Setup > Google Sheets Links first.'; st.style.color = '#e0685c'; return; }
   try { localStorage.setItem(GOT_URL_KEY, JSON.stringify({ fg: document.getElementById('gotUrlFg').value.trim(), merch: document.getElementById('gotUrlMerch').value.trim() })); } catch (e) {}
+  try {
+    const fg = document.getElementById('gotUrlFg').value.trim(), mc = document.getElementById('gotUrlMerch').value.trim();
+    let c = gotState.find(r => r.id === 'cfg_links');
+    if (!c) { c = { id: 'cfg_links', type: 'cfg', fg, merch: mc, ts: Date.now() }; gotState.push(c); gotSave(); }
+    else if (c.fg !== fg || c.merch !== mc) { c.fg = fg; c.merch = mc; c.ts = Date.now(); gotSave(); }
+  } catch (e) {}
   st.textContent = 'Loading from Google Sheets...'; st.style.color = '';
   const all = [], errs = [], recvSrcs = [];
   for (const [label, url] of urls) {
@@ -15975,7 +15981,7 @@ async function gotLoad() {
 }
 function gotOpen() {
   const a = document.getElementById('gotUrlFg'), b = document.getElementById('gotUrlMerch');
-  if (a && !a.value && !b.value) { try { const o = JSON.parse(localStorage.getItem(GOT_URL_KEY) || '{}'); a.value = o.fg || ''; b.value = o.merch || ''; } catch (e) {} }
+  gotFillUrls();
   // Show the last loaded copy straight away (so the tab isn't empty after a refresh), then refresh from the sheet in the background.
   if (!gotLoaded && !gotLines.length) {
     try {
@@ -16050,13 +16056,17 @@ function gotLoadCacheIfEmpty() {
 }
 function gotFillUrls() {
   const a = document.getElementById('gotUrlFg'), b = document.getElementById('gotUrlMerch');
-  if (a && b && !a.value && !b.value) { try { const o = JSON.parse(localStorage.getItem(GOT_URL_KEY) || '{}'); a.value = o.fg || ''; b.value = o.merch || ''; } catch (e) {} }
+  if (!a || !b || a.value || b.value) return;
+  let o = {}; try { o = JSON.parse(localStorage.getItem(GOT_URL_KEY) || '{}') || {}; } catch (e) {}
+  // Links also live in the synced GarmentTest_State (record cfg_links) so GitHub Pages / other devices get them too (localStorage is per-origin).
+  if (!o.fg && !o.merch) { const c = gotState.find(r => r.id === 'cfg_links'); if (c) o = { fg: c.fg, merch: c.merch }; }
+  a.value = o.fg || ''; b.value = o.merch || '';
 }
 function gotEnsureLoaded() {
   if (gotLoaded || gotEnsureBusy) return;
   const a = document.getElementById('gotUrlFg'), b = document.getElementById('gotUrlMerch');
   if (!a || !b) return;
-  if (!a.value && !b.value) { try { const o = JSON.parse(localStorage.getItem(GOT_URL_KEY) || '{}'); a.value = o.fg || ''; b.value = o.merch || ''; } catch (e) {} }
+  gotFillUrls();
   if (!a.value && !b.value) return;
   gotEnsureBusy = true;
   Promise.resolve(gotLoad()).catch(() => {}).then(() => {
@@ -25039,7 +25049,7 @@ const SYNC_COLLECTIONS = [
   { table: 'Fleet_Trips', getArray: () => fleetTrips, setArray: (a) => { fleetTrips = a; saveFleetTrips(); } },
   { table: 'Garment_Orders', getArray: () => garmentOrders, setArray: (a) => { garmentOrders = a; saveGarmentOrders(); } },
   { table: 'Garment_Receive_Logs', getArray: () => garmentReceiveLogs, setArray: (a) => { garmentReceiveLogs = a; saveGarmentReceiveLogs(); } },
-  { table: 'GarmentTest_State', getArray: () => gotState, setArray: (a) => { gotState = a; gotSaveLocal(); try { if (document.getElementById('tab-garment-order-test').classList.contains('active')) renderGot(); } catch (e) {} } },
+  { table: 'GarmentTest_State', getArray: () => gotState, setArray: (a) => { gotState = a; gotSaveLocal(); try { gotFillUrls(); if (!gotLoaded && !document.getElementById('tab-garment-order-test').classList.contains('active')) { const c = gotState.find(r => r.id === 'cfg_links'); if (c && (c.fg || c.merch)) gotEnsureLoaded(); } } catch (e) {} try { if (document.getElementById('tab-garment-order-test').classList.contains('active')) renderGot(); } catch (e) {} } },
   { table: 'Inbound_STO', getArray: () => inboundRecords, setArray: (a) => { inboundRecords = a; saveInboundRecords(); } },
   { table: 'Packing_Stations', getArray: () => packingStations, setArray: (a) => { packingStations = a; savePackingStations(); }, sortKey: (s) => s.name || '' },
   { table: 'Receive_Stations', getArray: () => receiveStations, setArray: (a) => { receiveStations = a; saveReceiveStations(); }, sortKey: (s) => s.name || '' },
@@ -37013,7 +37023,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '20Oct-r301';
+const APP_BUILD_LABEL = '20Oct-r302';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
