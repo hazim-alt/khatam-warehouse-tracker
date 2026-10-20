@@ -470,11 +470,60 @@
   .pst-pop-a { display: flex; gap: 8px; margin: 8px 0; } .pst-pop-a button { flex: 1; padding: 6px; border-radius: 8px; border: 1px solid #80643F; background: transparent; color: inherit; cursor: pointer; font-size: 12px; }
   .pst-pop-l { max-height: 280px; overflow-y: auto; } .pst-pop-l label { display: flex; align-items: center; gap: 8px; padding: 6px 4px; font-size: 13px; cursor: pointer; border-radius: 6px; } .pst-pop-l label:hover { background: rgba(232,169,91,.12); } .pst-pop-l input { width: 16px; height: 16px; accent-color: #e8a95b; }
   #psTestWrap .pst-st.notrec { background: rgba(238,116,104,.14); color: var(--dtp-red, #ee7468); border-color: var(--dtp-red, #ee7468); }
+  #psTestWrap .pst-valnum { white-space: nowrap; } #psTestWrap .pst-valof { font-size: .5em; color: var(--text-muted); -webkit-text-fill-color: currentColor; margin-left: 4px; font-weight: 600; }
   #psTestWrap .pst-filters { margin: 4px 0 12px; } #psTestWrap .pst-filters .field label { color: var(--text-muted); }
   #psTestWrap .pst-head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px; margin-bottom: 14px; }
   #psTestWrap .pst-head .pst-meta { justify-content: flex-end; }
   #psTestWrap .pst-chips-mid { justify-content: center; }
   @media (max-width: 1100px) { #psTestWrap .pst-head { grid-template-columns: 1fr; } #psTestWrap .pst-chips-mid, #psTestWrap .pst-head .pst-meta { justify-content: flex-start; } }
+  /* Garment Order Test — table layout (Oct 20, 2026) */
+  #tab-garment-order-test .got-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: stretch; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); margin-bottom: 14px; }
+  #tab-garment-order-test .got-search { position: relative; flex: 1 1 280px; min-width: 220px; }
+  #tab-garment-order-test .got-search input { width: 100%; box-sizing: border-box; height: 100%; min-height: 46px; padding-left: 40px; border-radius: 10px; }
+  #tab-garment-order-test .got-search-ico { position: absolute; left: 14px; top: 50%; transform: translateY(-50%) scaleX(-1); font-size: 18px; color: #e8a95b; }
+  #tab-garment-order-test .got-sel { display: flex; flex-direction: column; justify-content: center; gap: 2px; border: 1px solid var(--border); border-radius: 10px; padding: 4px 12px; min-width: 130px; }
+  #tab-garment-order-test .got-sel > span { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+  #tab-garment-order-test .got-sel select, #tab-garment-order-test .got-sel input { border: 0; background: transparent; padding: 2px 0; font-size: 14px; min-width: 0; width: 100%; }
+  #tab-garment-order-test .got-dates > div { display: flex; align-items: center; gap: 4px; } #tab-garment-order-test .got-dates input { width: 118px; } #tab-garment-order-test .got-dates i { color: var(--text-muted); font-style: normal; }
+  #tab-garment-order-test .got-reset { min-height: 46px; border-radius: 10px; }
+  #tab-garment-order-test .got-pills-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  #tab-garment-order-test .got-pills { display: flex; gap: 10px; flex-wrap: wrap; }
+  #tab-garment-order-test .got-pill { display: inline-flex; align-items: center; gap: 12px; padding: 10px 22px; border-radius: 12px; border: 1px solid var(--border); background: var(--card); color: var(--text); font: inherit; font-weight: 600; cursor: pointer; min-width: 150px; justify-content: space-between; }
+  #tab-garment-order-test .got-pill b { background: rgba(255,255,255,.1); border-radius: 999px; padding: 1px 10px; font-size: 13px; }
+  #tab-garment-order-test .got-pill.on { background: linear-gradient(180deg, #f0b96a, #d49a47); color: #1c140a; border-color: #e8a95b; } #tab-garment-order-test .got-pill.on b { background: rgba(0,0,0,.18); }
+  #tab-garment-order-test .got-tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
+  #tab-garment-order-test .got-table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 1100px; }
+  #tab-garment-order-test .got-table > thead th { text-align: left; font-size: 12px; font-weight: 600; color: var(--text-muted); padding: 14px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  #tab-garment-order-test .got-table > tbody > tr.got-row > td { padding: 14px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  #tab-garment-order-test .got-row { cursor: pointer; } #tab-garment-order-test .got-row:hover > td { background: rgba(232,169,91,.07); } #tab-garment-order-test .got-row.open > td { background: rgba(232,169,91,.10); }
+  #tab-garment-order-test .got-n { color: var(--text-muted); width: 36px; }
+  #tab-garment-order-test .got-batch { font-weight: 700; font-family: Georgia, serif; font-size: 14.5px; max-width: 230px; margin-bottom: 4px; }
+  #tab-garment-order-test .got-gar { font-weight: 600; } #tab-garment-order-test .got-sub { font-size: 11.5px; color: var(--text-muted); }
+  #tab-garment-order-test .got-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; border: 1px solid; white-space: nowrap; }
+  #tab-garment-order-test .got-chip.green { background: rgba(70,170,110,.15); color: #7fd7a0; border-color: #3b8a5c; } #tab-garment-order-test .got-chip.amber { background: rgba(232,169,91,.15); color: #f0c27a; border-color: #8c6a2c; }
+  #tab-garment-order-test .got-chip.blue { background: rgba(70,130,200,.15); color: #8fbdf0; border-color: #3b6ea5; } #tab-garment-order-test .got-chip.grey { background: rgba(255,255,255,.06); color: var(--text-muted); border-color: var(--border); }
+  #tab-garment-order-test .got-prog { min-width: 170px; } #tab-garment-order-test .got-ptxt { margin-bottom: 5px; }
+  #tab-garment-order-test .got-pbar { position: relative; height: 7px; border-radius: 4px; background: rgba(255,255,255,.12); display: flex; align-items: center; }
+  #tab-garment-order-test .got-pbar i { display: block; height: 100%; border-radius: 4px; background: #e8a95b; } #tab-garment-order-test .got-pbar i.full { background: #46aa6e; } #tab-garment-order-test .got-pbar span { position: absolute; right: -38px; font-size: 12px; color: var(--text-muted); }
+  #tab-garment-order-test .got-prog { padding-right: 46px !important; }
+  #tab-garment-order-test .got-short { font-weight: 700; font-size: 16px; } #tab-garment-order-test .got-short small { display: block; font-size: 11px; font-weight: 400; } #tab-garment-order-test .got-short.red, #tab-garment-order-test .red { color: #ee6b5f; } #tab-garment-order-test .got-short.ok { color: #46aa6e; }
+  #tab-garment-order-test .got-act { border: 1px solid #e8a95b; background: transparent; color: var(--text); padding: 8px 16px; border-radius: 9px; font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; } #tab-garment-order-test .got-act:hover { background: rgba(232,169,91,.15); }
+  #tab-garment-order-test .got-detail > td { padding: 0 !important; background: rgba(0,0,0,.12); border-bottom: 1px solid var(--border); }
+  #tab-garment-order-test .got-strip { display: flex; gap: 34px; flex-wrap: wrap; padding: 16px 20px; align-items: center; border-bottom: 1px dashed var(--border); }
+  #tab-garment-order-test .got-strip b { font-size: 14.5px; }
+  @media (max-width: 1100px) { #tab-garment-order-test .got-pill { min-width: 0; padding: 10px 16px; } #tab-garment-order-test .got-bar { gap: 8px; } }
+  #tab-garment-order-test .got-act-ok { border-color: #3b8a5c; color: #7fd7a0; } #tab-garment-order-test .got-act-ok:hover { background: rgba(70,170,110,.18); }
+  #tab-garment-order-test .got-trolleys { margin-bottom: 18px; }
+  #tab-garment-order-test .got-trh { font-weight: 700; margin: 0 0 10px; color: #e8a95b; }
+  #tab-garment-order-test .got-trgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  #tab-garment-order-test .got-trcard { border: 1px solid #8c6a2c; border-left: 6px solid #e8a95b; border-radius: 12px; padding: 14px 16px; background: var(--card); display: flex; flex-direction: column; gap: 10px; }
+  #tab-garment-order-test .got-trtop { display: flex; justify-content: space-between; align-items: baseline; } #tab-garment-order-test .got-trtop b { font-family: Georgia, serif; font-size: 17px; } #tab-garment-order-test .got-trtop span { color: #e8a95b; font-weight: 700; }
+  #tab-garment-order-test .got-tritems { display: flex; flex-direction: column; gap: 6px; max-height: 170px; overflow-y: auto; font-size: 13px; }
+  #tab-garment-order-test .got-tritems > div { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; border-bottom: 1px dashed var(--border); padding-bottom: 5px; } #tab-garment-order-test .got-tritems small { grid-column: 1; color: var(--text-muted); font-size: 11px; } #tab-garment-order-test .got-tritems em { grid-row: 1 / span 2; grid-column: 2; font-style: normal; align-self: center; font-weight: 600; }
+  #tab-garment-order-test .got-final .row-actions > *, #tab-garment-order-test .got-final .got-batchbtns { display: none !important; }
+  #tab-garment-order-test .got-final .row-actions::before { content: 'Final (sheet)'; font-size: 12px; color: var(--text-muted); }
+  #tab-garment-order-test .got-skufinal .row-actions > * { display: none !important; }
+  #tab-garment-order-test .got-skufinal .row-actions::before { content: 'Final (sheet)'; font-size: 12px; color: var(--text-muted); }
   /* QC Result Test (Oct 19, 2026) — mockup-style QC / distribution overview */
   #qcrWrap { color: var(--text); font-family: 'Inter', system-ui, sans-serif; }
   #qcrWrap.dt-mood-light { --text: #2b2418; --text-muted: #7a6a4d; --border: #dccfae; background: #e9dec6; padding: 14px; border-radius: 14px; }
@@ -1947,6 +1996,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
   <nav class="tabs">
     <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
     <button class="tab-btn" data-tab="production-summary-test">Production Summary Dashboard</button>
+    <button class="tab-btn" data-tab="garment-order-test">Garment Order Test</button>
     <button class="tab-btn" data-tab="release-schedule">Release Schedule</button>
     <button class="tab-btn" data-tab="bulk-qc-result">Bulk QC/Distribution Result</button>
     <button type="button" class="nav-group-toggle" id="navGroupRawMaterialToggle" data-group="navGroupRawMaterial">
@@ -3511,12 +3561,15 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
       <div class="data-note" id="gotStatus" style="margin:8px 0 0;">Read-only preview: nothing here changes the real Garment Order tab. Batch = DO Date + Batch + Supplier &middot; Qty Order = TAILOR &middot; Received = USABLE.</div>
     </div>
     <div id="gotSummary"></div>
-    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
-      <input type="text" id="gotSearch" placeholder="Search Batch / Supplier / SKU / Color..." style="flex:1; min-width:220px;">
-      <select id="gotTypeFilter"><option value="">All Types</option><option value="Finished Goods">Finished Goods</option><option value="Merchandise / Accessories">Merchandise / Accessories</option></select>
-      <button type="button" class="btn-ghost" id="gotBulkPutBtn" title="Mark Putaway Done for every batch whose receiving is already Complete">Mark all Complete batches as Putaway Done</button>
-      <select id="gotStatusFilter"><option value="">All Status</option><option value="Pending">Pending</option><option value="Partial">Partial</option><option value="Complete">Complete</option></select>
+    <div class="got-bar">
+      <div class="got-search"><span class="got-search-ico">&#9906;</span><input type="text" id="gotSearch" placeholder="Search batch no, garment name, supplier, SKU, colour..."></div>
+      <label class="got-sel"><span>Type</span><select id="gotTypeFilter"><option value="">All Types</option><option value="Finished Goods">Finished Goods</option><option value="Merchandise / Accessories">Merchandise / Accessories</option></select></label>
+      <label class="got-sel"><span>Supplier</span><select id="gotSupFilter"><option value="">All</option></select></label>
+      <label class="got-sel"><span>Status</span><select id="gotStatusFilter"><option value="">All Status</option><option value="Pending">Pending</option><option value="Partial">Partial</option><option value="Complete">Complete</option></select></label>
+      <label class="got-sel got-dates"><span>Order Date</span><div><input type="date" id="gotFrom" title="From"><i>&ndash;</i><input type="date" id="gotTo" title="To"></div></label>
+      <button type="button" class="btn-ghost got-reset" id="gotResetBtn">&#8635; Reset</button>
     </div>
+    <div class="got-pills-row"><div id="gotTabs" class="got-pills"></div><button type="button" class="btn-ghost" id="gotBulkPutBtn" title="Mark Putaway Done for every batch whose receiving is already Complete">Mark all Complete batches as Putaway Done</button></div>
     <div id="gotWrap"><div class="empty-state">No data loaded yet.</div></div>
   </section>
 
@@ -4779,6 +4832,23 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
       <button class="btn-ghost" id="rollcageSkipBtn">Skip</button>
       <button class="btn-primary" id="rollcageSaveBtn">Save</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="gotRcModal">
+  <div class="modal-box" style="max-width:380px;">
+    <div class="modal-header"><h2>Load Into Rollcage/Trolley?</h2></div>
+    <div class="data-note" id="gotRcNote" style="margin-bottom:10px;"></div>
+    <div class="field" style="margin-bottom:14px;">
+      <label>Rollcage/Trolley for Putaway (you can add more than one)</label>
+      <div style="display:flex; gap:8px;">
+        <select id="gotRcSelect" style="flex:1; min-width:0;"></select>
+        <button type="button" class="btn-primary" id="gotRcAddBtn" style="flex-shrink:0;">+ Add</button>
+      </div>
+      <div id="gotRcChips" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;"></div>
+      <div class="data-note" id="gotRcHint" style="margin-top:6px;"></div>
+    </div>
+    <div class="modal-actions"><button class="btn-primary" id="gotRcSaveBtn">Save</button></div>
   </div>
 </div>
 
@@ -9762,6 +9832,7 @@ const PERMISSION_TABS = [
   { id: 'item-master', label: 'Item Master List' },
   { id: 'stock-available', label: 'Available Stock' },
   { id: 'production-summary-test', label: 'Production Summary Dashboard' },
+  { id: 'garment-order-test', label: 'Garment Order Test' },
   { id: 'production-summary', label: 'Summary Dashboard (Production)' },
   { id: 'production-stock-balance', label: 'Stock Balance (Production)' },
   { id: 'production-fg', label: 'Stock Level Finish Good (Production)' },
@@ -15354,7 +15425,7 @@ function renderDashTest() {
   // Pending = whole garment orders not fully received / put away, and STOs not yet DO Issued
   const inPend = gos.filter(b => { const ps = garmentBatchPutawayStatus(b); return !(garmentBatchStatus(b) === 'Complete' && (ps === 'Done' || ps === null)); }).length;   // same rule as Garment Order tab's "Pending" list
   const outPend = batch.filter(r => (r.progress || 'Active') !== 'Shipped').length;
-  const chev = '<div style="font-size:30px;color:#c9a96a;line-height:1;">›</div>';
+  const chev = '';
   const pendBig = (n, w) => `${fmt(n)} <span style="font-size:20px;color:var(--text-muted);">${w}</span>`;
   const kpis = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;flex-shrink:0;">`
     + kc(dtIco3('inboundpkg', 56), 'Inbound Today', '', `${fmt(inAct)} <span style="font-size:20px;color:var(--text-muted);">/ ${fmt(inTot)}</span>`, 'Completed / Target', dtDonut(pctOf(inAct, inTot), IN, 64, 8))
@@ -15770,6 +15841,7 @@ document.getElementById('qcrModeFabric').addEventListener('click', () => { qcrMo
 // TYPE, COLOR, SIZE, PRICE, TAILOR, USABLE, ...). One row = one SKU/size. Batch = DO DATE + BATCH + SUPPLIER,
 // Qty Order = TAILOR, Received = USABLE. VALID/INVALID/NOT REGISTERED/UNUSABLE are ignored.
 const GOT_URL_KEY = 'sto_got_gsheet_url_v1';
+const GOT_LINES_CACHE_KEY = 'sto_got_lines_cache_v1';
 var gotLines = [], gotLoaded = false, gotOpenBatches = new Set();
 function gotFetchRows(url) {
   return new Promise((resolve, reject) => {
@@ -15815,11 +15887,24 @@ function gotParseRows(rows) {
   };
   if (c.sku < 0 || c.doDate < 0 || c.batch < 0) throw new Error('Missing SKU / DO DATE / BATCH column.');
   const get = (r, i) => i >= 0 ? String(r[i] == null ? '' : r[i]).trim() : '';
-  return rows.slice(hi + 1).filter(r => get(r, c.sku)).map(r => ({
+  // Qty Received comes from the RECEIVING column (Oct 20, 2026, per Shaila). gviz blanks numeric headers, so if the header text
+  // isn't found, use the column right after USABLE (the feed sheet's 12th column) when it holds any data. Falls back to USABLE
+  // for an older feed sheet that doesn't have a RECEIVING column yet.
+  let recvCol = find('RECEIVING'), recvHow = recvCol >= 0 ? 'RECEIVING' : '';
+  const dataRows = rows.slice(hi + 1);
+  const hasData = (i) => i >= 0 && dataRows.some(r => get(r, i) !== '');
+  // Master sheet layout: COLOR, SIZE, PRICE, TAILOR, USABLE, then 5 more columns, then RECEIVING (colour + 10).
+  if (recvCol < 0 && H.length > c.color + 10 && hasData(c.color + 10)) { recvCol = c.color + 10; recvHow = 'RECEIVING (master layout, column ' + String.fromCharCode(65 + recvCol) + ')'; }
+  // Feed-sheet layout: RECEIVING added right after USABLE.
+  if (recvCol < 0 && hasData(c.usable + 1)) { recvCol = c.usable + 1; recvHow = 'column after USABLE'; }
+  c.recv = recvCol >= 0 ? recvCol : c.usable;
+  const out = rows.slice(hi + 1).filter(r => get(r, c.sku)).map(r => ({
     doDate: gotParseDmy(get(r, c.doDate)), dateRec: gotParseDmy(get(r, c.dateRec)), batch: get(r, c.batch), supplier: get(r, c.supplier), sku: get(r, c.sku),
     series: get(r, c.series), type: get(r, c.type), color: get(r, c.color), size: get(r, c.size), price: gotNum(get(r, c.price)),
-    qtyOrder: gotNum(get(r, c.tailor)), qtyReceived: gotNum(get(r, c.usable))
+    qtyOrder: gotNum(get(r, c.tailor)), qtyReceived: gotNum(get(r, c.recv))
   }));
+  out.recvSrc = recvCol >= 0 ? recvHow : 'USABLE (no RECEIVING column found)';
+  return out;
 }
 async function gotLoad() {
   const st = document.getElementById('gotStatus');
@@ -15827,20 +15912,31 @@ async function gotLoad() {
   if (!urls.length) { st.textContent = 'Paste at least one Google Sheet link first.'; st.style.color = '#e0685c'; return; }
   try { localStorage.setItem(GOT_URL_KEY, JSON.stringify({ fg: document.getElementById('gotUrlFg').value.trim(), merch: document.getElementById('gotUrlMerch').value.trim() })); } catch (e) {}
   st.textContent = 'Loading from Google Sheets...'; st.style.color = '';
-  const all = [], errs = [];
+  const all = [], errs = [], recvSrcs = [];
   for (const [label, url] of urls) {
-    try { gotParseRows(await gotFetchRows(url)).forEach(l => { l.source = label; all.push(l); }); }
+    try { const pr = gotParseRows(await gotFetchRows(url)); recvSrcs.push(label + ': ' + pr.recvSrc); pr.forEach(l => { l.source = label; all.push(l); }); }
     catch (e) { errs.push(label + ': ' + e.message); }
   }
-  if (all.length) { gotLines = all; gotLoaded = true; }
-  st.textContent = (all.length ? `Loaded ${all.length} SKU line(s) at ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}. ` : '') + errs.join(' | ');
+  if (all.length) { gotLines = all; gotLoaded = true; try { localStorage.setItem(GOT_LINES_CACHE_KEY, JSON.stringify({ ts: Date.now(), lines: all })); } catch (e) {} }
+  st.textContent = (all.length ? `Loaded ${all.length} SKU line(s) at ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}. Qty Received from → ${recvSrcs.join('; ')}. ` : '') + errs.join(' | ');
   st.style.color = errs.length ? '#e0685c' : '#7cc47c';
   renderGot();
 }
 function gotOpen() {
   const a = document.getElementById('gotUrlFg'), b = document.getElementById('gotUrlMerch');
   if (a && !a.value && !b.value) { try { const o = JSON.parse(localStorage.getItem(GOT_URL_KEY) || '{}'); a.value = o.fg || ''; b.value = o.merch || ''; } catch (e) {} }
-  if (!gotLoaded && (a.value || b.value)) gotLoad(); else renderGot();
+  // Show the last loaded copy straight away (so the tab isn't empty after a refresh), then refresh from the sheet in the background.
+  if (!gotLoaded && !gotLines.length) {
+    try {
+      const c = JSON.parse(localStorage.getItem(GOT_LINES_CACHE_KEY) || 'null');
+      if (c && Array.isArray(c.lines) && c.lines.length) {
+        gotLines = c.lines;
+        const st = document.getElementById('gotStatus');
+        if (st) { st.textContent = `Showing saved copy from ${new Date(c.ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} — refreshing from the sheet…`; st.style.color = ''; }
+      }
+    } catch (e) {}
+  }
+  if (!gotLoaded && (a.value || b.value)) { if (gotLines.length) renderGot(); gotLoad(); } else renderGot();
 }
 // ---- receiving state (app side): append-only log records + a putaway record per batch, synced via Firebase table GarmentTest_State ----
 const GOT_STATE_KEY = 'sto_got_state_v1';
@@ -15863,29 +15959,91 @@ function gotBatchModels() {
   const logs = gotState.filter(r => r.type === 'log');
   const recBy = new Map(), dateBy = new Map();
   logs.forEach(r => { const k = r.batchKey + '::' + r.sku; recBy.set(k, (recBy.get(k) || 0) + (Number(r.qty) || 0)); if (!dateBy.has(k) || r.date > dateBy.get(k)) dateBy.set(k, r.date); });
+  const rcBy = new Map();
+  gotState.filter(r => r.type === 'putrc').forEach(r => { const k = r.batchKey + '::' + r.sku; if (!rcBy.has(k)) rcBy.set(k, new Map()); const m = rcBy.get(k); (r.rollcages || []).forEach(c => m.set(c.name, (m.get(c.name) || 0) + (Number(c.qty) || 0))); });
   const putBy = new Map(); gotState.filter(r => r.type === 'put').forEach(r => putBy.set(r.batchKey, r));
   const shortBy = new Map(); gotState.filter(r => r.type === 'short' && r.closed).forEach(r => shortBy.set(r.batchKey, r));
+  const startBy = new Map(); gotState.filter(r => r.type === 'start' && r.on).forEach(r => startBy.set(r.batchKey, r));
   return [...map.values()].map(b => {
-    b.skus = [...b.skuMap.values()].map(k => { const kk = b.key + '::' + k.sku; k.appRec = recBy.get(kk) || 0; k.rec = k.sheetRec + k.appRec; k.lastDate = [dateBy.get(kk) || '', k.sheetRec > 0 ? k.sheetDate : ''].sort().pop(); k.status = k.rec <= 0 ? 'Pending' : (k.qtyOrder > 0 && k.rec >= k.qtyOrder ? 'Complete' : 'Partial'); return k; });
+    b.skus = [...b.skuMap.values()].map(k => { const kk = b.key + '::' + k.sku; k.appRec = recBy.get(kk) || 0; k.trolleys = [...(rcBy.get(kk) || new Map()).entries()]; k.rec = k.sheetRec > 0 ? k.sheetRec : k.appRec; k.lastDate = [dateBy.get(kk) || '', k.sheetRec > 0 ? k.sheetDate : ''].sort().pop(); k.status = k.rec <= 0 ? 'Pending' : (k.rec >= k.qtyOrder ? 'Complete' : 'Partial'); return k; });
     // Close Short (batch level): every SKU still short is treated as finished — whatever hasn't arrived is written off, no per-SKU clicking.
     const sh = shortBy.get(b.key); b.shortRec = sh || null;
+    b.started = startBy.get(b.key) || null;
     b.shortQty = 0;
     if (sh) b.skus.forEach(k => { const rem = Math.max(0, k.qtyOrder - k.rec); if (rem > 0) { k.short = rem; k.status = 'Complete'; b.shortQty += rem; } });
+    // The sheet's RECEIVING column is the FINAL amount (Oct 20, 2026, per Shaila): as soon as any SKU in the batch has a RECEIVING figure,
+    // the sheet wins over anything logged in the app (no adding on top) and the whole batch counts as Receive Complete + Putaway Done.
+    b.sheetFinal = b.skus.length > 0 && b.skus.every(k => k.sheetRec > 0);
+    if (b.sheetFinal) {
+      b.shortRec = null; b.shortQty = 0; b.started = null;
+      b.skus.forEach(k => { k.rec = k.sheetRec; k.status = 'Complete'; k.lastDate = k.sheetDate || ''; k.trolleys = []; const rem = Math.max(0, k.qtyOrder - k.rec); k.short = rem > 0 ? rem : 0; b.shortQty += k.short; });
+    }
     b.ord = b.skus.reduce((a, k) => a + k.qtyOrder, 0); b.rec = b.skus.reduce((a, k) => a + k.rec, 0);
     b.status = b.skus.every(k => k.status === 'Complete') ? 'Complete' : (b.skus.some(k => k.rec > 0) ? 'Partial' : 'Pending');
     b.lastReceived = b.skus.map(k => k.lastDate).filter(Boolean).sort().pop() || '';
     const pr = putBy.get(b.key);
     b.putaway = pr && pr.done ? 'Done' : (b.rec > 0 ? 'Pending' : null); b.putawayDate = pr && pr.done ? pr.date : '';
+    if (b.sheetFinal) { b.putaway = 'Done'; b.putawayDate = b.lastReceived || ''; }
     b.fullyDone = b.status === 'Complete' && b.putaway === 'Done';
     return b;
   });
 }
 function gotLogQty(batchKey, sku, qty) {
   if (!(qty > 0)) return;
-  gotState.push({ id: gotId(), type: 'log', batchKey, sku, qty, date: todayStr(), ts: Date.now() });
+  const logId = gotId();
+  gotState.push({ id: logId, type: 'log', batchKey, sku, qty, date: todayStr(), ts: Date.now() });
   gotSave(); renderGot();
+  gotRcOpen(batchKey, sku, qty, logId);
 }
-var gotExpanded = new Set();
+// ---- Putaway trolley/rollcage assignment (test tab only): asked after every logged receive. Stored in GarmentTest_State only —
+// it does NOT mark the real rollcage as "in use" and does not touch the real Putaway tab or Team Setup. ----
+var gotRcPending = null, gotRcPicked = [];
+function gotRcNames() { try { return (rollcages || []).map(r => r.name).filter(Boolean); } catch (e) { return []; } }
+function gotRcRender() {
+  const sel = document.getElementById('gotRcSelect'), hint = document.getElementById('gotRcHint'), chips = document.getElementById('gotRcChips');
+  const names = gotRcNames(), avail = names.filter(n => !gotRcPicked.includes(n));
+  sel.disabled = !names.length;
+  sel.innerHTML = avail.length ? avail.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('') : `<option value="">${names.length ? '— none left —' : '— none registered —'}</option>`;
+  hint.textContent = names.length ? '' : 'No rollcages registered yet — add one in Team Setup > Rollcages / Trolleys.';
+  chips.innerHTML = gotRcPicked.map(n => `<span class="rollcage-chip">${escapeHtml(n)}<button type="button" class="rollcage-chip-remove" data-name="${escapeHtml(n)}" title="Remove">&times;</button></span>`).join('');
+  chips.querySelectorAll('.rollcage-chip-remove').forEach(b => b.addEventListener('click', () => { gotRcPicked = gotRcPicked.filter(x => x !== b.dataset.name); gotRcRender(); }));
+}
+function gotRcOpen(batchKey, sku, qty, logId) {
+  gotRcPending = { batchKey, sku, qty, logId }; gotRcPicked = [];
+  document.getElementById('gotRcNote').textContent = `${sku} — ${formatQty(qty)} pcs just logged.`;
+  gotRcRender();
+  document.getElementById('gotRcModal').classList.remove('hidden');
+  document.getElementById('gotRcSelect').focus();
+}
+function gotRcClose() { document.getElementById('gotRcModal').classList.add('hidden'); gotRcPending = null; gotRcPicked = []; }
+document.getElementById('gotRcAddBtn').addEventListener('click', () => { const v = document.getElementById('gotRcSelect').value; if (v && !gotRcPicked.includes(v)) gotRcPicked.push(v); gotRcRender(); });
+document.getElementById('gotRcSaveBtn').addEventListener('click', () => {
+  if (!gotRcPending) return;
+  if (!gotRcPicked.length) {
+    if (!gotRcNames().length) { gotRcClose(); return; }
+    alert("Add at least one rollcage/trolley to continue — putaway can't be skipped."); return;
+  }
+  const P = gotRcPending, n = gotRcPicked.length, base = Math.floor(P.qty / n);
+  gotState.push({ id: gotId(), type: 'putrc', logId: P.logId, batchKey: P.batchKey, sku: P.sku, date: todayStr(), ts: Date.now(),
+    rollcages: gotRcPicked.map((name, i) => ({ name, qty: i === n - 1 ? P.qty - base * (n - 1) : base })) });
+  gotSave(); gotRcClose(); renderGot();
+});
+document.getElementById('gotRcSelect').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('gotRcAddBtn').click(); } });
+
+var gotExpanded = new Set(), gotTab = 'pending';
+// Trolley/rollcage loads (test tab only), grouped by trolley name. A trolley stays listed until EVERY item on it is put away;
+// each item (one logged receive on one trolley) is ticked off separately, since staff often don't finish a whole trolley at once.
+var gotTrExpanded = new Set();
+function gotTrolleyGroups(labelBy, finalKeys) {
+  const g = new Map();
+  gotState.filter(r => r.type === 'putrc' && !(finalKeys && finalKeys.has(r.batchKey))).forEach(r => (r.rollcages || []).forEach(c => {
+    if (!g.has(c.name)) g.set(c.name, { name: c.name, items: [], total: 0, doneQty: 0, pending: 0 });
+    const t = g.get(c.name), done = !!(r.doneRc && r.doneRc[c.name]), q = Number(c.qty) || 0;
+    t.items.push({ id: r.id, label: labelBy.get(r.batchKey) || r.batchKey, sku: r.sku, qty: q, date: r.date, done });
+    t.total += q; if (done) t.doneQty += q; else t.pending++;
+  }));
+  return [...g.values()].filter(t => t.pending > 0).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+}
 function renderGot() {
   const wrap = document.getElementById('gotWrap'), sum = document.getElementById('gotSummary');
   if (!wrap) return;
@@ -15894,52 +16052,99 @@ function renderGot() {
   const all = gotBatchModels();
   const q = (document.getElementById('gotSearch').value || '').trim().toLowerCase();
   const tf = document.getElementById('gotTypeFilter').value, sf = document.getElementById('gotStatusFilter').value;
-  const vis = all.filter(b => (!tf || b.source === tf) && (!sf || b.status === sf)
+  const supF = (document.getElementById('gotSupFilter') || {}).value || '', dFrom = (document.getElementById('gotFrom') || {}).value || '', dTo = (document.getElementById('gotTo') || {}).value || '';
+  const supSel = document.getElementById('gotSupFilter');
+  if (supSel) {
+    const sups = [...new Set(all.map(b => b.supplier).filter(Boolean))].sort((x, y) => x.localeCompare(y));
+    const sig = sups.join('\u0001');
+    if (supSel.dataset.sig !== sig) { const cur = supSel.value; supSel.innerHTML = '<option value="">All</option>' + sups.map(v => `<option value="${E(v)}">${E(v)}</option>`).join(''); supSel.dataset.sig = sig; supSel.value = sups.includes(cur) ? cur : ''; }
+  }
+  const vis = all.filter(b => (!tf || b.source === tf) && (!sf || b.status === sf) && (!supF || b.supplier === supF)
+    && (!dFrom || (b.doDate && b.doDate >= dFrom)) && (!dTo || (b.doDate && b.doDate <= dTo))
     && (!q || [b.label, b.supplier, b.batch, ...b.skus.map(k => k.sku + ' ' + k.color)].join(' ').toLowerCase().includes(q)))
     .sort((a, b) => (b.doDate || '').localeCompare(a.doDate || '') || String(a.batch).localeCompare(String(b.batch)));
   const ordT = all.reduce((a, b) => a + b.ord, 0), recT = all.reduce((a, b) => a + b.rec, 0);
   const card = (l, v) => `<div class="card" style="padding:12px 16px;margin:0;"><div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);">${l}</div><div style="font-family:'NumLining',Georgia,serif;font-size:26px;margin-top:2px;">${v}</div></div>`;
-  sum.innerHTML = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;">${card('Batches', all.length)}${card('SKU lines', gotLines.length)}${card('Qty Order (Sheet)', fmt(ordT))}${card('Received', fmt(recT) + ' <span style="font-size:14px;color:var(--text-muted);">' + (ordT ? Math.round(recT / ordT * 100) : 0) + '%</span>')}</div>`;
+  sum.innerHTML = '';
   const badge = st => st === 'Complete' ? 'badge-green' : st === 'Partial' ? 'badge-amber' : 'badge-red';
   const shortBtn = b => b.shortRec
     ? `<button type="button" class="btn-ghost got-short-btn" data-k="${E(b.key)}" data-act="reopen" title="Reopen this order (undo Close Short)">Reopen (Short ${fmt(b.shortQty)})</button>`
     : (b.status !== 'Complete' && b.rec > 0 ? `<button type="button" class="btn-ghost got-short-btn" data-k="${E(b.key)}" data-act="close" title="Close the whole order — every SKU still short is closed in one go">Close Short</button>` : '');
   const putBtn = b => b.rec > 0 && b.putaway !== 'Done' ? `<button type="button" class="btn-primary got-put-btn" data-k="${E(b.key)}" data-done="1">Mark Putaway Done</button>` : '';
   const body = b => {
-    const rows = b.skus.filter(k => !q || b.label.toLowerCase().includes(q) || b.supplier.toLowerCase().includes(q) || (k.sku + ' ' + k.color).toLowerCase().includes(q)).map(k => `<tr>
-      <td class="mono-name">${E(k.sku)}</td><td>${E(k.color)}</td><td>${E(k.size)}</td><td>${k.price ? k.price.toFixed(2) : '-'}</td>
+    const rows = b.skus.filter(k => !q || b.label.toLowerCase().includes(q) || b.supplier.toLowerCase().includes(q) || (k.sku + ' ' + k.color).toLowerCase().includes(q)).map(k => `<tr class="${k.sheetRec > 0 ? 'got-skufinal' : ''}">
+      <td class="mono-name">${E(k.sku)}${k.trolleys && k.trolleys.length ? `<div class="got-sub" style="font-family:inherit;font-weight:400;">&#128722; ${k.trolleys.map(t => E(t[0]) + ' (' + fmt(t[1]) + ')').join(', ')}</div>` : ''}</td><td>${E(k.color)}</td><td>${E(k.size)}</td><td>${k.price ? k.price.toFixed(2) : '-'}</td>
       <td>${fmt(k.qtyOrder)}</td><td title="${k.sheetRec ? 'From sheet: ' + fmt(k.sheetRec) + (k.appRec ? ' + logged in app: ' + fmt(k.appRec) : '') : ''}">${fmt(k.rec)}</td><td>${k.short ? `<span style="color:var(--red);">Short ${fmt(k.short)}</span>` : fmt(Math.max(0, k.qtyOrder - k.rec))}</td><td><span class="badge ${badge(k.status)}">${k.status}${k.short ? ' (Short)' : ''}</span></td>
       <td class="row-actions"><input type="number" class="got-log-input" min="0" placeholder="e.g. 50" style="width:70px;" data-k="${E(b.key)}" data-sku="${E(k.sku)}">
         <button type="button" class="btn-ghost got-log-btn" data-k="${E(b.key)}" data-sku="${E(k.sku)}">+ Log</button>
         ${k.status !== 'Complete' ? `<button type="button" class="btn-primary got-complete-btn" data-k="${E(b.key)}" data-sku="${E(k.sku)}">Mark Complete</button>` : ''}
         ${k.appRec > 0 ? `<button type="button" class="btn-ghost got-undo-btn" data-k="${E(b.key)}" data-sku="${E(k.sku)}" title="Remove the last logged receive for this SKU">Undo</button>` : ''}</td></tr>`).join('');
-    return `<div style="padding:14px 16px 16px;border-top:1px solid var(--border);">
+    return `<div class="got-bodywrap${b.sheetFinal ? ' got-final' : ''}" style="padding:14px 16px 16px;border-top:1px solid var(--border);">
+      ${b.sheetFinal ? '<div class="data-note" style="margin:0 0 10px;color:#7fd7a0;">&#10003; Every SKU in this batch has a final amount in the Google Sheet (RECEIVING column) — Receive and Putaway are complete. To change it, update the sheet.</div>' : ''}
       <table><thead><tr><th>SKU</th><th>Color</th><th>Size</th><th>Price</th><th>Qty Order</th><th>Qty Received</th><th>Remaining</th><th>Status</th><th>Log Received</th></tr></thead><tbody>${rows}</tbody></table>
-      <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <div class="got-batchbtns" style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         ${shortBtn(b)}
         ${b.rec > 0 ? (b.putaway === 'Done' ? `<button type="button" class="btn-ghost got-put-btn" data-k="${E(b.key)}" data-done="0">Undo Putaway</button>` : `<button type="button" class="btn-primary got-put-btn" data-k="${E(b.key)}" data-done="1">Mark Putaway Done</button>`) : '<span class="data-note" style="margin:0;">Putaway can be marked once something is received.</span>'}
       </div></div>`;
   };
-  const cardHtml = b => {
-    const open = gotExpanded.has(b.key) || !!q;
-    const row = (l, v) => `<div class="data-note" style="margin:0 0 4px;display:flex;gap:6px;"><span style="color:var(--text-muted);font-size:10px;text-transform:uppercase;letter-spacing:.03em;">${l}:</span><span>${v}</span></div>`;
-    return `<div class="card garment-batch-card" style="padding:0;overflow:hidden;${open ? 'grid-column:1 / -1;' : ''}">
-      <div class="got-head" data-k="${E(b.key)}" style="padding:14px 16px;cursor:pointer;">
-        <div style="margin-bottom:6px;"><span class="mono-name" style="font-size:15px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${E(b.label)}">${E(b.label)}</span></div>
-        ${row('Type', E(b.source))}${row('Garment Name', E(b.supplier || '-'))}${row('Order', b.doDate ? E(formatDateLabel(b.doDate)) : '-')}
-        ${b.lastReceived ? row('Received', E(formatDateLabel(b.lastReceived))) : ''}${b.putawayDate ? row('Putaway', E(formatDateLabel(b.putawayDate))) : ''}
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 6px;">
-          <span class="data-note" style="margin:0;">${b.skus.length} SKU · ${fmt(b.rec)}/${fmt(b.ord)} pcs</span>
-          <span class="badge ${badge(b.status)}">Receive: ${b.status}</span></div>
-        <div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;flex-wrap:wrap;">${b.shortRec ? `<span class="data-note" style="margin:0;color:var(--red);">Short ${fmt(b.shortQty)} pcs${b.shortRec.remark ? ' — ' + E(b.shortRec.remark) : ''}</span>` : shortBtn(b)}${putBtn(b)}${b.putaway ? `<span class="badge ${b.putaway === 'Done' ? 'badge-green' : 'badge-amber'}">Putaway: ${b.putaway}</span>` : ''}</div>
-        <div style="text-align:center;margin-top:8px;"><span style="font-size:11px;color:var(--text-muted);display:inline-block;transform:rotate(${open ? 0 : -90}deg);">▾</span></div>
-      </div>${open ? body(b) : ''}</div>`;
+  const catOf = b => b.fullyDone ? 'completed' : (b.rec <= 0 ? (b.started ? 'receiving' : 'pending') : (b.status !== 'Complete' ? 'receiving' : 'putaway'));
+  const cnt = { pending: 0, receiving: 0, putaway: 0, completed: 0 };
+  vis.forEach(b => { cnt[catOf(b)]++; });
+  const trolleys = gotTrolleyGroups(new Map(all.map(b => [b.key, b.label])), new Set(all.filter(b => b.sheetFinal).map(b => b.key)));
+  cnt.putaway += trolleys.length;
+  const TABS = [['pending', 'Pending'], ['receiving', 'Receiving'], ['putaway', 'Putaway'], ['completed', 'Completed']];
+  const tabsEl = document.getElementById('gotTabs');
+  if (tabsEl) tabsEl.innerHTML = TABS.map(([k, l]) => `<button type="button" class="got-pill${gotTab === k ? ' on' : ''}" data-t="${k}">${l}<b>${cnt[k]}</b></button>`).join('');
+  const chip = (cls, txt) => `<span class="got-chip ${cls}">${txt}</span>`;
+  const recChip = b => b.rec <= 0 ? (b.started ? chip('blue', '&#9719; In Progress') : chip('amber', '&#9201; Pending')) : (b.status === 'Complete' ? chip('green', '&#10003; Completed') : chip('blue', '&#9719; In Progress'));
+  const putChip = b => b.rec <= 0 ? chip('grey', '&#8856; Not Started') : (b.putaway === 'Done' ? chip('green', '&#10003; Completed') : chip('amber', '&#9201; Pending'));
+  const catLbl = { pending: ['amber', 'Pending'], receiving: ['blue', 'Receiving'], putaway: ['amber', 'Putaway'], completed: ['green', 'Completed'] };
+  const rowsOf = vis.filter(b => catOf(b) === gotTab);
+  const trHtml = (b, i) => {
+    const open = gotExpanded.has(b.key);
+    const pct = b.ord ? Math.min(100, Math.round(b.rec / b.ord * 100)) : (b.rec > 0 ? 100 : 0);
+    const shortV = b.shortRec ? b.shortQty : Math.max(0, b.ord - b.rec);
+    const c = catLbl[catOf(b)];
+    const main = `<tr class="got-row got-head${open ? ' open' : ''}" data-k="${E(b.key)}">
+            <td><div class="got-batch" title="${E(b.label)}">${E(b.label)}</div>${chip(c[0], c[1])}${b.sheetFinal ? ' ' + chip('grey', 'from sheet') : ''}</td>
+      <td>${E([...new Set(b.skus.map(k => k.series).filter(Boolean))].join(', ') || '-')}</td>
+      <td><div class="got-gar">${E(b.source)}</div><div class="got-sub">Supplier: ${E(b.supplier || '-')}</div></td>
+      <td>${b.doDate ? E(formatDateLabel(b.doDate)) : '-'}</td>
+      <td>${b.lastReceived ? E(formatDateLabel(b.lastReceived)) : '-<div class="got-sub">(Not received)</div>'}</td>
+      <td>${b.skus.length}</td>
+      <td class="got-prog"><div class="got-ptxt">${fmt(b.rec)} / ${fmt(b.ord)} pcs</div><div class="got-pbar"><i class="${pct >= 100 ? 'full' : ''}" style="width:${pct}%"></i><span>${pct}%</span></div></td>
+      <td class="got-short ${shortV > 0 ? 'red' : 'ok'}">${fmt(shortV)}<small>pcs</small>${b.shortRec ? '<div class="got-sub">closed short</div>' : ''}</td>
+      <td>${recChip(b)}</td><td>${putChip(b)}</td>
+      <td><button type="button" class="got-act got-open-btn" data-k="${E(b.key)}">${open ? '&#9650; Close' : (catOf(b) === 'pending' ? '&#128230; Open Batch' : '&#128065; View Details')}</button></td></tr>`;
+    if (!open) return main;
+    const strip = `<div class="got-strip">
+      <div><b>${E(b.label)}</b><div class="got-sub">${E(b.source)}</div><div class="got-sub">Supplier: ${E(b.supplier || '-')}</div></div>
+      <div><div class="got-sub">Order Date</div><b>${b.doDate ? E(formatDateLabel(b.doDate)) : '-'}</b></div>
+      <div><div class="got-sub">Received Date</div><b>${b.lastReceived ? E(formatDateLabel(b.lastReceived)) : '-'}</b></div>
+      <div><div class="got-sub">SKU Count</div><b>${b.skus.length}</b></div>
+      <div><div class="got-sub">Received / Expected</div><b>${fmt(b.rec)} / ${fmt(b.ord)} pcs</b></div>
+      <div><div class="got-sub">${b.shortRec ? 'Closed Short' : 'Shortage Qty'}</div><b class="${shortV > 0 ? 'red' : ''}">${fmt(shortV)} pcs</b></div>
+      ${b.rec <= 0 ? `<div style="margin-left:auto;">${b.started ? `<button type="button" class="btn-ghost got-start-btn" data-k="${E(b.key)}" data-on="0" title="Back to Pending">Undo Start (started ${E(formatDateLabel(b.started.date || ''))})</button>` : `<button type="button" class="btn-primary got-start-btn" data-k="${E(b.key)}" data-on="1">&#9654; Start Receive</button>`}</div>` : ''}</div>`;
+    return main + `<tr class="got-detail"><td colspan="11">${strip}${body(b)}</td></tr>`;
   };
-  const pend = vis.filter(b => !b.fullyDone), done = vis.filter(b => b.fullyDone);
-  let html = '';
-  if (pend.length) html += `<div class="data-note" style="margin:0 0 8px;font-weight:600;color:var(--text-secondary);">Pending (${pend.length})</div><div class="garment-batch-grid">${pend.map(cardHtml).join('')}</div>`;
-  if (done.length) html += `<div class="data-note" style="margin:${pend.length ? '20px' : '0'} 0 8px;font-weight:600;color:var(--text-secondary);">Completed — Receiving &amp; Putaway (${done.length})</div><div class="garment-batch-grid" style="opacity:.7;">${done.map(cardHtml).join('')}</div>`;
-  wrap.innerHTML = html || '<div class="empty-state">No batches match your search/filter.</div>';
+  const html = rowsOf.length ? `<div class="got-tablewrap"><table class="got-table"><thead><tr><th>Batch</th><th>Series</th><th>Garment &amp; Supplier</th><th>Order Date</th><th>Received Date</th><th>SKU</th><th>Received / Expected</th><th>Short Qty</th><th>Receiving Status</th><th>Putaway Status</th><th>Action</th></tr></thead><tbody>${rowsOf.map(trHtml).join('')}</tbody></table></div>` : '';
+  const trRows = t => {
+    const open = gotTrExpanded.has(t.name), pct = t.total ? Math.round(t.doneQty / t.total * 100) : 0;
+    const status = t.doneQty > 0 ? chip('blue', '&#9719; In Progress') : chip('amber', '&#9201; Pending');
+    const nDone = t.items.filter(i => i.done).length;
+    const main = `<tr class="got-row got-trrow${open ? ' open' : ''}" data-name="${E(t.name)}">
+      <td><div class="got-batch">&#128722; ${E(t.name)}</div></td>
+      <td>${t.items.length} item(s)<div class="got-sub">${nDone} done · ${t.pending} left</div></td>
+      <td class="got-prog"><div class="got-ptxt">${fmt(t.doneQty)} / ${fmt(t.total)} pcs</div><div class="got-pbar"><i class="${pct >= 100 ? 'full' : ''}" style="width:${pct}%"></i><span>${pct}%</span></div></td>
+      <td>${status}</td>
+      <td style="white-space:nowrap;"><button type="button" class="got-act got-tr-open" data-name="${E(t.name)}">${open ? '&#9650; Close' : '&#128065; View Details'}</button> <button type="button" class="got-act got-act-ok got-trolley-done" data-name="${E(t.name)}" title="Mark everything still on this trolley as Putaway Done">&#10003; All Done</button></td></tr>`;
+    if (!open) return main;
+    const items = t.items.map(i => `<tr${i.done ? ' style="opacity:.55;"' : ''}><td class="mono-name">${E(i.sku)}</td><td>${E(i.label)}</td><td>${fmt(i.qty)} pcs</td><td>${i.done ? chip('green', '&#10003; Putaway Done') : chip('amber', '&#9201; Pending')}</td>
+      <td>${i.done ? `<button type="button" class="btn-ghost got-item-done" data-id="${E(i.id)}" data-name="${E(t.name)}" data-on="0">Undo</button>` : `<button type="button" class="btn-primary got-item-done" data-id="${E(i.id)}" data-name="${E(t.name)}" data-on="1">Putaway Done</button>`}</td></tr>`).join('');
+    return main + `<tr class="got-detail"><td colspan="6"><div style="padding:14px 16px 16px;"><table><thead><tr><th>SKU</th><th>Batch</th><th>Qty</th><th>Status</th><th>Action</th></tr></thead><tbody>${items}</tbody></table></div></td></tr>`;
+  };
+  const tHtml = gotTab === 'putaway' && trolleys.length ? `<div class="got-trh">&#128722; Trolleys / Rollcages waiting for putaway (${trolleys.length})</div><div class="got-tablewrap" style="margin-bottom:18px;"><table class="got-table" style="min-width:760px;"><thead><tr><th>Trolley / Rollcage</th><th>Items</th><th>Putaway Progress</th><th>Status</th><th>Action</th></tr></thead><tbody>${trolleys.map(trRows).join('')}</tbody></table></div>` : '';
+  wrap.innerHTML = tHtml + (html || (tHtml ? '' : `<div class="empty-state">No ${gotTab} batches match your search/filter.</div>`));
 }
 (function gotWire() {
   const wrap = document.getElementById('gotWrap');
@@ -15961,7 +16166,7 @@ function renderGot() {
       const logs = gotState.filter(r => r.type === 'log' && r.batchKey === btn.dataset.k && r.sku === btn.dataset.sku).sort((a, b) => (a.ts || 0) - (b.ts || 0));
       const last = logs[logs.length - 1]; if (!last) return;
       if (!confirm(`Remove the last logged receive (${last.qty} pcs on ${last.date}) for ${btn.dataset.sku}?`)) return;
-      gotState = gotState.filter(r => r.id !== last.id); gotSave(); renderGot(); return;
+      gotState = gotState.filter(r => r.id !== last.id && !(r.type === 'putrc' && r.logId === last.id)); gotSave(); renderGot(); return;
     }
     if (btn && btn.classList.contains('got-short-btn')) {
       const key = btn.dataset.k, id = key + '::SHORT';
@@ -15985,8 +16190,42 @@ function renderGot() {
       r.done = done; r.date = done ? todayStr() : '';
       gotSave(); renderGot(); return;
     }
+    if (btn && btn.classList.contains('got-tr-open')) { const nm = btn.dataset.name; if (gotTrExpanded.has(nm)) gotTrExpanded.delete(nm); else gotTrExpanded.add(nm); renderGot(); return; }
+    if (btn && btn.classList.contains('got-item-done')) {
+      const nm = btn.dataset.name, on = btn.dataset.on === '1', r = gotState.find(x => x.id === btn.dataset.id);
+      if (r) { r.doneRc = r.doneRc || {}; if (on) r.doneRc[nm] = true; else delete r.doneRc[nm]; gotSave(); renderGot(); }
+      return;
+    }
+    if (btn && btn.classList.contains('got-trolley-done')) {
+      const nm = btn.dataset.name;
+      if (!confirm(`Mark everything still on "${nm}" as putaway done?`)) return;
+      gotState.filter(r => r.type === 'putrc' && (r.rollcages || []).some(c => c.name === nm)).forEach(r => { r.doneRc = r.doneRc || {}; r.doneRc[nm] = true; });
+      gotSave(); renderGot(); return;
+    }
+    const trr = t.closest('.got-trrow');
+    if (trr && !t.closest('button')) { const nm = trr.dataset.name; if (gotTrExpanded.has(nm)) gotTrExpanded.delete(nm); else gotTrExpanded.add(nm); renderGot(); return; }
+    if (btn && btn.classList.contains('got-start-btn')) {
+      const id = btn.dataset.k + '::START', on = btn.dataset.on === '1';
+      let r = gotState.find(x => x.id === id);
+      if (!r) { r = { id, type: 'start', batchKey: btn.dataset.k }; gotState.push(r); }
+      r.on = on; r.date = on ? todayStr() : '';
+      gotSave(); renderGot(); return;
+    }
+    if (btn && btn.classList.contains('got-open-btn')) { const k = btn.dataset.k; if (gotExpanded.has(k)) gotExpanded.delete(k); else gotExpanded.add(k); renderGot(); return; }
     const head = t.closest('.got-head');
-    if (head && !t.closest('button, input')) { const k = head.dataset.k; if (gotExpanded.has(k)) gotExpanded.delete(k); else gotExpanded.add(k); renderGot(); }
+    if (head && !t.closest('button, input, .got-detail')) { const k = head.dataset.k; if (gotExpanded.has(k)) gotExpanded.delete(k); else gotExpanded.add(k); renderGot(); }
+  });
+  // Enter in a "Log Received" box = press + Log, then jump to the next SKU's box.
+  wrap.addEventListener('keydown', (e) => {
+    const inp = e.target;
+    if (e.key !== 'Enter' || !inp.classList || !inp.classList.contains('got-log-input')) return;
+    e.preventDefault();
+    const idx = [...wrap.querySelectorAll('.got-log-input')].indexOf(inp);
+    const btn = wrap.querySelector(`.got-log-btn[data-k="${CSS.escape(inp.dataset.k)}"][data-sku="${CSS.escape(inp.dataset.sku)}"]`);
+    if (btn) btn.click();
+    if (!document.getElementById('gotRcModal').classList.contains('hidden')) return;
+    const next = wrap.querySelectorAll('.got-log-input')[idx + 1];
+    if (next) { next.focus(); next.select(); }
   });
   document.getElementById('gotBulkPutBtn').addEventListener('click', () => {
     const todo = gotBatchModels().filter(b => b.status === 'Complete' && b.putaway !== 'Done');
@@ -15999,7 +16238,9 @@ function renderGot() {
     });
     gotSave(); renderGot();
   });
-  ['gotSearch', 'gotTypeFilter', 'gotStatusFilter'].forEach(id => document.getElementById(id).addEventListener(id === 'gotSearch' ? 'input' : 'change', () => renderGot()));
+  document.getElementById('gotTabs').addEventListener('click', (e) => { const b = e.target.closest('.got-pill'); if (!b) return; gotTab = b.dataset.t; renderGot(); });
+  document.getElementById('gotResetBtn').addEventListener('click', () => { ['gotSearch', 'gotTypeFilter', 'gotSupFilter', 'gotStatusFilter', 'gotFrom', 'gotTo'].forEach(id => { document.getElementById(id).value = ''; }); renderGot(); });
+  ['gotSearch', 'gotTypeFilter', 'gotSupFilter', 'gotStatusFilter', 'gotFrom', 'gotTo'].forEach(id => document.getElementById(id).addEventListener(id === 'gotSearch' ? 'input' : 'change', () => renderGot()));
   // keep orders in step with the sheet: silent refresh every 2 min while the tab is open (skipped while someone is typing)
   setInterval(() => {
     const tab = document.getElementById('tab-garment-order-test');
@@ -16093,12 +16334,12 @@ function renderPsTest() {
         <div class="pst-mid"><b>${fmt(rec)}</b> of ${fmt(proj)} pcs received</div>
         <div class="pst-bar"><div style="width:${Math.min(100, pct)}%"></div></div>
       </div>
-      <div class="pst-val">${ic('coins')}<div><div class="pst-lbl">Received Value</div><div class="pst-valnum">${projVal || recVal ? rmFmt(recVal) : '&mdash;'}</div><div class="pst-mid">${projVal ? 'of ' + rmFmt(projVal) : ''}</div></div></div>
+      <div class="pst-val">${ic('coins')}<div><div class="pst-lbl">Received Value</div><div class="pst-valnum">${projVal || recVal ? rmFmt(recVal).replace('RM', 'RM ') : '&mdash;'}${projVal ? ` <span class="pst-valof">/ ${rmFmt(projVal).replace('RM', 'RM ')}</span>` : ''}</div></div></div>
     </div>
     <div class="pst-stats3">
-      <div class="pst-card pst-kpi">${ic('box')}<div><div class="pst-lbl">Still to Receive</div><div class="pst-snum">${fmt(still)} <small>pcs</small></div><div class="pst-ssub">${outVal ? rmFmt(outVal) + ' outstanding' : ''}</div></div><div class="pst-chev">&rsaquo;</div></div>
-      <div class="pst-card pst-kpi">${ic('check')}<div><div class="pst-lbl">Series in Production</div><div class="pst-snum">${bySeries.size}</div></div><div class="pst-chev">&rsaquo;</div></div>
-      <div class="pst-card pst-kpi">${ic('coins')}<div><div class="pst-lbl">Extra Received</div><div class="pst-snum">${fmt(extra)} <small>pcs</small></div></div><div class="pst-chev">&rsaquo;</div></div>
+      <div class="pst-card pst-kpi">${ic('box')}<div><div class="pst-lbl">Still to Receive</div><div class="pst-snum">${fmt(still)} <small>pcs</small></div><div class="pst-ssub">${outVal ? rmFmt(outVal) + ' outstanding' : ''}</div></div></div>
+      <div class="pst-card pst-kpi">${ic('check')}<div><div class="pst-lbl">Series in Production</div><div class="pst-snum">${bySeries.size}</div></div></div>
+      <div class="pst-card pst-kpi">${ic('coins')}<div><div class="pst-lbl">Extra Received</div><div class="pst-snum">${fmt(extra)} <small>pcs</small></div></div></div>
     </div>
     <div class="pst-card pst-panel"><div class="pst-sech"><span class="pst-sico">${ICONS.pin}</span> By production location</div>
       ${locRow('local', 'Local', 'pin')}${locRow('overseas', 'Overseas', 'globe')}${locRow('mixed', 'Mixed', 'boxes')}
@@ -36594,7 +36835,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '20Oct-r270';
+const APP_BUILD_LABEL = '20Oct-r289';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
