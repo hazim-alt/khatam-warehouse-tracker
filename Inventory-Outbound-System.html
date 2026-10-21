@@ -6733,8 +6733,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'production-restock') renderProductionRestockTab();
     if (btn.dataset.tab === 'production-received-product') renderReceivedByProductTab();
     if (btn.dataset.tab === 'production-bulk-qc') renderBulkQcTab();
-    if (btn.dataset.tab === 'bulk-qc-result') bqrOnOpen();
-    if (btn.dataset.tab === 'distribution-status') { try { renderDistStatusTab(); setTimeout(() => { try { dstNotifyTick(); } catch (e) {} }, 50); } catch (e) { console.warn(e); } }
+    if (btn.dataset.tab === 'bulk-qc-result') { bqrOnOpen(); try { driveEnsureFolders(); } catch (e) {} }
+    if (btn.dataset.tab === 'distribution-status') { try { renderDistStatusTab(); try { driveEnsureFolders(); } catch (e) {} setTimeout(() => { try { dstNotifyTick(); } catch (e) {} }, 50); } catch (e) { console.warn(e); } }
     if (btn.dataset.tab === 'qc-result-test') { try { bqrDistStart(); } catch (e) {} renderQcr(); }
     if (btn.dataset.tab === 'team-delete-history') renderDeleteHistoryTab();
     if (btn.dataset.tab === 'production-timeline') renderCampaignTimelineTab();
@@ -15485,12 +15485,241 @@ function sheetStatusPill(text, ns) {
   else c = '';
   return `<span class="${ns}-pill ${c}"${c ? '' : ' style="background:rgba(255,255,255,.1);"'}>${escapeHtml(t)}</span>`;
 }
-function rqLinks(r, which) {
+// Google Drive FOLDER links (Oct 21, 2026): when a link in the sheet points to a Drive folder, list the files inside it (Drive API v3, same
+// Google API key as the QC-link fetch; folder must be shared "Anyone with the link"). Files replace the single folder link, so the Docs count,
+// Related Documents and the new-attachment notifications follow what is really inside the folder. Read-only; cached for a few minutes.
+var driveFolderCache = {}, driveLastError = '', driveBusy = false;
+try { driveFolderCache = JSON.parse(localStorage.getItem('driveFolderCacheV1') || '{}') || {}; } catch (e) { driveFolderCache = {}; }
+function driveFolderId(url) { const m = String(url || '').match(/drive\.google\.com\/(?:drive\/)?(?:u\/\d+\/)?folders\/([A-Za-z0-9_-]+)/); return m ? m[1] : ''; }
+function rqLinksRaw(r, which) {
   const arr = r && r[which + 'Links'];
   if (Array.isArray(arr) && arr.length) return arr.filter(l => l && l.url).map(l => ({ url: l.url, text: l.text || 'Open' }));
   const t = String((r && r[which + 'Link']) || '').trim();
   return /^https?:\/\//i.test(t) ? [{ url: t, text: 'Open' }] : [];
 }
+function rqLinks(r, which) {
+  const out = [];
+  rqLinksRaw(r, which).forEach(l => {
+    const id = driveFolderId(l.url), c = id && driveFolderCache[id];
+    if (id && c && Array.isArray(c.files) && !c.error) c.files.forEach(x => out.push({ url: x.url, text: x.name }));
+    else out.push(l);
+  });
+  return out;
+}
+async function driveEnsureFolders(force) {
+  if (driveBusy) return;
+  let key = ''; try { key = bqcGetApiKey(); } catch (e) {}
+  if (!key) return;
+  const ids = new Set();
+  (campaignTimelineList || []).forEach(r => ['qcFg', 'distForm', 'qcWash'].forEach(w => rqLinksRaw(r, w).forEach(l => { const id = driveFolderId(l.url); if (id) ids.add(id); })));
+  const todo = [...ids].filter(id => force || !driveFolderCache[id] || Date.now() - (driveFolderCache[id].ts || 0) > 180000);
+  if (!todo.length) return;
+  driveBusy = true; let changed = false; driveLastError = '';
+  for (const id of todo) {
+    try {
+      const files = []; let pt = '';
+      do {
+        const u = 'https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent(`'${id}' in parents and trashed=false`) + '&fields=' + encodeURIComponent('nextPageToken,files(id,name,webViewLink)') + '&pageSize=200&orderBy=' + encodeURIComponent('createdTime desc') + (pt ? '&pageToken=' + encodeURIComponent(pt) : '') + '&key=' + encodeURIComponent(key);
+        const resp = await fetch(u), j = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error((j.error && j.error.message) || ('HTTP ' + resp.status));
+        (j.files || []).forEach(x => files.push({ id: x.id, name: x.name || 'File', url: x.webViewLink || ('https://drive.google.com/file/d/' + x.id + '/view') }));
+        pt = j.nextPageToken || '';
+      } while (pt);
+      const prev = driveFolderCache[id];
+      if (!prev || prev.error || JSON.stringify((prev.files || []).map(x => x.id)) !== JSON.stringify(files.map(x => x.id))) changed = true;
+      driveFolderCache[id] = { ts: Date.now(), files };
+    } catch (e) {
+      driveLastError = (e && e.message) ? e.message : String(e);
+      const prev = driveFolderCache[id] || {};
+      driveFolderCache[id] = { ts: Date.now(), files: prev.files || [], error: driveLastError };
+      changed = true;
+    }
+  }
+  driveBusy = false;
+  try { localStorage.setItem('driveFolderCacheV1', JSON.stringify(driveFolderCache)); } catch (e) {}
+  if (changed) {
+    try { bqrUpdateNotify(); } catch (e) {}
+    try { dstNotifyTick(); } catch (e) {}
+    try { if (bqrTabActive()) renderBqrTab(); } catch (e) {}
+    try { if (dstTabActive()) renderDistStatusTab(); } catch (e) {}
+  }
+}
+setTimeout(() => { try { driveEnsureFolders().then(() => distColourEnsure()); } catch (e) {} }, 9000);
+setTimeout(() => { try { distColourEnsure(); } catch (e) {} }, 15000);
+setInterval(() => { try { driveEnsureFolders().then(() => distColourEnsure()); } catch (e) {} }, 180000);
+// Colour names are read from INSIDE the Distribution Form PDF (Oct 21, 2026): the "Color" row lists colour groups in bold, each followed by
+// "- <product names>". pdf.js (cdnjs) + Drive API (same API key) read the file in the browser; result cached per file id in localStorage.
+var distColourCache = {};
+try { distColourCache = JSON.parse(localStorage.getItem('distFormColoursV6') || '{}') || {}; } catch (e) { distColourCache = {}; }
+var distColourBusy = false, distPdfLib = null;
+function distFileId(url) { const m = String(url || '').match(/\/file\/d\/([A-Za-z0-9_-]+)/) || String(url || '').match(/[?&]id=([A-Za-z0-9_-]+)/); return m ? m[1] : ''; }
+function distNormProd(t) { return String(t || '').toLowerCase().replace(/\([^)]*\)/g, ' ').replace(/^\s*\d+\.\s*/, '').replace(/[^a-z0-9]+/g, ''); }
+async function distLoadPdfLib() {
+  if (distPdfLib) return distPdfLib;
+  if (!window.pdfjsLib) await new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; sc.onload = res; sc.onerror = () => rej(new Error('pdf.js not loaded')); document.head.appendChild(sc); });
+  const w = await fetch('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js').then(r => r.blob());
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(w);
+  distPdfLib = window.pdfjsLib; return distPdfLib;
+}
+// Parse the "Color" row of a Distribution Form -> [{colour, products:[...]}]
+async function distParsePdf(buf) {
+  const lib = await distLoadPdfLib();
+  const doc = await lib.getDocument({ data: new Uint8Array(buf).slice() }).promise;
+  const page = await doc.getPage(1);
+  const tc = await page.getTextContent();
+  await page.getOperatorList();
+  const isBold = fn => { try { const o = page.commonObjs.get(fn); return /bold|black|heavy/i.test((o && o.name) || ''); } catch (e) { return false; } };
+  const raw = tc.items.filter(it => String(it.str).trim()).map(it => ({ x: it.transform[4], y: it.transform[5], w: it.width || 0, t: String(it.str).trim(), b: isBold(it.fontName) })).sort((a, c) => (Math.abs(a.y - c.y) < 1.5 ? a.x - c.x : c.y - a.y));
+  const items = []; // glue pieces of one word split by ligatures (O + ff -> Off)
+  raw.forEach(it => { const q = items[items.length - 1]; if (q && Math.abs(q.y - it.y) < 1.5 && it.x - (q.x + q.w) < 1.5 && it.x - (q.x + q.w) > -2 && q.b === it.b) { q.t += it.t; q.w = it.x + it.w - q.x; } else items.push({ x: it.x, y: it.y, w: it.w, t: it.t, b: it.b }); });
+  const lab = items.find(it => it.b && /^colou?rs?$/i.test(it.t));
+  if (!lab) return [];
+  const batch = items.find(it => /^batch/i.test(it.t) && Math.abs(it.x - lab.x) < 6);
+  const upper = batch ? batch.y - 3 : lab.y + 40, vx = lab.x + 60;
+  let cell = items.filter(it => it.x >= vx && it.y < upper).sort((a, c) => c.y - a.y || a.x - c.x);
+  const lines = []; let last = null;
+  for (const it of cell) { if (last !== null && last - it.y > 11) break; lines.push(it); last = it.y; }
+  lines.sort((a, c) => (Math.abs(a.y - c.y) < 2 ? a.x - c.x : c.y - a.y));
+  const runs = [];
+  lines.forEach(it => { const r = runs[runs.length - 1]; if (r && r.b === it.b) r.t += ' ' + it.t; else runs.push({ b: it.b, t: it.t }); });
+  const groups = []; let cur = null;
+  runs.forEach(r => {
+    if (r.b) { cur = { colour: r.t.replace(/\s+/g, ' ').trim(), prodText: '' }; groups.push(cur); }
+    else if (cur) cur.prodText += ' ' + r.t;
+  });
+  // form's own product list (left value column "Product Series or SKU": "1. TASOR ... (code)")
+  const pl = items.find(it => /^product series/i.test(it.t) && Math.abs(it.x - lab.x) > 100);
+  const plab = items.find(it => /^product series/i.test(it.t));
+  const bq = items.find(it => /BQCR/i.test(it.t));
+  const lowY = bq ? bq.y + 3 : lab.y - 25;
+  const formProds = [];
+  const issued = items.find(it => /^issued by/i.test(it.t) && Math.abs(it.x - lab.x) > 100);
+  const upperL = issued ? issued.y - 4 : upper;
+  if (plab) items.filter(it => it.x > plab.x + 40 && it.x < lab.x - 10 && it.y < upperL && it.y > lowY && !/BQCR/i.test(it.t)).sort((a, c) => c.y - a.y || a.x - c.x).forEach(it => {
+    if (/^\d+\.\s/.test(it.t) || !formProds.length) formProds.push(it.t); else formProds[formProds.length - 1] += ' ' + it.t;
+  });
+  let out = groups.map(g => ({ colour: g.colour, products: g.prodText.replace(/\s+/g, ' ').replace(/^[\s-]+/, '').split(/\s+&\s+/).map(x => x.replace(/^[\s-]+/, '').trim()).filter(Boolean) })).filter(g => g.colour);
+  if (!out.length) { const t = lines.map(it => it.t).join(' ').replace(/^[\s-]+/, '').trim(); if (t) out = [{ colour: t, products: [] }]; }
+  out.forEach(g => { if (!g.products.length) { g.products = formProds.slice(); g.implicit = true; } });
+  return out;
+}
+// QC report (bulk) PDF: every page is one report with "Style Name" + "Color(s) Tested" -> [{style, colour}]
+function distTitleCase(t) { return String(t || '').toLowerCase().replace(/(^|[\s,&(-])([a-z])/g, (m, a, b) => a + b.toUpperCase()); }
+async function distParseQc(buf) {
+  const lib = await distLoadPdfLib();
+  const doc = await lib.getDocument({ data: new Uint8Array(buf).slice() }).promise, out = [];
+  for (let n = 1; n <= Math.min(doc.numPages, 40); n++) {
+    const page = await doc.getPage(n), tc = await page.getTextContent();
+    const raw = tc.items.filter(it => String(it.str).trim()).map(it => ({ x: it.transform[4], y: it.transform[5], w: it.width || 0, t: String(it.str).trim() })).sort((a, c) => (Math.abs(a.y - c.y) < 1.5 ? a.x - c.x : c.y - a.y));
+    const items = [];
+    raw.forEach(it => { const q = items[items.length - 1]; if (q && Math.abs(q.y - it.y) < 1.5 && it.x - (q.x + q.w) < 1.5 && it.x - (q.x + q.w) > -2) { q.t += it.t; q.w = it.x + it.w - q.x; } else items.push({ x: it.x, y: it.y, w: it.w, t: it.t }); });
+    const joinRow = (it, ytop, ybot, vx) => items.filter(o => o.x >= vx && o.y <= ytop && o.y >= ybot).sort((a, c) => c.y - a.y || a.x - c.x).map(o => o.t).join(' ');
+    const stl = items.find(it => /^style name/i.test(it.t)), col = items.find(it => /^colou?r\(?s?\)?\s*tested/i.test(it.t));
+    if (!stl || !col) continue;
+    const size = items.find(it => /^size\(?s?\)?\s*tested/i.test(it.t) && Math.abs(it.x - col.x) < 8);
+    const insp = items.find(it => /^insp/i.test(it.t) && Math.abs(it.x - col.x) < 8 && it.y < col.y);
+    const vx = col.x + 40;
+    const style = items.filter(o => o.x >= vx && Math.abs(o.y - stl.y) < 3).map(o => o.t).join(' ').trim();
+    const ytop = size ? size.y - 3 : col.y + 6, ybot = insp ? insp.y + 3 : col.y - 14;
+    const colour = distTitleCase(joinRow(col, ytop, ybot, vx).replace(/\s+/g, ' ').trim());
+    if (style && colour) out.push({ style, colour });
+  }
+  return out;
+}
+var distFbLoaded = false;
+function distNormRec(c) { c = c || {}; return { ts: c.ts || Date.now(), groups: (c.groups || []).map(g => ({ colour: g.colour, products: g.products || [], implicit: !!g.implicit })), qcs: c.qcs || [], notPdf: !!c.notPdf }; }
+// Shared cache in Firebase (node DistFormColours/<fileId>): first device reads the PDF, every other device just loads the result.
+async function distLoadShared() {
+  if (distFbLoaded || typeof fbDb === 'undefined' || !fbDb) return;
+  try {
+    const snap = await fbDb.ref('DistFormColours').once('value'), v = snap.val() || {};
+    Object.keys(v).forEach(id => { if (!distColourCache[id] || distColourCache[id].err) distColourCache[id] = distNormRec(v[id]); });
+    distFbLoaded = true;
+    try { localStorage.setItem('distFormColoursV6', JSON.stringify(distColourCache)); } catch (e) {}
+    try { if (bqrTabActive()) renderBqrTab(); } catch (e) {}
+    try { if (dstTabActive()) renderDistStatusTab(); } catch (e) {}
+  } catch (e) {}
+}
+function distSaveShared(id, rec) { try { if (typeof fbDb !== 'undefined' && fbDb && rec && !rec.err) fbDb.ref('DistFormColours/' + id).set(rec).catch(() => {}); } catch (e) {} }
+async function distColourEnsure() {
+  if (distColourBusy) return;
+  await distLoadShared();
+  let key = ''; try { key = bqcGetApiKey(); } catch (e) {}
+  if (!key) return;
+  const files = new Map();
+  (campaignTimelineList || []).forEach(r => rqLinks(r, 'distForm').concat(rqLinks(r, 'qcFg')).forEach(l => { const id = distFileId(l.url); if (id) files.set(id, l.text || ''); }));
+  const todo = [...files.keys()].filter(id => { const c = distColourCache[id]; return !c || (c.err && Date.now() - (c.ts || 0) > 600000); });
+  if (!todo.length) return;
+  distColourBusy = true; let changed = false;
+  for (const id of todo) {
+    try {
+      const resp = await fetch('https://www.googleapis.com/drive/v3/files/' + id + '?alt=media&key=' + encodeURIComponent(key));
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const buf = await resp.arrayBuffer();
+      if (String.fromCharCode.apply(null, new Uint8Array(buf.slice(0, 4))) !== '%PDF') { distColourCache[id] = { ts: Date.now(), groups: [], notPdf: true }; }
+      else { const g = await distParsePdf(buf); distColourCache[id] = { ts: Date.now(), groups: g, qcs: g.length ? [] : await distParseQc(buf) }; }
+      changed = true;
+    } catch (e) { distColourCache[id] = { ts: Date.now(), err: (e && e.message) || String(e) }; }
+    try { localStorage.setItem('distFormColoursV6', JSON.stringify(distColourCache)); } catch (e) {}
+    distSaveShared(id, distColourCache[id]);
+    try { if (bqrTabActive()) renderBqrTab(); } catch (e) {}
+  }
+  distColourBusy = false;
+  try { localStorage.setItem('distFormColoursV6', JSON.stringify(distColourCache)); } catch (e) {}
+  if (changed) {
+    try { if (bqrTabActive()) renderBqrTab(); } catch (e) {}
+    try { if (dstTabActive()) renderDistStatusTab(); } catch (e) {}
+  }
+}
+function distColourErrors() { return Object.values(distColourCache).filter(c => c && c.err).map(c => c.err).filter((v, i, a) => a.indexOf(v) === i).join('; '); }
+// Colour(s) for one timeline row: look in its Distribution Form file(s) for the colour group that lists this product.
+function rqRowColour(r) {
+  const nb = distNormProd(r.officialProductName);
+  if (!nb) return '';
+  const t = [[], [], []]; // 0 exact + listed in the colour row, 1 exact + only in the form's product list, 2 partial name match
+  rqLinks(r, 'distForm').forEach(l => {
+    const c = distColourCache[distFileId(l.url)]; if (!c || !c.groups) return;
+    c.groups.forEach(g => {
+      if (g.products.some(p => distNormProd(p) === nb)) t[g.implicit ? 1 : 0].push(g.colour);
+      else if (!g.implicit && g.products.some(p => { const na = distNormProd(p); return na && (nb.includes(na) || na.includes(nb)); })) t[2].push(g.colour);
+    });
+  });
+  const pick = (t[0].length || t[1].length) ? t[0].concat(t[1]) : t[2]; // every form that lists this product adds its colour
+  if (!pick.length) { // fallback: QC report "Color(s) Tested" matched by Style Name (all style words found in the product name; best match wins)
+    const tok = t => String(t || '').toLowerCase().replace(/\([^)]*\)/g, ' ').split(/[^a-z0-9]+/).filter(Boolean);
+    const pt = new Set(tok(r.officialProductName)), ser = distNormProd(r.series), serWord = tok(r.series)[0] || '';
+    let best = 0, cands = [], single = [];
+    rqLinks(r, 'qcFg').concat(rqLinks(r, 'distForm')).forEach(l => {
+      const c = distColourCache[distFileId(l.url)]; if (!c || !c.qcs || !c.qcs.length) return;
+      c.qcs.forEach(q => {
+        const st = tok(q.style), na = distNormProd(q.style); if (!st.length) return;
+        const sc = st.every(w => pt.has(w)) ? st.length : (na.length >= 8 && (nb.includes(na) || na.includes(nb)) ? st.length : 0);
+        if (sc > best) { best = sc; cands = [q.colour]; } else if (sc && sc === best) cands.push(q.colour);
+      });
+      if (c.qcs.length === 1 && serWord && tok(String(l.text || '').replace(/[()]/g, ' ')).includes(serWord)) single.push(c.qcs[0].colour);
+    });
+    if (cands.length) cands.forEach(x => pick.push(x));
+    else if (single.length) single.forEach(x => pick.push(x));
+  }
+  return [...new Set(pick.join(', ').split(/\s*(?:,|&)\s*/).map(x => x.trim()).filter(Boolean))].join(', '); // "Dark Brown & Black" = 2 colours
+}
+function rqColourHint(r) {
+  if (rqRowColour(r)) return '';
+  const fl = rqLinks(r, 'qcFg').concat(rqLinks(r, 'distForm')).filter(l => distFileId(l.url));
+  if (!fl.length) return 'No file to read colour from yet.';
+  return fl.map(l => { const c = distColourCache[distFileId(l.url)], n = String(l.text || 'file').slice(-40);
+    if (!c) return n + ': not read yet'; if (c.err) return n + ': ' + c.err; if (c.notPdf) return n + ': not a PDF';
+    const g = (c.groups || []).length, q = (c.qcs || []).length;
+    return n + ': ' + (g || q ? 'read (' + (g ? g + ' colour group(s)' : q + ' QC report(s): ' + (c.qcs || []).map(x => x.style).join(' / ')) + ') but no match for this product' : 'no colour found in the PDF'); }).join(' | ');
+}
+function rqColourCell(r) {
+  const full = rqRowColour(r); if (!full) return '-';
+  const a = full.split(/,\s*/).filter(Boolean), E = escapeHtml;
+  if (a.length <= 3) return E(a.join(', '));
+  return E(a.slice(0, 3).join(', ')) + ` <span class="rq-pill cond" style="padding:1px 8px;font-size:11px;cursor:help;" title="${E(a.join(', '))}">+${a.length - 3}</span>`;
+}
+function rqDocColour() { return ''; }
+function rqColours(r) { return rqRowColour(r); }
 function rqQcPill(r) { const k = bqcStatusKey(rqFabric ? r.qcWash : r.qcFg); return k === 'pass' ? '<span class="rq-pill pass">Pass</span>' : k === 'pass-with' ? '<span class="rq-pill cond">Pass With Condition</span>' : '<span class="rq-pill fail">Fail</span>'; }
 function rqDistPill(st) { const i = Math.max(0, BQR_DIST_STATUSES.indexOf(st)); return `<span class="rq-pill s${i}">${escapeHtml(st === 'Not distributed' ? 'Not Distributed' : st)}</span>`; }
 function rqFmtAt(v) { return v && v.at ? new Date(v.at).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'; }
@@ -15501,7 +15730,7 @@ function rqRenderFlat(wrap, shown, fabric) {
   const qcRank = r => ({ pass: 0, 'pass-with': 1, fail: 2 }[bqcStatusKey(fabric ? r.qcWash : r.qcFg)] ?? 3);
   const rqGet = fabric
     ? { series: r => r.series || '', product: r => r.officialProductName || '', material: r => r.material || '', supplier: r => r.fabricSupplier || '', ctn: r => Number(r.quantityFabricsCtn) || 0, meter: r => Number(r.quantityFabricsMeter) || 0, qc: qcRank, docs: r => rqLinks(r, 'qcWash').length }
-    : { series: r => r.series || '', product: r => r.officialProductName || '', boutique: r => r.allocationBoutique || '', qc: qcRank, dist: r => r.distStatus || '', progress: r => Math.max(0, BQR_DIST_STATUSES.indexOf(bqrDistStatusOf(r))), updated: r => Date.parse(rqVal(r).at) || 0, docs: r => rqLinks(r, 'qcFg').length + rqLinks(r, 'distForm').length };
+    : { series: r => r.series || '', product: r => r.officialProductName || '', boutique: r => r.allocationBoutique || '', qc: qcRank, colour: r => rqRowColour(r), dist: r => r.distStatus || '', progress: r => Math.max(0, BQR_DIST_STATUSES.indexOf(bqrDistStatusOf(r))), updated: r => Date.parse(rqVal(r).at) || 0, docs: r => rqLinks(r, 'qcFg').length + rqLinks(r, 'distForm').length };
   if (rqSort.k && !rqGet[rqSort.k]) rqSort.k = '';
   if (rqSort.k) list = sortApply(list, rqSort, rqGet);
   const pages = Math.max(1, Math.ceil(list.length / RQ_PAGE)); if (rqPage > pages) rqPage = pages;
@@ -15512,13 +15741,13 @@ function rqRenderFlat(wrap, shown, fabric) {
   const docsOf = r => fabric ? rqLinks(r, 'qcWash') : rqLinks(r, 'qcFg').concat(rqLinks(r, 'distForm'));
   const head = fabric
     ? sortTh(rqSort, 'series', 'Series') + sortTh(rqSort, 'product', 'Product') + sortTh(rqSort, 'material', 'Material') + sortTh(rqSort, 'supplier', 'Fabric Supplier') + sortTh(rqSort, 'ctn', 'Qty (Ctn)', '', true) + sortTh(rqSort, 'meter', 'Qty (Meter)', '', true) + sortTh(rqSort, 'qc', 'QC Result (Washing)') + sortTh(rqSort, 'docs', 'Documents')
-    : sortTh(rqSort, 'series', 'Series') + sortTh(rqSort, 'product', 'Product') + sortTh(rqSort, 'boutique', 'Boutique', 'Allocation Boutique') + sortTh(rqSort, 'qc', 'QC Result') + sortTh(rqSort, 'dist', 'Dist. Status', 'Distribution Status') + sortTh(rqSort, 'progress', 'Progress', 'Progress Status') + sortTh(rqSort, 'updated', 'Updated', 'Last Updated') + sortTh(rqSort, 'docs', 'Docs', 'Documents');
+    : sortTh(rqSort, 'series', 'Series') + sortTh(rqSort, 'product', 'Product') + sortTh(rqSort, 'boutique', 'Boutique', 'Allocation Boutique') + sortTh(rqSort, 'qc', 'QC Result') + sortTh(rqSort, 'colour', 'Colour') + sortTh(rqSort, 'dist', 'Dist. Status', 'Distribution Status') + sortTh(rqSort, 'progress', 'Progress', 'Progress Status') + sortTh(rqSort, 'updated', 'Updated', 'Last Updated') + sortTh(rqSort, 'docs', 'Docs', 'Documents');
   wrap.innerHTML = `<table class="rq-flat"><thead><tr><th style="width:28px;"><input type="checkbox" id="rqCheckAll"${allOn ? ' checked' : ''}${fabric ? ' style="display:none;"' : ''}></th><th>No.</th>${head}</tr></thead><tbody>`
     + slice.map((r, i) => { const k = rqKey(r), v = bqrDistMap[bqrDistKey(r)] || {}, nd = docsOf(r).length, dt = nd ? nd + ' file' + (nd > 1 ? 's' : '') + ' &rsaquo;' : '-';
       const nw = bqrIsNew(r) ? ' <span class="bqr-new-tag">NEW</span>' : '';
       const cells = fabric
         ? `<td><b>${E(r.series || '-')}</b>${nw}</td><td>${E(r.officialProductName || '-')}</td><td>${E(r.material || '-')}</td><td>${E(r.fabricSupplier || '-')}</td><td style="text-align:right;">${formatQty(r.quantityFabricsCtn || 0)}</td><td style="text-align:right;">${formatQty(r.quantityFabricsMeter || 0)}</td><td>${rqQcPill(r)}</td><td>${dt}</td>`
-        : `<td><b>${E(r.series || '-')}</b>${nw}</td><td>${E(r.officialProductName || '-')}</td><td>${E(r.allocationBoutique || '-')}</td><td>${rqQcPill(r)}</td><td>${sheetStatusPill(r.distStatus, 'rq')}</td><td>${rqDistPill(bqrDistStatusOf(r))}</td><td>${E(rqFmtAt(v))}</td><td>${dt}</td>`;
+        : `<td><b>${E(r.series || '-')}</b>${nw}</td><td>${E(r.officialProductName || '-')}</td><td>${E(r.allocationBoutique || '-')}</td><td>${rqQcPill(r)}</td><td>${rqColourCell(r)}</td><td>${sheetStatusPill(r.distStatus, 'rq')}</td><td>${rqDistPill(bqrDistStatusOf(r))}</td><td>${E(rqFmtAt(v))}</td><td>${dt}</td>`;
       return `<tr data-k="${E(k)}" class="${k === rqSel ? 'sel' : ''}${bqrIsNew(r) ? ' bqr-new' : ''}"><td><input type="checkbox" class="rq-chk" data-k="${E(k)}"${rqChecked.has(k) ? ' checked' : ''}${fabric ? ' style="display:none;"' : ''}></td><td>${st + i + 1}</td>${cells}</tr>`; }).join('')
     + `</tbody></table><div class="rq-foot"><span>Showing ${list.length ? st + 1 : 0} - ${st + slice.length} of ${list.length} item(s)</span><span class="rq-pg">${pages > 1 ? Array.from({ length: pages }, (_, i) => `<button type="button" data-p="${i + 1}" class="${i + 1 === rqPage ? 'on' : ''}">${i + 1}</button>`).join('') : ''}</span></div>`;
   rqRenderDetail(list);
@@ -15568,13 +15797,15 @@ function rqRenderDetail(list) {
   }
   const k = bqrDistKey(r), v = bqrDistMap[k] || {}, cur = bqrDistStatusOf(r);
   const qc = rqLinks(r, 'qcFg'), df = rqLinks(r, 'distForm');
-  const doc = (ico, name, src, l) => `<div class="rq-doc"><div>${ico} ${name}<small>${src}</small></div><a class="rq-dbtn" href="${E(l.url)}" target="_blank" rel="noopener noreferrer">Open</a></div>`;
+  const doc = (ico, name, src, l) => { const c = rqDocColour(l.text, r.series); return `<div class="rq-doc"><div>${ico} ${name}${c ? ` <span class="rq-pill cond" style="padding:1px 8px;font-size:11px;">${E(c)}</span>` : ''}<small>${src}</small></div><a class="rq-dbtn" href="${E(l.url)}" target="_blank" rel="noopener noreferrer">Open</a></div>`; };
   el.innerHTML = `<div class="rq-dh">📋 Batch Details</div>${bulk}
     <div class="rq-dt"><b>${E(r.series || '-')}</b>${rqQcPill(r)}</div>
-    <div class="rq-dg"><div><span>Product</span>${E(r.officialProductName || '-')}</div><div><span>Batch</span>${E(r.batch || '-')}</div><div><span>Supplier</span>${E(r.supplier || '-')}</div><div><span>Allocation Boutique</span>${E(r.allocationBoutique || '-')}</div><div><span>Colour</span>${E(r.color || '-')}</div><div><span>Quantity</span>${formatQty(r.quantity || 0)}</div><div><span>Last Updated</span>${E(rqFmtAt(v))}</div><div><span>Updated By</span>${E(v.by || '-')}</div></div>
+    <div class="rq-dg"><div><span>Product</span>${E(r.officialProductName || '-')}</div><div><span>Batch</span>${E(r.batch || '-')}</div><div><span>Supplier</span>${E(r.supplier || '-')}</div><div><span>Allocation Boutique</span>${E(r.allocationBoutique || '-')}</div><div style="grid-column:1/-1;"><span>Colour</span>${(() => { const cl = rqRowColour(r).split(/,\s*/).filter(Boolean); return cl.length ? `<ul style="margin:4px 0 0;padding-left:18px;list-style:disc;${cl.length > 4 ? 'column-count:2;column-gap:14px;' : ''}">${cl.map(c => `<li style="margin:1px 0;break-inside:avoid;">${E(c)}</li>`).join('')}</ul>` : '-'; })()}</div><div><span>Last Updated</span>${E(rqFmtAt(v))}</div><div><span>Updated By</span>${E(v.by || '-')}</div></div>
     <div class="rq-dbox"><h5>QC Result</h5><div class="rq-drow">${rqQcPill(r)}</div></div>
     <div class="rq-dbox"><h5>Distribution Status</h5><div class="rq-drow">${rqDistPill(cur)}</div>${v.note ? `<div style="font-size:12px;opacity:.75;margin-top:8px;">📝 ${E(v.note)}</div>` : ''}</div>
     <div class="rq-dh" style="margin:14px 0 4px;">📎 Related Documents</div>
+    ${rqColourHint(r) ? `<div style="font-size:11px;opacity:.6;margin-bottom:4px;">ℹ Colour: ${E(rqColourHint(r))}</div>` : ''}
+    ${driveLastError ? `<div style="font-size:11px;color:#e0685c;margin-bottom:4px;">⚠ Drive folder not readable: ${E(driveLastError)}</div>` : ''}${distColourErrors() ? `<div style="font-size:11px;color:#e0685c;margin-bottom:4px;">⚠ Colour not readable from PDF: ${E(distColourErrors())}</div>` : ''}
     ${qc.map(l => doc('📄', 'QC Result / Report', E(l.text), l)).join('')}${df.map(l => doc('📑', 'Distribution Form', E(l.text), l)).join('')}${!qc.length && !df.length ? '<div style="opacity:.6;font-size:12px;padding:6px 0;">No documents linked yet.</div>' : ''}`;
 }
 // ---- Distribution Status tab (Oct 20, 2026): per-item distribution tracking for FG items whose QC is Pass / Pass With Condition.
@@ -37532,7 +37763,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '20Oct-r338';
+const APP_BUILD_LABEL = '21Oct-r359';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
