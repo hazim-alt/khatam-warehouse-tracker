@@ -15638,11 +15638,13 @@ async function distLoadShared() {
     const snap = await fbDb.ref('DistFormColours').once('value'), v = snap.val() || {};
     Object.keys(v).forEach(id => { if (!distColourCache[id] || distColourCache[id].err) distColourCache[id] = distNormRec(v[id]); });
     try { localStorage.setItem('distFormColoursV6', JSON.stringify(distColourCache)); } catch (e) {}
+    Object.keys(distColourCache).forEach(id => { const c = distColourCache[id]; if (!v[id] && c && !c.err && (c.groups || c.qcs || c.notPdf)) distSaveShared(id, c); }); // push colours this device already read
     // shared Drive folder listings (file names + ids only; lets a device without the Google API key still match files)
     const fs = (await fbDb.ref('DistFolders').once('value')).val() || {}; let ch = false;
     Object.keys(fs).forEach(id => {
       distFbFolderIds.add(id);
       const f = fs[id] || {}, mine = driveFolderCache[id];
+      if (mine && !mine.error && mine.files && mine.files.length && !fs[id].files) distSaveFolder(id, mine);
       if (!mine || mine.error || (f.ts || 0) > (mine.ts || 0)) { driveFolderCache[id] = { ts: f.ts || Date.now(), files: (f.files || []).map(x => ({ id: x.id, name: x.name, url: x.url })) }; ch = true; }
     });
     if (ch) { try { localStorage.setItem('driveFolderCacheV1', JSON.stringify(driveFolderCache)); } catch (e) {} try { bqrUpdateNotify(); } catch (e) {} try { dstNotifyTick(); } catch (e) {} }
@@ -37775,7 +37777,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '21Oct-r360';
+const APP_BUILD_LABEL = '21Oct-r361';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
