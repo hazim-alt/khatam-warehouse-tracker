@@ -15508,6 +15508,7 @@ function rqLinks(r, which) {
 }
 async function driveEnsureFolders(force) {
   if (driveBusy) return;
+  try { await distLoadShared(); } catch (e) {}
   let key = ''; try { key = bqcGetApiKey(); } catch (e) {}
   if (!key) return;
   const ids = new Set();
@@ -15528,6 +15529,7 @@ async function driveEnsureFolders(force) {
       const prev = driveFolderCache[id];
       if (!prev || prev.error || JSON.stringify((prev.files || []).map(x => x.id)) !== JSON.stringify(files.map(x => x.id))) changed = true;
       driveFolderCache[id] = { ts: Date.now(), files };
+      if (changed || !distFbFolderIds.has(id)) distSaveFolder(id, driveFolderCache[id]);
     } catch (e) {
       driveLastError = (e && e.message) ? e.message : String(e);
       const prev = driveFolderCache[id] || {};
@@ -15629,17 +15631,27 @@ async function distParseQc(buf) {
 var distFbLoaded = false;
 function distNormRec(c) { c = c || {}; return { ts: c.ts || Date.now(), groups: (c.groups || []).map(g => ({ colour: g.colour, products: g.products || [], implicit: !!g.implicit })), qcs: c.qcs || [], notPdf: !!c.notPdf }; }
 // Shared cache in Firebase (node DistFormColours/<fileId>): first device reads the PDF, every other device just loads the result.
+var distFbFolderIds = new Set();
 async function distLoadShared() {
-  if (distFbLoaded || typeof fbDb === 'undefined' || !fbDb) return;
+  if (typeof fbDb === 'undefined' || !fbDb) return;
   try {
     const snap = await fbDb.ref('DistFormColours').once('value'), v = snap.val() || {};
     Object.keys(v).forEach(id => { if (!distColourCache[id] || distColourCache[id].err) distColourCache[id] = distNormRec(v[id]); });
-    distFbLoaded = true;
     try { localStorage.setItem('distFormColoursV6', JSON.stringify(distColourCache)); } catch (e) {}
+    // shared Drive folder listings (file names + ids only; lets a device without the Google API key still match files)
+    const fs = (await fbDb.ref('DistFolders').once('value')).val() || {}; let ch = false;
+    Object.keys(fs).forEach(id => {
+      distFbFolderIds.add(id);
+      const f = fs[id] || {}, mine = driveFolderCache[id];
+      if (!mine || mine.error || (f.ts || 0) > (mine.ts || 0)) { driveFolderCache[id] = { ts: f.ts || Date.now(), files: (f.files || []).map(x => ({ id: x.id, name: x.name, url: x.url })) }; ch = true; }
+    });
+    if (ch) { try { localStorage.setItem('driveFolderCacheV1', JSON.stringify(driveFolderCache)); } catch (e) {} try { bqrUpdateNotify(); } catch (e) {} try { dstNotifyTick(); } catch (e) {} }
+    distFbLoaded = true;
     try { if (bqrTabActive()) renderBqrTab(); } catch (e) {}
     try { if (dstTabActive()) renderDistStatusTab(); } catch (e) {}
   } catch (e) {}
 }
+function distSaveFolder(id, rec) { try { if (typeof fbDb !== 'undefined' && fbDb && rec && !rec.error) { distFbFolderIds.add(id); fbDb.ref('DistFolders/' + id).set({ ts: rec.ts, files: rec.files || [] }).catch(() => {}); } } catch (e) {} }
 function distSaveShared(id, rec) { try { if (typeof fbDb !== 'undefined' && fbDb && rec && !rec.err) fbDb.ref('DistFormColours/' + id).set(rec).catch(() => {}); } catch (e) {} }
 async function distColourEnsure() {
   if (distColourBusy) return;
@@ -37763,7 +37775,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '21Oct-r359';
+const APP_BUILD_LABEL = '21Oct-r360';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
