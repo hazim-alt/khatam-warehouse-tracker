@@ -32483,20 +32483,59 @@ function rawbtSendBytes(u8) {
   a.href = 'intent:base64,' + u8ToB64(u8) + '#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;';
   document.body.appendChild(a); a.click(); a.remove();
 }
-function labelNodeToCanvas(node) { // node: .sticker-label element (live or detached) -> Promise<canvas 1200x800>
-  return new Promise((resolve, reject) => {
-    const clone = node.cloneNode(true);
-    const liveQr = node.querySelector && node.querySelector('.sl-qr-box canvas'), cq = clone.querySelector('.sl-qr-box');
-    if (liveQr && cq) cq.innerHTML = `<img src="${liveQr.toDataURL('image/png')}" style="width:100%;height:100%;display:block;">`;
-    clone.removeAttribute('id'); clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
-    const xhtml = new XMLSerializer().serializeToString(clone);
-    const W = 567, H = 378;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml"><style><![CDATA[${STICKER_PRINT_CSS}]]></style>${xhtml}</div></foreignObject></svg>`;
-    const img = new Image();
-    img.onload = () => { try { const c = document.createElement('canvas'); c.width = 1200; c.height = 800; const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 1200, 800); x.drawImage(img, 0, 0, 1200, 800); c.getContext('2d').getImageData(0, 0, 1, 1); resolve(c); } catch (e) { reject(e); } };
-    img.onerror = () => reject(new Error('label image failed'));
-    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+function labelNodeToCanvasSimple(node) { // draws the label directly on a 1200x800 canvas (no SVG/foreignObject, so it cannot come out blank)
+  const t = sel => { const x = node.querySelector(sel); return x ? x.textContent.trim() : ''; };
+  const names = node.querySelectorAll('.sl-name'), inl = {};
+  node.querySelectorAll('.sl-inline > div').forEach(dv => { const k = ((dv.querySelector('.sl-label') || {}).textContent || '').trim().toLowerCase(), v = ((dv.querySelector('.sl-sub') || {}).textContent || '').trim(); inl[k] = v; });
+  const subs = node.querySelectorAll('.sl-col .sl-sub');
+  const d = { sto: t('.sl-header-right .val'), to: names[0] ? names[0].textContent.trim() : '', toSub: subs[0] ? subs[0].textContent.trim() : '', from: names[1] ? names[1].textContent.trim() : '', fromSub: [subs[1], subs[2]].map(x => x ? x.textContent.trim() : '').filter(Boolean).join(' '), date: inl['date:'] || '', cartonOf: inl['no. of carton:'] || '', method: inl['delivery method:'] || '', cartonNo: t('.cn') };
+  const qrEl = node.querySelector('.sl-qr-box canvas') || node.querySelector('.sl-qr-box img');
+  return new Promise(resolve => {
+    const c = document.createElement('canvas'); c.width = 1200; c.height = 800; const x = c.getContext('2d');
+    x.fillStyle = '#fff'; x.fillRect(0, 0, 1200, 800); x.fillStyle = '#000'; x.strokeStyle = '#000'; x.textBaseline = 'top';
+    const F = (px, w) => (w || 'bold') + ' ' + px + 'px Arial, Helvetica, sans-serif';
+    const fit = (txt, px, maxW, w) => { let z = px; x.font = F(z, w); while (z > 16 && x.measureText(txt).width > maxW) { z -= 2; x.font = F(z, w); } return z; };
+    const wrap = (txt, px, maxW, maxLines, w, x0, y0, lh) => { x.font = F(px, w); const words = String(txt).split(/\s+/); let line = '', ln = 0; for (const wd of words) { const tt = line ? line + ' ' + wd : wd; if (x.measureText(tt).width > maxW && line) { x.fillText(line, x0, y0 + ln * lh); ln++; line = wd; if (ln >= maxLines) return ln; } else line = tt; } if (line && ln < maxLines) { x.fillText(line, x0, y0 + ln * lh); ln++; } return ln; };
+    x.lineWidth = 6; x.strokeRect(3, 3, 1194, 794);
+    x.fillRect(0, 0, 1200, 130); x.fillStyle = '#fff'; x.font = F(80); x.fillText('KHATAM', 30, 25);
+    x.font = F(26, 'normal'); x.textAlign = 'right'; x.fillText('STO NO.', 1170, 14); fit(d.sto, 70, 520); x.fillText(d.sto, 1170, 46); x.textAlign = 'left'; x.fillStyle = '#000';
+    x.font = F(28, 'normal'); x.fillText('To:', 30, 160); fit(d.to, 48, 520); x.fillText(d.to, 30, 195); wrap(d.toSub, 30, 520, 3, 'normal', 30, 255, 36);
+    x.fillText('', 0, 0); x.font = F(28, 'normal'); x.fillText('From:', 600, 160); x.font = F(34); wrap(d.from, 34, 380, 2, 'bold', 600, 195, 40); wrap(d.fromSub, 26, 380, 3, 'normal', 600, 275, 32);
+    x.fillRect(30, 400, 940, 3);
+    const colX = [30, 330, 600];
+    [['Date:', d.date], ['No. of Carton:', d.cartonOf], ['Delivery Method:', d.method]].forEach((kv, i) => { x.font = F(28, 'normal'); x.fillText(kv[0], colX[i], 425); fit(kv[1], 44, i === 2 ? 370 : 270); x.fillText(kv[1], colX[i], 465); });
+    x.lineWidth = 3; x.strokeRect(30, 560, 940, 200); x.font = F(30, 'normal'); x.fillText('Carton No.', 50, 580); fit(d.cartonNo, 130, 880); x.fillText(d.cartonNo, 50, 625);
+    const done = () => { resolve(c); };
+    const drawQr = el => { try { x.fillStyle = '#fff'; x.fillRect(990, 150, 190, 190); x.drawImage(el, 990, 150, 190, 190); x.fillStyle = '#000'; x.lineWidth = 3; x.strokeRect(988, 148, 194, 194); } catch (e) {} done(); };
+    if (qrEl && qrEl.tagName === 'IMG' && qrEl.getAttribute('src')) { const im = new Image(); im.onload = () => drawQr(im); im.onerror = done; im.src = qrEl.getAttribute('src'); }
+    else if (qrEl && qrEl.tagName === 'CANVAS') drawQr(qrEl);
+    else if (false) { try { x.fillStyle = '#fff'; x.fillRect(990, 150, 190, 190); x.drawImage(qrEl, 990, 150, 190, 190); x.fillStyle = '#000'; x.lineWidth = 3; x.strokeRect(988, 148, 194, 194); done(); } catch (e) { done(); } }
+    else done();
   });
+}
+// Exact copy of the real label: render it in a hidden frame with the same print CSS, then rasterise with html2canvas.
+async function labelNodeToCanvas(node) {
+  try {
+    if (!window.html2canvas) await new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'; sc.onload = res; sc.onerror = () => rej(new Error('html2canvas tidak dapat dimuat (perlu internet)')); document.head.appendChild(sc); });
+    const clone = node.cloneNode(true);
+    const liveQr = node.querySelector('.sl-qr-box canvas'), cq = clone.querySelector('.sl-qr-box');
+    if (liveQr && cq) cq.innerHTML = '<img src="' + liveQr.toDataURL('image/png') + '" style="width:100%;height:100%;display:block;">';
+    clone.removeAttribute('id');
+    const fr = document.createElement('iframe'); fr.style.cssText = 'position:fixed;left:-9999px;top:0;width:700px;height:500px;border:0;';
+    document.body.appendChild(fr);
+    try {
+      const d = fr.contentDocument; d.open(); d.write('<!doctype html><html><head><meta charset="utf-8"><style>' + STICKER_PRINT_CSS + '</style></head><body></body></html>'); d.close();
+      d.body.appendChild(d.importNode(clone, true));
+      const el = d.querySelector('.sticker-label');
+      await Promise.all([...d.images].map(im => im.complete ? 1 : new Promise(r => { im.onload = im.onerror = r; })));
+      if (d.fonts && d.fonts.ready) await d.fonts.ready;
+      await new Promise(r => setTimeout(r, 150));
+      const cv = await window.html2canvas(el, { scale: 1200 / el.offsetWidth, backgroundColor: '#ffffff', useCORS: true, logging: false });
+      const out = document.createElement('canvas'); out.width = 1200; out.height = 800; const x = out.getContext('2d');
+      x.fillStyle = '#fff'; x.fillRect(0, 0, 1200, 800); x.drawImage(cv, 0, 0, 1200, 800);
+      return out;
+    } finally { fr.remove(); }
+  } catch (e) { console.warn('html2canvas gagal, guna lukisan ringkas', e); return labelNodeToCanvasSimple(node); }
 }
 function canvasToTsplBitmap(c, rot, gap) {
   const r = document.createElement('canvas'); r.width = 800; r.height = 1200; const x = r.getContext('2d');
@@ -38095,7 +38134,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '22Oct-r404';
+const APP_BUILD_LABEL = '22Oct-r406';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
