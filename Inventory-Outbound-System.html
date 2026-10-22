@@ -3847,7 +3847,12 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
   #tab-bulk-qc-result .rq-body{grid-template-columns:minmax(0,1fr) 310px !important;gap:10px;}
   #tab-distribution-status table,#tab-bulk-qc-result .rq-flat{min-width:0;font-size:12px;}
   #tab-distribution-status table th,#tab-distribution-status table td,#tab-bulk-qc-result .rq-flat th,#tab-bulk-qc-result .rq-flat td{padding:8px 6px;}
-  #tab-bulk-qc-result .rq-flat thead th:nth-child(7),#tab-bulk-qc-result .rq-flat tbody td:nth-child(7){display:none;}
+  #tab-bulk-qc-result .rq-flat thead th:nth-child(2),#tab-bulk-qc-result .rq-flat tbody td:nth-child(2),#tab-bulk-qc-result .rq-flat thead th:nth-child(4),#tab-bulk-qc-result .rq-flat tbody td:nth-child(4),#tab-bulk-qc-result .rq-flat thead th:nth-child(7),#tab-bulk-qc-result .rq-flat tbody td:nth-child(7){display:none;}
+  #tab-distribution-status table thead th:nth-child(2),#tab-distribution-status table tbody td:nth-child(2),#tab-distribution-status table thead th:nth-child(4),#tab-distribution-status table tbody td:nth-child(4){display:none;}
+  #tab-bulk-qc-result .rq-body>*,#tab-distribution-status .dst-main>*{min-width:0;}
+  #tab-bulk-qc-result #bqrWrap{overflow-x:auto !important;}
+  #tab-distribution-status #dstTableWrap{overflow-x:auto;}
+  #tab-bulk-qc-result .rq-flat .rq-ps small{word-break:break-word;}
   #tab-bulk-qc-result .rq-flat .rq-vbtn{padding:5px 9px;font-size:11.5px;}
   #tab-bulk-qc-result .rq-pill,#tab-distribution-status .dst-pill{padding:3px 8px;font-size:11px;}
   #tab-distribution-status .dst-kpis,#tab-bulk-qc-result .rq-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}
@@ -37923,7 +37928,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '22Oct-r393';
+const APP_BUILD_LABEL = '22Oct-r394';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
