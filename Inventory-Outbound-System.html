@@ -4582,6 +4582,12 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
       </div>
     </div>
 
+    <div id="stPrinterRow" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 0;font-size:12px;">
+      <span style="color:var(--text-muted);">Cetak label guna:</span>
+      <select id="stPrinterMode" style="width:auto;"><option value="browser">Dialog print (biasa)</option><option value="rawbt">Xprinter XP-420B terus (RawBT, 70x50mm)</option></select>
+      <span id="stPrinterGapWrap" style="display:none;">Gap <input type="number" id="stPrinterGap" min="0" max="10" step="0.5" style="width:64px;"> mm</span>
+      <button type="button" class="btn-ghost" id="stPrinterTest" style="display:none;">Test print</button>
+    </div>
     <div class="modal-actions">
       <button class="btn-ghost" id="stickerCancelBtn">Close</button>
       <button class="btn-ghost" id="stickerDownloadBtn" style="display:none;">⬇ Download Label List (Excel)</button>
@@ -32254,6 +32260,7 @@ function renderAllCartonsPreview() {
     if (qrBox) {
       qrBox.innerHTML = '';
       const qrText = buildQrText(boutique, i, totalCarton, globalCartonNo);
+      qrBox.setAttribute('data-qr', qrText);
       if (window.QRCode) new QRCode(qrBox, { text: qrText, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M });
     }
     const item = document.createElement('div');
@@ -32285,6 +32292,19 @@ document.getElementById('stickerToggleAllPreviewBtn').addEventListener('click', 
 
 document.getElementById('stickerCloseBtn').addEventListener('click', closeStickerModal);
 document.getElementById('stickerCancelBtn').addEventListener('click', closeStickerModal);
+(function () {
+  const sel = document.getElementById('stPrinterMode'), gap = document.getElementById('stPrinterGap'), gw = document.getElementById('stPrinterGapWrap'), tb = document.getElementById('stPrinterTest');
+  if (!sel) return;
+  const c0 = labelPrinterCfg(); sel.value = c0.mode; gap.value = c0.gap;
+  const sync = () => { const m = sel.value === 'rawbt'; gw.style.display = m ? '' : 'none'; tb.style.display = m ? '' : 'none'; };
+  sync();
+  sel.addEventListener('change', () => { labelPrinterSave({ mode: sel.value, gap: Number(gap.value) || 0 }); sync(); });
+  gap.addEventListener('change', () => labelPrinterSave({ mode: sel.value, gap: Number(gap.value) || 0 }));
+  tb.addEventListener('click', () => {
+    labelPrinterSave({ mode: sel.value, gap: Number(gap.value) || 0 });
+    rawbtSend(tsplLabel({ sto: 'TEST1', to: 'KHATAM, PRODUCTION', from: 'KHATAM WAREHOUSE', date: formatDateLabel(todayStr()), cartonOf: '1 OF 1', method: 'Internal Transfer', cartonNo: '6', qr: 'PROD/C-1/' + yymmdd(todayStr()) + '/6' }, Number(gap.value) || 0) + '\r\n');
+  });
+})();
 document.getElementById('stickerPrintBtn').addEventListener('click', () => {
   stickerSettings.fromName = document.getElementById('stFromName').value;
   stickerSettings.fromAddress = document.getElementById('stFromAddress').value;
@@ -32391,6 +32411,7 @@ function buildCartonLabelsHtml() {
     if (qrBox) {
       qrBox.innerHTML = '';
       const qrText = buildQrText(boutique, i, totalCarton, globalCartonNo);
+      qrBox.setAttribute('data-qr', qrText);
       if (window.QRCode) new QRCode(qrBox, { text: qrText, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M });
       const canvas = qrBox.querySelector('canvas');
       if (canvas) {
@@ -32406,7 +32427,62 @@ function buildCartonLabelsHtml() {
   tempHolder.remove();
   return { rec, labelsHtml };
 }
+// ---- Direct label printing to an Xprinter XP-420B (TSPL) on an Android tablet via the free RawBT app (Oct 22, 2026). 70 x 50 mm label, 203 dpi = 560 x 400 dots. ----
+var LBL_PRINTER_KEY = 'labelPrinterV1';
+function labelPrinterCfg() { let c = {}; try { c = JSON.parse(localStorage.getItem(LBL_PRINTER_KEY) || '{}') || {}; } catch (e) {} const g = Number(c.gap); return { mode: c.mode === 'rawbt' ? 'rawbt' : 'browser', gap: Number.isFinite(g) && c.gap !== '' && c.gap != null ? Math.max(0, Math.min(10, g)) : 2 }; }
+function labelPrinterSave(c) { try { localStorage.setItem(LBL_PRINTER_KEY, JSON.stringify(c)); } catch (e) {} }
+function tsplClean(t) { return String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\x20-\x7E]/g, ' ').replace(/"/g, "'").replace(/\s+/g, ' ').trim().toUpperCase(); }
+function tsplWrap(t, max, lines) {
+  const out = []; let cur = '';
+  String(t).split(' ').forEach(w => { while (w.length > max) { if (cur) { out.push(cur); cur = ''; } out.push(w.slice(0, max)); w = w.slice(max); } if (!cur) cur = w; else if ((cur + ' ' + w).length <= max) cur += ' ' + w; else { out.push(cur); cur = w; } });
+  if (cur) out.push(cur);
+  return out.slice(0, lines);
+}
+function tsplLabel(d, gap) {
+  const L = ['SIZE 70 mm,50 mm', 'GAP ' + gap + ' mm,0 mm', 'DIRECTION 1', 'REFERENCE 0,0', 'DENSITY 8', 'SPEED 4', 'CLS'];
+  const T = (x, y, f, mx, my, txt) => L.push(`TEXT ${x},${y},"${f}",0,${mx},${my},"${tsplClean(txt)}"`);
+  T(16, 8, 5, 1, 1, 'KHATAM');
+  tsplWrap(tsplClean('STO ' + d.sto), 44, 2).forEach((t, i) => T(16, 60 + i * 22, 2, 1, 1, t));
+  T(16, 108, 2, 1, 1, 'TO:');
+  const to = tsplClean(d.to), big = to.length <= 44;
+  tsplWrap(to, big ? 22 : 33, 2).forEach((t, i) => T(16, big ? 128 + i * 34 : 128 + i * 26, big ? 4 : 3, 1, 1, t));
+  T(16, 200, 1, 1, 1, 'FROM: ' + tsplClean(d.from).slice(0, 60));
+  L.push('BAR 16,218,528,2');
+  T(16, 226, 1, 1, 1, 'DATE'); T(190, 226, 1, 1, 1, 'NO. OF CARTON'); T(350, 226, 1, 1, 1, 'DELIVERY');
+  T(16, 240, 2, 1, 1, tsplClean(d.date).slice(0, 14)); T(190, 240, 2, 1, 1, tsplClean(d.cartonOf).slice(0, 12)); { const m = tsplClean(d.method); if (m.length <= 16) T(350, 240, 2, 1, 1, m); else T(350, 244, 1, 1, 1, m.slice(0, 24)); }
+  T(16, 272, 1, 1, 1, 'CARTON NO.');
+  T(16, 292, 5, 2, 2, String(d.cartonNo).replace(/[^0-9A-Za-z]/g, '').slice(0, 4));
+  if (d.qr) { L.push(`QRCODE 330,264,M,4,A,0,"${tsplClean(d.qr).replace(/[^\x20-\x7E]/g, '')}"`); T(330, 386, 1, 1, 1, 'DRIVER CHECK-IN'); }
+  L.push('PRINT 1,1');
+  return L.join('\r\n');
+}
+function labelsHtmlToData(html) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return [...doc.querySelectorAll('.sticker-label')].map(el => {
+    const q = sel => { const x = el.querySelector(sel); return x ? x.textContent.trim() : ''; };
+    const names = el.querySelectorAll('.sl-name'), inl = {};
+    el.querySelectorAll('.sl-inline > div').forEach(dv => { const k = ((dv.querySelector('.sl-label') || {}).textContent || '').trim().toLowerCase(), v = ((dv.querySelector('.sl-sub') || {}).textContent || '').trim(); inl[k] = v; });
+    const qb = el.querySelector('.sl-qr-box');
+    return { sto: q('.sl-header-right .val'), to: names[0] ? names[0].textContent.trim() : '', from: names[1] ? names[1].textContent.trim() : '', date: inl['date:'] || '', cartonOf: inl['no. of carton:'] || '', method: inl['delivery method:'] || '', cartonNo: q('.cn'), qr: qb ? (qb.getAttribute('data-qr') || '') : '' };
+  });
+}
+function rawbtSend(str) {
+  const b64 = btoa(unescape(encodeURIComponent(str)));
+  const a = document.createElement('a');
+  a.href = 'intent:base64,' + b64 + '#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+async function printLabelsRawbt(labelsHtml) {
+  const cfg = labelPrinterCfg(), data = labelsHtmlToData(labelsHtml);
+  if (!data.length) { alert('Tiada label untuk dicetak.'); return; }
+  const CH = 6; // labels per hand-off to RawBT
+  for (let i = 0; i < data.length; i += CH) {
+    rawbtSend(data.slice(i, i + CH).map(d => tsplLabel(d, cfg.gap)).join('\r\n') + '\r\n');
+    if (i + CH < data.length) await new Promise(r => setTimeout(r, 1800));
+  }
+}
 function printLabelsFrame(labelsHtml, titleLabel) {
+  if (labelPrinterCfg().mode === 'rawbt') { printLabelsRawbt(labelsHtml); return; }
   const rec = { orderNumber: titleLabel };
 
   // Print via a hidden same-page iframe containing ONLY the label(s), styled with a
@@ -37970,7 +38046,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '22Oct-r401';
+const APP_BUILD_LABEL = '22Oct-r403';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
