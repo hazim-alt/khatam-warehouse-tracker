@@ -3841,17 +3841,27 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
 #tab-distribution-status .dst-save{margin-top:auto;padding:10px;}
 #tab-distribution-status .dst-msg{min-height:0;margin-top:4px;}
 #tab-distribution-status .dst-msg{font-size:12px;margin-top:8px;min-height:16px;}
-/* Tablet (landscape/portrait up to ~1400px): table and side panel no longer share one row (they overlapped); the panel drops below, wide tables scroll sideways instead of squeezing text on top of each other. */
-@media (max-width:1400px){
+/* Tablet landscape (1001-1400px): keep table + side panel in one row, but a slimmer panel and a compact table so nothing overlaps (Updated column hidden). */
+@media (max-width:1400px) and (min-width:1001px){
+  #tab-distribution-status .dst-main{grid-template-columns:minmax(0,1fr) 310px !important;gap:10px;}
+  #tab-bulk-qc-result .rq-body{grid-template-columns:minmax(0,1fr) 310px !important;gap:10px;}
+  #tab-distribution-status table,#tab-bulk-qc-result .rq-flat{min-width:0;font-size:12px;}
+  #tab-distribution-status table th,#tab-distribution-status table td,#tab-bulk-qc-result .rq-flat th,#tab-bulk-qc-result .rq-flat td{padding:8px 6px;}
+  #tab-bulk-qc-result .rq-flat thead th:nth-child(7),#tab-bulk-qc-result .rq-flat tbody td:nth-child(7){display:none;}
+  #tab-bulk-qc-result .rq-flat .rq-vbtn{padding:5px 9px;font-size:11.5px;}
+  #tab-bulk-qc-result .rq-pill,#tab-distribution-status .dst-pill{padding:3px 8px;font-size:11px;}
+  #tab-distribution-status .dst-kpis,#tab-bulk-qc-result .rq-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+/* Tablet portrait / narrow (<=1000px): panel drops below, wide tables scroll sideways. */
+@media (max-width:1000px){
   #tab-distribution-status .dst-main{grid-template-columns:minmax(0,1fr) !important;}
   #tab-distribution-status .dst-panel{position:static;min-height:0;}
   #tab-bulk-qc-result .rq-body{grid-template-columns:minmax(0,1fr) !important;}
   #tab-bulk-qc-result .rq-detail{position:static;}
   #tab-distribution-status #dstTableWrap,#tab-bulk-qc-result #bqrWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
-  #tab-distribution-status #dstTableWrap table,#tab-bulk-qc-result .rq-flat{min-width:820px;}
-  #tab-distribution-status .dst-kpis,#tab-bulk-qc-result .rq-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}
-  .tab-panel .scroll-table{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  #tab-distribution-status #dstTableWrap table,#tab-bulk-qc-result .rq-flat{min-width:760px;}
 }
+@media (max-width:1400px){ .tab-panel .scroll-table{overflow-x:auto;-webkit-overflow-scrolling:touch;} }
 @media (max-width:1100px){#tab-distribution-status .dst-kpis{grid-template-columns:repeat(2,1fr);}#tab-distribution-status .dst-main{grid-template-columns:1fr;}}
 </style>
     <div class="dst-kpis" id="dstKpis"></div>
@@ -37913,7 +37923,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '22Oct-r392';
+const APP_BUILD_LABEL = '22Oct-r393';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
