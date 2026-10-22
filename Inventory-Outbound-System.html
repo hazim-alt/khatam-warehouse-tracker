@@ -3841,6 +3841,17 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
 #tab-distribution-status .dst-save{margin-top:auto;padding:10px;}
 #tab-distribution-status .dst-msg{min-height:0;margin-top:4px;}
 #tab-distribution-status .dst-msg{font-size:12px;margin-top:8px;min-height:16px;}
+/* Tablet (landscape/portrait up to ~1400px): table and side panel no longer share one row (they overlapped); the panel drops below, wide tables scroll sideways instead of squeezing text on top of each other. */
+@media (max-width:1400px){
+  #tab-distribution-status .dst-main{grid-template-columns:minmax(0,1fr) !important;}
+  #tab-distribution-status .dst-panel{position:static;min-height:0;}
+  #tab-bulk-qc-result .rq-body{grid-template-columns:minmax(0,1fr) !important;}
+  #tab-bulk-qc-result .rq-detail{position:static;}
+  #tab-distribution-status #dstTableWrap,#tab-bulk-qc-result #bqrWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  #tab-distribution-status #dstTableWrap table,#tab-bulk-qc-result .rq-flat{min-width:820px;}
+  #tab-distribution-status .dst-kpis,#tab-bulk-qc-result .rq-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .tab-panel .scroll-table{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+}
 @media (max-width:1100px){#tab-distribution-status .dst-kpis{grid-template-columns:repeat(2,1fr);}#tab-distribution-status .dst-main{grid-template-columns:1fr;}}
 </style>
     <div class="dst-kpis" id="dstKpis"></div>
@@ -31366,7 +31377,9 @@ function buildDoGroupsFromShippedRecords(cards) {
   const byKey = {};
   cards.forEach(r => {
     const boutique = r.toWarehouse || '-';
-    const doNo = r.doNo || (findOpenDoForBoutique(boutique) || {}).doNo || null;
+    // An STO whose own doNo is empty may still be listed inside a saved DO record (doRecords[].orderNumbers) — that DO is its real DO.
+    const listedDo = r.doNo ? '' : ((doRecords.find(d => Array.isArray(d.orderNumbers) && d.orderNumbers.includes(r.orderNumber)) || {}).doNo || '');
+    const doNo = r.doNo || listedDo || (findOpenDoForBoutique(boutique) || {}).doNo || null;
     const key = doNo || `__nodo__${cartonCounterKey(boutique)}`;
     let group = byKey[key];
     if (!group) {
@@ -37900,7 +37913,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '21Oct-r390';
+const APP_BUILD_LABEL = '22Oct-r392';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
