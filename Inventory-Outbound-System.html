@@ -4584,7 +4584,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
 
     <div id="stPrinterRow" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 0;font-size:12px;">
       <span style="color:var(--text-muted);">Cetak label guna:</span>
-      <select id="stPrinterMode" style="width:auto;"><option value="browser">Dialog print (biasa)</option><option value="rawbt">Xprinter XP-420B terus (RawBT, 100x150mm)</option></select>
+      <select id="stPrinterMode" style="width:auto;"><option value="browser">Dialog print (biasa)</option><option value="rawbt">Xprinter XP-420B terus (RawBT, semua sekali tekan)</option></select>
       <span id="stPrinterGapWrap" style="display:none;">Gap <input type="number" id="stPrinterGap" min="0" max="10" step="0.5" style="width:64px;"> mm &nbsp; Putar <select id="stPrinterRot" style="width:auto;"><option value="90">90&deg; ikut jam</option><option value="270">270&deg; lawan jam</option></select></span>
       <button type="button" class="btn-ghost" id="stPrinterTest" style="display:none;">Test print</button>
     </div>
@@ -32306,7 +32306,7 @@ document.getElementById('stickerCancelBtn').addEventListener('click', closeStick
     save();
     const live = document.getElementById('stickerLabel');
     if (!live) { alert('Tiada label untuk diuji.'); return; }
-    try { const c = await labelNodeToCanvas(live), cfg = labelPrinterCfg(); rawbtSendBytes(canvasToTsplBitmap(c, cfg.rot, cfg.gap)); }
+    try { const c = await labelNodeToCanvas(live), cfg = labelPrinterCfg(); rawbtSendBytes(canvasToEscposRaster(c, cfg.rot)); }
     catch (err) { alert('Test gagal: ' + ((err && err.message) || err)); }
   });
 })();
@@ -32549,12 +32549,29 @@ function canvasToTsplBitmap(c, rot, gap) {
   const out = new Uint8Array(head.length + bytes.length + tail.length); out.set(head, 0); out.set(bytes, head.length); out.set(tail, head.length + bytes.length);
   return out;
 }
+// ESC/POS raster (the same kind of data RawBT's print service sends, which printed correctly): 800 dots wide x 1200 tall.
+function canvasToEscposRaster(c, rot) {
+  const r = document.createElement('canvas'); r.width = 800; r.height = 1200; const x = r.getContext('2d');
+  x.fillStyle = '#fff'; x.fillRect(0, 0, 800, 1200);
+  if (rot === 270) { x.translate(0, 1200); x.rotate(-Math.PI / 2); } else { x.translate(800, 0); x.rotate(Math.PI / 2); }
+  x.drawImage(c, 0, 0);
+  const d = r.getContext('2d').getImageData(0, 0, 800, 1200).data, wb = 100, parts = [new Uint8Array([0x1B, 0x40])];
+  for (let y0 = 0; y0 < 1200; y0 += 240) {
+    const h = Math.min(240, 1200 - y0), blk = new Uint8Array(8 + wb * h);
+    blk.set([0x1D, 0x76, 0x30, 0x00, wb & 255, wb >> 8, h & 255, h >> 8], 0);
+    for (let y = 0; y < h; y++) for (let bx = 0; bx < wb; bx++) { let b = 0; for (let k = 0; k < 8; k++) { const i = ((y0 + y) * 800 + bx * 8 + k) * 4, lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]; if (lum < 190) b |= (0x80 >> k); } blk[8 + y * wb + bx] = b; } // bit 1 = black
+    parts.push(blk);
+  }
+  parts.push(new Uint8Array([0x0C]));
+  const out = new Uint8Array(parts.reduce((n, a) => n + a.length, 0)); let o = 0; parts.forEach(a => { out.set(a, o); o += a.length; });
+  return out;
+}
 async function printLabelsRawbtImage(labelsHtml) {
   const cfg = labelPrinterCfg(), doc = new DOMParser().parseFromString(labelsHtml, 'text/html'), nodes = [...doc.querySelectorAll('.sticker-label')];
   if (!nodes.length) { alert('Tiada label untuk dicetak.'); return; }
   for (let i = 0; i < nodes.length; i++) {
     const c = await labelNodeToCanvas(nodes[i]);
-    rawbtSendBytes(canvasToTsplBitmap(c, cfg.rot, cfg.gap));
+    rawbtSendBytes(canvasToEscposRaster(c, cfg.rot));
     if (i + 1 < nodes.length) await new Promise(r => setTimeout(r, 4000)); // let the printer finish one label before the next hand-off
   }
 }
@@ -32567,10 +32584,27 @@ async function printLabelsRawbt(labelsHtml) {
     if (i + CH < data.length) await new Promise(r => setTimeout(r, 1800));
   }
 }
+let printFrame_multiGuard = false;
 function printLabelsFrame(labelsHtml, titleLabel) {
   if (labelPrinterCfg().mode === 'rawbt') {
     printLabelsRawbtImage(labelsHtml).catch(err => { alert('Cetak gambar gagal (' + ((err && err.message) || err) + ') — guna label teks ringkas.'); printLabelsRawbt(labelsHtml); });
     return;
+  }
+  // Several labels: one print job per label (some Android print services only print the first page of a multi-page job).
+  if (!printFrame_multiGuard) {
+    const parts = [...new DOMParser().parseFromString(labelsHtml, 'text/html').querySelectorAll('.sticker-label')].map(n => n.outerHTML);
+    if (parts.length > 1) {
+      (async () => {
+        printFrame_multiGuard = true;
+        try {
+          for (let i = 0; i < parts.length; i++) {
+            printLabelsFrame(parts[i], titleLabel);
+            if (i + 1 < parts.length) { await new Promise(r => setTimeout(r, 1500)); if (!confirm('Label ' + (i + 1) + ' / ' + parts.length + ' dihantar.\nTekan OK untuk cetak label seterusnya.')) break; }
+          }
+        } finally { printFrame_multiGuard = false; }
+      })();
+      return;
+    }
   }
   const rec = { orderNumber: titleLabel };
 
@@ -38135,7 +38169,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '22Oct-r407';
+const APP_BUILD_LABEL = '22Oct-r409';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
