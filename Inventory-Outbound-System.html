@@ -32014,6 +32014,7 @@ function buildQrText(boutique, cartonNo, totalCarton, globalCartonNo) {
 }
 const STICKER_PRINT_CSS = `
   * { box-sizing: border-box; }
+  @page { size: 150mm 100mm; margin: 0; }
   html, body { margin: 0; padding: 0; background: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; }
   .sticker-label {
     width: 150mm; height: 100mm;
@@ -32021,9 +32022,9 @@ const STICKER_PRINT_CSS = `
     display: flex; flex-direction: column;
     color: #2a241d;
     margin: 0 auto;
-    page-break-after: always;
+    page-break-after: always; break-after: page;
   }
-  .sticker-label:last-child { page-break-after: auto; }
+  .sticker-label:last-child { page-break-after: auto; break-after: auto; }
   .sl-header { background: #211d19; color: #fff; padding: 4mm 5mm; display: flex; align-items: center; justify-content: space-between; gap: 3mm; }
   .sl-brand { font-size: 6mm; font-weight: 800; letter-spacing: 0.04em; flex-shrink: 0; }
   .sl-header-right { text-align: right; max-width: 55%; min-width: 0; }
@@ -38134,7 +38135,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '22Oct-r406';
+const APP_BUILD_LABEL = '22Oct-r407';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
