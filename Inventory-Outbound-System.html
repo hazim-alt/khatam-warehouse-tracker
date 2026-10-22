@@ -32580,6 +32580,8 @@ function openDoBatchOrderNumbersForBoutique(boutique, mustInclude) {
     if (r.progress !== 'Shipped') return;
     if (!boutiqueMatch(r.toWarehouse || '-', boutique)) return;
     if (r.doNo && isDoLockedByDispatch(r.doNo)) return; // already gone out on its own DO — leave it alone
+    // Also skip an STO that is listed inside ANY saved DO that has already gone out / been delivered (even if the STO's own doNo field is empty or stale).
+    if (doRecords.some(d => Array.isArray(d.orderNumbers) && d.orderNumbers.includes(r.orderNumber) && isDoLockedByDispatch(d.doNo))) return;
     set.add(r.orderNumber);
   });
   return [...set];
@@ -37938,7 +37940,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '22Oct-r395';
+const APP_BUILD_LABEL = '22Oct-r396';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
