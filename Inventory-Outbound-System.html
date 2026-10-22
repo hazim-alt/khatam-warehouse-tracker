@@ -3579,7 +3579,6 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
   <section class="tab-panel" id="tab-release-schedule">
     <p class="section-title">Release Schedule</p>
     <div class="card">
-      <div class="data-note" style="margin-bottom:12px;">Pick a Series from Timeline and its products fill in automatically (you can edit them). Add the collection release dates here manually. The Collection Release Calendar slide (Dashboard Test) shows ONLY what is added on this page.</div>
       <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:12px; align-items:start;">
         <div><label style="font-size:12px; color:var(--text-muted);">Series / Collection</label><select id="rsSeries" style="width:100%;"><option value="">Select series…</option></select><input type="text" id="rsSeriesNew" placeholder="…or type a new series name" style="width:100%; margin-top:6px;"></div>
         <div><label style="font-size:12px; color:var(--text-muted);">Products (one per line)</label><textarea id="rsProducts" rows="3" placeholder="Product name&#10;Product name" style="width:100%;"></textarea></div>
@@ -3673,7 +3672,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
 #tab-bulk-qc-result .rq-dtxt{font-size:12px;color:var(--rq-amber);margin-bottom:4px;}#tab-bulk-qc-result .rq-dtxt.ok{color:#4fd39b;}
 #tab-bulk-qc-result .rq-mbar{display:block;height:5px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden;}
 #tab-bulk-qc-result .rq-mbar i{display:block;height:100%;background:var(--rq-green);}
-#tab-bulk-qc-result .rq-body{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:stretch;}
+#tab-bulk-qc-result .rq-body{display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:14px;align-items:stretch;}
 #tab-bulk-qc-result .rq-body.nodetail{grid-template-columns:minmax(0,1fr);}
 #tab-bulk-qc-result .rq-body.nodetail .rq-detail{display:none;}
 #tab-bulk-qc-result .rq-stages{grid-template-columns:repeat(4,1fr);}
@@ -3707,16 +3706,47 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
 #tab-bulk-qc-result .rq-foot{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;font-size:12px;}
 #tab-bulk-qc-result .rq-pg button{min-width:30px;height:30px;margin-left:6px;border:1px solid var(--rq-line);border-radius:8px;background:transparent;color:inherit;cursor:pointer;}
 #tab-bulk-qc-result .rq-pg button.on{background:var(--rq-gold);color:#1b1614;font-weight:700;}
+#tab-bulk-qc-result .rq-kpi .rq-lbl{font-size:12px;opacity:.8;}
+#tab-bulk-qc-result .rq-kv{display:grid;grid-template-columns:104px minmax(0,1fr);gap:9px 12px;margin-bottom:12px;font-size:13px;}
+#tab-bulk-qc-result .rq-kv>span{font-size:12px;opacity:.65;padding-top:1px;}
+#tab-bulk-qc-result .rq-kv ul{margin:0;padding-left:16px;list-style:disc;}
+#tab-bulk-qc-result .rq-hr{border:0;border-top:1px solid var(--rq-line);margin:4px 0 12px;}
+#tab-bulk-qc-result .rq-dico{flex:0 0 auto;width:32px;height:32px;border-radius:8px;background:rgba(201,149,74,.14);display:flex;align-items:center;justify-content:center;font-size:15px;margin-right:10px;}
+#tab-bulk-qc-result .rq-doc{justify-content:flex-start;}
+#tab-bulk-qc-result .rq-doc>div:nth-child(2){flex:1;min-width:0;}
+#tab-bulk-qc-result .rq-flat .rq-ps b{font-size:13.5px;}
+#tab-bulk-qc-result .rq-flat .rq-ps small{display:block;opacity:.75;font-size:12px;margin-top:2px;}
+#tab-bulk-qc-result .rq-flat .rq-dt2{line-height:1.35;font-size:12.5px;white-space:nowrap;}
+#tab-bulk-qc-result .rq-flat .rq-docs{display:flex;align-items:center;gap:10px;white-space:nowrap;}
+#tab-bulk-qc-result .rq-flat .rq-vbtn{display:inline-flex;align-items:center;gap:7px;padding:6px 14px;border:1.5px solid #c9954a;border-radius:10px;background:linear-gradient(180deg,rgba(201,149,74,.10),rgba(0,0,0,.25));color:#e8b04a;font-size:12.5px;font-weight:600;line-height:1;}
+#tab-bulk-qc-result .rq-flat .rq-vbtn svg{width:15px;height:15px;stroke:#e8b04a;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto;}
+#tab-bulk-qc-result .rq-flat tr:hover .rq-vbtn{background:linear-gradient(180deg,rgba(201,149,74,.22),rgba(0,0,0,.2));}
+#tab-bulk-qc-result .rq-kpis{gap:0;border:1px solid var(--rq-line);border-radius:14px;background:rgba(0,0,0,.14);padding:18px 8px;}
+#tab-bulk-qc-result .rq-ks{padding:2px 28px;border-left:1px solid var(--rq-line);}
+#tab-bulk-qc-result .rq-ks:first-child{border-left:0;}
+#tab-bulk-qc-result .rq-kl{font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:#d9b36c;margin-bottom:6px;}
+#tab-bulk-qc-result .rq-kn{font-size:clamp(28px,3vw,40px);font-weight:600;line-height:1.1;font-family:'NumLining',Georgia,serif;color:#f1ebe3;}
+#tab-bulk-qc-result .rq-kn.g{color:#4fc38a;}#tab-bulk-qc-result .rq-kn.a{color:#d9a84e;}#tab-bulk-qc-result .rq-kn.r{color:#d9534f;}
+#tab-bulk-qc-result .rq-mid{grid-template-columns:1fr;}
+#tab-bulk-qc-result .rq-ptitle{font-family:Georgia,'Times New Roman',serif;font-weight:500;font-size:21px;color:#d9b36c;margin:0 0 14px;}
+#tab-bulk-qc-result .rq-ph{margin-bottom:14px;}
+#tab-bulk-qc-result .rq-bar{height:12px;background:rgba(255,255,255,.07);}
+#tab-bulk-qc-result .rq-bar i{background:linear-gradient(90deg,#c9a45c,#d9b878);border-radius:8px;}
+#tab-bulk-qc-result .rq-pct{font-size:20px;font-weight:500;color:#d9b36c;}
+#tab-bulk-qc-result .rq-legend{display:flex;flex-wrap:wrap;align-items:center;font-size:13px;}
+#tab-bulk-qc-result .rq-lg{display:inline-flex;align-items:center;gap:8px;padding:2px 18px;border-left:1px solid var(--rq-line);cursor:pointer;border-radius:6px;}
+#tab-bulk-qc-result .rq-lg:first-child{padding-left:0;border-left:0;}
+#tab-bulk-qc-result .rq-lg i{width:10px;height:10px;border-radius:50%;display:inline-block;}
+#tab-bulk-qc-result .rq-lg b{margin-left:4px;font-weight:700;}
+#tab-bulk-qc-result .rq-lg.on{outline:1.5px solid var(--rq-gold);}
 @media (max-width:1250px){#tab-bulk-qc-result .rq-body{grid-template-columns:minmax(0,1fr);}#tab-bulk-qc-result .rq-detail{position:static;}}
 @media (max-width:1100px){#tab-bulk-qc-result .rq-kpis{grid-template-columns:repeat(2,1fr);}#tab-bulk-qc-result .rq-mid{grid-template-columns:1fr;}#tab-bulk-qc-result .rq-stages{grid-template-columns:repeat(2,1fr);}}
 </style>
     <div class="card" style="border:1px solid rgba(201,149,74,.28);border-radius:14px;">
-      <span class="data-note" style="margin:0;">Only items with a finished QC result (Pass, Pass With Condition, Fail) — read from the Google Sheet.</span>
       <div id="bqrNewBanner" class="needs-update-banner" style="display:none; margin:10px 0 0;"></div>
       <div id="bqrKpiGrid" class="rq-kpis"></div>
       <div class="rq-mid">
-        <div class="rq-card"><h3>QC Result Distribution</h3><div id="bqrDonutWrap"></div></div>
-        <div class="rq-card" id="bqrProgCard"><div class="rq-ph"><h3>Distribution Progress</h3><div class="rq-bar"><i id="bqrProgBar" style="width:0%"></i></div><span class="rq-pct" id="bqrProgPct">0%</span></div><div id="bqrDistKpiGrid" class="rq-stages"></div></div>
+        <div class="rq-card" id="bqrProgCard"><h3 class="rq-ptitle">Distribution Progress</h3><div class="rq-ph"><div class="rq-bar"><i id="bqrProgBar" style="width:0%"></i></div><span class="rq-pct" id="bqrProgPct">0%</span></div><div id="bqrDistKpiGrid" class="rq-legend"></div></div>
       </div>
       <div class="rq-filter">
         <div style="display:flex; gap:8px; align-items:center;">
@@ -3800,7 +3830,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
 #tab-distribution-status .dst-save{width:100%;margin-top:14px;padding:12px;border-radius:10px;border:0;background:linear-gradient(90deg,#c9954a,#e8b04a);color:#1b1614;font-weight:700;cursor:pointer;font-size:14px;}
 #tab-distribution-status .dst-flash{animation:dstFlash 1.2s ease;}
 @keyframes dstFlash{0%{box-shadow:0 0 0 3px rgba(232,176,74,.9);}100%{box-shadow:0 0 0 3px rgba(232,176,74,0);}}
-#tab-distribution-status .dst-main{align-items:stretch;}
+#tab-distribution-status .dst-main{align-items:stretch;grid-template-columns:minmax(0,1fr) 420px;}
 #tab-distribution-status .dst-panel{padding:12px 16px;display:flex;flex-direction:column;}
 #tab-distribution-status .dst-ph{margin-bottom:8px;}
 #tab-distribution-status .dst-ph .dst-ico{width:44px;height:44px;font-size:20px;}
@@ -15081,7 +15111,9 @@ async function bqcFetchLinksForUrl(url, key, isAcc) {
   }
   return result;
 }
+var accLinkNote = '', bqcLastLinkFetch = 0;
 async function bqcFetchLinks(opts) {
+  bqcLastLinkFetch = Date.now();
   const statusEl = document.getElementById('bqcLinkStatus');
   const setS = (t, err) => { if (statusEl) { statusEl.textContent = t; statusEl.style.color = err ? '#e57373' : ''; } };
   let key = bqcGetApiKey();
@@ -15103,7 +15135,7 @@ async function bqcFetchLinks(opts) {
       catch (e) { errs.push(e.message); }
     }
     // Accessories tab (same QC Result Finish Goods link column) — real URLs go onto campaignAccList rows
-    let accChanged = false, accN = 0;
+    let accChanged = false, accN = 0, accMapChanged = false;
     const accUrl = campaignTimelineGsheetUrls && campaignTimelineGsheetUrls.accessories;
     if (accUrl && Array.isArray(campaignAccList) && campaignAccList.length) {
       try {
@@ -15112,12 +15144,17 @@ async function bqcFetchLinks(opts) {
           const l = accLinks[rec.id];
           if (!l) return;
           if (stableStringify(rec.qcFgLinks || []) !== stableStringify(l.qcFgLinks)) { rec.qcFgLinks = l.qcFgLinks; accChanged = true; }
+          if (stableStringify(rec.distFormLinks || []) !== stableStringify(l.distFormLinks || [])) { rec.distFormLinks = l.distFormLinks || []; accChanged = true; }
+          const nl = { qcFgLinks: l.qcFgLinks || [], distFormLinks: l.distFormLinks || [] }, om = accLinkMap[rec.id] || {};
+          if (stableStringify({ qcFgLinks: om.qcFgLinks || [], distFormLinks: om.distFormLinks || [] }) !== stableStringify(nl)) { accLinkMap[rec.id] = Object.assign({}, om, nl); accMapChanged = true; try { if (fbDb) fbDb.ref('AccLinks/' + fbSafeKey(rec.id)).update(nl).catch(() => {}); } catch (e) {} }
           if (l.qcFgLinks.length) accN++;
         });
-        okTabs++;
-      } catch (e) { errs.push('Accessories: ' + e.message); }
+        okTabs++; accLinkNote = accN + ' of ' + campaignAccList.length + ' Accessories row(s) have links in the sheet (matched by name)';
+      } catch (e) { errs.push('Accessories: ' + e.message); accLinkNote = 'Accessories pull failed: ' + e.message; }
     }
+    if (accMapChanged) accLinkSave();
     if (accChanged) { campaignAccSaveLocal(); pushCampaignAccToFirebase(); }
+    if (accMapChanged || accChanged) { try { if (bqrTabActive()) renderBqrTab(); } catch (e) {} try { if (dstTabActive()) renderDistStatusTab(); } catch (e) {} }
     if (!okTabs) throw new Error(errs.join(' || '));
     let n = 0, changed = false;
     campaignTimelineList.forEach(rec => {
@@ -15337,9 +15374,9 @@ function bqrKeyFab(r) { return r.id + '|fab'; }
 function bqrIsNew(r) { return bqrHighlight.has(bqrMode === 'fabric' ? bqrKeyFab(r) : bqrKeyFg(r)); }
 function bqrCurrentDone() {
   const DONE = ['pass', 'pass-with', 'fail'], out = {};
-  (campaignTimelineList || []).forEach(r => {
-    const f = bqcStatusKey(r.qcFg); if (DONE.includes(f)) out[bqrKeyFg(r)] = f + '|' + (rqLinks(r, 'qcFg').length + rqLinks(r, 'distForm').length) + '|' + String(r.distStatus || '').trim();
-    if (campaignTimelineFabricRowHasDetails(r) || r.material || r.fabricSupplier) { const w = bqcStatusKey(r.qcWash); if (DONE.includes(w)) out[bqrKeyFab(r)] = w + '|' + rqLinks(r, 'qcWash').length + '|'; }
+  rqAllFgRows().forEach(r => {
+    const f = bqcStatusKey(r.qcFg); if (DONE.includes(f) && rqHasDistInfo(r)) out[bqrKeyFg(r)] = f + '|' + (rqLinks(r, 'qcFg').length + rqLinks(r, 'distForm').length) + '|' + String(r.distStatus || '').trim();
+    if (campaignTimelineFabricRowHasDetails(r) || r.material || r.fabricSupplier) { const w = bqcStatusKey(r.qcWash); if (DONE.includes(w)) out[bqrKeyFab(r)] = w + '|0|'; }
   });
   return out;
 }
@@ -15379,9 +15416,10 @@ function bqrSaveSeen(o) {
 // A tab item counts as "new" when its QC result changed, a document/link was ADDED (more attachments than last seen), or the sheet's
 // Distribution Status text changed. Old-format snapshots (plain status) only compare the QC result, so nothing bursts after this update.
 function bqrKeyChanged(a, b) {
-  if (a === undefined) return true;
-  const A = String(a).split('|'), B = String(b).split('|');
-  if (A[0] !== B[0]) return true;
+  // Notify ONLY for: sheet "Distribution Status" text changed, or more files in "Distribution Form link" / Drive folders. QC result changes do not notify.
+  const B = String(b).split('|');
+  if (a === undefined) return (Number(B[1]) || 0) > 0 || !!B[2];
+  const A = String(a).split('|');
   if (A.length < 2) return false;
   if ((Number(B[1]) || 0) > (Number(A[1]) || 0)) return true;
   return !!B[2] && B[2] !== (A[2] || '');
@@ -15406,6 +15444,7 @@ function bqrUpdateNotify() {
   btns.forEach(b => { b.classList.toggle('has-new', fresh.length > 0); if (fresh.length) b.setAttribute('data-new', String(fresh.length)); else b.removeAttribute('data-new'); });
 }
 function bqrOnOpen() {
+  try { if (bqcGetApiKey() && Date.now() - bqcLastLinkFetch > 180000) bqcFetchLinks({ silent: true }); } catch (e) {}
   if (!bqrEnsureUser()) { renderBqrTab(); return; }
   if (!bqrState.ready) { renderBqrTab(); return; }
   const { cur, fresh, baseline } = bqrNewKeys();
@@ -15491,8 +15530,13 @@ function sheetStatusPill(text, ns) {
 var driveFolderCache = {}, driveLastError = '', driveBusy = false;
 try { driveFolderCache = JSON.parse(localStorage.getItem('driveFolderCacheV1') || '{}') || {}; } catch (e) { driveFolderCache = {}; }
 function driveFolderId(url) { const m = String(url || '').match(/drive\.google\.com\/(?:drive\/)?(?:u\/\d+\/)?folders\/([A-Za-z0-9_-]+)/); return m ? m[1] : ''; }
+// Accessories links live in their OWN store (local + Firebase node AccLinks) so replacing the Accessories list can never wipe them.
+var accLinkMap = {};
+try { accLinkMap = JSON.parse(localStorage.getItem('accLinksV1') || '{}') || {}; } catch (e) { accLinkMap = {}; }
+function accLinkSave() { try { localStorage.setItem('accLinksV1', JSON.stringify(accLinkMap)); } catch (e) {} }
 function rqLinksRaw(r, which) {
-  const arr = r && r[which + 'Links'];
+  let arr = r && r[which + 'Links'];
+  if (!(Array.isArray(arr) && arr.length) && r && accLinkMap[r.id] && Array.isArray(accLinkMap[r.id][which + 'Links'])) arr = accLinkMap[r.id][which + 'Links'];
   if (Array.isArray(arr) && arr.length) return arr.filter(l => l && l.url).map(l => ({ url: l.url, text: l.text || 'Open' }));
   const t = String((r && r[which + 'Link']) || '').trim();
   return /^https?:\/\//i.test(t) ? [{ url: t, text: 'Open' }] : [];
@@ -15501,7 +15545,7 @@ function rqLinks(r, which) {
   const out = [];
   rqLinksRaw(r, which).forEach(l => {
     const id = driveFolderId(l.url), c = id && driveFolderCache[id];
-    if (id && c && Array.isArray(c.files) && !c.error) c.files.forEach(x => out.push({ url: x.url, text: x.name }));
+    if (id && c && Array.isArray(c.files) && !c.error) c.files.filter(x => !/^\.|^(thumbs\.db|desktop\.ini)$/i.test(String(x.name || ''))).forEach(x => out.push({ url: x.url, text: x.name })); // skip hidden/system files (.DS_Store ...)
     else out.push(l);
   });
   return out;
@@ -15512,7 +15556,7 @@ async function driveEnsureFolders(force) {
   let key = ''; try { key = bqcGetApiKey(); } catch (e) {}
   if (!key) return;
   const ids = new Set();
-  (campaignTimelineList || []).forEach(r => ['qcFg', 'distForm', 'qcWash'].forEach(w => rqLinksRaw(r, w).forEach(l => { const id = driveFolderId(l.url); if (id) ids.add(id); })));
+  rqAllFgRows().forEach(r => ['qcFg', 'distForm', 'qcWash'].forEach(w => rqLinksRaw(r, w).forEach(l => { const id = driveFolderId(l.url); if (id) ids.add(id); })));
   const todo = [...ids].filter(id => force || !driveFolderCache[id] || Date.now() - (driveFolderCache[id].ts || 0) > 180000);
   if (!todo.length) return;
   driveBusy = true; let changed = false; driveLastError = '';
@@ -15552,7 +15596,7 @@ setInterval(() => { try { driveEnsureFolders().then(() => distColourEnsure()); }
 // Colour names are read from INSIDE the Distribution Form PDF (Oct 21, 2026): the "Color" row lists colour groups in bold, each followed by
 // "- <product names>". pdf.js (cdnjs) + Drive API (same API key) read the file in the browser; result cached per file id in localStorage.
 var distColourCache = {};
-try { distColourCache = JSON.parse(localStorage.getItem('distFormColoursV6') || '{}') || {}; } catch (e) { distColourCache = {}; }
+try { distColourCache = JSON.parse(localStorage.getItem('distFormColoursV9') || '{}') || {}; } catch (e) { distColourCache = {}; }
 var distColourBusy = false, distPdfLib = null;
 function distFileId(url) { const m = String(url || '').match(/\/file\/d\/([A-Za-z0-9_-]+)/) || String(url || '').match(/[?&]id=([A-Za-z0-9_-]+)/); return m ? m[1] : ''; }
 function distNormProd(t) { return String(t || '').toLowerCase().replace(/\([^)]*\)/g, ' ').replace(/^\s*\d+\.\s*/, '').replace(/[^a-z0-9]+/g, ''); }
@@ -15601,7 +15645,10 @@ async function distParsePdf(buf) {
     if (/^\d+\.\s/.test(it.t) || !formProds.length) formProds.push(it.t); else formProds[formProds.length - 1] += ' ' + it.t;
   });
   let out = groups.map(g => ({ colour: g.colour, products: g.prodText.replace(/\s+/g, ' ').replace(/^[\s-]+/, '').split(/\s+&\s+/).map(x => x.replace(/^[\s-]+/, '').trim()).filter(Boolean) })).filter(g => g.colour);
-  if (!out.length) { const t = lines.map(it => it.t).join(' ').replace(/^[\s-]+/, '').trim(); if (t) out = [{ colour: t, products: [] }]; }
+  if (!out.length) {
+    const t = lines.map(it => it.t).join(' ').replace(/^[\s-]+/, '').trim();
+    if (t) out = /(^|\s)\d+[).]\s/.test(t) ? t.split(/\s*(?:^|\s)\d+[).]\s*/).map(x => x.trim()).filter(Boolean).map(c => ({ colour: c, products: [] })) : [{ colour: t, products: [] }]; // numbered list "1) Opal Black 2) Light Blue ..."
+  }
   out.forEach(g => { if (!g.products.length) { g.products = formProds.slice(); g.implicit = true; } });
   return out;
 }
@@ -15622,23 +15669,26 @@ async function distParseQc(buf) {
     const insp = items.find(it => /^insp/i.test(it.t) && Math.abs(it.x - col.x) < 8 && it.y < col.y);
     const vx = col.x + 40;
     const style = items.filter(o => o.x >= vx && Math.abs(o.y - stl.y) < 3).map(o => o.t).join(' ').trim();
+    const gd = items.find(it => /^goods/i.test(it.t) && it.x < stl.x);
+    const product = gd ? items.filter(o => o.x >= gd.x + 40 && Math.abs(o.y - gd.y) < 3 && o.x < stl.x - 5).map(o => o.t).join(' ').replace(/\s+/g, ' ').trim() : '';
     const ytop = size ? size.y - 3 : col.y + 6, ybot = insp ? insp.y + 3 : col.y - 14;
     const colour = distTitleCase(joinRow(col, ytop, ybot, vx).replace(/\s+/g, ' ').trim());
-    if (style && colour) out.push({ style, colour });
+    if (style && colour) out.push({ style, product, colour });
   }
   return out;
 }
+var DIST_PV = 3; // parser version: shared/saved colour records older than this are ignored and re-read
 var distFbLoaded = false;
-function distNormRec(c) { c = c || {}; return { ts: c.ts || Date.now(), groups: (c.groups || []).map(g => ({ colour: g.colour, products: g.products || [], implicit: !!g.implicit })), qcs: c.qcs || [], notPdf: !!c.notPdf }; }
+function distNormRec(c) { c = c || {}; return { v: DIST_PV, ts: c.ts || Date.now(), groups: (c.groups || []).map(g => ({ colour: g.colour, products: g.products || [], implicit: !!g.implicit })), qcs: c.qcs || [], notPdf: !!c.notPdf }; }
 // Shared cache in Firebase (node DistFormColours/<fileId>): first device reads the PDF, every other device just loads the result.
 var distFbFolderIds = new Set();
 async function distLoadShared() {
   if (typeof fbDb === 'undefined' || !fbDb) return;
   try {
     const snap = await fbDb.ref('DistFormColours').once('value'), v = snap.val() || {};
-    Object.keys(v).forEach(id => { if (!distColourCache[id] || distColourCache[id].err) distColourCache[id] = distNormRec(v[id]); });
-    try { localStorage.setItem('distFormColoursV6', JSON.stringify(distColourCache)); } catch (e) {}
-    Object.keys(distColourCache).forEach(id => { const c = distColourCache[id]; if (!v[id] && c && !c.err && (c.groups || c.qcs || c.notPdf)) distSaveShared(id, c); }); // push colours this device already read
+    Object.keys(v).forEach(id => { if ((v[id].v || 0) >= DIST_PV && (!distColourCache[id] || distColourCache[id].err)) distColourCache[id] = distNormRec(v[id]); });
+    try { localStorage.setItem('distFormColoursV9', JSON.stringify(distColourCache)); } catch (e) {}
+    Object.keys(distColourCache).forEach(id => { const c = distColourCache[id]; if ((!v[id] || (v[id].v || 0) < DIST_PV) && c && !c.err && c.v >= DIST_PV && (c.groups || c.qcs || c.notPdf)) distSaveShared(id, c); }); // push colours this device already read
     // shared Drive folder listings (file names + ids only; lets a device without the Google API key still match files)
     const fs = (await fbDb.ref('DistFolders').once('value')).val() || {}; let ch = false;
     Object.keys(fs).forEach(id => {
@@ -15648,6 +15698,7 @@ async function distLoadShared() {
       if (!mine || mine.error || (f.ts || 0) > (mine.ts || 0)) { driveFolderCache[id] = { ts: f.ts || Date.now(), files: (f.files || []).map(x => ({ id: x.id, name: x.name, url: x.url })) }; ch = true; }
     });
     if (ch) { try { localStorage.setItem('driveFolderCacheV1', JSON.stringify(driveFolderCache)); } catch (e) {} try { bqrUpdateNotify(); } catch (e) {} try { dstNotifyTick(); } catch (e) {} }
+    try { const al = (await fbDb.ref('AccLinks').once('value')).val() || {}; let ac = false; Object.keys(al).forEach(k => { const rid = (campaignAccList || []).map(x => x.id).find(id => fbSafeKey(id) === k) || k, rm = al[k] || {}, loc = accLinkMap[rid] || {}, n = Object.assign({}, loc); if (!(loc.qcFgLinks || []).length && (rm.qcFgLinks || []).length) n.qcFgLinks = rm.qcFgLinks; if (!(loc.distFormLinks || []).length && (rm.distFormLinks || []).length) n.distFormLinks = rm.distFormLinks; if (loc.distStatus === undefined && rm.distStatus !== undefined) n.distStatus = rm.distStatus; if (stableStringify(n) !== stableStringify(loc)) { accLinkMap[rid] = n; ac = true; } }); if (ac) accLinkSave(); } catch (e) {}
     distFbLoaded = true;
     try { if (bqrTabActive()) renderBqrTab(); } catch (e) {}
     try { if (dstTabActive()) renderDistStatusTab(); } catch (e) {}
@@ -15661,7 +15712,7 @@ async function distColourEnsure() {
   let key = ''; try { key = bqcGetApiKey(); } catch (e) {}
   if (!key) return;
   const files = new Map();
-  (campaignTimelineList || []).forEach(r => rqLinks(r, 'distForm').concat(rqLinks(r, 'qcFg')).forEach(l => { const id = distFileId(l.url); if (id) files.set(id, l.text || ''); }));
+  rqAllFgRows().forEach(r => rqLinks(r, 'distForm').concat(rqLinks(r, 'qcFg')).forEach(l => { const id = distFileId(l.url); if (id) files.set(id, l.text || ''); }));
   const todo = [...files.keys()].filter(id => { const c = distColourCache[id]; return !c || (c.err && Date.now() - (c.ts || 0) > 600000); });
   if (!todo.length) return;
   distColourBusy = true; let changed = false;
@@ -15670,16 +15721,16 @@ async function distColourEnsure() {
       const resp = await fetch('https://www.googleapis.com/drive/v3/files/' + id + '?alt=media&key=' + encodeURIComponent(key));
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
       const buf = await resp.arrayBuffer();
-      if (String.fromCharCode.apply(null, new Uint8Array(buf.slice(0, 4))) !== '%PDF') { distColourCache[id] = { ts: Date.now(), groups: [], notPdf: true }; }
-      else { const g = await distParsePdf(buf); distColourCache[id] = { ts: Date.now(), groups: g, qcs: g.length ? [] : await distParseQc(buf) }; }
+      if (String.fromCharCode.apply(null, new Uint8Array(buf.slice(0, 4))) !== '%PDF') { distColourCache[id] = { v: DIST_PV, ts: Date.now(), groups: [], notPdf: true }; }
+      else { const g = await distParsePdf(buf); distColourCache[id] = { v: DIST_PV, ts: Date.now(), groups: g, qcs: g.length ? [] : await distParseQc(buf) }; }
       changed = true;
     } catch (e) { distColourCache[id] = { ts: Date.now(), err: (e && e.message) || String(e) }; }
-    try { localStorage.setItem('distFormColoursV6', JSON.stringify(distColourCache)); } catch (e) {}
+    try { localStorage.setItem('distFormColoursV9', JSON.stringify(distColourCache)); } catch (e) {}
     distSaveShared(id, distColourCache[id]);
     try { if (bqrTabActive()) renderBqrTab(); } catch (e) {}
   }
   distColourBusy = false;
-  try { localStorage.setItem('distFormColoursV6', JSON.stringify(distColourCache)); } catch (e) {}
+  try { localStorage.setItem('distFormColoursV9', JSON.stringify(distColourCache)); } catch (e) {}
   if (changed) {
     try { if (bqrTabActive()) renderBqrTab(); } catch (e) {}
     try { if (dstTabActive()) renderDistStatusTab(); } catch (e) {}
@@ -15698,16 +15749,39 @@ function rqRowColour(r) {
       else if (!g.implicit && g.products.some(p => { const na = distNormProd(p); return na && (nb.includes(na) || na.includes(nb)); })) t[2].push(g.colour);
     });
   });
-  const pick = (t[0].length || t[1].length) ? t[0].concat(t[1]) : t[2]; // every form that lists this product adds its colour
+  let pick = t[0].concat(t[1]); // every form that lists this product adds its colour
+  if (!pick.length) { // the row's OWN Distribution Form file (linked directly, not a shared folder): all colours written in it belong to this row
+    const dfl = rqLinks(r, 'distForm'); // exactly one Distribution Form file (direct link or a folder holding one file), colours written without a product list
+    if (dfl.length === 1) { const c = distColourCache[distFileId(dfl[0].url)]; if (c && c.groups) c.groups.filter(g => g.implicit).forEach(g => pick.push(g.colour)); }
+  }
+  if (!pick.length) pick = t[2];
   if (!pick.length) { // fallback: QC report "Color(s) Tested" matched by Style Name (all style words found in the product name; best match wins)
     const tok = t => String(t || '').toLowerCase().replace(/\([^)]*\)/g, ' ').split(/[^a-z0-9]+/).filter(Boolean);
     const pt = new Set(tok(r.officialProductName)), ser = distNormProd(r.series), serWord = tok(r.series)[0] || '';
+    const GEN = ['men', 'mens', 'boys', 'girls', 'women', 'ladies', 'kids'];
     let best = 0, cands = [], single = [];
+    // 1st pass: QC reports that name the product ("Goods / Products") + a Style Name: product words AND the style's gender (MEN / BOYS ...) must fit this row
+    { let b1 = 0, c1 = [];
+      rqLinks(r, 'qcFg').concat(rqLinks(r, 'distForm')).forEach(l => {
+        const c = distColourCache[distFileId(l.url)]; if (!c || !c.qcs) return;
+        c.qcs.forEach(q => {
+          if (!q.product) return;
+          const pw = tok(q.product), st = tok(q.style); if (!pw.length || !pw.every(w => pt.has(w))) return;
+          const stN = st.filter(w => !GEN.includes(w)); if (!stN.every(w => pt.has(w))) return;
+          const g = st.filter(w => GEN.includes(w)); const other = ['boys', 'girls', 'women', 'ladies', 'kids'];
+          if (g.some(w => (w === 'men' || w === 'mens') ? other.some(o => pt.has(o)) : !pt.has(w))) return;
+          const sc = pw.length + stN.length + (g.length ? 1 : 0);
+          if (sc > b1) { b1 = sc; c1 = [q.colour]; } else if (sc === b1) c1.push(q.colour);
+        });
+      });
+      if (c1.length) { best = b1; cands = c1; } }
     rqLinks(r, 'qcFg').concat(rqLinks(r, 'distForm')).forEach(l => {
       const c = distColourCache[distFileId(l.url)]; if (!c || !c.qcs || !c.qcs.length) return;
       c.qcs.forEach(q => {
         const st = tok(q.style), na = distNormProd(q.style); if (!st.length) return;
+        if (q.product && st.every(w => GEN.includes(w))) return; // gender-only style (MEN / BOYS): needs the product match above
         const sc = st.every(w => pt.has(w)) ? st.length : (na.length >= 8 && (nb.includes(na) || na.includes(nb)) ? st.length : 0);
+        if (cands.length) return;
         if (sc > best) { best = sc; cands = [q.colour]; } else if (sc && sc === best) cands.push(q.colour);
       });
       if (c.qcs.length === 1 && serWord && tok(String(l.text || '').replace(/[()]/g, ' ')).includes(serWord)) single.push(c.qcs[0].colour);
@@ -15716,6 +15790,12 @@ function rqRowColour(r) {
     else if (single.length) single.forEach(x => pick.push(x));
   }
   return [...new Set(pick.join(', ').split(/\s*(?:,|&)\s*/).map(x => x.trim()).filter(Boolean))].join(', '); // "Dark Brown & Black" = 2 colours
+}
+function rqAccHint(r) {
+  if (!(typeof r.id === 'string' && r.id.indexOf('acc_') === 0)) return '';
+  if (rqLinksRaw(r, 'qcFg').length || rqLinksRaw(r, 'distForm').length) return '';
+  let key = ''; try { key = bqcGetApiKey(); } catch (e) {}
+  return 'Accessories links not pulled yet. ' + (accLinkNote || (key ? 'Open the Timeline tab (or press Tarik link QC) to pull them.' : 'This device has no Google API key — pull the links once on a device that has it; they sync to everyone.'));
 }
 function rqColourHint(r) {
   if (rqRowColour(r)) return '';
@@ -15732,10 +15812,14 @@ function rqColourCell(r) {
   if (a.length <= 3) return E(a.join(', '));
   return E(a.slice(0, 3).join(', ')) + ` <span class="rq-pill cond" style="padding:1px 8px;font-size:11px;cursor:help;" title="${E(a.join(', '))}">+${a.length - 3}</span>`;
 }
+// A finished-QC FG item only appears in the Bulk QC / Distribution Status tabs once the sheet has a Distribution Status or a Distribution Form link for it.
+function rqAllFgRows() { let a = []; try { a = Array.isArray(campaignAccList) ? campaignAccList : []; } catch (e) {} a.forEach(r => { if (!r.distStatus && accLinkMap[r.id] && accLinkMap[r.id].distStatus) r.distStatus = accLinkMap[r.id].distStatus; }); return (campaignTimelineList || []).concat(a); } // Finished Goods + Accessories (one list)
+function rqHasDistInfo(r) { return rqLinksRaw(r, 'distForm').length > 0; } // only items that already have a Distribution Form (complete) appear in Bulk QC / Distribution Status
 function rqDocColour() { return ''; }
 function rqColours(r) { return rqRowColour(r); }
 function rqQcPill(r) { const k = bqcStatusKey(rqFabric ? r.qcWash : r.qcFg); return k === 'pass' ? '<span class="rq-pill pass">Pass</span>' : k === 'pass-with' ? '<span class="rq-pill cond">Pass With Condition</span>' : '<span class="rq-pill fail">Fail</span>'; }
 function rqDistPill(st) { const i = Math.max(0, BQR_DIST_STATUSES.indexOf(st)); return `<span class="rq-pill s${i}">${escapeHtml(st === 'Not distributed' ? 'Not Distributed' : st)}</span>`; }
+function rqFmtAt2(v) { if (!v || !v.at) return '-'; const d = new Date(v.at); return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + '<br>' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); }
 function rqFmtAt(v) { return v && v.at ? new Date(v.at).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'; }
 function rqRenderFlat(wrap, shown, fabric) {
   const E = escapeHtml; rqFabric = !!fabric;
@@ -15755,13 +15839,13 @@ function rqRenderFlat(wrap, shown, fabric) {
   const docsOf = r => fabric ? rqLinks(r, 'qcWash') : rqLinks(r, 'qcFg').concat(rqLinks(r, 'distForm'));
   const head = fabric
     ? sortTh(rqSort, 'series', 'Series') + sortTh(rqSort, 'product', 'Product') + sortTh(rqSort, 'material', 'Material') + sortTh(rqSort, 'supplier', 'Fabric Supplier') + sortTh(rqSort, 'ctn', 'Qty (Ctn)', '', true) + sortTh(rqSort, 'meter', 'Qty (Meter)', '', true) + sortTh(rqSort, 'qc', 'QC Result (Washing)') + sortTh(rqSort, 'docs', 'Documents')
-    : sortTh(rqSort, 'series', 'Series') + sortTh(rqSort, 'product', 'Product') + sortTh(rqSort, 'boutique', 'Boutique', 'Allocation Boutique') + sortTh(rqSort, 'qc', 'QC Result') + sortTh(rqSort, 'colour', 'Colour') + sortTh(rqSort, 'dist', 'Dist. Status', 'Distribution Status') + sortTh(rqSort, 'progress', 'Progress', 'Progress Status') + sortTh(rqSort, 'updated', 'Updated', 'Last Updated') + sortTh(rqSort, 'docs', 'Docs', 'Documents');
+    : sortTh(rqSort, 'series', 'Series / Product') + sortTh(rqSort, 'boutique', 'Boutique', 'Allocation Boutique') + sortTh(rqSort, 'dist', 'Dist. Status', 'Distribution Status') + sortTh(rqSort, 'progress', 'Progress', 'Progress Status') + sortTh(rqSort, 'updated', 'Updated', 'Last Updated') + sortTh(rqSort, 'docs', 'Docs', 'Documents');
   wrap.innerHTML = `<table class="rq-flat"><thead><tr><th style="width:28px;"><input type="checkbox" id="rqCheckAll"${allOn ? ' checked' : ''}${fabric ? ' style="display:none;"' : ''}></th><th>No.</th>${head}</tr></thead><tbody>`
     + slice.map((r, i) => { const k = rqKey(r), v = bqrDistMap[bqrDistKey(r)] || {}, nd = docsOf(r).length, dt = nd ? nd + ' file' + (nd > 1 ? 's' : '') + ' &rsaquo;' : '-';
       const nw = bqrIsNew(r) ? ' <span class="bqr-new-tag">NEW</span>' : '';
       const cells = fabric
         ? `<td><b>${E(r.series || '-')}</b>${nw}</td><td>${E(r.officialProductName || '-')}</td><td>${E(r.material || '-')}</td><td>${E(r.fabricSupplier || '-')}</td><td style="text-align:right;">${formatQty(r.quantityFabricsCtn || 0)}</td><td style="text-align:right;">${formatQty(r.quantityFabricsMeter || 0)}</td><td>${rqQcPill(r)}</td><td>${dt}</td>`
-        : `<td><b>${E(r.series || '-')}</b>${nw}</td><td>${E(r.officialProductName || '-')}</td><td>${E(r.allocationBoutique || '-')}</td><td>${rqQcPill(r)}</td><td>${rqColourCell(r)}</td><td>${sheetStatusPill(r.distStatus, 'rq')}</td><td>${rqDistPill(bqrDistStatusOf(r))}</td><td>${E(rqFmtAt(v))}</td><td>${dt}</td>`;
+        : `<td class="rq-ps"><b>${E(r.series || '-')}</b>${nw}<small>${E(r.officialProductName || '-')}</small></td><td>${E(r.allocationBoutique || '-')}</td><td>${sheetStatusPill(r.distStatus, 'rq')}</td><td>${rqDistPill(bqrDistStatusOf(r))}</td><td class="rq-dt2">${rqFmtAt2(v)}</td><td><div class="rq-docs">${nd ? '<span class="rq-vbtn"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>View Files (' + nd + ')</span>' : '-'}</div></td>`;
       return `<tr data-k="${E(k)}" class="${k === rqSel ? 'sel' : ''}${bqrIsNew(r) ? ' bqr-new' : ''}"><td><input type="checkbox" class="rq-chk" data-k="${E(k)}"${rqChecked.has(k) ? ' checked' : ''}${fabric ? ' style="display:none;"' : ''}></td><td>${st + i + 1}</td>${cells}</tr>`; }).join('')
     + `</tbody></table><div class="rq-foot"><span>Showing ${list.length ? st + 1 : 0} - ${st + slice.length} of ${list.length} item(s)</span><span class="rq-pg">${pages > 1 ? Array.from({ length: pages }, (_, i) => `<button type="button" data-p="${i + 1}" class="${i + 1 === rqPage ? 'on' : ''}">${i + 1}</button>`).join('') : ''}</span></div>`;
   rqRenderDetail(list);
@@ -15811,14 +15895,13 @@ function rqRenderDetail(list) {
   }
   const k = bqrDistKey(r), v = bqrDistMap[k] || {}, cur = bqrDistStatusOf(r);
   const qc = rqLinks(r, 'qcFg'), df = rqLinks(r, 'distForm');
-  const doc = (ico, name, src, l) => { const c = rqDocColour(l.text, r.series); return `<div class="rq-doc"><div>${ico} ${name}${c ? ` <span class="rq-pill cond" style="padding:1px 8px;font-size:11px;">${E(c)}</span>` : ''}<small>${src}</small></div><a class="rq-dbtn" href="${E(l.url)}" target="_blank" rel="noopener noreferrer">Open</a></div>`; };
+  const doc = (ico, name, src, l) => { const c = rqDocColour(l.text, r.series); return `<div class="rq-doc"><div class="rq-dico">${ico}</div><div>${name}<small>${src}</small></div><a class="rq-dbtn" href="${E(l.url)}" target="_blank" rel="noopener noreferrer">Open</a></div>`; };
   el.innerHTML = `<div class="rq-dh">📋 Batch Details</div>${bulk}
     <div class="rq-dt"><b>${E(r.series || '-')}</b>${rqQcPill(r)}</div>
-    <div class="rq-dg"><div><span>Product</span>${E(r.officialProductName || '-')}</div><div><span>Batch</span>${E(r.batch || '-')}</div><div><span>Supplier</span>${E(r.supplier || '-')}</div><div><span>Allocation Boutique</span>${E(r.allocationBoutique || '-')}</div><div style="grid-column:1/-1;"><span>Colour</span>${(() => { const cl = rqRowColour(r).split(/,\s*/).filter(Boolean); return cl.length ? `<ul style="margin:4px 0 0;padding-left:18px;list-style:disc;${cl.length > 4 ? 'column-count:2;column-gap:14px;' : ''}">${cl.map(c => `<li style="margin:1px 0;break-inside:avoid;">${E(c)}</li>`).join('')}</ul>` : '-'; })()}</div><div><span>Last Updated</span>${E(rqFmtAt(v))}</div><div><span>Updated By</span>${E(v.by || '-')}</div></div>
-    <div class="rq-dbox"><h5>QC Result</h5><div class="rq-drow">${rqQcPill(r)}</div></div>
-    <div class="rq-dbox"><h5>Distribution Status</h5><div class="rq-drow">${rqDistPill(cur)}</div>${v.note ? `<div style="font-size:12px;opacity:.75;margin-top:8px;">📝 ${E(v.note)}</div>` : ''}</div>
+    <div class="rq-kv"><span>Series / Product</span><div><b>${E(r.series || '-')}</b><br>${E(r.officialProductName || '-')}</div><span>Batch</span><div>${E(r.batch || '-')}</div><span>Supplier</span><div>${E(r.supplier || '-')}</div><span>Boutique</span><div>${E(r.allocationBoutique || '-')}</div><span>Colour</span><div>${(() => { const cl = rqRowColour(r).split(/,\s*/).filter(Boolean); return cl.length ? `<ul style="${cl.length > 4 ? 'column-count:2;column-gap:30px;' : ''}">${cl.map(c => `<li style="break-inside:avoid;">${E(c)}</li>`).join('')}</ul>` : '-'; })()}</div></div>
+    <hr class="rq-hr"><div class="rq-dg"><div><span>Last Updated</span>${E(rqFmtAt(v))}</div><div><span>Updated By</span>${E(v.by || '-')}</div></div>
     <div class="rq-dh" style="margin:14px 0 4px;">📎 Related Documents</div>
-    ${rqColourHint(r) ? `<div style="font-size:11px;opacity:.6;margin-bottom:4px;">ℹ Colour: ${E(rqColourHint(r))}</div>` : ''}
+    ${rqAccHint(r) ? `<div style="font-size:11px;opacity:.7;margin-bottom:4px;">ℹ ${E(rqAccHint(r))}</div>` : ''}${rqColourHint(r) ? `<div style="font-size:11px;opacity:.6;margin-bottom:4px;">ℹ Colour: ${E(rqColourHint(r))}</div>` : ''}
     ${driveLastError ? `<div style="font-size:11px;color:#e0685c;margin-bottom:4px;">⚠ Drive folder not readable: ${E(driveLastError)}</div>` : ''}${distColourErrors() ? `<div style="font-size:11px;color:#e0685c;margin-bottom:4px;">⚠ Colour not readable from PDF: ${E(distColourErrors())}</div>` : ''}
     ${qc.map(l => doc('📄', 'QC Result / Report', E(l.text), l)).join('')}${df.map(l => doc('📑', 'Distribution Form', E(l.text), l)).join('')}${!qc.length && !df.length ? '<div style="opacity:.6;font-size:12px;padding:6px 0;">No documents linked yet.</div>' : ''}`;
 }
@@ -15826,7 +15909,7 @@ function rqRenderDetail(list) {
 // Uses the SAME BqrDistrib data as Bulk QC/Distribution Result (so both tabs always agree); only addition is an optional `note` field on the record. ----
 const DS_PAGE = 10;
 var dstPage = 1, dstSel = '', dstChecked = new Set(), dstWired = false;
-function dstAllRows() { return (campaignTimelineList || []).filter(r => ['pass', 'pass-with'].includes(bqcStatusKey(r.qcFg))); }
+function dstAllRows() { return rqAllFgRows().filter(r => ['pass', 'pass-with'].includes(bqcStatusKey(r.qcFg)) && rqHasDistInfo(r)); }
 function dstStIdx(st) { const i = BQR_DIST_STATUSES.indexOf(st); return i < 0 ? 0 : i; }
 function dstPill(st) { return `<span class="dst-pill s${dstStIdx(st)}">${escapeHtml(st === 'Not distributed' ? 'Not Distributed' : st)}</span>`; }
 function dstQcPill(r) { return bqcStatusKey(r.qcFg) === 'pass' ? '<span class="dst-pill pass">Pass</span>' : '<span class="dst-pill cond">Pass With Condition</span>'; }
@@ -15874,12 +15957,13 @@ function renderDistStatusTab() {
   if (!dstSel || !all.some(r => bqrDistKey(r) === dstSel)) dstSel = slice.length ? bqrDistKey(slice[0]) : '';
   const E = escapeHtml, start = (dstPage - 1) * DS_PAGE;
   document.getElementById('dstTableWrap').innerHTML = !list.length ? '<div class="empty-state" style="padding:18px;">No item matches.</div>'
-    : `<table><thead><tr><th style="width:30px;"><input type="checkbox" id="dstCheckAll"></th><th>No.</th>${sortTh(dstSort, 'series', 'Series')}${sortTh(dstSort, 'product', 'Product')}${sortTh(dstSort, 'boutique', 'Boutique', 'Allocation Boutique')}${sortTh(dstSort, 'qc', 'QC Status')}${sortTh(dstSort, 'dist', 'Dist. Status', 'Distribution Status')}${sortTh(dstSort, 'progress', 'Progress', 'Progress Status')}<th>Action</th></tr></thead><tbody>`
-      + slice.map((r, i) => { const k = bqrDistKey(r); return `<tr data-k="${E(k)}" class="${k === dstSel ? 'sel' : ''}"><td><input type="checkbox" class="dst-chk" data-k="${E(k)}"${dstChecked.has(k) ? ' checked' : ''}></td><td>${start + i + 1}</td><td><b>${E(r.series || '-')}</b></td><td>${E(r.officialProductName || '-')}</td><td>${E(r.allocationBoutique || '-')}</td><td>${dstQcPill(r)}</td><td>${sheetStatusPill(r.distStatus, 'dst')}</td><td>${dstPill(bqrDistStatusOf(r))}</td><td><button type="button" class="dst-upd" data-k="${E(k)}">Update</button></td></tr>`; }).join('') + '</tbody></table>';
+    : `<table><thead><tr><th style="width:30px;"><input type="checkbox" id="dstCheckAll"></th><th>No.</th>${sortTh(dstSort, 'series', 'Series / Product')}${sortTh(dstSort, 'boutique', 'Boutique', 'Allocation Boutique')}${sortTh(dstSort, 'dist', 'Dist. Status', 'Distribution Status')}${sortTh(dstSort, 'progress', 'Progress', 'Progress Status')}<th>Action</th></tr></thead><tbody>`
+      + slice.map((r, i) => { const k = bqrDistKey(r); return `<tr data-k="${E(k)}" class="${k === dstSel ? 'sel' : ''}"><td><input type="checkbox" class="dst-chk" data-k="${E(k)}"${dstChecked.has(k) ? ' checked' : ''}></td><td>${start + i + 1}</td><td><b>${E(r.series || '-')}</b><div style="opacity:.75;font-size:12px;margin-top:2px;">${E(r.officialProductName || '-')}</div></td><td>${E(r.allocationBoutique || '-')}</td><td>${sheetStatusPill(r.distStatus, 'dst')}</td><td>${dstPill(bqrDistStatusOf(r))}</td><td><button type="button" class="dst-upd" data-k="${E(k)}">Update</button></td></tr>`; }).join('') + '</tbody></table>';
   document.getElementById('dstShowing').textContent = list.length ? `Showing ${start + 1} - ${start + slice.length} of ${list.length} item(s)` : '';
   document.getElementById('dstPager').innerHTML = pages > 1 ? Array.from({ length: pages }, (_, i) => `<button type="button" data-p="${i + 1}" class="${i + 1 === dstPage ? 'on' : ''}">${i + 1}</button>`).join('') : '';
   dstRenderPanel();
 }
+(function () { const st = document.createElement('style'); st.textContent = '.dst-kv{display:grid;grid-template-columns:104px minmax(0,1fr);gap:9px 12px;margin:12px 0;font-size:13px;}.dst-kv>span{font-size:12px;opacity:.65;padding-top:1px;}.dst-kv ul{margin:0;padding-left:16px;list-style:disc;}.dst-hr{border:0;border-top:1px solid rgba(201,149,74,.28);margin:4px 0 12px;}'; document.head.appendChild(st); })();
 function dstRenderPanel() {
   const el = document.getElementById('dstPanel'), E = escapeHtml;
   const r = dstAllRows().find(x => bqrDistKey(x) === dstSel);
@@ -15887,7 +15971,8 @@ function dstRenderPanel() {
   const v = bqrDistMap[dstSel] || {}, cur = bqrDistStatusOf(r), multi = dstChecked.size > 1;
   const at = v.at ? new Date(v.at).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
   el.innerHTML = `<div class="dst-ph"><div class="dst-ico">📦</div><div style="flex:1;"><h3>${E(r.series || '-')}</h3><small>${E(r.officialProductName || '-')}</small></div>${dstQcPill(r)}</div>
-    <div class="dst-grid"><div><span>Allocation Boutique</span>${E(r.allocationBoutique || '-')}</div><div><span>Batch</span>${E(r.batch || '-')}</div><div><span>Colour</span>${E(r.color || '-')}</div><div><span>Quantity</span>${formatQty(r.quantity || 0)}</div><div><span>Last Updated</span>${E(at)}</div><div><span>Updated By</span>${E(v.by || '-')}</div></div>
+    <div class="dst-kv"><span>Batch</span><div>${E(r.batch || '-')}</div><span>Supplier</span><div>${E(r.supplier || '-')}</div><span>Boutique</span><div>${E(r.allocationBoutique || '-')}</div><span>Colour</span><div>${(() => { const cl = rqRowColour(r).split(/,\s*/).filter(Boolean); return cl.length ? `<ul style="${cl.length > 4 ? 'column-count:2;column-gap:30px;' : ''}">${cl.map(c => `<li style="break-inside:avoid;">${E(c)}</li>`).join('')}</ul>` : '-'; })()}</div></div>
+    <hr class="dst-hr"><div class="dst-grid"><div><span>Last Updated</span>${E(at)}</div><div><span>Updated By</span>${E(v.by || '-')}</div></div>
     <h4>Current Distribution Status</h4><div class="dst-cur">${dstPill(cur)}</div>
     <h4>Update Distribution Status${multi ? ` <span style="font-weight:400;opacity:.75;">— applies to ${dstChecked.size} selected items</span>` : ''}</h4>
     <select id="dstNewStatus">${BQR_DIST_STATUSES.map(o => `<option value="${E(o)}"${o === cur ? ' selected' : ''}>${E(o)}</option>`).join('')}</select>
@@ -16705,6 +16790,10 @@ function gotBatchModels() {
   const logs = gotState.filter(r => r.type === 'log');
   const recBy = new Map(), dateBy = new Map();
   logs.forEach(r => { const k = r.batchKey + '::' + r.sku; recBy.set(k, (recBy.get(k) || 0) + (Number(r.qty) || 0)); if (!dateBy.has(k) || r.date > dateBy.get(k)) dateBy.set(k, r.date); });
+  // Sheet snapshots (Oct 21, 2026): the sheet's RECEIVING figure is the physical total at the time it was last edited. When it changes, the app
+  // logs made before that edit are superseded (not added again); logs made after it count on top. changeTs = time of the last sheet edit.
+  const logsBy = new Map(); logs.forEach(r => { const k = r.batchKey + '::' + r.sku; if (!logsBy.has(k)) logsBy.set(k, []); logsBy.get(k).push(r); });
+  const snapsBy = new Map(); gotState.filter(r => r.type === 'snap').forEach(sn => { if (!snapsBy.has(sn.kk)) snapsBy.set(sn.kk, []); snapsBy.get(sn.kk).push(sn); });
   const rcBy = new Map();
   gotState.filter(r => r.type === 'putrc').forEach(r => { const k = r.batchKey + '::' + r.sku; if (!rcBy.has(k)) rcBy.set(k, new Map()); const m = rcBy.get(k); (r.rollcages || []).forEach(c => m.set(c.name, (m.get(c.name) || 0) + (Number(c.qty) || 0))); });
   const paBy = new Map();
@@ -16713,7 +16802,7 @@ function gotBatchModels() {
   const shortBy = new Map(); gotState.filter(r => r.type === 'short' && r.closed).forEach(r => shortBy.set(r.batchKey, r));
   const startBy = new Map(); gotState.filter(r => r.type === 'start' && r.on).forEach(r => startBy.set(r.batchKey, r));
   return [...map.values()].map(b => {
-    b.skus = [...b.skuMap.values()].map(k => { const kk = b.key + '::' + k.sku; k.appRec = recBy.get(kk) || 0; k.trolleys = [...(rcBy.get(kk) || new Map()).entries()]; k.sheetDone = k.sheetRec > 0 && k.sheetRec >= k.qtyOrder; k.rec = k.sheetDone ? k.sheetRec : k.sheetRec + k.appRec; k.lastDate = [dateBy.get(kk) || '', k.sheetRec > 0 ? k.sheetDate : ''].sort().pop(); k.status = k.rec <= 0 ? 'Pending' : (k.rec >= k.qtyOrder ? 'Complete' : 'Partial'); return k; });
+    b.skus = [...b.skuMap.values()].map(k => { const kk = b.key + '::' + k.sku; k.snaps = (snapsBy.get(kk) || []).slice().sort((x, y) => (x.ts || 0) - (y.ts || 0)); k.changeTs = k.snaps.filter(x => !x.base).reduce((m, x) => Math.max(m, x.ts || 0), 0); k.appRec = (logsBy.get(kk) || []).filter(r => (r.ts || 0) > k.changeTs).reduce((a, r) => a + (Number(r.qty) || 0), 0); k.trolleys = [...(rcBy.get(kk) || new Map()).entries()]; k.sheetDone = k.sheetRec > 0 && k.sheetRec >= k.qtyOrder; k.rec = k.sheetDone ? k.sheetRec : k.sheetRec + k.appRec; k.lastDate = [dateBy.get(kk) || '', k.sheetRec > 0 ? k.sheetDate : '', ...k.snaps.filter(x => !x.base).map(x => x.date || '')].sort().pop(); k.status = k.rec <= 0 ? 'Pending' : (k.rec >= k.qtyOrder ? 'Complete' : 'Partial'); return k; });
     // Close Short (batch level): every SKU still short is treated as finished — whatever hasn't arrived is written off, no per-SKU clicking.
     const sh = shortBy.get(b.key); b.shortRec = sh || null;
     b.started = startBy.get(b.key) || null;
@@ -16777,7 +16866,7 @@ function dstNotifyTick() {
     if (dstTabActive()) { navSeenSave('dstSeenV1', merge()); navBadge('distribution-status', 0); return; }
     if (!seen) { navSeenSave('dstSeenV1', cur); navBadge('distribution-status', 0); return; }
     const u = getCurrentUser(), me = u ? (u.name || u.username || '') : '';
-    const chg = k => { if (seen[k] === undefined) return true; const A = String(seen[k]).split('|'), B = cur[k].split('|'); if (A[0] !== B[0] || A[1] !== B[1]) return (bqrDistMap[k] || {}).by !== me; if (A.length < 3) return false; if ((Number(B[2]) || 0) > (Number(A[2]) || 0)) return true; return !!B[3] && B[3] !== (A[3] || ''); };
+    const chg = k => { const B = cur[k].split('|'); if (seen[k] === undefined) return (Number(B[2]) || 0) > 0 || !!B[3]; const A = String(seen[k]).split('|'); if (A.length < 3) return false; if ((Number(B[2]) || 0) > (Number(A[2]) || 0)) return true; return !!B[3] && B[3] !== (A[3] || ''); }; // only sheet Distribution Status text + more files
     const n = Object.keys(cur).filter(chg).length;
     navBadge('distribution-status', n);
   } catch (e) {}
@@ -16834,12 +16923,42 @@ function gotAsLegacy() {
     });
     orders.push({ batchNo: b.label, garmentName: b.supplier || '', orderDate: b.doDate || '', skus, closedShort: !!b.shortRec, fullyDone: !!b.fullyDone, gotStarted: !!b.started, gotSeries: [...new Set(b.skus.map(k => String(k.series || '').trim()).filter(Boolean))] });
     b.skus.forEach(k => {
-      if (k.sheetRec > 0) logs.push({ batchNo: b.label, sku: k.sku, station: 'Sheet', qty: k.sheetRec, date: [k.sheetDate, b.lastReceived, b.doDate].find(d => d && d >= '2000') || '', adjustment: false });
-      if (!k.sheetDone) gotState.filter(r => r.type === 'log' && r.batchKey === b.key && r.sku === k.sku).forEach(r => logs.push({ batchNo: b.label, sku: k.sku, station: 'App', qty: Number(r.qty) || 0, date: r.date, adjustment: false }));
+      const sn = k.snaps || [], fbDate = [k.sheetDate, b.lastReceived, b.doDate].find(d => d && d >= '2000') || '';
+      if (!sn.length) { if (k.sheetRec > 0) logs.push({ batchNo: b.label, sku: k.sku, station: 'Sheet', qty: k.sheetRec, date: fbDate, adjustment: false }); }
+      else {
+        const bs = sn.find(x => x.base); if (bs && bs.qty > 0) logs.push({ batchNo: b.label, sku: k.sku, station: 'Sheet', qty: bs.qty, date: bs.date || fbDate, adjustment: false });
+        sn.filter(x => !x.base).forEach(x => logs.push({ batchNo: b.label, sku: k.sku, station: 'Sheet', qty: x.delta, date: x.date, adjustment: x.delta <= 0 })); // sheet edit = received that day (a drop is a correction)
+      }
+      gotState.filter(r => r.type === 'log' && r.batchKey === b.key && r.sku === k.sku && (!k.sheetDone || (sn.length && (r.ts || 0) <= (k.changeTs || 0)))).forEach(r => logs.push({ batchNo: b.label, sku: k.sku, station: 'App', qty: Number(r.qty) || 0, date: r.date, adjustment: false }));
     });
   });
   return { orders, logs, rollcages: pend.length ? [{ name: '(sheet)', putawayItems: pend }] : [] };
 }
+var gotBootTs = Date.now();
+function gotSnapTick() {
+  try {
+    if (window.gotSwapActive || !gotLoaded || !gotLines.length) return;
+    if (typeof fbDb === 'undefined' || !fbDb || !SYNC_COLLECTIONS._fbListenersAttached || Date.now() - gotBootTs < 20000) return;
+    const sRec = new Map();
+    gotLines.forEach(l => { const kk = [l.source, l.doDate, l.batch, l.supplier].join('|') + '::' + l.sku, x = sRec.get(kk) || { S: 0, date: '' }; x.S += Number(l.qtyReceived) || 0; if (l.qtyReceived > 0 && l.dateRec && l.dateRec > x.date) x.date = l.dateRec; sRec.set(kk, x); });
+    const snaps = gotState.filter(r => r.type === 'snap'), now = Date.now(), today = todayStr();
+    let changed = false;
+    if (!gotState.some(r => r.id === 'snapinit')) { // first run: what the sheet already shows is the baseline (not credited to today)
+      sRec.forEach((x, kk) => { if (x.S > 0) gotState.push({ id: 'snap|' + kk + '|base', type: 'snap', kk, base: true, qty: x.S, delta: x.S, prevRec: 0, date: x.date || '', ts: 0 }); });
+      gotState.push({ id: 'snapinit', type: 'snapinit', ts: now }); changed = true;
+    } else sRec.forEach((x, kk) => {
+      if (!(x.S > 0)) return;
+      const mine = snaps.filter(sn => sn.kk === kk).sort((a, b) => (a.ts || 0) - (b.ts || 0)), last = mine[mine.length - 1], lastQty = last ? last.qty : 0;
+      if (x.S === lastQty) return;
+      const lastChangeTs = mine.filter(sn => !sn.base).reduce((m, sn) => Math.max(m, sn.ts || 0), 0);
+      const appAfter = gotState.filter(r => r.type === 'log' && (r.batchKey + '::' + r.sku) === kk && (r.ts || 0) > lastChangeTs).reduce((a, r) => a + (Number(r.qty) || 0), 0);
+      const prevRec = lastQty + appAfter;
+      gotState.push({ id: 'snap|' + kk + '|' + lastQty + '>' + x.S + '|' + today, type: 'snap', kk, qty: x.S, prevRec, delta: x.S - prevRec, date: today, ts: now }); changed = true;
+    });
+    if (changed) gotSave();
+  } catch (e) {}
+}
+setInterval(gotSnapTick, 60000); setTimeout(gotSnapTick, 25000);
 function gotWithSheetData(fn) {
   if (gotSwapDepth > 0) return fn();
   gotLoadCacheIfEmpty(); gotEnsureLoaded();
@@ -17381,7 +17500,7 @@ function renderBqrTab() {
   const field = fabric ? 'qcWash' : 'qcFg';
   const supField = fabric ? 'fabricSupplier' : 'supplier';
   const DONE = ['pass', 'pass-with', 'fail'];
-  const rows = (campaignTimelineList || []).filter(r => (!fabric || campaignTimelineFabricRowHasDetails(r) || r.material || r.fabricSupplier) && DONE.includes(bqcStatusKey(r[field])));
+  const rows = (fabric ? (campaignTimelineList || []) : rqAllFgRows()).filter(r => (!fabric || campaignTimelineFabricRowHasDetails(r) || r.material || r.fabricSupplier) && DONE.includes(bqcStatusKey(r[field])) && (fabric || rqHasDistInfo(r)));
   const fill = (id, f, allLabel) => {
     const sel = document.getElementById(id); if (!sel) return '';
     const vals = Array.from(new Set(rows.map(r => r[f]).filter(Boolean))).sort((a, b) => String(a).localeCompare(String(b)));
@@ -17414,20 +17533,21 @@ function renderBqrTab() {
   if (dg && !fabric) {
     const ICON = { 'Not distributed': '📍', 'STO Created': '📋', 'Picking / Packing': '📦', 'In Transit': '🚚', 'Distributed': '✅' };
     const totB = baseShown.length || 0;
-    dg.innerHTML = BQR_DIST_STATUSES.filter(st => st !== 'Distributed').map(st => { const n = baseShown.filter(r => bqrDistStatusOf(r) === st).length; return `<div class="rq-stage bqr-dist-card${bqrDistFilter === st ? ' on' : ''}" data-st="${st}"><div class="t"><span class="ico">${ICON[st] || ''}</span>${st === 'Not distributed' ? 'Not Distributed' : st}</div><div class="n">${n}</div><div class="p">${totB ? (n / totB * 100).toFixed(1) : '0.0'}%</div></div>`; }).join('');
+    const LGC = { 'Not distributed': '#e0524a', 'STO Created': '#c9954a', 'Picking / Packing': '#c9a45c', 'In Transit': '#7d8794', 'Distributed': '#4fc38a' };
+    dg.innerHTML = BQR_DIST_STATUSES.map(st => { const n = baseShown.filter(r => bqrDistStatusOf(r) === st).length; return `<span class="rq-lg bqr-dist-card${bqrDistFilter === st ? ' on' : ''}" data-st="${st}"><i style="background:${LGC[st] || '#999'}"></i>${st === 'Not distributed' ? 'Not Distributed' : st}<b>${n}</b></span>`; }).join('');
     dg.querySelectorAll('.bqr-dist-card').forEach(c => c.addEventListener('click', () => { bqrDistFilter = bqrDistFilter === c.dataset.st ? '' : c.dataset.st; renderBqrTab(); }));
     const dn = baseShown.filter(r => bqrDistStatusOf(r) === 'Distributed').length, dp = totB ? dn / totB * 100 : 0;
     const pb = document.getElementById('bqrProgBar'), pp = document.getElementById('bqrProgPct');
-    if (pb) pb.style.width = dp.toFixed(1) + '%'; if (pp) pp.textContent = dp.toFixed(1) + '%';
+    if (pb) pb.style.width = dp.toFixed(1) + '%'; if (pp) pp.textContent = Number(dp.toFixed(1)) + '%';
   }
   const cnt = k => shown.filter(r => bqcStatusKey(r[field]) === k).length;
   const tot = shown.length, pc = n => tot ? (n / tot * 100).toFixed(1) + '% of total' : '0.0% of total';
   const nPass = cnt('pass'), nCond = cnt('pass-with'), nFail = cnt('fail');
   const nDist = fabric ? 0 : shown.filter(r => bqrDistStatusOf(r) === 'Distributed').length;
-  const kc = (ico, cls, lbl, n, sub) => `<div class="rq-kpi"><div class="rq-ico ${cls}">${ico}</div><div><div class="rq-lbl">${lbl}</div><div class="rq-num">${n}</div><div class="rq-sub">${sub}</div></div></div>`;
+  const kc = (ico, cls, lbl, n, sub) => `<div class="rq-ks"><div class="rq-kl">${lbl}</div><div class="rq-kn ${cls}">${n}</div></div>`;
   const kg = document.getElementById('bqrKpiGrid');
   kg.classList.toggle('four', fabric);
-  kg.innerHTML = kc('📋', '', 'Total QC Done', tot, 'All categories') + kc('✔️', 'g', 'Pass', nPass, pc(nPass)) + kc('⚠️', 'a', 'Pass With Condition', nCond, pc(nCond)) + kc('✖️', 'r', 'Fail', nFail, pc(nFail)) + (fabric ? '' : kc('🚚', '', 'Distributed', nDist, pc(nDist)));
+  kg.innerHTML = kc('📋', '', 'Total Batches', tot, '') + kc('✔️', 'g', 'Pass', nPass, pc(nPass)) + kc('⚠️', 'a', 'Pass With Condition', nCond, pc(nCond)) + kc('✖️', 'r', 'Fail', nFail, pc(nFail)) + (fabric ? '' : kc('🚚', 'g', 'Distributed', nDist, pc(nDist)));
   const dw = document.getElementById('bqrDonutWrap');
   if (dw) {
     const a1 = tot ? nPass / tot * 360 : 0, a2 = a1 + (tot ? nCond / tot * 360 : 0);
@@ -20212,6 +20332,7 @@ function parseCampaignAccRows(rows, rawHeaderRows) {
     s2d: find(['shipment 2', 'delivery']), s2a: find(['shipment 2', 'arrive']),
     // Oct 18, 2026 (per Shaila): Allocation Boutique + QC Result Finish Goods (+ its link) — same columns as the Summary sheet.
     allocationBoutique: find(['allocation', 'boutique']),
+    distStatus: find(['distribution', 'status']),
     qcFg: (() => { let i = campaignTimelineFindColContainsOccurrence(headerRow, ['qc', 'finish', 'goods'], 1, ['link']); if (i === -1 && combined.length) i = campaignTimelineFindColContainsOccurrence(combined, ['qc', 'finish', 'goods'], 1, ['link']); return i; })(),
     qcFgLink: find(['qc', 'finish', 'goods', 'link']),
   };
@@ -20238,7 +20359,7 @@ function parseCampaignAccRows(rows, rawHeaderRows) {
       batch, color, supplier,
       quantity: num(row, idx.qty), totalValue: num(row, idx.totalValue),
       ship1Delivery: dt(row, idx.s1d), ship1Arrive: dt(row, idx.s1a), ship2Delivery: dt(row, idx.s2d), ship2Arrive: dt(row, idx.s2a),
-      allocationBoutique: txt(row, idx.allocationBoutique), qcFg: txt(row, idx.qcFg), qcFgLink: txt(row, idx.qcFgLink),
+      allocationBoutique: txt(row, idx.allocationBoutique), distStatus: txt(row, idx.distStatus), qcFg: txt(row, idx.qcFg), qcFgLink: txt(row, idx.qcFgLink),
     });
   }
   const seen = new Map();
@@ -20254,6 +20375,8 @@ async function campaignAccFetch() {
     const [fetched, aux] = await Promise.all([campaignTimelineFetchGvizRowsReliable(url), campaignTimelineFetchGvizRawHeaderRows(url)]);
     const rows = parseCampaignAccRows(fetched.rows, aux);
     if (!rows.length) throw new Error('No rows found in the Accessories tab.');
+    { const old = new Map((campaignAccList || []).map(x => [x.id, x])); rows.forEach(rec => { const o = old.get(rec.id); if (o) { if (o.qcFgLinks) rec.qcFgLinks = o.qcFgLinks; if (o.distFormLinks) rec.distFormLinks = o.distFormLinks; } }); } // keep links pulled with the API key (the sheet read has none)
+    { let dirty = false; rows.forEach(rec => { const m = accLinkMap[rec.id] || {}; if ((m.distStatus || '') !== (rec.distStatus || '')) { accLinkMap[rec.id] = Object.assign({}, m, { distStatus: rec.distStatus || '' }); dirty = true; try { if (fbDb) fbDb.ref('AccLinks/' + fbSafeKey(rec.id) + '/distStatus').set(rec.distStatus || '').catch(() => {}); } catch (e) {} } }); if (dirty) accLinkSave(); }
     const changed = stableStringify(rows) !== stableStringify(campaignAccList);
     if (changed) {
       campaignAccList = rows;
@@ -37777,7 +37900,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '21Oct-r361';
+const APP_BUILD_LABEL = '21Oct-r390';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
