@@ -3841,6 +3841,16 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
 #tab-distribution-status .dst-save{margin-top:auto;padding:10px;}
 #tab-distribution-status .dst-msg{min-height:0;margin-top:4px;}
 #tab-distribution-status .dst-msg{font-size:12px;margin-top:8px;min-height:16px;}
+/* Dashboard (TV layout) on a normal window / tablet (< 1500px wide): boxes reflow to the available width, nothing is clipped or stacked on top of each other.
+   Full-screen / big TV (>= 1500px) keeps the original layout untouched. */
+@media (max-width:1500px){
+  #tab-dashboard-test.active{zoom:1 !important;}
+  #dashTestWrap [style*="grid-template-columns"],#tab-dashboard [style*="grid-template-columns"]{grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;}
+  #dashTestWrap [style*="overflow:hidden"],#dashTestWrap [style*="overflow: hidden"],#tab-dashboard [style*="overflow:hidden"],#tab-dashboard [style*="overflow: hidden"]{overflow:visible !important;}
+  #dashTestWrap [style*="height:100%"],#tab-dashboard [style*="height:100%"]{height:auto !important;}
+  #dashTestWrap td,#dashTestWrap th{white-space:normal !important;}
+  #dashTestWrap .card,#dashTestWrap table{max-width:100%;}
+}
 /* Tablet landscape (1001-1400px): keep table + side panel in one row, but a slimmer panel and a compact table so nothing overlaps (Updated column hidden). */
 @media (max-width:1400px) and (min-width:1001px){
   #tab-distribution-status .dst-main{grid-template-columns:minmax(0,1fr) 310px !important;gap:10px;}
@@ -37928,7 +37938,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '22Oct-r394';
+const APP_BUILD_LABEL = '22Oct-r395';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
