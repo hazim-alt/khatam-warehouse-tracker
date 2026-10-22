@@ -16859,6 +16859,7 @@ function gotBatchModels() {
     const ap = paBy.get(b.key), appTot = b.skus.reduce((a, k) => a + k.appRec, 0), autoPut = !!(ap && ap.all && appTot > 0 && ap.qty >= appTot);
     b.putaway = (pr && pr.done) || autoPut ? 'Done' : (b.rec > 0 ? 'Pending' : null); b.putawayDate = pr && pr.done ? pr.date : (autoPut ? ap.date : '');
     if (b.sheetFinal) { b.putaway = 'Done'; b.putawayDate = b.lastReceived || ''; }
+    if (b.shortRec) { b.putaway = 'Done'; b.putawayDate = b.shortRec.date || b.lastReceived || ''; } // Close Short = batch finished, putaway counted as done (Oct 22, 2026)
     b.fullyDone = b.status === 'Complete' && b.putaway === 'Done';
     return b;
   });
@@ -37940,7 +37941,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '22Oct-r396';
+const APP_BUILD_LABEL = '22Oct-r397';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
