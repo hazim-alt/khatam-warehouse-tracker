@@ -4584,8 +4584,8 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
 
     <div id="stPrinterRow" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 0;font-size:12px;">
       <span style="color:var(--text-muted);">Cetak label guna:</span>
-      <select id="stPrinterMode" style="width:auto;"><option value="browser">Dialog print (biasa)</option><option value="rawbt">Xprinter XP-420B terus (RawBT, 70x50mm)</option></select>
-      <span id="stPrinterGapWrap" style="display:none;">Gap <input type="number" id="stPrinterGap" min="0" max="10" step="0.5" style="width:64px;"> mm</span>
+      <select id="stPrinterMode" style="width:auto;"><option value="browser">Dialog print (biasa)</option><option value="rawbt">Xprinter XP-420B terus (RawBT, 100x150mm)</option></select>
+      <span id="stPrinterGapWrap" style="display:none;">Gap <input type="number" id="stPrinterGap" min="0" max="10" step="0.5" style="width:64px;"> mm &nbsp; Putar <select id="stPrinterRot" style="width:auto;"><option value="90">90&deg; ikut jam</option><option value="270">270&deg; lawan jam</option></select></span>
       <button type="button" class="btn-ghost" id="stPrinterTest" style="display:none;">Test print</button>
     </div>
     <div class="modal-actions">
@@ -32295,14 +32295,18 @@ document.getElementById('stickerCancelBtn').addEventListener('click', closeStick
 (function () {
   const sel = document.getElementById('stPrinterMode'), gap = document.getElementById('stPrinterGap'), gw = document.getElementById('stPrinterGapWrap'), tb = document.getElementById('stPrinterTest');
   if (!sel) return;
-  const c0 = labelPrinterCfg(); sel.value = c0.mode; gap.value = c0.gap;
+  const rot = document.getElementById('stPrinterRot'), c0 = labelPrinterCfg(); sel.value = c0.mode; gap.value = c0.gap; rot.value = String(c0.rot);
+  const save = () => labelPrinterSave({ mode: sel.value, gap: Number(gap.value) || 0, rot: Number(rot.value) === 270 ? 270 : 90 });
   const sync = () => { const m = sel.value === 'rawbt'; gw.style.display = m ? '' : 'none'; tb.style.display = m ? '' : 'none'; };
   sync();
-  sel.addEventListener('change', () => { labelPrinterSave({ mode: sel.value, gap: Number(gap.value) || 0 }); sync(); });
-  gap.addEventListener('change', () => labelPrinterSave({ mode: sel.value, gap: Number(gap.value) || 0 }));
-  tb.addEventListener('click', () => {
-    labelPrinterSave({ mode: sel.value, gap: Number(gap.value) || 0 });
-    rawbtSend(tsplLabel({ sto: 'TEST1', to: 'KHATAM, PRODUCTION', from: 'KHATAM WAREHOUSE', date: formatDateLabel(todayStr()), cartonOf: '1 OF 1', method: 'Internal Transfer', cartonNo: '6', qr: 'PROD/C-1/' + yymmdd(todayStr()) + '/6' }, Number(gap.value) || 0) + '\r\n');
+  sel.addEventListener('change', () => { save(); sync(); });
+  gap.addEventListener('change', save); rot.addEventListener('change', save);
+  tb.addEventListener('click', async () => { // prints the label currently shown in this window (the preview)
+    save();
+    const live = document.getElementById('stickerLabel');
+    if (!live) { alert('Tiada label untuk diuji.'); return; }
+    try { const c = await labelNodeToCanvas(live), cfg = labelPrinterCfg(); rawbtSendBytes(canvasToTsplBitmap(c, cfg.rot, cfg.gap)); }
+    catch (err) { alert('Test gagal: ' + ((err && err.message) || err)); }
   });
 })();
 document.getElementById('stickerPrintBtn').addEventListener('click', () => {
@@ -32429,7 +32433,7 @@ function buildCartonLabelsHtml() {
 }
 // ---- Direct label printing to an Xprinter XP-420B (TSPL) on an Android tablet via the free RawBT app (Oct 22, 2026). 70 x 50 mm label, 203 dpi = 560 x 400 dots. ----
 var LBL_PRINTER_KEY = 'labelPrinterV1';
-function labelPrinterCfg() { let c = {}; try { c = JSON.parse(localStorage.getItem(LBL_PRINTER_KEY) || '{}') || {}; } catch (e) {} const g = Number(c.gap); return { mode: c.mode === 'rawbt' ? 'rawbt' : 'browser', gap: Number.isFinite(g) && c.gap !== '' && c.gap != null ? Math.max(0, Math.min(10, g)) : 2 }; }
+function labelPrinterCfg() { let c = {}; try { c = JSON.parse(localStorage.getItem(LBL_PRINTER_KEY) || '{}') || {}; } catch (e) {} const g = Number(c.gap); return { mode: c.mode === 'rawbt' ? 'rawbt' : 'browser', gap: Number.isFinite(g) && c.gap !== '' && c.gap != null ? Math.max(0, Math.min(10, g)) : 2, rot: c.rot === 270 ? 270 : 90 }; }
 function labelPrinterSave(c) { try { localStorage.setItem(LBL_PRINTER_KEY, JSON.stringify(c)); } catch (e) {} }
 function tsplClean(t) { return String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\x20-\x7E]/g, ' ').replace(/"/g, "'").replace(/\s+/g, ' ').trim().toUpperCase(); }
 function tsplWrap(t, max, lines) {
@@ -32439,7 +32443,7 @@ function tsplWrap(t, max, lines) {
   return out.slice(0, lines);
 }
 function tsplLabel(d, gap) {
-  const L = ['SIZE 70 mm,50 mm', 'GAP ' + gap + ' mm,0 mm', 'DIRECTION 1', 'REFERENCE 0,0', 'DENSITY 8', 'SPEED 4', 'CLS'];
+  const L = ['SIZE 100 mm,150 mm', 'GAP ' + gap + ' mm,0 mm', 'DIRECTION 1', 'REFERENCE 0,0', 'DENSITY 8', 'SPEED 4', 'CLS'];
   const T = (x, y, f, mx, my, txt) => L.push(`TEXT ${x},${y},"${f}",0,${mx},${my},"${tsplClean(txt)}"`);
   T(16, 8, 5, 1, 1, 'KHATAM');
   tsplWrap(tsplClean('STO ' + d.sto), 44, 2).forEach((t, i) => T(16, 60 + i * 22, 2, 1, 1, t));
@@ -32472,6 +32476,48 @@ function rawbtSend(str) {
   a.href = 'intent:base64,' + b64 + '#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;';
   document.body.appendChild(a); a.click(); a.remove();
 }
+// The label from the system is drawn as an image (150 x 100 mm = 1200 x 800 dots @203dpi), rotated 90 deg to sit on the 100 x 150 mm stock, and sent as a TSPL BITMAP — so it looks exactly like the on-screen label.
+function u8ToB64(u8) { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); }
+function rawbtSendBytes(u8) {
+  const a = document.createElement('a');
+  a.href = 'intent:base64,' + u8ToB64(u8) + '#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function labelNodeToCanvas(node) { // node: .sticker-label element (live or detached) -> Promise<canvas 1200x800>
+  return new Promise((resolve, reject) => {
+    const clone = node.cloneNode(true);
+    const liveQr = node.querySelector && node.querySelector('.sl-qr-box canvas'), cq = clone.querySelector('.sl-qr-box');
+    if (liveQr && cq) cq.innerHTML = `<img src="${liveQr.toDataURL('image/png')}" style="width:100%;height:100%;display:block;">`;
+    clone.removeAttribute('id'); clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+    const xhtml = new XMLSerializer().serializeToString(clone);
+    const W = 567, H = 378;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml"><style><![CDATA[${STICKER_PRINT_CSS}]]></style>${xhtml}</div></foreignObject></svg>`;
+    const img = new Image();
+    img.onload = () => { try { const c = document.createElement('canvas'); c.width = 1200; c.height = 800; const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 1200, 800); x.drawImage(img, 0, 0, 1200, 800); c.getContext('2d').getImageData(0, 0, 1, 1); resolve(c); } catch (e) { reject(e); } };
+    img.onerror = () => reject(new Error('label image failed'));
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  });
+}
+function canvasToTsplBitmap(c, rot, gap) {
+  const r = document.createElement('canvas'); r.width = 800; r.height = 1200; const x = r.getContext('2d');
+  x.fillStyle = '#fff'; x.fillRect(0, 0, 800, 1200);
+  if (rot === 270) { x.translate(0, 1200); x.rotate(-Math.PI / 2); } else { x.translate(800, 0); x.rotate(Math.PI / 2); }
+  x.drawImage(c, 0, 0);
+  const d = x.getImageData ? r.getContext('2d').getImageData(0, 0, 800, 1200).data : null, wb = 100, bytes = new Uint8Array(wb * 1200);
+  for (let y = 0; y < 1200; y++) for (let bx = 0; bx < wb; bx++) { let b = 0; for (let k = 0; k < 8; k++) { const i = (y * 800 + bx * 8 + k) * 4, lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]; if (lum >= 190) b |= (0x80 >> k); } bytes[y * wb + bx] = b; } // bit 1 = white (no dot), 0 = black
+  const head = new TextEncoder().encode(`SIZE 100 mm,150 mm\r\nGAP ${gap} mm,0 mm\r\nDIRECTION 1\r\nREFERENCE 0,0\r\nDENSITY 10\r\nSPEED 3\r\nCLS\r\nBITMAP 0,0,${wb},1200,0,`), tail = new TextEncoder().encode('\r\nPRINT 1,1\r\n');
+  const out = new Uint8Array(head.length + bytes.length + tail.length); out.set(head, 0); out.set(bytes, head.length); out.set(tail, head.length + bytes.length);
+  return out;
+}
+async function printLabelsRawbtImage(labelsHtml) {
+  const cfg = labelPrinterCfg(), doc = new DOMParser().parseFromString(labelsHtml, 'text/html'), nodes = [...doc.querySelectorAll('.sticker-label')];
+  if (!nodes.length) { alert('Tiada label untuk dicetak.'); return; }
+  for (let i = 0; i < nodes.length; i++) {
+    const c = await labelNodeToCanvas(nodes[i]);
+    rawbtSendBytes(canvasToTsplBitmap(c, cfg.rot, cfg.gap));
+    if (i + 1 < nodes.length) await new Promise(r => setTimeout(r, 4000)); // let the printer finish one label before the next hand-off
+  }
+}
 async function printLabelsRawbt(labelsHtml) {
   const cfg = labelPrinterCfg(), data = labelsHtmlToData(labelsHtml);
   if (!data.length) { alert('Tiada label untuk dicetak.'); return; }
@@ -32482,7 +32528,10 @@ async function printLabelsRawbt(labelsHtml) {
   }
 }
 function printLabelsFrame(labelsHtml, titleLabel) {
-  if (labelPrinterCfg().mode === 'rawbt') { printLabelsRawbt(labelsHtml); return; }
+  if (labelPrinterCfg().mode === 'rawbt') {
+    printLabelsRawbtImage(labelsHtml).catch(err => { alert('Cetak gambar gagal (' + ((err && err.message) || err) + ') — guna label teks ringkas.'); printLabelsRawbt(labelsHtml); });
+    return;
+  }
   const rec = { orderNumber: titleLabel };
 
   // Print via a hidden same-page iframe containing ONLY the label(s), styled with a
@@ -38046,7 +38095,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '22Oct-r403';
+const APP_BUILD_LABEL = '22Oct-r404';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
