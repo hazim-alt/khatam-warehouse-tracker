@@ -3846,7 +3846,8 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
 @media (max-width:1500px){
   #tab-dashboard-test.active{zoom:1 !important;}
   #dashTestWrap [style*="grid-template-columns"],#tab-dashboard [style*="grid-template-columns"]{grid-template-columns:repeat(auto-fit,minmax(280px,1fr)) !important;}
-  #dashTestWrap [style*="overflow:hidden"],#dashTestWrap [style*="overflow: hidden"],#tab-dashboard [style*="overflow:hidden"],#tab-dashboard [style*="overflow: hidden"]{overflow:visible !important;}
+  #dashTestWrap [style*="overflow:hidden"]:not([style*="text-overflow"]),#dashTestWrap [style*="overflow: hidden"]:not([style*="text-overflow"]),#tab-dashboard [style*="overflow:hidden"]:not([style*="text-overflow"]),#tab-dashboard [style*="overflow: hidden"]:not([style*="text-overflow"]){overflow:visible !important;}
+  #dashTestWrap [style*="text-overflow"],#tab-dashboard [style*="text-overflow"]{overflow:hidden !important;text-overflow:ellipsis !important;white-space:nowrap !important;}
   #dashTestWrap [style*="height:100%"],#tab-dashboard [style*="height:100%"]{height:auto !important;}
   #dashTestWrap td,#dashTestWrap th{white-space:normal !important;}
   #dashTestWrap .card,#dashTestWrap table{max-width:100%;}
@@ -31463,6 +31464,7 @@ function doGroupCardHtml(group) {
     <div class="kc-do-group-list" style="display:${expanded ? 'block' : 'none'};">
       ${recs.map(r => `<div class="kc-do-group-row"><span class="mono-name">${escapeHtml(r.orderNumber)}</span><span style="display:flex; align-items:center; gap:8px;">Qty ${formatQty(r.totalOrderQty)}<button type="button" class="kc-do-group-label" data-order="${escapeHtml(r.orderNumber)}" title="Reprint label carton STO ini" style="background:none; border:1px solid var(--gold); color:var(--gold); border-radius:3px; padding:0 6px; font-size:11px; cursor:pointer;">🏷</button>${(getCurrentUser() && getCurrentUser().isAdmin) ? `<button type="button" class="kc-do-group-remove" data-order="${escapeHtml(r.orderNumber)}" data-do="${escapeHtml(group.doNo || '')}" title="Buang STO ini daripada DO (kembali ke Packed)" style="background:none; border:1px solid var(--red); color:var(--red); border-radius:3px; padding:0 6px; font-size:11px; cursor:pointer;">✕</button>` : ''}</span></div>`).join('')}
     </div>` : ''}
+    ${(!group.doNo && (getCurrentUser() || {}).isAdmin) ? `<button type="button" class="kc-assign-do" data-group-ids='${idsJson}' style="margin-top:6px;width:100%;background:none;border:1px dashed var(--gold);color:var(--gold);border-radius:6px;padding:5px 8px;font-size:12px;cursor:pointer;">Masukkan ke DO sedia ada (admin)</button>` : ''}
     <button type="button" class="kc-do-group-btn" data-group-ids='${idsJson}'>Print DO</button>
     ${isCourier ? `<button type="button" class="kc-courier-delivered-btn" data-do="${escapeHtml(group.doNo)}" style="margin-top:6px;">✓ Mark Delivered (${escapeHtml(doRec.deliveryMethod)})</button>` : ''}
   </div>`;
@@ -31685,6 +31687,10 @@ function renderKanban() {
       e.stopPropagation();
       openDOModalForBatch(JSON.parse(btn.dataset.groupIds || '[]'));
     });
+  });
+
+  board.querySelectorAll('.kc-assign-do').forEach(btn => {
+    btn.addEventListener('click', (e) => { e.stopPropagation(); assignStosToExistingDo(JSON.parse(btn.dataset.groupIds || '[]')); });
   });
 
   board.querySelectorAll('.kc-courier-delivered-btn').forEach(btn => {
@@ -32575,6 +32581,29 @@ function findOpenDoForBoutique(boutique) {
 // without printing (so it never made it into doRecords). This is what lets a second, third,
 // etc. STO dragged to the same destination always join its sibling(s) instead of quietly
 // starting a separate DO, as long as nothing has actually gone Out of Delivery yet.
+// Admin only. Adds STO(s) that have no DO yet to a DO of the same boutique that is already printed but NOT yet Out of Delivery.
+// Once a DO is Out of Delivery / Completed (or a courier DO is Delivered) nothing can be added — those STOs get a NEW DO via Print DO.
+function assignStosToExistingDo(orderNumbers) {
+  const u = getCurrentUser(); if (!u || !u.isAdmin) { alert('Admin sahaja.'); return; }
+  const recs = (orderNumbers || []).map(on => records.find(r => r.orderNumber === on)).filter(Boolean);
+  if (!recs.length) return;
+  const boutique = recs[0].toWarehouse || '-';
+  const open = doRecords.filter(d => boutiqueMatch(d.boutique, boutique) && !isDoLockedByDispatch(d.doNo)).sort((a, b) => (b.createdDate || '').localeCompare(a.createdDate || ''));
+  if (!open.length) { alert('Tiada DO yang masih boleh ditambah untuk boutique ini (semua sudah Out of Delivery / Delivered).\nTekan Print DO untuk buat DO baru bagi STO ini.'); return; }
+  const v = prompt(`Masukkan STO ke DO yang sudah dicetak (belum Out of Delivery)\nBoutique: ${boutique}\nSTO: ${orderNumbers.join(', ')}\n\nDO yang boleh ditambah:\n${open.slice(0, 10).map(d => d.doNo).join('\n')}\n\nTaip No. DO:`);
+  if (v === null || !v.trim()) return;
+  const doRec = doRecords.find(d => String(d.doNo).toLowerCase() === v.trim().toLowerCase());
+  if (!doRec) { alert('No. DO tidak dijumpai: ' + v.trim()); return; }
+  if (!boutiqueMatch(doRec.boutique, boutique)) { alert('DO ini untuk boutique lain (' + doRec.boutique + ').'); return; }
+  if (isDoLockedByDispatch(doRec.doNo)) { alert(doRec.doNo + ' sudah Out of Delivery / Delivered — STO tidak boleh ditambah.\nTekan Print DO untuk buat DO baru.'); return; }
+  if (!confirm(`Masukkan ${recs.length} STO ke ${doRec.doNo}?\nDO ini perlu dicetak semula selepas ini.`)) return;
+  doRec.orderNumbers = [...new Set((doRec.orderNumbers || []).concat(recs.map(r => r.orderNumber)))];
+  doRec.stoSnapshot = doRec.stoSnapshot || {};
+  recs.forEach(r => { doRec.stoSnapshot[r.orderNumber] = r.cartonLock ? getCartonLockNumbers(r) : [1]; if (!r.doNo) r.doNo = doRec.doNo; });
+  saveRecords(); saveDoRecords();
+  try { autoAttachDoNosToTrips(); } catch (e) {}
+  renderAll();
+}
 function openDoBatchOrderNumbersForBoutique(boutique, mustInclude) {
   const set = new Set(mustInclude);
   records.forEach(r => {
@@ -37941,7 +37970,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '22Oct-r397';
+const APP_BUILD_LABEL = '22Oct-r401';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
