@@ -32037,7 +32037,6 @@ function buildQrText(boutique, cartonNo, totalCarton, globalCartonNo) {
 }
 const STICKER_PRINT_CSS = `
   * { box-sizing: border-box; }
-  @page { size: 150mm 100mm; margin: 0; }
   html, body { margin: 0; padding: 0; background: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; }
   .sticker-label {
     width: 150mm; height: 100mm;
@@ -32633,22 +32632,6 @@ function printLabelsFrame(labelsHtml, titleLabel) {
   if (labelPrinterCfg().mode === 'rawbt') {
     printLabelsRawbtImage(labelsHtml).catch(err => { alert('Cetak gambar gagal (' + ((err && err.message) || err) + ') — guna label teks ringkas.'); printLabelsRawbt(labelsHtml); });
     return;
-  }
-  // Several labels: one print job per label (some Android print services only print the first page of a multi-page job).
-  if (!printFrame_multiGuard) {
-    const parts = [...new DOMParser().parseFromString(labelsHtml, 'text/html').querySelectorAll('.sticker-label')].map(n => n.outerHTML);
-    if (parts.length > 1) {
-      (async () => {
-        printFrame_multiGuard = true;
-        try {
-          for (let i = 0; i < parts.length; i++) {
-            printLabelsFrame(parts[i], titleLabel);
-            if (i + 1 < parts.length) { await new Promise(r => setTimeout(r, 1500)); if (!confirm('Label ' + (i + 1) + ' / ' + parts.length + ' dihantar.\nTekan OK untuk cetak label seterusnya.')) break; }
-          }
-        } finally { printFrame_multiGuard = false; }
-      })();
-      return;
-    }
   }
   const rec = { orderNumber: titleLabel };
 
@@ -38213,7 +38196,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '23Oct-r414';
+const APP_BUILD_LABEL = '23Oct-r415';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
