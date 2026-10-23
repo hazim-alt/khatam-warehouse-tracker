@@ -8082,7 +8082,7 @@ function renderDeliveredTab() {
   // A group with no DO No. at all hasn't actually been printed yet — nothing to track here until
   // it is. It stays visible on the Progress Board's "DO Issued" column (with its own "Print DO"
   // button) same as before; it just doesn't need a row on this tab too.
-  const groups = buildDoGroupsFromShippedRecords(shippedRecords).filter(g => !!g.doNo);
+  const groups = buildDoGroupsFromShippedRecords(shippedRecords, true).filter(g => !!g.doNo);
   // A DO can outlive its own source STO record(s) in `records` — e.g. the Upload STO File flow
   // auto-removes an STO from `records` once its status there is no longer Active (see that
   // section's own note), even though the DO itself is still a live document that may still need a
@@ -8229,8 +8229,13 @@ function renderDeliveredTab() {
   wrap.querySelectorAll('.delivered-do-link').forEach(btn => {
     btn.addEventListener('click', () => {
       const doRec = doRecords.find(d => d.doNo === btn.dataset.do);
-      if (!doRec || !doRec.orderNumbers || !doRec.orderNumbers.length) { alert('Could not find this DO\'s original STO list.'); return; }
-      openDOModalForBatch(doRec.orderNumbers.slice(), doRec.doNo);
+      // DO's own list may be empty (e.g. after STOs were taken off it) — fall back to STOs whose own doNo is this DO.
+      let nums = doRec && Array.isArray(doRec.orderNumbers) ? doRec.orderNumbers.slice() : [];
+      if (doRec && !nums.length) nums = records.filter(r => r.doNo === doRec.doNo).map(r => r.orderNumber);
+      if (doRec && !nums.length) { const g = buildDoGroupsFromShippedRecords(records.filter(r => (r.progress || 'Active') === 'Shipped'), true).find(x => x.doNo === doRec.doNo); if (g) nums = g.records.map(r => r.orderNumber); }
+      if (doRec && !nums.length) { const t = doRecords.find(d => d.doNo === doRec.doNo); console.warn('DO has no STO list', t); }
+      if (!doRec || !nums.length) { alert('Could not find this DO\'s original STO list.'); return; }
+      openDOModalForBatch(nums, doRec.doNo);
     });
   });
   // Total STO -> popup listing every STO number that makes up this group's count.
@@ -8241,6 +8246,22 @@ function renderDeliveredTab() {
       // An orphaned group (its STOs already left the STO List) lists the order numbers stored on the DO itself.
       const nums = row.group.records.length ? row.group.records.map(r => r.orderNumber) : ((row.doRec && row.doRec.orderNumbers) || []);
       openStoListModal(`STO List - ${row.group.boutique}`, nums);
+      // Admin only: take an STO off this DO (e.g. it was folded in by mistake and never travelled). It goes back to "No DO yet".
+      const u = getCurrentUser(), doRec = row.doRec;
+      if (u && u.isAdmin && doRec && nums.length > 1) {
+        document.querySelectorAll('#stoListModalBody li').forEach((li, i) => {
+          const on = nums[i], b = document.createElement('button');
+          b.type = 'button'; b.className = 'btn-ghost'; b.textContent = 'Keluarkan dari DO'; b.style.cssText = 'margin-left:10px;padding:2px 8px;font-size:11px;';
+          b.addEventListener('click', () => {
+            if (!confirm(`Keluarkan STO ini dari DO ${doRec.doNo}?\n\n${on}\n\nSTO akan kembali ke "No DO yet" dan boleh dibuat DO baru.`)) return;
+            const rec = records.find(r => r.orderNumber === on);
+            if (rec) delete rec.doNo;
+            if (Array.isArray(doRec.orderNumbers)) doRec.orderNumbers = doRec.orderNumbers.filter(n => n !== on);
+            saveRecords(); saveDoRecords(); renderAll(); renderDeliveredTab(); closeStoListModal();
+          });
+          li.appendChild(b);
+        });
+      }
     });
   });
 }
@@ -31405,10 +31426,12 @@ function cardHtml(r, stage, columnKey) {
 // whatever open (not-yet-dispatched) DO its boutique already has, otherwise a synthetic per-boutique
 // key. Shared by the Progress Board's "DO Issued" column (dispatched groups filtered back out below)
 // and the Operation Fleet "Delivery Status" tab (which wants every group, dispatched or not).
-function buildDoGroupsFromShippedRecords(cards) {
+function buildDoGroupsFromShippedRecords(cards, strict) {
   const groups = [];
   const byKey = {};
   cards.forEach(r => {
+    // strict (Delivered tab): only STOs really stored on a DO count — never guess a DO from the boutique, which wrongly pulled STOs of a newer DO into an old delivered one.
+    if (strict && !r.doNo && !doRecords.some(d => Array.isArray(d.orderNumbers) && d.orderNumbers.includes(r.orderNumber))) return;
     const boutique = r.toWarehouse || '-';
     // An STO whose own doNo is empty may still be listed inside a saved DO record (doRecords[].orderNumbers) — that DO is its real DO.
     const listedDo = r.doNo ? '' : ((doRecords.find(d => Array.isArray(d.orderNumbers) && d.orderNumbers.includes(r.orderNumber)) || {}).doNo || '');
@@ -38190,7 +38213,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '23Oct-r410';
+const APP_BUILD_LABEL = '23Oct-r414';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
