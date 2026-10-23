@@ -4584,7 +4584,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
 
     <div id="stPrinterRow" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 0;font-size:12px;">
       <span style="color:var(--text-muted);">Cetak label guna:</span>
-      <select id="stPrinterMode" style="width:auto;"><option value="browser">Dialog print (biasa)</option><option value="rawbt">Xprinter XP-420B terus (RawBT, semua sekali tekan)</option></select>
+      <select id="stPrinterMode" style="width:auto;"><option value="browser">Dialog print (biasa)</option><option value="share">Kongsi gambar ke RawBT (cetak semua sekali)</option><option value="rawbt">Xprinter XP-420B terus (RawBT, semua sekali tekan)</option></select>
       <span id="stPrinterGapWrap" style="display:none;">Gap <input type="number" id="stPrinterGap" min="0" max="10" step="0.5" style="width:64px;"> mm &nbsp; Putar <select id="stPrinterRot" style="width:auto;"><option value="90">90&deg; ikut jam</option><option value="270">270&deg; lawan jam</option></select></span>
       <button type="button" class="btn-ghost" id="stPrinterTest" style="display:none;">Test print</button>
     </div>
@@ -32305,6 +32305,7 @@ document.getElementById('stickerCancelBtn').addEventListener('click', closeStick
   tb.addEventListener('click', async () => { // prints the label currently shown in this window (the preview)
     save();
     const live = document.getElementById('stickerLabel');
+    if (live && sel.value === 'share') { const w = document.createElement('div'); w.innerHTML = live.outerHTML; const cv = live.querySelector('.sl-qr-box canvas'), cq = w.querySelector('.sl-qr-box'); if (cv && cq) cq.innerHTML = '<img src="' + cv.toDataURL('image/png') + '">'; shareLabelImages(w.innerHTML).catch(err => alert('Gagal: ' + ((err && err.message) || err))); return; }
     if (!live) { alert('Tiada label untuk diuji.'); return; }
     try { const c = await labelNodeToCanvas(live), cfg = labelPrinterCfg(); rawbtSendBytes(canvasToEscposRaster(c, cfg.rot)); }
     catch (err) { alert('Test gagal: ' + ((err && err.message) || err)); }
@@ -32434,7 +32435,7 @@ function buildCartonLabelsHtml() {
 }
 // ---- Direct label printing to an Xprinter XP-420B (TSPL) on an Android tablet via the free RawBT app (Oct 22, 2026). 70 x 50 mm label, 203 dpi = 560 x 400 dots. ----
 var LBL_PRINTER_KEY = 'labelPrinterV1';
-function labelPrinterCfg() { let c = {}; try { c = JSON.parse(localStorage.getItem(LBL_PRINTER_KEY) || '{}') || {}; } catch (e) {} const g = Number(c.gap); return { mode: c.mode === 'rawbt' ? 'rawbt' : 'browser', gap: Number.isFinite(g) && c.gap !== '' && c.gap != null ? Math.max(0, Math.min(10, g)) : 2, rot: c.rot === 270 ? 270 : 90 }; }
+function labelPrinterCfg() { let c = {}; try { c = JSON.parse(localStorage.getItem(LBL_PRINTER_KEY) || '{}') || {}; } catch (e) {} const g = Number(c.gap); return { mode: c.mode === 'rawbt' ? 'rawbt' : (c.mode === 'share' ? 'share' : 'browser'), gap: Number.isFinite(g) && c.gap !== '' && c.gap != null ? Math.max(0, Math.min(10, g)) : 2, rot: c.rot === 270 ? 270 : 90 }; }
 function labelPrinterSave(c) { try { localStorage.setItem(LBL_PRINTER_KEY, JSON.stringify(c)); } catch (e) {} }
 function tsplClean(t) { return String(t == null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\x20-\x7E]/g, ' ').replace(/"/g, "'").replace(/\s+/g, ' ').trim().toUpperCase(); }
 function tsplWrap(t, max, lines) {
@@ -32566,6 +32567,25 @@ function canvasToEscposRaster(c, rot) {
   const out = new Uint8Array(parts.reduce((n, a) => n + a.length, 0)); let o = 0; parts.forEach(a => { out.set(a, o); o += a.length; });
   return out;
 }
+async function shareLabelImages(labelsHtml) {
+  const cfg = labelPrinterCfg(), doc = new DOMParser().parseFromString(labelsHtml, 'text/html'), nodes = [...doc.querySelectorAll('.sticker-label')];
+  if (!nodes.length) { alert('Tiada label untuk dicetak.'); return; }
+  const files = [];
+  for (let i = 0; i < nodes.length; i++) {
+    const c = await labelNodeToCanvas(nodes[i]), r = document.createElement('canvas'); r.width = 800; r.height = 1200; const x = r.getContext('2d');
+    x.fillStyle = '#fff'; x.fillRect(0, 0, 800, 1200);
+    if (cfg.rot === 270) { x.translate(0, 1200); x.rotate(-Math.PI / 2); } else { x.translate(800, 0); x.rotate(Math.PI / 2); }
+    x.drawImage(c, 0, 0);
+    const blob = await new Promise(res => r.toBlob(res, 'image/png'));
+    files.push(new File([blob], 'label-' + String(i + 1).padStart(2, '0') + '.png', { type: 'image/png' }));
+  }
+  if (navigator.canShare && navigator.canShare({ files })) {
+    try { await navigator.share({ files, title: 'Label' }); } catch (e) { if (e && e.name !== 'AbortError') alert('Kongsi gagal: ' + e.message); }
+  } else {
+    files.forEach((f, i) => setTimeout(() => { const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name; document.body.appendChild(a); a.click(); a.remove(); }, i * 400));
+    alert('Peranti ini tak sokong kongsi gambar. Gambar label dimuat turun — buka dalam RawBT untuk cetak.');
+  }
+}
 async function printLabelsRawbtImage(labelsHtml) {
   const cfg = labelPrinterCfg(), doc = new DOMParser().parseFromString(labelsHtml, 'text/html'), nodes = [...doc.querySelectorAll('.sticker-label')];
   if (!nodes.length) { alert('Tiada label untuk dicetak.'); return; }
@@ -32586,6 +32606,7 @@ async function printLabelsRawbt(labelsHtml) {
 }
 let printFrame_multiGuard = false;
 function printLabelsFrame(labelsHtml, titleLabel) {
+  if (labelPrinterCfg().mode === 'share') { shareLabelImages(labelsHtml).catch(err => alert('Gagal sediakan gambar label: ' + ((err && err.message) || err))); return; }
   if (labelPrinterCfg().mode === 'rawbt') {
     printLabelsRawbtImage(labelsHtml).catch(err => { alert('Cetak gambar gagal (' + ((err && err.message) || err) + ') — guna label teks ringkas.'); printLabelsRawbt(labelsHtml); });
     return;
@@ -38169,7 +38190,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '22Oct-r409';
+const APP_BUILD_LABEL = '23Oct-r410';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
