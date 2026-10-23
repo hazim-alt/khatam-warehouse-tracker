@@ -8235,7 +8235,7 @@ function renderDeliveredTab() {
       if (doRec && !nums.length) { const g = buildDoGroupsFromShippedRecords(records.filter(r => (r.progress || 'Active') === 'Shipped'), true).find(x => x.doNo === doRec.doNo); if (g) nums = g.records.map(r => r.orderNumber); }
       if (doRec && !nums.length) { const t = doRecords.find(d => d.doNo === doRec.doNo); console.warn('DO has no STO list', t); }
       if (!doRec || !nums.length) { alert('Could not find this DO\'s original STO list.'); return; }
-      openDOModalForBatch(nums, doRec.doNo);
+      try { openDOModalForBatch(nums, doRec.doNo); } catch (e) { console.error(e); alert('DO gagal dibuka: ' + e.message); }
     });
   });
   // Total STO -> popup listing every STO number that makes up this group's count.
@@ -32858,6 +32858,8 @@ function openDOModalForBatch(orderNumbers, forceDoNo) {
     existing = forcedDo;
     boutique = forcedDo.boutique || '-';
     allOrderNumbers = (forcedDo.orderNumbers || []).slice();
+    // DO's own list can be empty/outdated (STOs taken off it) — use the STOs that really carry this DO No. (view only; nothing is saved here).
+    if (!allOrderNumbers.length) allOrderNumbers = (orderNumbers && orderNumbers.length ? orderNumbers : records.filter(r => r.doNo === forcedDo.doNo).map(r => r.orderNumber)).slice();
   } else if (recs.length) {
     boutique = recs[0].toWarehouse || '-';
     allOrderNumbers = openDoBatchOrderNumbersForBoutique(boutique, orderNumbers);
@@ -32886,10 +32888,10 @@ function openDOModalForBatch(orderNumbers, forceDoNo) {
   }
 
   if (existing) {
-    const mergedOrderNumbers = Array.from(new Set([...existing.orderNumbers, ...allOrderNumbers]));
+    const mergedOrderNumbers = Array.from(new Set([...(Array.isArray(existing.orderNumbers) ? existing.orderNumbers : []), ...allOrderNumbers]));
     doCurrentBatch = { orderNumbers: mergedOrderNumbers, boutique: existing.boutique, doNo: existing.doNo };
     document.getElementById('doNo').value = existing.doNo;
-    document.getElementById('doDeliveryDate').value = existing.deliveryDate || todayStr();
+    document.getElementById('doDeliveryDate').value = existing.deliveryDate || String(existing.createdDate || '').slice(0, 10) || todayStr(); // an old DO keeps its own issue date, not today's
     document.getElementById('doDeliveryMethod').value = existing.deliveryMethod || 'Own Fleet';
     document.getElementById('doCourierTrackingNo').value = existing.courierTrackingNo || '';
   } else {
@@ -32901,10 +32903,10 @@ function openDOModalForBatch(orderNumbers, forceDoNo) {
   }
   updateDoCourierFieldVisibility();
 
-  applyDoLockUI();
-  buildDoStoPick();
-  renderDOPreview();
-  document.getElementById('doModal').classList.remove('hidden');
+  document.getElementById('doModal').classList.remove('hidden'); // show first, so a failing step below can't leave the DO unopenable
+  try { applyDoLockUI(); } catch (e) { console.error('applyDoLockUI', e); }
+  try { buildDoStoPick(); } catch (e) { console.error('buildDoStoPick', e); alert('DO dibuka, tetapi senarai STO gagal dimuat: ' + e.message); }
+  try { renderDOPreview(); } catch (e) { console.error('renderDOPreview', e); alert('DO dibuka, tetapi pratonton gagal dimuat: ' + e.message); }
 }
 // The Courier Tracking No. field only makes sense once a non-"Own Fleet" method is picked — this is
 // also the moment the Outbound team makes the "does this go via our own driver or a courier" call
@@ -38196,7 +38198,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '23Oct-r415';
+const APP_BUILD_LABEL = '23Oct-r418';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
