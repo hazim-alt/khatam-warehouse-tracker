@@ -4095,6 +4095,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
         <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
           <button type="button" class="btn-ghost" id="campaignTimelineGsheetSaveBtn">Save Links</button>
           <button type="button" class="btn-primary" id="campaignTimelineGsheetFetchBtn">Refresh from Google Sheets</button>
+          <button type="button" class="btn-ghost" onclick="showSkippedTimelineRows()">Check skipped rows</button>
         </div>
       </div>
       <div class="upload-status" id="campaignTimelineUploadStatus"></div>
@@ -13721,7 +13722,7 @@ function productionSummaryComputeKpis() {
   let projectedQty = 0, receivingQty = 0, projectedValue = 0, receivingValue = 0, rowsWithValue = 0;
   let balancePcs = 0, extraPcs = 0, balanceValue = 0, extraValue = 0;
   rows.forEach(r => {
-    projectedQty += Number(r.quantity) || 0;
+    projectedQty += (Number(r.quantity) || 0) + (Number(r.projQtyAdj) || 0);
     // Only DIRECTLY linked rows have a real, known received figure (see campaignTimelineMatchReceivingRaw
     // — fuzzy-matching an unlinked row's receiving progress was exactly the guessing Shaila asked to
     // turn off), so an unlinked row contributes its Qty to the Projected total but 0 to Receiving —
@@ -13742,7 +13743,7 @@ function productionSummaryComputeKpis() {
     // Balance/Extra — per Shaila's request (Sep 25, 2026, "match kan data nya") — summed with the EXACT
     // same row-level formulas the Timeline table's own Balance (pcs)/Balance Value/Extra Receive/Value
     // Extra columns use, so this card always agrees with what Timeline shows per row.
-    const qtyRow = Number(r.quantity) || 0;
+    const qtyRow = (Number(r.quantity) || 0) + (Number(r.projQtyAdj) || 0);
     balancePcs += Math.max(0, qtyRow - receiveFgRow);
     extraPcs += Math.max(0, receiveFgRow - qtyRow);
     if (totalValueRow) balanceValue += Math.max(0, totalValueRow - receiveValueRow);
@@ -13751,7 +13752,7 @@ function productionSummaryComputeKpis() {
   const receivingPct = projectedQty ? Math.round((receivingQty / projectedQty) * 1000) / 10 : 0;
   const balancePct = projectedQty ? Math.round((balancePcs / projectedQty) * 1000) / 10 : 0;
   let garmentQty = 0, accQty = 0;
-  rows.forEach(r => { const q = Number(r.quantity) || 0; if (productionSummaryRowType(r) === 'Accessories') accQty += q; else garmentQty += q; });
+  rows.forEach(r => { const q = (Number(r.quantity) || 0) + (Number(r.projQtyAdj) || 0); if (productionSummaryRowType(r) === 'Accessories') accQty += q; else garmentQty += q; });
   return {
     garmentQty, accQty,
     totalSeries: seriesSet.size, projectedQty, receivingQty, receivingPct, projectedValue, receivingValue, hasValue: rowsWithValue > 0,
@@ -17901,6 +17902,34 @@ function genCampaignTimelineId() { return 'ctl_' + Date.now().toString(36) + Mat
 // was re-parsed (upload OR "Refresh from Google Sheets"), silently breaking every batch.timelineIds
 // link across the whole Garment Order module on every single refresh. FNV-1a-style hash — not
 // cryptographic, just needs to be stable and cheap, which this is.
+// Diagnostic (Oct 27, 2026): rows the last sheet read skipped because Series AND Official Product Name were both blank, but that still had a Quantity.
+function showSkippedTimelineRows() {
+  const s = window.__ctSkipped;
+  if (!s || !Object.keys(s).length) { alert('No data yet. Press "Refresh from Google Sheets" first, then press this button again.'); return; }
+  let total = 0, msg = '';
+  Object.keys(s).forEach(label => {
+    const list = s[label] || [];
+    const sub = list.reduce((a, x) => a + x.qty, 0);
+    total += sub;
+    msg += '\n[' + label + '] ' + list.length + ' row(s), ' + sub.toLocaleString() + ' pcs\n' + list.slice(0, 25).map(x => '  row ' + x.sheetRow + ': ' + x.desc + (x.batch ? ' / ' + x.batch : '') + ' = ' + x.qty.toLocaleString()).join('\n') + '\n';
+  });
+  const bySeries = {};
+  (campaignTimelineList || []).forEach(r => { const k = (r.series || '-') + (r.batch ? ' [batch ' + r.batch + ']' : ''); const o = bySeries[k] || (bySeries[k] = { n: 0, q: 0 }); o.n++; o.q += Number(r.quantity) || 0; });
+  const sysTotal = Object.values(bySeries).reduce((a, o) => a + o.q, 0);
+  const d = window.__ctPatawaliDiag;
+  const patSys = (campaignTimelineList || []).filter(r => String(r.series || '').toLowerCase().indexOf('patawali') !== -1);
+  const patSysQty = patSys.reduce((a, r) => a + (Number(r.quantity) || 0), 0);
+  const dupMap = {};
+  (campaignTimelineList || []).forEach(r => { const k = [r.series, r.officialProductName, r.batch, r.color, r.supplier, r.quantity].join('|').toLowerCase(); (dupMap[k] = dupMap[k] || []).push(r); });
+  const dups = Object.keys(dupMap).filter(k => dupMap[k].length > 1);
+  msg = '\nPATAWALI in system: ' + patSys.length + ' row(s) = ' + patSysQty.toLocaleString() + ' pcs (Patawali tab TOTAL in sheet should be 236,982)\n'
+    + 'PATAWALI rows (batch | color | qty | name):\n' + patSys.map(r => '  ' + (r.batch || '-') + ' | ' + (r.color || '-') + ' | ' + (Number(r.quantity) || 0).toLocaleString() + ' | ' + (r.officialProductName || r.projectDescription || '-')).join('\n') + '\n'
+    + (dups.length ? 'POSSIBLE DUPLICATES (' + dups.length + ' group(s)):\n' + dups.slice(0, 15).map(k => '  ' + dupMap[k].length + 'x ' + (dupMap[k][0].series || '-') + ' / ' + (dupMap[k][0].officialProductName || dupMap[k][0].projectDescription || '-') + ' / batch ' + (dupMap[k][0].batch || '-') + ' / qty ' + (dupMap[k][0].quantity || 0)).join('\n') + '\n' : 'No exact duplicate rows found.\n') + msg;
+  msg +='\n--- In the system (garment Timeline rows): ' + sysTotal.toLocaleString() + ' pcs ---\n'
+    + (d ? 'Summary PATAWALI rows: ' + d.rows + ' row(s) = ' + d.sumSummary.toLocaleString() + ' pcs | Patawali tab = ' + d.sumPat.toLocaleString() + ' pcs\n' : '')
+    + Object.keys(bySeries).sort((a, b) => bySeries[b].q - bySeries[a].q).map(k => '  ' + k + ': ' + bySeries[k].n + ' row(s) = ' + bySeries[k].q.toLocaleString()).join('\n');
+  alert('Skipped rows that have a Quantity (not counted in the dashboard): ' + total.toLocaleString() + ' pcs\n(TOTAL rows in the sheet also appear here and are expected.)\n' + msg);
+}
 function campaignTimelineStableId(series, officialProductName, batch, color, supplier) {
   const key = [series, officialProductName, batch, color, supplier].map(v => String(v || '').trim().toLowerCase()).join('|');
   let h = 2166136261;
@@ -18158,7 +18187,16 @@ function parseCampaignTimelineRows(rows, sheetLabel, rawHeaderRows, deterministi
   // enough to skip over the separate "Quantity fabrics Ctn/Meter" columns, which also start with the
   // word "Quantity" but don't contain "fg"), falling back to the old plain "quantity" exact match for
   // any sheet that hasn't been renamed.
-  const quantityFgIdx = campaignTimelineFindColContains(headerRow, ['quantity', 'fg']);
+  // Oct 27, 2026: Patawali tab has plain "Quantity" (J) next to "Quantity FG Incoming pcs" (K) — the old ['quantity','fg'] match picked K (Qty
+  // was 3,289 short). Priority: "Quantity FG Order" -> plain "Quantity" -> any "Quantity FG" except Incoming/Received.
+  let quantityFgIdx = campaignTimelineFindColContains(headerRow, ['quantity', 'fg', 'order']);
+  if (quantityFgIdx === -1) quantityFgIdx = col('quantity');
+  if (quantityFgIdx === -1) {
+    quantityFgIdx = headerRow.findIndex(h => { const t = campaignTimelineNormHeader(h); return t.indexOf('quantity') !== -1 && t.indexOf('fg') !== -1 && t.indexOf('incoming') === -1 && t.indexOf('received') === -1; });
+  }
+  if (quantityFgIdx === -1) {
+    quantityFgIdx = headerRow.findIndex(h => { const t = campaignTimelineNormHeader(h); return t.indexOf('quantity') !== -1 && t.indexOf('fabric') === -1 && t.indexOf('incoming') === -1 && t.indexOf('received') === -1; });
+  }
   const idx = {
     item: col('item'), series: col('series'), category: col('category'),
     supplier: tailorSupplierIdx !== -1 ? tailorSupplierIdx : col('supplier'),
@@ -18236,12 +18274,23 @@ function parseCampaignTimelineRows(rows, sheetLabel, rawHeaderRows, deterministi
   campaignTimelineParseDiagnostics[sheetLabel] = { fabricInvoiceNumberFound: idx.fabricInvoiceNumber !== -1 };
   if (idx.series === -1) throw new Error(`This file needs a "Series" column (checked sheet "${sheetLabel}").`);
   const mapped = [];
+  if (!window.__ctSkipped) window.__ctSkipped = {};
+  window.__ctSkipped[sheetLabel] = [];
   for (let r = headerRowIdx + 1; r < rows.length; r++) {
     const row = rows[r];
     if (!row || !row.length) continue;
     const series = idx.series !== -1 ? campaignTimelineCellText(row[idx.series]) : '';
     const officialName = idx.officialProductName !== -1 ? campaignTimelineCellText(row[idx.officialProductName]) : '';
-    if (!series && !officialName) continue; // skip blank padding rows
+    if (!series && !officialName) { // skip blank padding rows (diagnostic: remember skipped rows that still carry a Quantity)
+      try {
+        const sq = idx.quantity !== -1 ? campaignTimelineCellNum(row[idx.quantity]) : 0;
+        if (sq > 0) {
+          if (!window.__ctSkipped) window.__ctSkipped = {};
+          (window.__ctSkipped[sheetLabel] = window.__ctSkipped[sheetLabel] || []).push({ sheetRow: r + 1, desc: campaignTimelineCellText(row[idx.projectDescription]) || campaignTimelineCellText(row[idx.material]) || '(no text)', batch: idx.batch !== -1 ? campaignTimelineCellText(row[idx.batch]) : '', qty: sq });
+        }
+      } catch (e) {}
+      continue;
+    }
     const releaseRaw = idx.releaseDate !== -1 ? row[idx.releaseDate] : '';
     const batchVal = idx.batch !== -1 ? campaignTimelineCellText(row[idx.batch]) : '';
     const colorVal = idx.color !== -1 ? campaignTimelineCellText(row[idx.color]) : '';
@@ -18333,7 +18382,7 @@ function parseCampaignTimelineWorkbook(wb) {
     // isn't shown twice — once sparse from Summary, once full (with the real per-material Batch) from
     // Patawali. If there's no Patawali sheet in this file, keep these as a fallback so PATAWALI data
     // doesn't just disappear.
-    if (patawaliSheetName) summaryRows = summaryRows.filter(row => campaignTimelineNormHeader(row.series) !== 'patawali');
+    if (patawaliSheetName) summaryRows = summaryRows.filter(row => campaignTimelineNormHeader(row.series).indexOf('patawali') === -1);
     mapped = mapped.concat(summaryRows);
   }
   if (patawaliSheetName) {
@@ -18660,7 +18709,7 @@ async function campaignTimelineFetchGvizRowsReliable(url) {
 function campaignTimelineIsBlankVal(v) {
   return v === undefined || v === null || v === '' || v === 0;
 }
-const campaignTimelineSheetNumKeys = new Set(['sheetReceiveFg', 'sheetReceiveValue', 'sheetVariancePcs', 'sheetVarianceValue']);
+const campaignTimelineSheetNumKeys = new Set(['sheetReceiveFg', 'sheetReceiveValue', 'sheetVariancePcs', 'sheetVarianceValue', 'projQtyAdj']);
 function campaignTimelineMergeFetchedRows(newRows, oldRows, dropMissing) {
   const oldMap = new Map(oldRows.map(r => [r.id, r]));
   const seenIds = new Set();
@@ -18766,6 +18815,7 @@ async function fetchCampaignTimelineFromGoogleSheets() {
     const errors = [];
     const infoParts = [];
     let summaryPatawaliRows = [];
+    let patawaliIdSet = null; // ids of Patawali-tab rows read in THIS refresh (null = Patawali tab not read successfully)
     if (summary) {
       try {
         let summaryRows;
@@ -18795,8 +18845,8 @@ async function fetchCampaignTimelineFromGoogleSheets() {
         // duplicate/incomplete rows alongside the real ones. If she hasn't pasted a Patawali link,
         // keep these as a fallback so PATAWALI data doesn't just disappear.
         if (patawali) {
-          summaryPatawaliRows = summaryRows.filter(row => campaignTimelineNormHeader(row.series) === 'patawali');
-          summaryRows = summaryRows.filter(row => campaignTimelineNormHeader(row.series) !== 'patawali');
+          summaryPatawaliRows = summaryRows.filter(row => campaignTimelineNormHeader(row.series).indexOf('patawali') !== -1);
+          summaryRows = summaryRows.filter(row => campaignTimelineNormHeader(row.series).indexOf('patawali') === -1);
         }
         mapped = mapped.concat(summaryRows);
         infoParts.push(`Summary tab: ${summaryRows.length} row(s)`);
@@ -18812,7 +18862,17 @@ async function fetchCampaignTimelineFromGoogleSheets() {
         const patawaliHeaderRows = patawaliFetch.headerCandidates.concat(patawaliAuxHeaderRows);
         const patawaliRowsParsed = parseCampaignTimelineRows(patawaliFetch.rows, 'Patawali', patawaliHeaderRows, patawaliAuxHeaderRows);
         campaignTimelineFillPatawaliTotalValue(patawaliRowsParsed, summaryPatawaliRows);
+        // Projected Qty follows the Summary tab (Oct 27, 2026, per Shaila "untuk projected ikut summary je"): the difference between the
+        // Summary tab's PATAWALI total and the Patawali tab's total is carried on the first Patawali row (projQtyAdj) and added in the dashboard KPIs.
+        patawaliRowsParsed.forEach(r => { r.projQtyAdj = 0; });
+        if (summaryPatawaliRows.length) {
+          const sumSummary = summaryPatawaliRows.reduce((a, r) => a + (Number(r.quantity) || 0), 0);
+          const sumPat = patawaliRowsParsed.reduce((a, r) => a + (Number(r.quantity) || 0), 0);
+          // DISABLED (r447): the Summary PATAWALI rows did not total what was expected (garment became 698,669). Kept at 0 until the real cause is confirmed.
+          window.__ctPatawaliDiag = { sumSummary, sumPat, rows: summaryPatawaliRows.length };
+        }
         mapped = mapped.concat(patawaliRowsParsed);
+        if (patawaliRowsParsed.length) patawaliIdSet = new Set(patawaliRowsParsed.map(r => r.id));
         infoParts.push(`Patawali tab: ${patawaliRowsParsed.length} row(s)`);
       }
       catch (e) { errors.push(`"Patawali" link — ${e.message}`); }
@@ -18836,6 +18896,13 @@ async function fetchCampaignTimelineFromGoogleSheets() {
     const fullFetch = !hardErrors.length && infoParts.length === expectedTabs && mapped.length > 0;
     const prevCount = campaignTimelineList.length;
     campaignTimelineList = campaignTimelineMergeFetchedRows(mapped, campaignTimelineList, fullFetch);
+    // Patawali = Patawali tab ONLY (Oct 27, 2026, per Shaila: Patawali amount was 455,059 vs 236,982 in the sheet): once the Patawali tab was read
+    // successfully, any other PATAWALI row left in the list (old rows / Summary-derived / stale copies) is removed.
+    if (patawaliIdSet) {
+      const before = campaignTimelineList.length;
+      campaignTimelineList = campaignTimelineList.filter(r => String(r.series || '').toLowerCase().indexOf('patawali') === -1 || patawaliIdSet.has(r.id));
+      if (before > campaignTimelineList.length) errors.push(`Removed ${before - campaignTimelineList.length} stale PATAWALI row(s) not in the Patawali tab`);
+    }
     if (fullFetch) {
       const ri = errors.findIndex(e => e.startsWith('Sheet returned only'));
       if (ri !== -1) errors.splice(ri, 1);
@@ -38400,7 +38467,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '26Oct-r444';
+const APP_BUILD_LABEL = '26Oct-r453';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
