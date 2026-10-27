@@ -2718,6 +2718,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
       </div>
       <div class="upload-status" id="uploadStatus"></div>
       <div class="data-note" id="lastUploadNote">No file uploaded yet.</div>
+      <div class="data-note"><button type="button" class="btn" onclick="openStorageUsage()">Storage Usage</button></div>
     </div>
 
     <p class="section-title">Add STO Manually</p>
@@ -6232,7 +6233,40 @@ function dedupeStoRecordsByOrderNumber(arr) {
 function saveRecords() {
   records = dedupeStoRecordsByOrderNumber(records);
   backfillNaturalSyncIds(records);
-  localStorage.setItem(RECORDS_KEY, JSON.stringify(records));
+  const json = JSON.stringify(records);
+  try {
+    localStorage.setItem(RECORDS_KEY, json);
+  } catch (e) {
+    // Browser storage full (Oct 27, 2026, staff upload "exceeded the quota"). Free ONLY a regenerable cache (GOT lines cache), retry once.
+    // If it still fails, throw a clear error so callers never show "Saved/Success" for data that was not stored.
+    try { localStorage.removeItem('sto_got_lines_cache_v1'); } catch (e2) {}
+    try { localStorage.setItem(RECORDS_KEY, json); }
+    catch (e3) { throw new Error('Browser storage is FULL - STO list was NOT saved. Press "Storage Usage" under Upload STO File, free up space, then upload again.'); }
+  }
+}
+// Storage Usage panel (Oct 27, 2026): shows what fills browser storage; only re-importable caches can be cleared here.
+const STORAGE_CLEARABLE = { 'sto_got_lines_cache_v1': 'GOT lines cache (reloads itself)', 'sto_price_tag_sku_reference_v1': 'SKU Reference list (re-upload file on this device if needed)' };
+function openStorageUsage() {
+  const rows = [];
+  let total = 0;
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i), len = ((localStorage.getItem(k) || '').length + k.length) * 2;
+    total += len; rows.push({ k, len });
+  }
+  rows.sort((a, b) => b.len - a.len);
+  const mb = n => (n / 1048576).toFixed(2) + ' MB';
+  let box = document.getElementById('storageUsageBox');
+  if (!box) { box = document.createElement('div'); box.id = 'storageUsageBox'; box.style.cssText = 'position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;'; document.body.appendChild(box); }
+  box.innerHTML = '<div style="background:#1e1a17;color:#eee;border-radius:10px;padding:18px;max-width:640px;width:92%;max-height:80vh;overflow:auto;font-size:13px;">'
+    + '<div style="font-weight:700;font-size:15px;margin-bottom:6px;">Storage Usage - ' + mb(total) + ' used (limit is about 5 MB)</div>'
+    + '<table style="width:100%;border-collapse:collapse;">' + rows.slice(0, 15).map(r => '<tr style="border-top:1px solid #333;"><td style="padding:4px 6px;word-break:break-all;">' + escapeHtml(r.k) + '</td><td style="padding:4px 6px;white-space:nowrap;">' + mb(r.len) + '</td><td style="padding:4px 6px;">'
+      + (STORAGE_CLEARABLE[r.k] ? '<button type="button" data-clr="' + escapeHtml(r.k) + '">Clear</button> <span style="opacity:.7">' + escapeHtml(STORAGE_CLEARABLE[r.k]) + '</span>' : '<span style="opacity:.5">protected</span>') + '</td></tr>').join('') + '</table>'
+    + '<div style="margin-top:10px;text-align:right;"><button type="button" id="storageUsageClose">Close</button></div></div>';
+  box.querySelector('#storageUsageClose').onclick = () => box.remove();
+  box.querySelectorAll('[data-clr]').forEach(b => b.onclick = () => {
+    const k = b.getAttribute('data-clr');
+    if (confirm('Clear "' + k + '" on THIS device only?')) { localStorage.removeItem(k); openStorageUsage(); }
+  });
 }
 function saveSla() { localStorage.setItem(SLA_KEY, JSON.stringify(sla)); }
 
@@ -38363,7 +38397,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '26Oct-r442';
+const APP_BUILD_LABEL = '26Oct-r443';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
