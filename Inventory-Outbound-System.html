@@ -13750,7 +13750,10 @@ function productionSummaryComputeKpis() {
   });
   const receivingPct = projectedQty ? Math.round((receivingQty / projectedQty) * 1000) / 10 : 0;
   const balancePct = projectedQty ? Math.round((balancePcs / projectedQty) * 1000) / 10 : 0;
+  let garmentQty = 0, accQty = 0;
+  rows.forEach(r => { const q = Number(r.quantity) || 0; if (productionSummaryRowType(r) === 'Accessories') accQty += q; else garmentQty += q; });
   return {
+    garmentQty, accQty,
     totalSeries: seriesSet.size, projectedQty, receivingQty, receivingPct, projectedValue, receivingValue, hasValue: rowsWithValue > 0,
     balancePcs, extraPcs, balanceValue, extraValue, balancePct,
   };
@@ -14461,7 +14464,7 @@ function renderProductionSummaryWrap() {
   const psQV = (qty, value, showValue) => `${formatQty(qty)} pcs${showValue ? `<div class="ps-kpi-val">${skuPriceFormatDisplay(value)}</div>` : ''}`;
   const kpiStrip = `<div class="ps-kpi-row">`
     + psCard(psRing(psGlyph('layers', 30)), 'TOTAL SERIES', escapeHtml(formatQty(kpis.totalSeries)), 'Series')
-    + psCard(psRing(dtIco3('clipboard', 32)), 'TOTAL PROJECTED QTY &amp; VALUE', psQV(kpis.projectedQty, kpis.projectedValue, kpis.hasValue), 'Projected Quantity &amp; Value')
+    + psCard(psRing(dtIco3('clipboard', 32)), 'TOTAL PROJECTED QTY &amp; VALUE', psQV(kpis.projectedQty, kpis.projectedValue, kpis.hasValue), 'Garment ' + formatQty(kpis.garmentQty) + ' / Accessories ' + formatQty(kpis.accQty))
     + psCard(psRing(dtIco3('shelf', 32)), 'TOTAL BALANCE QTY &amp; VALUE', psQV(kpis.balancePcs, kpis.balanceValue, kpis.hasValue), 'Balance Quantity &amp; Value')
     + psCard(psRing(psGlyph('scale', 30)), 'BALANCE %', escapeHtml(kpis.balancePct + '%'), 'Balance Percentage')
     + psCard(psRing(dtIco3('box', 32)), 'TOTAL EXTRA QTY &amp; VALUE', psQV(kpis.extraPcs, kpis.extraValue, kpis.hasValue), 'Extra Quantity &amp; Value')
@@ -38397,7 +38400,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '26Oct-r443';
+const APP_BUILD_LABEL = '26Oct-r444';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
