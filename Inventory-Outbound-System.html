@@ -2030,6 +2030,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
     <div class="nav-group" id="navGroupOutbound">
       <button class="tab-btn" data-tab="senarai">STO List</button>
       <button class="tab-btn" data-tab="papan">Progress Board</button>
+      <button class="tab-btn" data-tab="pb-new">Progress Board (Baru)</button>
       <button class="tab-btn" data-tab="delivered" data-perm="delivered-outbound">Delivery Status</button>
       <button class="tab-btn" data-tab="sla">SLA Settings</button>
     </div>
@@ -2805,6 +2806,156 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
     </div>
 
     <div class="kanban-board" id="kanbanBoard"></div>
+  </section>
+
+  <section class="tab-panel" id="tab-pb-new" data-no-rownum>
+    <style>
+      #tab-pb-new{--pbg:#d6a954;--pbg2:#b88a38;--pbline:#3c342e;--pbdeep:#120f0d;}
+      #tab-pb-new svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;vertical-align:-0.15em;flex:0 0 auto;}
+      #tab-pb-new button{font-family:inherit;}
+      /* hero */
+      #tab-pb-new .pbx-hero{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:18px 22px;margin-bottom:14px;border:1px solid #4a3d2c;border-radius:16px;background:linear-gradient(100deg,#1d1814 0%,#15110e 55%,#2a2116 100%);}
+      #tab-pb-new .pbx-title{font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:700;letter-spacing:.01em;}
+      #tab-pb-new .pbx-tag{font-size:12.5px;color:var(--text-muted);margin-top:3px;}#tab-pb-new .pbx-tag b{color:var(--pbg);font-weight:600;font-style:italic;}
+      #tab-pb-new .pbx-tools{display:flex;gap:10px;align-items:center;flex:1;justify-content:flex-end;min-width:260px;}
+      #tab-pb-new .pbx-search{display:flex;align-items:center;gap:8px;flex:1;max-width:460px;height:44px;padding:0 12px;border:1px solid #5b4a31;border-radius:12px;background:#0f0c0a;color:var(--text-muted);}
+      #tab-pb-new .pbx-search input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:14px;min-width:0;padding:0;height:100%;}
+      #tab-pb-new .pbx-search button{background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px;}
+      #tab-pb-new .pbx-btn{height:44px;padding:0 16px;border:1px solid #5b4a31;border-radius:12px;background:#0f0c0a;color:var(--text);font-size:13.5px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;}
+      #tab-pb-new .pbx-btn:hover{border-color:var(--pbg);}
+      /* kpis */
+      #tab-pb-new .pbx-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px;}
+      #tab-pb-new .pbx-kpi{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--pbline);border-radius:14px;background:var(--card);}
+      #tab-pb-new .pbx-kic{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#1a1614;background:linear-gradient(180deg,var(--pbg),var(--pbg2));flex:0 0 46px;}
+      #tab-pb-new .pbx-kic.g{background:linear-gradient(180deg,#6fcf9f,#3e9c72);}
+      /* 3D look: raised gold tile — top highlight, bottom shade, soft drop shadow, embossed glyph */
+      #tab-pb-new .pbx-kic{position:relative;border-radius:14px;width:52px;height:52px;flex:0 0 52px;font-size:25px;
+        background:radial-gradient(120% 90% at 30% 15%,#f6dca0 0%,#d6a954 45%,#9a6f25 100%);
+        box-shadow:inset 0 2px 1px rgba(255,255,255,.55),inset 0 -4px 6px rgba(80,50,8,.55),0 6px 10px rgba(0,0,0,.55),0 1px 0 rgba(255,255,255,.08);}
+      #tab-pb-new .pbx-kic.g{background:radial-gradient(120% 90% at 30% 15%,#b9f0d3 0%,#55c08c 45%,#2b7a58 100%);box-shadow:inset 0 2px 1px rgba(255,255,255,.55),inset 0 -4px 6px rgba(10,60,40,.55),0 6px 10px rgba(0,0,0,.55);}
+      #tab-pb-new .pbx-kic svg.i{stroke-width:1.9;filter:drop-shadow(0 1px 0 rgba(255,255,255,.45)) drop-shadow(0 -1px 0 rgba(60,35,5,.35));}
+      #tab-pb-new .pbx-k3d{width:58px;height:58px;flex:0 0 58px;filter:drop-shadow(0 6px 5px rgba(0,0,0,.6));}
+      #tab-pb-new .pbx-k3d svg{width:100%;height:100%;display:block;}
+      #tab-pb-new .pbx-kpi{transition:transform .15s;}#tab-pb-new .pbx-kpi:hover{transform:translateY(-1px);}
+      #tab-pb-new .pbx-kl{font-size:12px;color:var(--text-muted);}#tab-pb-new .pbx-kv{font-size:28px;font-weight:700;line-height:1.1;}
+      /* chips */
+      #tab-pb-new .pbx-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+      #tab-pb-new .pbx-chip{height:40px;padding:0 16px;border:1px solid var(--pbline);border-radius:999px;background:transparent;color:var(--text);font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;}
+      #tab-pb-new .pbx-chip small{color:var(--text-muted);font-size:12px;}
+      #tab-pb-new .pbx-chip.on{background:rgba(214,169,84,.16);border-color:var(--pbg);color:var(--pbg);}
+      /* section title */
+      #tab-pb-new .pbx-sec{display:flex;justify-content:space-between;align-items:center;margin:4px 2px 8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);}
+      /* boutique cards */
+      #tab-pb-new .pbx-cards{display:flex;gap:12px;overflow-x:auto;padding:2px 2px 12px;margin-bottom:6px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;}
+      #tab-pb-new .pbx-card{flex:0 0 220px;scroll-snap-align:start;text-align:left;padding:14px;border:1px solid var(--pbline);border-radius:14px;background:var(--card);color:var(--text);cursor:pointer;}
+      #tab-pb-new .pbx-card:hover{border-color:#8a6d36;}
+      #tab-pb-new .pbx-due{display:flex;justify-content:space-between;gap:8px;margin-top:8px;font-size:11.5px;color:var(--text-muted);}
+      #tab-pb-new .pbx-due.soon span:first-child{color:#e8b95a;font-weight:600;}#tab-pb-new .pbx-due.late span:first-child{color:#e2685f;font-weight:600;}
+      #tab-pb-new .pbx-cnt{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;margin-bottom:10px;border:1px solid var(--pbline);border-radius:14px;background:var(--card);font-size:13px;}
+      #tab-pb-new .pbx-cnt label{color:var(--text-muted);font-size:12.5px;}
+      #tab-pb-new .pbx-cnt select,#tab-pb-new .pbx-cnt input{height:42px;border-radius:10px;border:1px solid #5b4a31;background:#0f0c0a;color:var(--text);padding:0 12px;font-size:13.5px;}
+      #tab-pb-new .pbx-cnt input{width:90px;}
+      #tab-pb-new .pbx-cnt .badge{font-size:12px;}
+      #tab-pb-new .pbx-cnote{flex-basis:100%;font-size:12px;color:var(--text-muted);line-height:1.5;}
+      #tab-pb-new .pbx-card.on{border-color:var(--pbg);box-shadow:0 0 0 1px rgba(214,169,84,.45);background:linear-gradient(180deg,#221b14,#17130f);}
+      #tab-pb-new .pbx-cn{font-weight:700;font-size:13.5px;line-height:1.25;min-height:34px;}
+      #tab-pb-new .pbx-cm{display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin:8px 0 6px;}#tab-pb-new .pbx-cm b{color:var(--text);}
+      #tab-pb-new .pbx-bar{display:block;height:6px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden;}
+      #tab-pb-new .pbx-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--pbg2),var(--pbg));}
+      /* bulk bar */
+      #tab-pb-new .pbx-bulk{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;margin:6px 0 10px;border:1px solid var(--pbg2);border-radius:14px;background:linear-gradient(90deg,rgba(214,169,84,.26),rgba(214,169,84,.08));position:sticky;top:0;z-index:6;}
+      #tab-pb-new .pbx-bulk .cnt{font-weight:700;display:flex;align-items:center;gap:8px;}
+      #tab-pb-new .pbx-bulk .sub{font-size:12px;color:var(--text-muted);}
+      #tab-pb-new .pbx-act{height:42px;padding:0 16px;border-radius:10px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;border:1px solid #8a6d36;background:#14110f;color:var(--text);}
+      #tab-pb-new .pbx-act.gold{background:linear-gradient(180deg,var(--pbg),var(--pbg2));color:#1a1614;border-color:var(--pbg);font-weight:700;}
+      #tab-pb-new .pbx-act:disabled{opacity:.45;cursor:not-allowed;}
+      #tab-pb-new .pbx-more{position:relative;display:inline-block;}
+      #tab-pb-new .pbx-menu{position:absolute;right:0;top:calc(100% + 6px);min-width:220px;background:#1b1714;border:1px solid #8a6d36;border-radius:10px;padding:6px;z-index:9;box-shadow:0 8px 24px rgba(0,0,0,.5);}
+      #tab-pb-new .pbx-menu button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;color:var(--text);padding:11px 10px;font-size:13px;cursor:pointer;border-radius:7px;}
+      #tab-pb-new .pbx-menu button:hover{background:rgba(214,169,84,.15);}
+      /* table */
+      #tab-pb-new .pbx-tbl{border:1px solid var(--pbline);border-radius:14px;background:#14110f;overflow:hidden;}
+      #tab-pb-new table.pbx-t{width:100%;border-collapse:collapse;font-size:13.5px;}
+      #tab-pb-new .pbx-t th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#c9bba8;text-align:left;padding:11px 12px;background:rgba(0,0,0,.25);border-bottom:1px solid var(--pbline);}
+      #tab-pb-new .pbx-t td{padding:12px;border-bottom:1px solid #2b251f;vertical-align:middle;}
+      #tab-pb-new .pbx-t tr.gh td{background:rgba(214,169,84,.10);padding:10px 12px;border-bottom:1px solid var(--pbline);}
+      #tab-pb-new .pbx-t tr.row:hover td{background:rgba(214,169,84,.05);}
+      #tab-pb-new .pbx-t tr.sel td{background:rgba(214,169,84,.12);}
+      #tab-pb-new .pbx-t tr.cur td{box-shadow:inset 3px 0 0 var(--pbg);}
+      #tab-pb-new .pbx-t input[type=checkbox]{width:20px;height:20px;accent-color:var(--pbg);cursor:pointer;}
+      #tab-pb-new .pbx-sto{color:var(--pbg);font-weight:700;}
+      #tab-pb-new .pbx-sub{font-size:11.5px;color:var(--text-muted);}
+      #tab-pb-new .pbx-gtitle{font-weight:700;display:flex;gap:12px;align-items:center;flex-wrap:wrap;}#tab-pb-new .pbx-gtitle span{font-weight:400;font-size:12px;color:var(--text-muted);}
+      #tab-pb-new .pbx-steps{display:flex;align-items:center;gap:0;}
+      #tab-pb-new .pbx-st{width:10px;height:10px;border-radius:50%;background:#3a322b;flex:0 0 10px;}
+      #tab-pb-new .pbx-st.d{background:var(--pbg);}#tab-pb-new .pbx-st.c{background:var(--pbg);box-shadow:0 0 0 3px rgba(214,169,84,.3);}
+      #tab-pb-new .pbx-sl{width:16px;height:2px;background:#3a322b;}#tab-pb-new .pbx-sl.d{background:var(--pbg);}
+      #tab-pb-new .pbx-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap;}
+      #tab-pb-new .pbx-badge:before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor;}
+      #tab-pb-new .s-Active{background:#2e2924;color:#b9ada0;}#tab-pb-new .s-Picking{background:#4a3a14;color:#e8b95a;}
+      #tab-pb-new .s-Packing{background:#183452;color:#6fb0ff;}#tab-pb-new .s-Packed{background:#2c2347;color:#b79cf2;}#tab-pb-new .s-Shipped{background:#123a29;color:#4fd39b;}
+      #tab-pb-new .pbx-go{height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--pbg);background:rgba(214,169,84,.12);color:var(--pbg);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
+      #tab-pb-new .pbx-go:hover{background:rgba(214,169,84,.25);}
+      #tab-pb-new .pbx-go:disabled,#tab-pb-new .pbx-view:disabled{opacity:.45;cursor:not-allowed;}
+      #tab-pb-new .pbx-view{height:40px;padding:0 14px;border-radius:10px;border:1px solid #5b4a31;background:none;color:var(--text);font-size:13px;cursor:pointer;margin-left:6px;}
+      #tab-pb-new .pbx-view:hover{border-color:var(--pbg);}
+      #tab-pb-new .pbx-empty{padding:34px;text-align:center;color:var(--text-muted);}
+      #tab-pb-new .pbx-foot{padding:10px 14px;font-size:12px;color:var(--text-muted);border-top:1px solid var(--pbline);}
+      /* drawer */
+      #tab-pb-new .pbx-scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:none;}
+      #tab-pb-new .pbx-drawer{position:fixed;top:0;right:0;bottom:0;width:430px;max-width:100vw;background:linear-gradient(180deg,#1b1714,#120f0d);border-left:1px solid #4a3d2c;z-index:901;display:none;flex-direction:column;box-shadow:-12px 0 40px rgba(0,0,0,.5);}
+      #tab-pb-new .pbx-drawer.open,#tab-pb-new .pbx-scrim.open{display:flex;}
+      #tab-pb-new .pbx-scrim.open{display:block;}
+      #tab-pb-new .pbx-dh{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #4a3d2c;background:rgba(214,169,84,.08);font-weight:700;}
+      #tab-pb-new .pbx-db{padding:18px 20px 24px;overflow-y:auto;flex:1;}
+      #tab-pb-new .pbx-x{width:40px;height:40px;border:none;background:none;color:var(--text);cursor:pointer;font-size:18px;}
+      #tab-pb-new .pbx-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0;padding:12px 0;border-top:1px solid var(--pbline);border-bottom:1px solid var(--pbline);}
+      #tab-pb-new .pbx-stats span{display:block;font-size:11px;color:var(--text-muted);}#tab-pb-new .pbx-stats b{font-size:14px;}
+      #tab-pb-new .pbx-h{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin:18px 0 8px;}
+      #tab-pb-new .pbx-flow{display:flex;}
+      #tab-pb-new .pbx-fs{flex:1;text-align:center;position:relative;font-size:11px;color:var(--text-muted);}
+      #tab-pb-new .pbx-fs:before{content:'';position:absolute;top:12px;left:-50%;width:100%;height:2px;background:#3a322b;}#tab-pb-new .pbx-fs:first-child:before{display:none;}
+      #tab-pb-new .pbx-fs.d:before{background:var(--pbg);}
+      #tab-pb-new .pbx-fd{width:26px;height:26px;border-radius:50%;border:2px solid #3a322b;background:#17130f;margin:0 auto 5px;position:relative;z-index:1;display:flex;align-items:center;justify-content:center;font-size:13px;}
+      #tab-pb-new .pbx-fs.d .pbx-fd{background:var(--pbg);border-color:var(--pbg);color:#1a1614;}#tab-pb-new .pbx-fs.c .pbx-fd{border-color:var(--pbg);}
+      #tab-pb-new .pbx-fs.d,#tab-pb-new .pbx-fs.c{color:var(--text);}
+      #tab-pb-new .pbx-next{padding:14px;border:1px solid var(--pbg2);border-radius:12px;background:rgba(214,169,84,.08);}
+      #tab-pb-new .pbx-next .pbx-act{width:100%;justify-content:center;margin-top:10px;height:46px;font-size:14px;}
+      #tab-pb-new .pbx-kv2{display:grid;grid-template-columns:120px 1fr;gap:8px 12px;font-size:13.5px;}#tab-pb-new .pbx-kv2 span{color:var(--text-muted);}
+      #tab-pb-new .pbx-two{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+      #tab-pb-new .pbx-two .pbx-act{justify-content:center;height:46px;}
+      #tab-pb-new .pbx-list button{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid #2b251f;color:var(--text);padding:13px 4px;font-size:13.5px;cursor:pointer;min-height:46px;}
+      #tab-pb-new .pbx-list button:hover{background:rgba(214,169,84,.08);}#tab-pb-new .pbx-list button .ch{margin-left:auto;color:var(--text-muted);}
+      #tab-pb-new .pbx-list button:disabled{opacity:.45;cursor:not-allowed;}
+      #tab-pb-new .pbx-list button.danger{color:#e2685f;}
+      /* tablet / narrow */
+      @media (max-width:1100px){#tab-pb-new .pbx-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}#tab-pb-new .pbx-t th:nth-child(5),#tab-pb-new .pbx-t td:nth-child(5){display:none;}}
+      @media (max-width:760px){#tab-pb-new .pbx-drawer{width:100vw;}#tab-pb-new .pbx-card{flex-basis:190px;}#tab-pb-new .pbx-view{display:none;}}
+    </style>
+    <div class="pbx-hero">
+      <div><div class="pbx-title">Picking / Packing Progress Board</div><div class="pbx-tag"><b>Right Item</b> &middot; <b>Right Boutique</b> &middot; <b>On Time</b></div></div>
+      <div class="pbx-tools">
+        <div class="pbx-search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="text" id="pbSearch" placeholder="Search boutique or STO..." autocomplete="off"><button type="button" id="pbSearchClear" title="Clear"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+        <button type="button" class="pbx-btn" id="pbReset"><svg class="i" viewBox="0 0 24 24"><path d="M20 11a8 8 0 10-2.3 5.7M20 4v7h-7"/></svg>Reset</button>
+      </div>
+    </div>
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+      <linearGradient id="pbG1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbe7b0"/><stop offset=".5" stop-color="#e2b45a"/><stop offset="1" stop-color="#b98530"/></linearGradient>
+      <linearGradient id="pbG2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9a64c"/><stop offset="1" stop-color="#8a5c1c"/></linearGradient>
+      <linearGradient id="pbG3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b88530"/><stop offset="1" stop-color="#6e4612"/></linearGradient>
+      <linearGradient id="pbGr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a6efc8"/><stop offset=".55" stop-color="#45b782"/><stop offset="1" stop-color="#1f6e4c"/></linearGradient>
+      <linearGradient id="pbDk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f261d"/><stop offset="1" stop-color="#0e0b09"/></linearGradient>
+      <linearGradient id="pbGl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".38"/><stop offset="1" stop-color="#ffffff" stop-opacity=".06"/></linearGradient>
+    </defs></svg>
+    <div class="pbx-kpis" id="pbKpis"></div>
+    <div class="pbx-chips" id="pbChips"></div>
+    <div class="pbx-sec"><span>Boutique</span><span id="pbCardHint"></span></div>
+    <div class="pbx-cards" id="pbCards"></div>
+    <div id="pbCounter"></div>
+    <div id="pbBulkBar"></div>
+    <div id="pbList"></div>
+    <div class="pbx-scrim" id="pbScrim"></div>
+    <aside class="pbx-drawer" id="pbPanel"></aside>
   </section>
 
   <section class="tab-panel" id="tab-sla">
@@ -3878,6 +4029,16 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
   #tab-distribution-status #dstTableWrap table,#tab-bulk-qc-result .rq-flat{min-width:760px;}
 }
 @media (max-width:1400px){ .tab-panel .scroll-table{overflow-x:auto;-webkit-overflow-scrolling:touch;} }
+/* Laptop widths (1401-1800px): table must never spill under the side panel — contain it, slimmer panel, tighter cells. */
+@media (min-width:1401px) and (max-width:1800px){
+  #tab-bulk-qc-result .rq-body{grid-template-columns:minmax(0,1fr) 340px;}
+  #tab-distribution-status .dst-main{grid-template-columns:minmax(0,1fr) 340px;}
+  #tab-bulk-qc-result .rq-body>*,#tab-distribution-status .dst-main>*{min-width:0;}
+  #tab-bulk-qc-result #bqrWrap,#tab-distribution-status #dstTableWrap{overflow-x:auto;}
+  #tab-bulk-qc-result .rq-flat,#tab-distribution-status #dstTableWrap table{min-width:0;font-size:12.5px;}
+  #tab-bulk-qc-result .rq-flat th,#tab-bulk-qc-result .rq-flat td,#tab-distribution-status #dstTableWrap th,#tab-distribution-status #dstTableWrap td{padding:9px 7px;}
+  #tab-bulk-qc-result .rq-flat .rq-vbtn{padding:5px 9px;font-size:11.5px;}
+}
 @media (max-width:1100px){#tab-distribution-status .dst-kpis{grid-template-columns:repeat(2,1fr);}#tab-distribution-status .dst-main{grid-template-columns:1fr;}}
 </style>
     <div class="dst-kpis" id="dstKpis"></div>
@@ -6782,6 +6943,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'team-printers') renderPriceTagPrintersList();
     if (btn.dataset.tab === 'team-suppliers') renderProductionSummarySupplierTab();
     if (btn.dataset.tab === 'papan') renderKanban();
+    if (btn.dataset.tab === 'pb-new' && typeof pbRender === 'function') pbRender();
     if (btn.dataset.tab === 'delivered') renderDeliveredTab();
     if (btn.dataset.tab === 'sla') renderSlaTab();
     if (btn.dataset.tab === 'inbound-garment') renderGarmentOrderTab();
@@ -32832,6 +32994,8 @@ function assignStosToExistingDo(orderNumbers) {
 }
 function openDoBatchOrderNumbersForBoutique(boutique, mustInclude) {
   const set = new Set(mustInclude);
+  // Progress Board (Baru): a DO is made from the STOs that were ticked / chosen there ONLY — unticked siblings are not folded in.
+  if (window.__doStrictIds && mustInclude.length && mustInclude.every(id => window.__doStrictIds.has(id))) return [...set];
   records.forEach(r => {
     if (r.progress !== 'Shipped') return;
     if (!boutiqueMatch(r.toWarehouse || '-', boutique)) return;
@@ -32920,6 +33084,7 @@ function closeDOModal() {
   document.getElementById('doModal').classList.add('hidden');
   doCurrentBatch = null;
   try { renderDeliveredTab(); } catch (e) {} // re-evaluate the Total STO link colour after anything was fixed in the DO
+  if (!doModalQueue.length) window.__doStrictIds = null;
   if (doModalQueue.length) {
     const next = doModalQueue.shift();
     openDOModalForBatch(next);
@@ -38198,7 +38363,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '23Oct-r418';
+const APP_BUILD_LABEL = '26Oct-r442';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
@@ -38251,6 +38416,457 @@ try {
     });
   }, 3000);
 } catch (e) { console.warn('version watch failed', e); }
+</script>
+<script>
+/* ==================== Progress Board (Baru) — Smart Boutique Workflow ====================
+   Same data (records, doRecords) and the SAME actions as the old Progress Board (move stage, picker, station, rollcage,
+   carton label, DO, label list). It only draws them differently. Bulk Activities re-use the old board's own bulk handlers,
+   so carton numbering / DO numbering / stage rules are unchanged. */
+(function () {
+  const FLOW = ['Active', 'Picking', 'Packing', 'Packed', 'Shipped'];
+  const st = { b: null, status: '', search: '', sel: null, busy: false, moreOpen: false };
+  const $ = id => document.getElementById(id);
+  const stageOf = r => r.progress || 'Active';
+  const lbl = s => s === 'Active' ? 'Active' : (typeof progressLabel === 'function' ? progressLabel(s) : s);
+  const admin = () => { const u = getCurrentUser(); return !!(u && u.isAdmin); };
+  const bname = r => r.toWarehouse || '-';
+  const short = n => String(n).replace(/^khatam\s+boutique\s*,?\s*/i, '') || String(n); // display only: drop the "Khatam Boutique," prefix
+  const recOf = on => records.find(x => x.orderNumber === on);
+  const codeOf = n => (typeof butikCodeFor === 'function' ? (butikCodeFor(n) || '') : '');
+  const P = {
+    search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>', store: '<path d="M4 9l1-5h14l1 5M4 9v11h16V9M4 9h16M9 20v-6h6v6"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>', check: '<path d="M5 12.5l4.5 4.5L19 7"/>', ccheck: '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/>',
+    hour: '<path d="M7 3h10M7 21h10M8 3c0 5 4 5 4 9s-4 4-4 9M16 3c0 5-4 5-4 9s4 4 4 9"/>', print: '<path d="M7 9V3h10v6M7 17H5a2 2 0 01-2-2v-5a2 2 0 012-2h14a2 2 0 012 2v5a2 2 0 01-2 2h-2M7 14h10v7H7z"/>',
+    doc: '<path d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6"/>', refresh: '<path d="M20 11a8 8 0 10-2.3 5.7M20 4v7h-7"/>',
+    more: '<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>', chev: '<path d="M9 6l6 6-6 6"/>',
+    x: '<path d="M6 6l12 12M18 6L6 18"/>', dl: '<path d="M12 4v11M7 11l5 5 5-5M5 20h14"/>', box: '<path d="M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10"/>',
+    eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>', arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>', back: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
+    user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>', pin: '<path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+    link: '<path d="M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"/>', cart: '<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M3 4h3l2.5 11h10l2-8H7"/>',
+    bolt: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>', warn: '<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/>'
+  };
+  const ic = n => `<svg class="i" viewBox="0 0 24 24">${P[n] || ''}</svg>`;
+  // Detailed gold/charcoal 3D-style icons for the four summary cards (inline SVG, gradients defined once in the tab markup).
+  const K3 = {
+    box: '<svg viewBox="0 0 48 48"><polygon points="24,5 41,13.5 24,22 7,13.5" fill="url(#pbG1)"/><polygon points="7,13.5 24,22 24,42 7,33" fill="url(#pbG3)"/><polygon points="24,22 41,13.5 41,33 24,42" fill="url(#pbG2)"/><polygon points="15.5,9.3 32.5,17.8 28.5,19.8 11.5,11.3" fill="#fff" opacity=".3"/><polygon points="24,22 28.5,19.8 28.5,39.8 24,42" fill="#fff" opacity=".14"/><polygon points="24,5 41,13.5 24,22 7,13.5" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width=".8"/></svg>',
+    clock: '<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="url(#pbG3)"/><circle cx="24" cy="24" r="18" fill="url(#pbG1)"/><circle cx="24" cy="24" r="14.5" fill="url(#pbDk)"/><path d="M24 12.5v3M24 32.5v3M12.5 24h3M32.5 24h3" stroke="#e8bc66" stroke-width="1.6" stroke-linecap="round"/><path d="M24 24V16" stroke="#f6dca0" stroke-width="2.4" stroke-linecap="round"/><path d="M24 24l6.2 3.8" stroke="#e2b45a" stroke-width="2.4" stroke-linecap="round"/><circle cx="24" cy="24" r="2" fill="#f6dca0"/><path d="M9.5 17.5a17 17 0 0 1 12-9" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    ok: '<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="url(#pbGr)"/><circle cx="24" cy="24" r="20" fill="none" stroke="#d8ffe9" stroke-opacity=".6" stroke-width="1"/><ellipse cx="24" cy="14" rx="13" ry="7" fill="#fff" opacity=".2"/><path d="M14.5 24.5l6.5 6.5 12.5-13.5" fill="none" stroke="#06361f" stroke-opacity=".35" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 1.2)"/><path d="M14.5 24.5l6.5 6.5 12.5-13.5" fill="none" stroke="#fff" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    hour: '<svg viewBox="0 0 48 48"><rect x="9" y="4" width="30" height="5" rx="2.2" fill="url(#pbG1)"/><rect x="9" y="39" width="30" height="5" rx="2.2" fill="url(#pbG3)"/><path d="M13 9h22c0 8-7 9.6-7 15s7 7 7 15H13c0-8 7-9.6 7-15S13 17 13 9z" fill="url(#pbGl)" stroke="#e8bc66" stroke-width="1"/><path d="M16 11h16c-.6 4.2-5 5.8-5 9.5h-6c0-3.7-4.4-5.3-5-9.5z" fill="url(#pbG2)"/><path d="M17.5 38c1.4-4.2 4-6.4 6.5-6.4s5.1 2.2 6.5 6.4z" fill="url(#pbG1)"/><path d="M24 21v10" stroke="#e2b45a" stroke-width="1.2"/><path d="M16 12c1 4 4 5 4 9" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="1.2" stroke-linecap="round"/></svg>'
+  };
+  // EXACTLY the STOs the old Progress Board shows: DO Issued ones go through the old board's own DO grouping, so an STO whose DO already went out
+  // (Out of Delivery / Delivered) — even if only the DO record lists it — is not counted. Cached for the current tick so a render stays consistent and fast.
+  let _bc = null;
+  function boardRecords() {
+    if (_bc) return _bc;
+    const live = records.filter(r => !senaraiIsExcludedBoutique(r.toWarehouse));
+    const shipped = live.filter(r => stageOf(r) === 'Shipped');
+    const keep = new Set();
+    try { buildDoGroupsForShippedCards(shipped).forEach(g => g.records.forEach(r => keep.add(r.orderNumber))); } catch (e) { shipped.forEach(r => { if (!(r.doNo && isDoLockedByDispatch(r.doNo))) keep.add(r.orderNumber); }); }
+    _bc = live.filter(r => stageOf(r) !== 'Shipped' || keep.has(r.orderNumber));
+    setTimeout(() => { _bc = null; }, 0);
+    return _bc;
+  }
+  function updatedOf(r) { return r.packingCompletedDate || r.pickingCompletedDate || r.packingStationDate || r.createdDate || ''; }
+  function textMatch(r) {
+    const q = st.search.trim().toLowerCase();
+    return !q || (r.orderNumber || '').toLowerCase().includes(q) || bname(r).toLowerCase().includes(q) || String(codeOf(r.toWarehouse)).toLowerCase().includes(q);
+  }
+  function selectedIds() { const ok = new Set(boardRecords().map(r => r.orderNumber)); return [...selectedCartons].filter(id => ok.has(id)); }
+  function dropStaleSelection() { const ok = new Set(boardRecords().map(r => r.orderNumber)); [...selectedCartons].forEach(id => { if (!ok.has(id)) selectedCartons.delete(id); }); }
+  // The old board's bulk buttons are DISABLED while its own toolbar thinks nothing is ticked, and a disabled button ignores .click() — refresh it first.
+  function trig(id) { try { updateBulkToolbar(); } catch (e) {} const b = document.getElementById(id); if (b) { b.disabled = false; b.click(); } }
+  // What the primary "next step" button does for each real status (uses the old board's own stage-move rules).
+  const NEXT = { Active: ['Picking', 'Start Picking'], Picking: ['Packing', 'Finish Picking'], Packing: ['Packed', 'Mark as Packed'], Packed: ['Shipped', 'Issue DO'], Shipped: [null, 'Print DO'] };
+  /* ---------- top: kpis, chips, boutique cards ---------- */
+  function renderKpis(all) {
+    const n = s => all.filter(r => stageOf(r) === s).length;
+    $('pbKpis').innerHTML = `
+      <div class="pbx-kpi"><div class="pbx-k3d">${K3.box}</div><div><div class="pbx-kl">Total STO</div><div class="pbx-kv">${all.length}</div></div></div>
+      <div class="pbx-kpi"><div class="pbx-k3d">${K3.clock}</div><div><div class="pbx-kl">In Progress</div><div class="pbx-kv">${n('Picking') + n('Packing') + n('Packed')}</div></div></div>
+      <div class="pbx-kpi"><div class="pbx-k3d">${K3.ok}</div><div><div class="pbx-kl">Completed (DO Issued)</div><div class="pbx-kv">${n('Shipped')}</div></div></div>
+      <div class="pbx-kpi"><div class="pbx-k3d">${K3.hour}</div><div><div class="pbx-kl">Pending (Active)</div><div class="pbx-kv">${n('Active')}</div></div></div>`;
+  }
+  function renderChips(base) {
+    const n = s => base.filter(r => stageOf(r) === s).length;
+    const items = [['', 'All', base.length], ['Active', 'Active', n('Active')], ['Picking', 'Picking', n('Picking')], ['Packing', 'Packing', n('Packing')], ['Packed', 'Packed', n('Packed')], ['Shipped', 'DO Issued', n('Shipped')]];
+    $('pbChips').innerHTML = items.map(([v, t, c]) => `<button type="button" class="pbx-chip${st.status === v ? ' on' : ''}" data-chip="${v}">${t}<small>${c}</small></button>`).join('');
+  }
+  function groupsOf(list) { const g = {}; list.forEach(r => { (g[bname(r)] = g[bname(r)] || []).push(r); }); return g; }
+  // Boutique order follows the existing boutique schedule (SLA Settings): the boutique whose unfinished STOs are due soonest comes first.
+  const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  function dueInfo(name) {
+    const pend = boardRecords().filter(r => bname(r) === name && stageOf(r) !== 'Shipped');
+    const dues = pend.map(r => { try { return computeDueDate(r); } catch (e) { return null; } }).filter(Boolean).sort();
+    let sched = ''; try { const d = sla.scheduleByButik[name]; if (d && d.length) sched = [...d].sort((a, b) => a - b).map(x => DOW[x]).join(', '); } catch (e) {}
+    if (!dues.length) return { name, due: null, diff: Infinity, cls: '', sched, text: pend.length ? 'No due date' : 'All DO Issued' };
+    const due = dues[0], diff = daysDiffFromToday(due);
+    const cls = diff < 0 ? 'late' : diff <= 2 ? 'soon' : '';
+    const when = diff < 0 ? `Late ${-diff}d` : diff === 0 ? 'Due today' : diff === 1 ? 'Due tomorrow' : `Due ${formatDateLabel(due)}`;
+    return { name, due, diff, cls, sched, text: when };
+  }
+  function orderNames(names) {
+    const info = {}; names.forEach(n => { info[n] = dueInfo(n); });
+    return { names: names.slice().sort((a, b) => (info[a].diff - info[b].diff) || a.localeCompare(b)), info };
+  }
+  function renderCards(base) {
+    const g = groupsOf(base), ord = orderNames(Object.keys(g)), names = ord.names;
+    if (st.b === null && names.length) st.b = names[0];
+    if (st.b !== '*' && st.b && !g[st.b]) st.b = names[0] || null;
+    const tot = base.length, doneAll = base.filter(r => stageOf(r) === 'Shipped').length;
+    const card = (key, title, rs) => {
+      const di = ord.info[key];
+      const done = rs.filter(r => stageOf(r) === 'Shipped').length, prog = rs.filter(r => ['Picking', 'Packing', 'Packed'].includes(stageOf(r))).length;
+      return `<button type="button" class="pbx-card${st.b === key ? ' on' : ''}" data-b="${escapeHtml(key)}"><div class="pbx-cn">${escapeHtml(title)}</div>
+        <div class="pbx-cm"><span><b>${rs.length}</b> STO</span><span>${prog} in progress</span><span>${done} done</span></div>
+        <span class="pbx-bar"><i style="width:${rs.length ? Math.round(done / rs.length * 100) : 0}%"></i></span>
+        ${di ? `<div class="pbx-due ${di.cls}"><span>${escapeHtml(di.text)}</span>${di.sched ? `<span>${escapeHtml(di.sched)}</span>` : ''}</div>` : ''}</button>`;
+    };
+    $('pbCards').innerHTML = names.length ? card('*', 'All Boutiques', base) + names.map(nm => card(nm, short(nm), g[nm])).join('') : '<div class="pbx-empty">No STOs.</div>';
+    $('pbCardHint').textContent = names.length + ' boutique';
+  }
+  /* ---------- STO table ---------- */
+  function flowDots(s) {
+    const k = FLOW.indexOf(s);
+    return `<span class="pbx-steps">${FLOW.map((x, i) => `${i ? `<span class="pbx-sl${i <= k ? ' d' : ''}"></span>` : ''}<span class="pbx-st${i < k ? ' d' : i === k ? ' c' : ''}" title="${escapeHtml(lbl(x))}"></span>`).join('')}</span>`;
+  }
+  function rowActionBtn(r) {
+    const s = stageOf(r), [target, text] = NEXT[s] || [];
+    const d = st.busy ? ' disabled' : '';
+    if (s === 'Shipped') return `<button type="button" class="pbx-go" data-go="${escapeHtml(r.orderNumber)}" data-from="${s}"${d}>${text}</button>`;
+    return target ? `<button type="button" class="pbx-go" data-go="${escapeHtml(r.orderNumber)}" data-from="${s}"${d}>${text}</button>` : '';
+  }
+  function renderTable(base) {
+    let list = base.filter(r => !st.status || stageOf(r) === st.status);
+    if (st.b && st.b !== '*') list = list.filter(r => bname(r) === st.b);
+    const g = groupsOf(list), names = orderNames(Object.keys(g)).names;
+    if (!names.length) { $('pbList').innerHTML = `<div class="pbx-tbl"><div class="pbx-empty">No STOs to show.${st.status || st.search ? ' Try changing the filter or press Reset.' : ''}</div></div>`; return; }
+    const showB = st.b === '*';
+    // Rollcage / Packing Station columns only matter once STOs are at Packing or Packed — shown whenever such STOs are on screen.
+    const showPack = list.some(r => ['Packing', 'Packed'].includes(stageOf(r)));
+    let html = '';
+    names.forEach(nm => {
+      const rs = g[nm].sort((a, b) => String(a.orderNumber).localeCompare(String(b.orderNumber))), all = boardRecords().filter(r => bname(r) === nm);
+      const n = s => all.filter(r => stageOf(r) === s).length, ticked = rs.every(r => selectedCartons.has(r.orderNumber));
+      html += `<tr class="gh"><td><input type="checkbox" class="pbx-gck" data-g="${escapeHtml(nm)}"${ticked ? ' checked' : ''} title="Select all STOs of this boutique"></td><td colspan="${showPack ? 8 : 6}"><div class="pbx-gtitle">${escapeHtml(short(nm))}<span>${all.length} STO &middot; ${n('Picking') + n('Packing') + n('Packed')} in progress &middot; ${n('Shipped')} completed</span></div></td></tr>`;
+      rs.forEach(r => {
+        const s = stageOf(r), nc = r.cartonLock ? getCartonLockNumbers(r).length : 0, on = escapeHtml(r.orderNumber), sel = selectedCartons.has(r.orderNumber);
+        html += `<tr class="row${sel ? ' sel' : ''}${st.sel === r.orderNumber ? ' cur' : ''}">
+          <td style="width:44px;"><input type="checkbox" class="pbx-ck" data-on="${on}"${sel ? ' checked' : ''}></td>
+          <td><div class="pbx-sto">${on}</div>${showB ? `<div class="pbx-sub">${escapeHtml(short(nm))}</div>` : ''}</td>
+          <td>${(() => { const pk = r.pickerInfo && r.pickerInfo.names ? r.pickerInfo.names.filter(Boolean) : []; return pk.length ? escapeHtml(pk.join(', ')) : '<span class="pbx-sub">-</span>'; })()}</td>
+          <td>${formatQty(r.totalOrderQty)} pcs${nc ? `<div class="pbx-sub">${nc} carton${nc > 1 ? 's' : ''}</div>` : ''}</td>
+          <td><div style="display:flex;align-items:center;gap:10px;">${flowDots(s)}<span class="pbx-sub" style="white-space:nowrap;">${FLOW.indexOf(s)}/4 steps</span></div></td>
+          ${showPack ? `<td>${(() => { const rc = typeof recordRollcageNos === 'function' ? recordRollcageNos(r) : []; return rc.length ? escapeHtml(rc.join(', ')) : '<span class="pbx-sub">-</span>'; })()}</td><td>${r.packingStation ? escapeHtml(r.packingStation) : '<span class="pbx-sub">-</span>'}</td>` : ''}
+          <td><span class="pbx-badge s-${s}">${escapeHtml(lbl(s))}</span></td>
+          <td style="text-align:right;white-space:nowrap;">${rowActionBtn(r)}<button type="button" class="pbx-view" data-view="${on}">View</button></td></tr>`;
+      });
+    });
+    $('pbList').innerHTML = `<div class="pbx-tbl"><table class="pbx-t"><thead><tr><th style="width:44px;"></th><th>STO Number</th><th>Picker</th><th>Quantity</th><th>Progress</th>${showPack ? '<th>Trolley / Rollcage</th><th>Packing Station</th>' : ''}<th>Status</th><th style="text-align:right;">Action</th></tr></thead><tbody>${html}</tbody></table><div class="pbx-foot">${list.length} STO shown</div></div>`;
+  }
+  /* ---------- selection / bulk bar ---------- */
+  function renderBulkBar() {
+    const bar = $('pbBulkBar'), ids = selectedIds();
+    if (!ids.length) { bar.innerHTML = ''; return; }
+    const bs = new Set(ids.map(id => bname(recOf(id)))), d = st.busy ? ' disabled' : '';
+    bar.innerHTML = `<div class="pbx-bulk"><span class="cnt">${ic('ccheck')} ${ids.length} STO selected</span><span class="sub">${bs.size} boutique${bs.size > 1 ? 's' : ''}</span><span style="flex:1;"></span>
+      <button type="button" class="pbx-act gold" data-bb="label"${d}>${ic('print')} Print Carton Label</button>
+      <button type="button" class="pbx-act gold" data-bb="do"${d}>${ic('doc')} Print DO</button>
+      <button type="button" class="pbx-act" data-bb="status"${d}>${ic('refresh')} Update Status</button>
+      <span class="pbx-more"><button type="button" class="pbx-act" data-bb="more"${d}>${ic('more')} More</button>${st.moreOpen ? `<div class="pbx-menu"><button type="button" data-bb="dl">${ic('dl')} Download Label List</button></div>` : ''}</span>
+      <button type="button" class="pbx-act" data-bb="clear"${d}>${ic('x')} Clear Selection</button></div>`;
+  }
+  /* ---------- STO Details drawer ---------- */
+  function doGroupIds(r) {
+    if (stageOf(r) !== 'Shipped') return [r.orderNumber];
+    const ids = records.filter(x => stageOf(x) === 'Shipped' && r.doNo && x.doNo === r.doNo).map(x => x.orderNumber);
+    return ids.length ? ids : [r.orderNumber];
+  }
+  function renderPanel() {
+    const p = $('pbPanel'), sc = $('pbScrim'), r = st.sel ? recOf(st.sel) : null;
+    if (!r) { p.classList.remove('open'); sc.classList.remove('open'); p.innerHTML = ''; return; }
+    p.classList.add('open'); sc.classList.add('open');
+    const s = stageOf(r), k = FLOW.indexOf(s), idx = PROGRESS_OPTIONS.indexOf(s), prev = idx > 0 ? PROGRESS_OPTIONS[idx - 1] : null;
+    const cartons = r.cartonLock ? getCartonLockNumbers(r) : [];
+    const pickers = r.pickerInfo && r.pickerInfo.names ? r.pickerInfo.names.filter(Boolean) : [];
+    const rc = typeof recordRollcageNos === 'function' ? recordRollcageNos(r) : [];
+    const doRec = r.doNo ? doRecords.find(d => d.doNo === r.doNo) : null;
+    const courier = !!(doRec && doRec.deliveryMethod && doRec.deliveryMethod !== 'Own Fleet');
+    const d = st.busy ? ' disabled' : '';
+    const flow = FLOW.map((x, i) => `<div class="pbx-fs${i < k ? ' d' : ''}${i === k ? ' c' : ''}"><div class="pbx-fd">${i < k ? ic('check') : ''}</div>${escapeHtml(lbl(x))}</div>`).join('');
+    const [target, text] = NEXT[s] || [];
+    const nextTxt = s === 'Shipped' ? 'This STO is already DO Issued. Print the DO if needed.' : `Next step: <b>${escapeHtml(text)}</b> (${escapeHtml(lbl(s))} &rarr; ${escapeHtml(lbl(target))}).`;
+    const li = (id, icn, t, cls) => `<button type="button" data-act="${id}" class="${cls || ''}"${d}>${ic(icn)}<span>${t}</span><span class="ch">${ic('chev')}</span></button>`;
+    let more = '';
+    if (s === 'Picking') more += li('picker', 'user', pickers.length ? 'Edit Picker(s)' : 'Assign Picker(s)');
+    if (s === 'Packing') { more += li('station', 'pin', r.packingStation ? 'Change Packing Station' : 'Assign Packing Station'); more += li('rollcage', 'cart', 'Rollcage'); }
+    more += li('dl', 'dl', 'Download Label List') + li('cartons', 'box', 'View Carton Details');
+    if (r.cartonLock) more += li('editcn', 'refresh', 'Edit Carton No.');
+    if (prev) more += li('back', 'back', 'Move back to ' + escapeHtml(lbl(prev)) + ' (if wrong)');
+    if (s === 'Shipped' && courier) more += li('courier', 'ccheck', 'Mark Delivered (' + escapeHtml(doRec.deliveryMethod) + ')');
+    if (s === 'Shipped' && !r.doNo && admin()) more += li('assign', 'link', 'Add to existing DO (admin)');
+    if (s === 'Shipped' && r.doNo && admin()) more += li('removedo', 'x', 'Remove STO from DO (admin)', 'danger');
+    p.innerHTML = `<div class="pbx-dh"><span>STO Details</span><button type="button" class="pbx-x" data-act="close" title="Close">${ic('x')}</button></div>
+      <div class="pbx-db" data-from="${s}">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><span style="font-size:21px;font-weight:700;">${escapeHtml(r.orderNumber)}</span><span class="pbx-badge s-${s}">${escapeHtml(lbl(s))}</span></div>
+        <div style="font-size:13px;color:var(--text-muted);margin-top:6px;">${ic('pin')} ${escapeHtml(short(bname(r)))}</div>
+        <div class="pbx-stats"><div><span>Quantity</span><b>${formatQty(r.totalOrderQty)} pcs</b></div><div><span>Cartons</span><b>${cartons.length ? cartons.length : '-'}</b></div><div><span>Last Updated</span><b>${escapeHtml(formatDateLabel(updatedOf(r)))}</b></div></div>
+        <div class="pbx-h" style="margin-top:0;">Progress</div><div class="pbx-flow">${flow}</div>
+        <div class="pbx-next" style="margin-top:14px;"><div style="font-size:13px;">${nextTxt}</div>
+          <button type="button" class="pbx-act gold" data-act="go"${d}>${ic('arrow')} ${escapeHtml(text || '')}</button></div>
+        <div class="pbx-h">Carton &amp; Details</div>
+        <div class="pbx-kv2"><span>Carton No.</span><div>${cartons.length ? escapeHtml(typeof formatCartonNumberList === 'function' ? formatCartonNumberList(cartons) : cartons.join(', ')) : '-'}</div><span>DO No.</span><div>${escapeHtml(r.doNo || '-')}${courier ? ' &middot; ' + escapeHtml(doRec.deliveryMethod) : ''}</div><span>Picker(s)</span><div>${pickers.length ? escapeHtml(pickers.join(', ')) : '-'}</div><span>Packer</span><div>${escapeHtml(r.packerName || '-')}</div><span>Packing Station</span><div>${escapeHtml(r.packingStation || '-')}</div><span>Rollcage</span><div>${rc.length ? escapeHtml(rc.join(', ')) : '-'}</div></div>
+        <div class="pbx-h">Documents</div>
+        <div class="pbx-two"><button type="button" class="pbx-act gold" data-act="label"${(s === 'Packed' || s === 'Shipped') && !st.busy ? '' : ' disabled'}>${ic('print')} Print Carton Label</button><button type="button" class="pbx-act gold" data-act="do"${s === 'Shipped' && !st.busy ? '' : ' disabled'}>${ic('doc')} Print DO</button></div>
+        <div class="pbx-h">Other Actions</div><div class="pbx-list">${more}</div>
+      </div>`;
+  }
+  /* ---------- actions on ONE STO ---------- */
+  // Stale-data guard: the button remembers the status it was drawn with; if another staff changed it meanwhile, nothing is done and the board refreshes.
+  function stale(on, from) {
+    const r = recOf(on);
+    if (!r || stageOf(r) !== from) { alert(`The status of ${on} has changed${r ? ' (now: ' + lbl(stageOf(r)) + ')' : ' or the STO no longer exists'}. The board has been refreshed \u2014 please check and try again.`); rerender(); return true; }
+    return false;
+  }
+  function advance(on, from) {
+    if (st.busy || stale(on, from)) return;
+    const r = recOf(on), [target] = NEXT[from] || [];
+    if (from === 'Shipped') { openDoStrict(doGroupIds(r)); return; }
+    if (!target) return;
+    st.busy = true; rerender();
+    try {
+      if (target === 'Shipped') window.__doStrictIds = new Set([on]); // Issue DO: only this STO goes on the DO
+      const moved = bulkMoveOrderNumbersToStage([on], target); // old board's own rules + its own confirmation
+      if (!doCurrentBatch) window.__doStrictIds = null;
+      if (moved) {
+        if (target === 'Packed') openStickerModal(on);
+        if (target === 'Picking') openPickerModal(on);
+        if (target === 'Packing') openRollcageModal(on);
+      }
+    } finally { st.busy = false; rerender(); }
+  }
+  // Open the DO window for exactly these STOs (and the DO they already belong to) — nothing else of the boutique is added.
+  function openDoStrict(ids) { window.__doStrictIds = new Set(ids); openDOModalForBatch(ids); if (!doCurrentBatch) window.__doStrictIds = null; }
+  function stepBack(r) {
+    const idx = PROGRESS_OPTIONS.indexOf(stageOf(r)); if (idx < 1) return;
+    st.busy = true; rerender();
+    try { bulkMoveOrderNumbersToStage([r.orderNumber], PROGRESS_OPTIONS[idx - 1]); } finally { st.busy = false; rerender(); }
+  }
+  function removeFromDo(r) {
+    if (!admin()) return;
+    const on = r.orderNumber, doNo = r.doNo;
+    if (!confirm(`Remove STO "${on}" from DO${doNo ? ' ' + doNo : ''}?\nThis STO goes back to Packed.`)) return;
+    const prev = stageOf(r);
+    r.progress = 'Packed'; clearStaleNumbersOnBackwardMove(r, prev, 'Packed'); delete r.doNo;
+    const doRec = doNo ? doRecords.find(d => d.doNo === doNo) : null;
+    if (doRec) {
+      doRec.orderNumbers = (doRec.orderNumbers || []).filter(x => x !== on);
+      if (doRec.stoSnapshot) delete doRec.stoSnapshot[on];
+      if (!doRec.orderNumbers.length) doRecords = doRecords.filter(d => d.doNo !== doNo);
+      saveDoRecords();
+    }
+    saveRecords(); renderAll();
+  }
+  function showCartons(r) {
+    const nums = r.cartonLock ? getCartonLockNumbers(r) : [], s = stageOf(r), canLabel = s === 'Packed' || s === 'Shipped', total = nums.length;
+    const old = $('pbCartonDlg'); if (old) old.remove();
+    const ov = document.createElement('div'); ov.id = 'pbCartonDlg'; ov.className = 'modal-overlay';
+    ov.innerHTML = `<div class="modal-box" style="max-width:560px;"><div class="modal-header"><h2>Carton Details</h2><button class="modal-close" data-x="1">&times;</button></div>
+      <div style="font-weight:700;">${escapeHtml(r.orderNumber)}</div><div class="data-note" style="margin:2px 0 10px;">${escapeHtml(bname(r))} &middot; ${total ? total + ' carton' + (total > 1 ? 's' : '') : 'no carton numbers yet'}</div>
+      ${total ? `<table class="pbx-t" style="margin-bottom:10px;"><thead><tr><th>Carton No.</th><th>Label</th></tr></thead><tbody>${nums.map((n, i) => `<tr><td><b>${n}</b></td><td style="color:var(--text-muted);">${i + 1} of ${total}</td></tr>`).join('')}</tbody></table>` : `<div class="pbx-empty" style="margin-bottom:10px;">Carton numbers are generated when the label is printed (Packed stage).</div>`}
+      <div class="modal-actions"><button class="btn-ghost" data-x="1">Close</button><button class="btn-ghost" data-dl="1"${total ? '' : ' disabled'}>Label List</button><button class="btn-primary" data-lb="1"${canLabel ? '' : ' disabled'}>View / Print Label</button></div></div>`;
+    document.body.appendChild(ov);
+    ov.addEventListener('click', e => {
+      if (e.target === ov || e.target.closest('[data-x]')) { ov.remove(); return; }
+      if (e.target.closest('[data-lb]')) { ov.remove(); openStickerModal(r.orderNumber); return; }
+      if (e.target.closest('[data-dl]')) { const keep = new Set(selectedCartons); selectedCartons.clear(); selectedCartons.add(r.orderNumber); try { trig('kanbanBulkDownloadLabelsBtn'); } finally { selectedCartons.clear(); keep.forEach(x => selectedCartons.add(x)); } }
+    });
+  }
+  // Edit Carton No.: any staff can correct the Carton No(s) of ONE STO. Checks: only digits/ranges, no number used by another STO of the same boutique,
+  // the boutique running counter is raised if needed (so new prints never reuse a number), every change is logged on the STO (who / when / old / new).
+  function editCartons(r) {
+    if (st.busy) return;
+    const cur = getCartonLockNumbers(r).slice(), fmt = a => (typeof formatCartonNumberList === 'function' ? formatCartonNumberList(a) : a.join(', '));
+    const txt = prompt(`Edit Carton No.\n${r.orderNumber} \u2014 ${bname(r)}\nCurrent: ${fmt(cur)} (${cur.length} carton${cur.length > 1 ? 's' : ''})\n\nType the correct Carton No(s), e.g. 7-10 or 7, 8, 9, 10:`, cur.join(', '));
+    if (txt === null) return;
+    if (!/^[\d\s,;\u2013-]+$/.test(txt) || !/\d/.test(txt)) { alert('Invalid input. Use numbers only, e.g. 7-10 or 7, 8, 9, 10.'); return; }
+    const nums = parseCartonNumberInput(txt);
+    if (!nums.length || nums.length > 500 || nums.some(n => n < 1)) { alert('Invalid Carton No. list (1 to 500 cartons, numbers from 1).'); return; }
+    const key = cartonCounterKey(bname(r)), clash = [];
+    records.forEach(o => {
+      if (o === r || !o.cartonLock || cartonCounterKey(bname(o)) !== key) return;
+      const dup = getCartonLockNumbers(o).filter(n => nums.includes(n));
+      if (dup.length) clash.push(`${o.orderNumber}: ${fmt(dup)}`);
+    });
+    if (clash.length) { alert('These Carton No(s) are already used by other STO(s) of this boutique:\n\n' + clash.join('\n') + '\n\nNothing was changed.'); return; }
+    if (JSON.stringify(nums) === JSON.stringify(cur)) { alert('No change \u2014 the Carton No(s) are already the same.'); return; }
+    if (!confirm(`Change Carton No. of ${r.orderNumber}?\n\nFrom: ${fmt(cur)} (${cur.length})\nTo: ${fmt(nums)} (${nums.length})\n\nLabels already printed/stuck on cartons must be reprinted.`)) return;
+    const u = getCurrentUser(), by = u ? (u.username || u.name || '') : '';
+    r.cartonLock.numbers = nums; r.cartonLock.totalCarton = nums.length;
+    r.cartonEditLog = (r.cartonEditLog || []).concat([{ at: new Date().toISOString(), by, from: cur, to: nums }]);
+    if (Math.max(...nums) > getCartonCounter(bname(r))) setCartonCounter(bname(r), Math.max(...nums));
+    let dosTouched = false;
+    doRecords.forEach(d => { if (d.stoSnapshot && d.stoSnapshot[r.orderNumber]) { d.stoSnapshot[r.orderNumber] = nums.slice(); dosTouched = true; } });
+    if (dosTouched) saveDoRecords();
+    saveRecords(); renderAll();
+    alert(`Carton No. updated: ${r.orderNumber}\nNew: ${fmt(nums)} (${nums.length} carton${nums.length > 1 ? 's' : ''})\nPlease reprint the labels.`);
+  }
+  /* ---------- Bulk Activities ---------- */
+  function pbDialog(opts) {
+    return new Promise(resolve => {
+      const old = $('pbDlg'); if (old) old.remove();
+      const ov = document.createElement('div'); ov.id = 'pbDlg'; ov.className = 'modal-overlay';
+      const draw = () => {
+        const target = opts.target ? ov.querySelector('#pbDlgTarget').value : null;
+        const rows = opts.rows(target), okRows = rows.filter(x => x.ok), byB = {};
+        rows.forEach(x => { (byB[x.boutique] = byB[x.boutique] || []).push(x); });
+        ov.querySelector('#pbDlgBody').innerHTML = `<div class="data-note" style="margin:0 0 8px;">${rows.length} STO &middot; ${Object.keys(byB).length} boutique${Object.keys(byB).length > 1 ? 's' : ''} &middot; <b style="color:var(--green);">${okRows.length} will be processed</b>${rows.length - okRows.length ? ` &middot; <b style="color:var(--amber);">${rows.length - okRows.length} skipped</b>` : ''}</div>` +
+          Object.keys(byB).sort().map(b => `<div style="margin-bottom:8px;"><div style="font-weight:700;font-size:12.5px;color:var(--gold);">${escapeHtml(b)}</div>${byB[b].map(x => `<div style="display:flex;gap:10px;font-size:12.5px;padding:4px 0;border-bottom:1px solid var(--border);"><span class="mono-name" style="flex:1;">${escapeHtml(x.on)}</span><span style="color:var(--text-muted);">${escapeHtml(x.stage)}</span><span style="min-width:170px;color:${x.ok ? 'var(--green)' : 'var(--amber)'};">${x.ok ? 'OK — ' : 'Skipped — '}${escapeHtml(x.note || '')}</span></div>`).join('')}</div>`).join('');
+        ov.querySelector('#pbDlgGo').disabled = !okRows.length;
+        if (opts.warn) { const w = opts.warn(target); ov.querySelector('#pbDlgWarn').innerHTML = w ? `<div class="data-note" style="color:var(--amber);">${w}</div>` : ''; }
+      };
+      ov.innerHTML = `<div class="modal-box" style="max-width:660px;"><div class="modal-header"><h2>${opts.title}</h2><button class="modal-close" id="pbDlgX">&times;</button></div>
+        ${opts.target ? `<div style="margin-bottom:10px;"><label>Change status to</label><select id="pbDlgTarget">${PROGRESS_OPTIONS.map(s => `<option value="${s}">${escapeHtml(lbl(s))}</option>`).join('')}</select></div>` : ''}
+        <div id="pbDlgBody" style="max-height:48vh;overflow:auto;"></div><div id="pbDlgWarn"></div>
+        <div class="modal-actions"><button class="btn-ghost" id="pbDlgNo">Cancel</button><button class="btn-primary" id="pbDlgGo">${opts.go}</button></div></div>`;
+      document.body.appendChild(ov);
+      const done = v => { ov.remove(); resolve(v); };
+      ov.querySelector('#pbDlgX').onclick = ov.querySelector('#pbDlgNo').onclick = () => done(null);
+      ov.querySelector('#pbDlgGo').onclick = () => { ov.querySelector('#pbDlgGo').disabled = true; done({ target: opts.target ? ov.querySelector('#pbDlgTarget').value : null }); };
+      if (opts.target) { const t = ov.querySelector('#pbDlgTarget'); t.value = opts.target; t.onchange = draw; }
+      draw();
+    });
+  }
+  async function bulk(kind) {
+    if (st.busy) return;
+    dropStaleSelection();
+    const ids = selectedIds();
+    if (kind === 'clear') { selectedCartons.clear(); st.moreOpen = false; rerender(); return; }
+    if (kind === 'more') { st.moreOpen = !st.moreOpen; rerender(); return; }
+    if (!ids.length) { alert('Tick at least one STO first.'); return; }
+    st.moreOpen = false;
+    const live = () => ids.map(recOf).filter(Boolean);
+    st.busy = true; rerender();
+    try {
+      if (kind === 'dl') { trig('kanbanBulkDownloadLabelsBtn'); return; }
+      if (kind === 'label') {
+        const go = await pbDialog({ title: 'Print Carton Label', go: 'Continue', rows: () => live().map(r => ({ on: r.orderNumber, boutique: bname(r), stage: lbl(stageOf(r)), ok: stageOf(r) === 'Packed', note: stageOf(r) === 'Packed' ? (r.cartonLock ? 'Reprint (carton numbers stay the same)' : 'New carton numbers will be generated') : 'Packed STOs only' })) });
+        if (!go) return;
+        const fresh = live().filter(r => stageOf(r) === 'Packed').map(r => r.orderNumber);
+        if (!fresh.length) { alert('No Packed STOs left — their status has changed.'); return; }
+        [...selectedCartons].forEach(id => { if (!fresh.includes(id)) selectedCartons.delete(id); });
+        trig('kanbanBulkPrintLabelBtn'); // old board's popup (Total Carton per STO) + label builder + carton numbering
+        return;
+      }
+      if (kind === 'do') {
+        const go = await pbDialog({ title: 'Print DO', go: 'Continue', rows: () => live().map(r => ({ on: r.orderNumber, boutique: bname(r), stage: lbl(stageOf(r)), ok: stageOf(r) === 'Shipped', note: stageOf(r) === 'Shipped' ? 'Only the ticked STOs go on the DO (one DO per boutique)' : 'DO Issued STOs only' })) });
+        if (!go) return;
+        const fresh = live().filter(r => stageOf(r) === 'Shipped').map(r => r.orderNumber);
+        if (!fresh.length) { alert('No DO Issued STOs left — their status has changed.'); return; }
+        [...selectedCartons].forEach(id => { if (!fresh.includes(id)) selectedCartons.delete(id); });
+        window.__doStrictIds = new Set(fresh); // only the ticked STOs go on the DO
+        trig('kanbanBulkPrintDoBtn');
+        if (!doCurrentBatch) window.__doStrictIds = null;
+        const missing = fresh.filter(id => { const r = recOf(id); return !(r && r.doNo); });
+        if (missing.length) alert('These STOs still have no DO No. (cancelled or failed):\n' + missing.join('\n'));
+        return;
+      }
+      if (kind === 'status') {
+        const rowsFor = target => live().map(r => {
+          const prev = stageOf(r), pi = PROGRESS_OPTIONS.indexOf(prev), ti = PROGRESS_OPTIONS.indexOf(target);
+          let ok = true, note = lbl(prev) + ' → ' + lbl(target);
+          if (pi === ti) { ok = false; note = 'Already in this status'; }
+          else if (ti - pi > 1) { ok = false; note = 'Cannot skip a stage'; }
+          else if (ti < pi && (prev === 'Packed' || prev === 'Shipped')) note = 'Moving back — carton/DO numbers are cleared';
+          return { on: r.orderNumber, boutique: bname(r), stage: lbl(prev), ok, note };
+        });
+        const def = (() => { const f = live()[0], i = f ? PROGRESS_OPTIONS.indexOf(stageOf(f)) : 0; return PROGRESS_OPTIONS[Math.min(i + 1, PROGRESS_OPTIONS.length - 1)]; })();
+        const go = await pbDialog({ title: 'Update Status', go: 'Update', target: def, rows: rowsFor, warn: t => { const back = rowsFor(t).filter(x => x.ok && /Moving back/.test(x.note)).length; return back ? `${back} STO move back from Packed/DO Issued: their generated carton / DO numbers will be cleared and generated again later.` : ''; } });
+        if (!go) return;
+        const target = go.target, okNow = rowsFor(target).filter(x => x.ok).map(x => x.on); // re-checked against the CURRENT data
+        if (!okNow.length) { alert('No eligible STOs — their status has changed.'); return; }
+        if (target === 'Shipped') window.__doStrictIds = new Set(okNow);
+        const moved = bulkMoveOrderNumbersToStage(okNow, target) || [];
+        if (!doCurrentBatch) window.__doStrictIds = null;
+        moved.forEach(id => selectedCartons.delete(id));
+        const failed = ids.filter(id => !moved.includes(id));
+        alert(`Update Status → ${lbl(target)}\nSucceeded: ${moved.length}${moved.length ? '\n' + moved.join('\n') : ''}\nNot updated: ${failed.length}${failed.length ? '\n' + failed.join('\n') : ''}`);
+        return;
+      }
+    } finally { st.busy = false; rerender(); }
+  }
+  /* ---------- Carton No. counter (per boutique) — same counter as the old board ---------- */
+  function renderCounter() {
+    const box = $('pbCounter'); if (!box) return;
+    // The counter follows the boutique card that is selected — no separate dropdown. Hidden on "All Boutiques".
+    if (!st.b || st.b === '*') { box.innerHTML = ''; st.cnB = null; return; }
+    if (st.cnB !== st.b) { st.cnB = st.b; st.cnVal = null; }
+    const cur = getCartonCounter(st.cnB);
+    if (box.contains(document.activeElement) && box.firstChild) { const bd = box.querySelector('.badge'); if (bd) bd.textContent = 'Currently at: ' + cur; return; } // don't steal focus while typing
+    if (st.cnVal === null || st.cnVal === undefined) st.cnVal = cur;
+    box.innerHTML = `<div class="pbx-cnt"><label>Carton No. counter \u2014 <b style="color:var(--text);">${escapeHtml(short(st.cnB))}</b></label>
+      <span class="badge badge-blue">Currently at: ${cur}</span>
+      <label>Set next Carton No. to start from:</label><input type="number" id="pbCnV" min="0" value="${escapeHtml(String(st.cnVal))}">
+      <button type="button" class="pbx-act" id="pbCnGo">Reset Counter</button>
+      <div class="pbx-cnote">"${escapeHtml(st.cnB)}" \u2014 next Carton No. to be assigned: ${cur + 1}. Each boutique has its own counter, which keeps counting up across every STO printed for it (it does not reset per STO). Change the number and click Reset Counter to start this boutique over (e.g. at the start of a new day). This only affects labels printed from now on.</div></div>`;
+  }
+  window.pbRender = function () {
+    if (!$('tab-pb-new')) return;
+    dropStaleSelection();
+    const all = boardRecords(), base = all.filter(textMatch);
+    renderKpis(all); renderChips(base); renderCards(base); renderCounter(); renderTable(base); renderBulkBar(); renderPanel();
+    $('pbSearchClear').style.visibility = st.search ? 'visible' : 'hidden';
+  };
+  function rerender() { try { window.pbRender(); } catch (e) { console.warn('pbRender', e); } }
+  /* ---------- events ---------- */
+  $('pbSearch').addEventListener('input', e => { st.search = e.target.value; rerender(); });
+  $('pbSearchClear').addEventListener('click', () => { st.search = ''; $('pbSearch').value = ''; rerender(); });
+  $('pbReset').addEventListener('click', () => { st.search = ''; st.status = ''; st.b = null; st.sel = null; $('pbSearch').value = ''; rerender(); });
+  $('pbChips').addEventListener('click', e => { const c = e.target.closest('[data-chip]'); if (c) { st.status = c.dataset.chip; rerender(); } });
+  $('pbCards').addEventListener('click', e => { const c = e.target.closest('[data-b]'); if (c) { st.b = c.dataset.b; if (st.b !== '*') { st.cnB = st.b; st.cnVal = null; } rerender(); } });
+  $('pbCounter').addEventListener('input', e => { if (e.target.id === 'pbCnV') st.cnVal = e.target.value; });
+  $('pbCounter').addEventListener('click', e => {
+    if (!e.target.closest('#pbCnGo') || st.busy) return;
+    const b = st.cnB; if (!b) return;
+    const startAt = Math.max(0, Math.floor(Number(st.cnVal)) || 0);
+    if (!confirm(`Reset "${b}"'s Carton No. counter? The next carton printed for this boutique will be numbered ${startAt + 1}.`)) return;
+    setCartonCounter(b, startAt); st.cnVal = null;
+    try { renderCartonCounterNote(); } catch (er) {}
+    rerender();
+  });
+  $('pbList').addEventListener('click', e => {
+    const t = e.target;
+    const gck = t.closest('.pbx-gck');
+    if (gck) { boardRecords().filter(r => bname(r) === gck.dataset.g && textMatch(r) && (!st.status || stageOf(r) === st.status)).forEach(r => { if (gck.checked) selectedCartons.add(r.orderNumber); else selectedCartons.delete(r.orderNumber); }); rerender(); return; }
+    const ck = t.closest('.pbx-ck'); if (ck) { if (ck.checked) selectedCartons.add(ck.dataset.on); else selectedCartons.delete(ck.dataset.on); try { updateBulkToolbar(); } catch (er) {} rerender(); return; }
+    const go = t.closest('[data-go]'); if (go) { advance(go.dataset.go, go.dataset.from); return; }
+    const v = t.closest('[data-view]'); if (v) { st.sel = v.dataset.view; rerender(); }
+  });
+  $('pbBulkBar').addEventListener('click', e => { const b = e.target.closest('[data-bb]'); if (b) bulk(b.dataset.bb); });
+  $('pbScrim').addEventListener('click', () => { st.sel = null; rerender(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && st.sel && !document.querySelector('.modal-overlay:not(.hidden)')) { st.sel = null; rerender(); } });
+  $('pbPanel').addEventListener('click', e => {
+    const b = e.target.closest('[data-act]'); if (!b || st.busy) return;
+    const act = b.dataset.act, r = st.sel ? recOf(st.sel) : null, from = (b.closest('.pbx-db') || {}).dataset ? b.closest('.pbx-db').dataset.from : null;
+    if (act === 'close') { st.sel = null; rerender(); return; }
+    if (!r) return;
+    if (act === 'go') advance(r.orderNumber, from);
+    else if (act === 'back') { if (!stale(r.orderNumber, from)) stepBack(r); }
+    else if (act === 'picker') openPickerModal(r.orderNumber);
+    else if (act === 'station') openPackingStationModal(r.orderNumber);
+    else if (act === 'rollcage') openRollcageModal(r.orderNumber);
+    else if (act === 'label') openStickerModal(r.orderNumber);
+    else if (act === 'do') openDoStrict(doGroupIds(r));
+    else if (act === 'courier') markCourierDoDelivered(r.doNo);
+    else if (act === 'assign') assignStosToExistingDo([r.orderNumber]);
+    else if (act === 'removedo') removeFromDo(r);
+    else if (act === 'dl') { const keep = new Set(selectedCartons); selectedCartons.clear(); selectedCartons.add(r.orderNumber); try { trig('kanbanBulkDownloadLabelsBtn'); } finally { selectedCartons.clear(); keep.forEach(x => selectedCartons.add(x)); } }
+    else if (act === 'cartons') showCartons(r);
+    else if (act === 'editcn') editCartons(r);
+  });
+  // Re-draw whenever the old board redraws (called after every save/move/print/Firebase update), so both stay in step.
+  const _rk = renderKanban;
+  renderKanban = function () { const out = _rk.apply(this, arguments); rerender(); return out; };
+})();
 </script>
 </body>
 </html>
