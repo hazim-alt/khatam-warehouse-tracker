@@ -4011,7 +4011,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
   #tab-distribution-status table,#tab-bulk-qc-result .rq-flat{min-width:0;font-size:12px;}
   #tab-distribution-status table th,#tab-distribution-status table td,#tab-bulk-qc-result .rq-flat th,#tab-bulk-qc-result .rq-flat td{padding:8px 6px;}
   #tab-bulk-qc-result .rq-flat thead th:nth-child(2),#tab-bulk-qc-result .rq-flat tbody td:nth-child(2),#tab-bulk-qc-result .rq-flat thead th:nth-child(4),#tab-bulk-qc-result .rq-flat tbody td:nth-child(4),#tab-bulk-qc-result .rq-flat thead th:nth-child(7),#tab-bulk-qc-result .rq-flat tbody td:nth-child(7){display:none;}
-  #tab-distribution-status table thead th:nth-child(2),#tab-distribution-status table tbody td:nth-child(2),#tab-distribution-status table thead th:nth-child(4),#tab-distribution-status table tbody td:nth-child(4){display:none;}
+  #tab-distribution-status table thead th:nth-child(2),#tab-distribution-status table tbody td:nth-child(2),#tab-distribution-status table thead th:nth-child(4),#tab-distribution-status table tbody td:nth-child(4),#tab-distribution-status table thead th:nth-child(7),#tab-distribution-status table tbody td:nth-child(7){display:none;}
   #tab-bulk-qc-result .rq-body>*,#tab-distribution-status .dst-main>*{min-width:0;}
   #tab-bulk-qc-result #bqrWrap{overflow-x:auto !important;}
   #tab-distribution-status #dstTableWrap{overflow-x:auto;}
@@ -5162,6 +5162,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
     <div class="modal-actions" style="margin-top:16px;">
       <button class="btn-ghost" id="fleetTripModalCancelBtn">Cancel</button>
       <button class="btn-ghost" id="fleetTripModalReassignBtn" style="display:none;">Reschedule/Transfer</button>
+      <button class="btn-ghost" id="fleetTripEditDoBtn" style="display:none;" title="Admin: add or remove destination(s) and DO(s) on a trip that is already Delivered">✏ Edit DOs (Admin)</button>
       <button class="btn-primary" id="fleetTripModalSaveBtn">+ Create Trip</button>
       <button class="btn-dispatch" id="fleetTripModalDispatchBtn" style="display:none;">🚚 Out of Delivery</button>
     </div>
@@ -5572,6 +5573,13 @@ function formatCartonNumberList(numbers) {
 const DO_COUNTER_KEY = 'sto_do_counter_v3'; // single global running number, shared across all boutiques
 function getDoCounter() { return Math.max(0, Number(localStorage.getItem(DO_COUNTER_KEY)) || 0); }
 function setDoCounter(n) { localStorage.setItem(DO_COUNTER_KEY, String(Math.max(0, Number(n) || 0))); }
+// Next DO running number (Oct 30, 2026): never lower than the highest running number already used by any saved DO (the trailing "/NNN" of its DO No.),
+// even if the stored counter was reverted by sync or failed to save (browser storage full) — this is what produced repeated numbers like ".../004" on 6 DOs.
+function getNextDoSeq() {
+  let maxUsed = 0;
+  try { (doRecords || []).forEach(d => { const m = /\/(\d+)\s*$/.exec(String((d && d.doNo) || '')); if (m) maxUsed = Math.max(maxUsed, Number(m[1]) || 0); }); } catch (e) {}
+  return Math.max(getDoCounter(), maxUsed) + 1;
+}
 // Format: KFA-FG/BOUTIQUE CODE/YYMMDD/001 — the running number (001, 002, ...) is one single
 // sequence shared by every boutique, like a normal invoice/document number. The boutique code
 // and date are just descriptive, not separate counters.
@@ -6246,7 +6254,7 @@ function saveRecords() {
   }
 }
 // Storage Usage panel (Oct 27, 2026): shows what fills browser storage; only re-importable caches can be cleared here.
-const STORAGE_CLEARABLE = { 'sto_got_lines_cache_v1': 'GOT lines cache (reloads itself)', 'sto_price_tag_sku_reference_v1': 'SKU Reference list (re-upload file on this device if needed)' };
+const STORAGE_CLEARABLE = { 'sto_got_lines_cache_v1': 'GOT lines cache (reloads itself)', 'sto_price_tag_sku_reference_v1': 'SKU Reference list (re-upload file on this device if needed)', 'sto_reqstock_template_pdf_v1': 'Request Stock PDF template (re-upload the template in Request Stock if needed)', 'export_pls': 'Not used by this app (leftover export data) - ask before clearing if another page uses it' };
 function openStorageUsage() {
   const rows = [];
   let total = 0;
@@ -6564,6 +6572,12 @@ function upsertRecords(newRecs) {
     // kan je") — an STO already in the list is never removed just because its status in the file is no longer Active.
   });
   saveRecords();
+  // A NEW STO for a boutique that was deleted from SLA Settings brings that boutique back (newer 'added' entry wins in the sync merge).
+  try {
+    let relog = false;
+    newlyAdded.forEach(rec => { const k = String(rec.toWarehouse || '').trim().toLowerCase(); const e = k && sla.butikLog && sla.butikLog[k]; if (e && e.action === 'deleted') { sla.butikLog[k] = { action: 'added', at: Date.now() }; relog = true; } });
+    if (relog) saveSla();
+  } catch (e) {}
   newlyAdded.forEach(rec => markStoJustCreatedByThisDevice('STO_Records', rec));
   return { added, updated, removed };
 }
@@ -8389,11 +8403,74 @@ function renderDeliveredTab() {
       <td>${totalStoDisplay}</td>
       <td>${totalCarton}</td>
       <td>${dateVal ? escapeHtml(formatDateLabel(dateVal)) : '-'}</td>
-      <td>${(group.doNo && (status === 'DO Issued' || status === 'Reschedule')) ? `<button type="button" class="btn-ghost delivered-do-delete-btn" data-do="${escapeHtml(group.doNo)}" style="padding:4px 10px; color:var(--red); border-color:var(--red);">Delete DO</button>` : ''}</td>
+      <td>${(group.doNo && status === 'Courier — Pending') ? `<button type="button" class="btn-ghost delivered-courier-btn" data-do="${escapeHtml(group.doNo)}" style="padding:4px 10px; margin-right:6px; color:var(--green); border-color:var(--green);">✓ Mark Delivered</button>` : ''}${(group.doNo && status === 'DO Issued' && (getCurrentUser() || {}).isAdmin && (!doRec || !doRec.deliveryMethod || doRec.deliveryMethod === 'Own Fleet')) ? `<button type="button" class="btn-ghost delivered-attach-btn" data-do="${escapeHtml(group.doNo)}" data-boutique="${escapeHtml(group.boutique || '')}" style="padding:4px 10px; margin-right:6px;" title="Admin: attach this DO to one of its boutique's trips">Attach to trip</button>` : ''}${(group.doNo && (status === 'DO Issued' || status === 'Reschedule' || status === 'Courier — Pending')) ? `<button type="button" class="btn-ghost delivered-do-delete-btn" data-do="${escapeHtml(group.doNo)}" style="padding:4px 10px; color:var(--red); border-color:var(--red);">Delete DO</button>` : ''}</td>
     </tr>`;
   });
   html += `</tbody></table>`;
-  wrap.innerHTML = html;
+  const autoBar = ((getCurrentUser() || {}).isAdmin && list.some(x => x.status === 'DO Issued')) ? `<div style="margin-bottom:10px;"><button type="button" class="btn-ghost" id="deliveredAutoAttachBtn" title="Admin: guess a Completed trip for each unassigned DO listed below (nearest trip with its boutique within 7 days after the DO was printed). You review the list before anything is saved.">⚙ Auto-attach unassigned DOs (best guess)</button> <span class="data-note" style="display:inline;">Applies only to the DOs listed below (use the search box to narrow by boutique first).</span></div>` : '';
+  wrap.innerHTML = autoBar + html;
+  // Admin: best-guess auto-attach for the DOs currently listed (Oct 30, 2026, per Shaila: "teka je la"). Shows every proposed pairing for confirmation first.
+  const autoBtn = document.getElementById('deliveredAutoAttachBtn');
+  if (autoBtn) autoBtn.addEventListener('click', () => {
+    const proposals = [];
+    list.forEach(x => {
+      if (x.status !== 'DO Issued' || !x.group.doNo || !x.doRec || (x.doRec.deliveryMethod && x.doRec.deliveryMethod !== 'Own Fleet')) return;
+      const created = x.doRec.createdDate || '';
+      if (!created) return;
+      const maxD = new Date(created + 'T00:00:00'); maxD.setDate(maxD.getDate() + 7);
+      const maxIso = toIsoLocal(maxD);
+      const trip = fleetTrips.filter(t => t.status === 'Completed' && t.date && t.date >= created && t.date <= maxIso && fleetTripDestinationsArray(t).some(d => boutiqueMatch(d, x.doRec.boutique)))
+        .sort((a, b) => a.date.localeCompare(b.date))[0];
+      if (trip) proposals.push({ doNo: x.group.doNo, boutique: x.doRec.boutique, trip });
+    });
+    if (!proposals.length) { alert('No suitable trip found for the DOs listed (needs a Completed trip with the same boutique within 7 days after the DO was printed).'); return; }
+    const lines = proposals.map(p => `${p.doNo}  ->  ${formatDateLabel(p.trip.date)}, ${p.trip.driverName || '-'}${fleetTripAssistantsArray(p.trip).length ? ' + ' + fleetTripAssistantsArray(p.trip).join(', ') : ''}`).join('\n');
+    if (!confirm(`BEST GUESS - please check before saving.\n\nAttach ${proposals.length} DO(s) and mark them Delivered:\n\n${lines}\n\nOK = save, Cancel = do nothing.`)) return;
+    proposals.forEach(p => {
+      fleetTrips.forEach(t => { if (Array.isArray(t.doNos)) t.doNos = t.doNos.filter(n => n !== p.doNo); });
+      p.trip.doNos = [...new Set([...(p.trip.doNos || []), p.doNo])];
+      fleetClearDoPostponed(p.doNo);
+    });
+    saveFleetTrips();
+    renderAll();
+    renderDeliveredTab();
+  });
+  // Admin: attach a DO that lost its trip to one of the trips that list its boutique as a destination (on/after the DO's print date). Picking a Completed trip makes the DO Delivered.
+  wrap.querySelectorAll('.delivered-attach-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const doNo = btn.dataset.do;
+      const doRec = doRecords.find(d => d.doNo === doNo) || { doNo, boutique: btn.dataset.boutique || '', createdDate: '' };
+      // DO record missing on this device: the print date is read from the DO No. itself (KFA-FG/CODE/YYMMDD/NNN).
+      let created = doRec.createdDate || '';
+      if (!created) { const m = /\/(\d{2})(\d{2})(\d{2})\//.exec(doNo); if (m) created = `20${m[1]}-${m[2]}-${m[3]}`; }
+      const cands = fleetTrips.filter(t => fleetTripDestinationsArray(t).some(d => boutiqueMatch(d, doRec.boutique)) && (!created || (t.date || '') >= created))
+        .sort((a, b) => (a.date || '').localeCompare(b.date || '')).slice(0, 10);
+      if (!cands.length) { alert(`No trip has "${doRec.boutique}" as a destination on or after ${created ? formatDateLabel(created) : 'the DO date'}.\n\nCreate a trip first (Operation Fleet > Create Trip).`); return; }
+      const list = cands.map((t, i) => `${i + 1}. ${formatDateLabel(t.date)} - ${t.driverName || '-'}${fleetTripAssistantsArray(t).length ? ' + ' + fleetTripAssistantsArray(t).join(', ') : ''} (${t.status})`).join('\n');
+      const ans = prompt(`Attach ${doNo} (${doRec.boutique}) to which trip?\n\n${list}\n\nType the number (leave blank to cancel):`);
+      const n = Number(ans);
+      if (!n || n < 1 || n > cands.length) return;
+      const trip = cands[n - 1];
+      fleetTrips.forEach(t => { if (Array.isArray(t.doNos)) t.doNos = t.doNos.filter(x => x !== doNo); });
+      trip.doNos = [...new Set([...(trip.doNos || []), doNo])];
+      fleetClearDoPostponed(doNo);
+      // DO record missing on this device: rebuild a minimal one from the STOs that still carry this DO No., so the trip's STO/carton totals work again.
+      if (!doRecords.some(d => d.doNo === doNo)) {
+        const orderNumbers = records.filter(r => r.doNo === doNo).map(r => r.orderNumber);
+        if (orderNumbers.length) { doRecords.push({ doNo, boutique: doRec.boutique, orderNumbers, deliveryDate: trip.date, createdDate: created || trip.date, deliveryMethod: 'Own Fleet' }); saveDoRecords(); }
+      }
+      saveFleetTrips();
+      renderAll();
+      renderDeliveredTab();
+    });
+  });
+  // Courier DO still "Courier — Pending": mark Delivered right here (Oct 30, 2026 — these DOs were not showing on the Progress Board).
+  wrap.querySelectorAll('.delivered-courier-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      markCourierDoDelivered(btn.dataset.do);
+      renderDeliveredTab();
+    });
+  });
   // Delete DO (Oct 13, 2026, per Shaila): only for a DO that has no trip yet (DO Issued / Reschedule). Removes the DO record and
   // unlinks its STOs; then asks whether the STOs themselves should also be removed from the STO List (logged, can be restored).
   wrap.querySelectorAll('.delivered-do-delete-btn').forEach(btn => {
@@ -8431,8 +8508,10 @@ function renderDeliveredTab() {
       if (doRec && !nums.length) nums = records.filter(r => r.doNo === doRec.doNo).map(r => r.orderNumber);
       if (doRec && !nums.length) { const g = buildDoGroupsFromShippedRecords(records.filter(r => (r.progress || 'Active') === 'Shipped'), true).find(x => x.doNo === doRec.doNo); if (g) nums = g.records.map(r => r.orderNumber); }
       if (doRec && !nums.length) { const t = doRecords.find(d => d.doNo === doRec.doNo); console.warn('DO has no STO list', t); }
-      if (!doRec || !nums.length) { alert('Could not find this DO\'s original STO list.'); return; }
-      try { openDOModalForBatch(nums, doRec.doNo); } catch (e) { console.error(e); alert('DO gagal dibuka: ' + e.message); }
+      // DO record itself missing on this device (e.g. not saved while browser storage was full) — fall back to the STOs that still carry this DO No.
+      if (!doRec && !nums.length) nums = records.filter(r => r.doNo === btn.dataset.do).map(r => r.orderNumber);
+      if (!nums.length) { alert('Could not find this DO\'s original STO list.\n\nThe DO record and its STOs are not on this device. Press F5 and wait 1-2 minutes for sync, then try again.'); return; }
+      try { openDOModalForBatch(nums, doRec ? doRec.doNo : btn.dataset.do); } catch (e) { console.error(e); alert('DO gagal dibuka: ' + e.message); }
     });
   });
   // Total STO -> popup listing every STO number that makes up this group's count.
@@ -8735,7 +8814,9 @@ function renderSlaTab() {
   // "UNUSED PRODUCT" / "CHINA REWASH ITEM" are internal stock-holding buckets, not real boutiques
   // — hidden here too (same exclusion as STO List / Kanban board) so there's nothing to configure
   // an SLA/schedule for, and no stray row for Shaila to manage.
-  const butiks = allKnownBoutiqueNames().filter(b => !senaraiIsExcludedBoutique(b));
+  // A boutique the user deleted here stays hidden even if old STO/DO records still carry its name (Oct 30, 2026: "saya dah tekan delete tpi tk hilang");
+  // it comes back if it is re-added manually or a NEW STO for it is uploaded (both stamp a newer 'added' entry in sla.butikLog).
+  const butiks = allKnownBoutiqueNames().filter(b => !senaraiIsExcludedBoutique(b)).filter(b => { const e = (sla.butikLog || {})[String(b).trim().toLowerCase()]; return !(e && e.action === 'deleted'); });
   const wrap = document.getElementById('slaTableWrap');
   if (!butiks.length) { wrap.innerHTML = `<div class="empty-state">No boutiques yet. Upload an STO file, print a DO, or add a boutique manually above.</div>`; return; }
 
@@ -16083,6 +16164,9 @@ function rqDocColour() { return ''; }
 function rqColours(r) { return rqRowColour(r); }
 function rqQcPill(r) { const k = bqcStatusKey(rqFabric ? r.qcWash : r.qcFg); return k === 'pass' ? '<span class="rq-pill pass">Pass</span>' : k === 'pass-with' ? '<span class="rq-pill cond">Pass With Condition</span>' : '<span class="rq-pill fail">Fail</span>'; }
 function rqDistPill(st) { const i = Math.max(0, BQR_DIST_STATUSES.indexOf(st)); return `<span class="rq-pill s${i}">${escapeHtml(st === 'Not distributed' ? 'Not Distributed' : st)}</span>`; }
+// "Updated" = the LATEST of (a) when someone changed the status inside the system, (b) when the auto-refresh saw this row change in the Google Sheet (row.sheetChangedAt).
+function rqUpdMs(r, v) { return Math.max((v && Date.parse(v.at)) || 0, Number(r && r.sheetChangedAt) || 0); }
+function rqUpd(r, v) { const ms = rqUpdMs(r, v); return ms ? { at: new Date(ms).toISOString() } : null; }
 function rqFmtAt2(v) { if (!v || !v.at) return '-'; const d = new Date(v.at); return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + '<br>' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); }
 function rqFmtAt(v) { return v && v.at ? new Date(v.at).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'; }
 function rqRenderFlat(wrap, shown, fabric) {
@@ -16092,7 +16176,7 @@ function rqRenderFlat(wrap, shown, fabric) {
   const qcRank = r => ({ pass: 0, 'pass-with': 1, fail: 2 }[bqcStatusKey(fabric ? r.qcWash : r.qcFg)] ?? 3);
   const rqGet = fabric
     ? { series: r => r.series || '', product: r => r.officialProductName || '', material: r => r.material || '', supplier: r => r.fabricSupplier || '', ctn: r => Number(r.quantityFabricsCtn) || 0, meter: r => Number(r.quantityFabricsMeter) || 0, qc: qcRank, docs: r => rqLinks(r, 'qcWash').length }
-    : { series: r => r.series || '', product: r => r.officialProductName || '', boutique: r => r.allocationBoutique || '', qc: qcRank, colour: r => rqRowColour(r), dist: r => r.distStatus || '', progress: r => Math.max(0, BQR_DIST_STATUSES.indexOf(bqrDistStatusOf(r))), updated: r => Date.parse(rqVal(r).at) || 0, docs: r => rqLinks(r, 'qcFg').length + rqLinks(r, 'distForm').length };
+    : { series: r => r.series || '', product: r => r.officialProductName || '', boutique: r => r.allocationBoutique || '', qc: qcRank, colour: r => rqRowColour(r), dist: r => r.distStatus || '', progress: r => Math.max(0, BQR_DIST_STATUSES.indexOf(bqrDistStatusOf(r))), updated: r => rqUpdMs(r, rqVal(r)), docs: r => rqLinks(r, 'qcFg').length + rqLinks(r, 'distForm').length };
   if (rqSort.k && !rqGet[rqSort.k]) rqSort.k = '';
   if (rqSort.k) list = sortApply(list, rqSort, rqGet);
   const pages = Math.max(1, Math.ceil(list.length / RQ_PAGE)); if (rqPage > pages) rqPage = pages;
@@ -16109,7 +16193,7 @@ function rqRenderFlat(wrap, shown, fabric) {
       const nw = bqrIsNew(r) ? ' <span class="bqr-new-tag">NEW</span>' : '';
       const cells = fabric
         ? `<td><b>${E(r.series || '-')}</b>${nw}</td><td>${E(r.officialProductName || '-')}</td><td>${E(r.material || '-')}</td><td>${E(r.fabricSupplier || '-')}</td><td style="text-align:right;">${formatQty(r.quantityFabricsCtn || 0)}</td><td style="text-align:right;">${formatQty(r.quantityFabricsMeter || 0)}</td><td>${rqQcPill(r)}</td><td>${dt}</td>`
-        : `<td class="rq-ps"><b>${E(r.series || '-')}</b>${nw}<small>${E(r.officialProductName || '-')}</small></td><td>${E(r.allocationBoutique || '-')}</td><td>${sheetStatusPill(r.distStatus, 'rq')}</td><td>${rqDistPill(bqrDistStatusOf(r))}</td><td class="rq-dt2">${rqFmtAt2(v)}</td><td><div class="rq-docs">${nd ? '<span class="rq-vbtn"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>View Files (' + nd + ')</span>' : '-'}</div></td>`;
+        : `<td class="rq-ps"><b>${E(r.series || '-')}</b>${nw}<small>${E(r.officialProductName || '-')}</small></td><td>${E(r.allocationBoutique || '-')}</td><td>${sheetStatusPill(r.distStatus, 'rq')}</td><td>${rqDistPill(bqrDistStatusOf(r))}</td><td class="rq-dt2">${rqFmtAt2(rqUpd(r, v))}</td><td><div class="rq-docs">${nd ? '<span class="rq-vbtn"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>View Files (' + nd + ')</span>' : '-'}</div></td>`;
       return `<tr data-k="${E(k)}" class="${k === rqSel ? 'sel' : ''}${bqrIsNew(r) ? ' bqr-new' : ''}"><td><input type="checkbox" class="rq-chk" data-k="${E(k)}"${rqChecked.has(k) ? ' checked' : ''}${fabric ? ' style="display:none;"' : ''}></td><td>${st + i + 1}</td>${cells}</tr>`; }).join('')
     + `</tbody></table><div class="rq-foot"><span>Showing ${list.length ? st + 1 : 0} - ${st + slice.length} of ${list.length} item(s)</span><span class="rq-pg">${pages > 1 ? Array.from({ length: pages }, (_, i) => `<button type="button" data-p="${i + 1}" class="${i + 1 === rqPage ? 'on' : ''}">${i + 1}</button>`).join('') : ''}</span></div>`;
   rqRenderDetail(list);
@@ -16215,14 +16299,14 @@ function renderDistStatusTab() {
   const tabs = [['', 'All', base.length], ['todo', 'Not Distributed', cn('todo')], ['doing', 'In Progress', cn('doing')], ['done', 'Distributed', cn('done')]];
   document.getElementById('dstTabs').innerHTML = tabs.map(t => `<button type="button" class="dst-tab dst-tab-${t[0] || 'all'}${dstTab === t[0] ? ' on' : ''}" data-t="${t[0]}">${t[1]} <span>${t[2]}</span></button>`).join('');
   let list = dstFiltered().sort((a, b) => String(a.series || '').localeCompare(String(b.series || '')) || String(a.officialProductName || '').localeCompare(String(b.officialProductName || '')));
-  if (dstSort.k) list = sortApply(list, dstSort, { series: r => r.series || '', product: r => r.officialProductName || '', boutique: r => r.allocationBoutique || '', qc: r => bqcStatusKey(r.qcFg) === 'pass' ? 0 : 1, dist: r => r.distStatus || '', progress: r => Math.max(0, BQR_DIST_STATUSES.indexOf(bqrDistStatusOf(r))) });
+  if (dstSort.k) list = sortApply(list, dstSort, { series: r => r.series || '', product: r => r.officialProductName || '', boutique: r => r.allocationBoutique || '', qc: r => bqcStatusKey(r.qcFg) === 'pass' ? 0 : 1, dist: r => r.distStatus || '', progress: r => Math.max(0, BQR_DIST_STATUSES.indexOf(bqrDistStatusOf(r))), updated: r => rqUpdMs(r, bqrDistMap[bqrDistKey(r)]) });
   const pages = Math.max(1, Math.ceil(list.length / DS_PAGE)); if (dstPage > pages) dstPage = pages;
   const slice = list.slice((dstPage - 1) * DS_PAGE, dstPage * DS_PAGE);
   if (!dstSel || !all.some(r => bqrDistKey(r) === dstSel)) dstSel = slice.length ? bqrDistKey(slice[0]) : '';
   const E = escapeHtml, start = (dstPage - 1) * DS_PAGE;
   document.getElementById('dstTableWrap').innerHTML = !list.length ? '<div class="empty-state" style="padding:18px;">No item matches.</div>'
-    : `<table><thead><tr><th style="width:30px;"><input type="checkbox" id="dstCheckAll"></th><th>No.</th>${sortTh(dstSort, 'series', 'Series / Product')}${sortTh(dstSort, 'boutique', 'Boutique', 'Allocation Boutique')}${sortTh(dstSort, 'dist', 'Dist. Status', 'Distribution Status')}${sortTh(dstSort, 'progress', 'Progress', 'Progress Status')}<th>Action</th></tr></thead><tbody>`
-      + slice.map((r, i) => { const k = bqrDistKey(r); return `<tr data-k="${E(k)}" class="${k === dstSel ? 'sel' : ''}"><td><input type="checkbox" class="dst-chk" data-k="${E(k)}"${dstChecked.has(k) ? ' checked' : ''}></td><td>${start + i + 1}</td><td><b>${E(r.series || '-')}</b><div style="opacity:.75;font-size:12px;margin-top:2px;">${E(r.officialProductName || '-')}</div></td><td>${E(r.allocationBoutique || '-')}</td><td>${sheetStatusPill(r.distStatus, 'dst')}</td><td>${dstPill(bqrDistStatusOf(r))}</td><td><button type="button" class="dst-upd" data-k="${E(k)}">Update</button></td></tr>`; }).join('') + '</tbody></table>';
+    : `<table><thead><tr><th style="width:30px;"><input type="checkbox" id="dstCheckAll"></th><th>No.</th>${sortTh(dstSort, 'series', 'Series / Product')}${sortTh(dstSort, 'boutique', 'Boutique', 'Allocation Boutique')}${sortTh(dstSort, 'dist', 'Dist. Status', 'Distribution Status')}${sortTh(dstSort, 'progress', 'Progress', 'Progress Status')}${sortTh(dstSort, 'updated', 'Updated', 'Last Updated')}<th>Action</th></tr></thead><tbody>`
+      + slice.map((r, i) => { const k = bqrDistKey(r); return `<tr data-k="${E(k)}" class="${k === dstSel ? 'sel' : ''}"><td><input type="checkbox" class="dst-chk" data-k="${E(k)}"${dstChecked.has(k) ? ' checked' : ''}></td><td>${start + i + 1}</td><td><b>${E(r.series || '-')}</b><div style="opacity:.75;font-size:12px;margin-top:2px;">${E(r.officialProductName || '-')}</div></td><td>${E(r.allocationBoutique || '-')}</td><td>${sheetStatusPill(r.distStatus, 'dst')}</td><td>${dstPill(bqrDistStatusOf(r))}</td><td style="white-space:nowrap;font-size:12px;">${rqFmtAt2(rqUpd(r, bqrDistMap[k]))}</td><td><button type="button" class="dst-upd" data-k="${E(k)}">Update</button></td></tr>`; }).join('') + '</tbody></table>';
   document.getElementById('dstShowing').textContent = list.length ? `Showing ${start + 1} - ${start + slice.length} of ${list.length} item(s)` : '';
   document.getElementById('dstPager').innerHTML = pages > 1 ? Array.from({ length: pages }, (_, i) => `<button type="button" data-p="${i + 1}" class="${i + 1 === dstPage ? 'on' : ''}">${i + 1}</button>`).join('') : '';
   dstRenderPanel();
@@ -18741,6 +18825,15 @@ function campaignTimelineMergeFetchedRows(newRows, oldRows, dropMissing) {
         combined[key] = oldRec[key]; // new fetch has a gap here — keep what we already had
       }
     });
+    // "Updated" date for Bulk QC Result / Distribution Status (Oct 30, 2026): stamp the time the refresh first SEES a change in these sheet fields.
+    // Rows coming from the Firebase snapshot already carry sheetChangedAt (keep the newest); brand-new rows get no stamp (first load is not a "change").
+    if (newRec.sheetChangedAt) {
+      combined.sheetChangedAt = Math.max(Number(newRec.sheetChangedAt) || 0, Number(oldRec.sheetChangedAt) || 0);
+    } else {
+      const changedNow = ['qcFg', 'qcFgLink', 'qcWash', 'qcWashLink', 'distStatus', 'distFormLink', 'allocationBoutique'].some(k => String(combined[k] == null ? '' : combined[k]).trim() !== String(oldRec[k] == null ? '' : oldRec[k]).trim());
+      combined.sheetChangedAt = changedNow ? Date.now() : (Number(oldRec.sheetChangedAt) || 0);
+      if (!combined.sheetChangedAt) delete combined.sheetChangedAt;
+    }
     return combined;
   });
   // Rows that existed before but didn't come back at all in this fetch (whole row dropped) — keep
@@ -26704,8 +26797,8 @@ function populateFleetAssistantDatalist() {
   const assistantVals = [...document.querySelectorAll('.trip-assistant-input')]
     .map(i => (i.value || '').trim().toLowerCase())
     .filter(Boolean);
-  const busyElsewhere = fleetPeopleBusyOnDate(fleetTripModalDate, fleetTripEditId);
-  const excluded = new Set([driverVal, ...assistantVals, ...busyElsewhere]);
+  // Oct 30, 2026 (per Shaila: "buka la, syed tu boleh pulak"): an assistant may also be on another trip the same day, same as a driver — only this trip's own driver/assistants are left out.
+  const excluded = new Set([driverVal, ...assistantVals]);
   const names = [...new Set(fleetDrivers.map(d => (d.driverName || '').trim()).filter(Boolean))]
     .filter(n => !excluded.has(n.toLowerCase()))
     .sort();
@@ -26772,6 +26865,8 @@ function fleetDestinationsTakenOnDate(dateIso, excludeTripId, sameDriverName) {
   fleetTrips.forEach(t => {
     if (t.date !== dateIso) return;
     if (excludeTripId && t.id === excludeTripId) return;
+    // A trip that is already Completed (delivered) no longer holds its destinations — they free up for a new trip (Oct 30, 2026: boutiques were missing after both trips were Delivered).
+    if (t.status === 'Completed') return;
     // Another trip by the SAME driver doesn't block — a driver may deliver to the same boutique on multiple trips.
     if (sameKey && (t.driverName || '').trim().toLowerCase() === sameKey) return;
     fleetTripDestinationsArray(t).forEach(d => { if (!takenBy[d]) takenBy[d] = t.driverName || 'another trip'; });
@@ -27087,7 +27182,10 @@ function renderTripDoPicker(excludeTripId) {
   // save (see saveFleetTripFromModal), so an STO that got attached to the wrong day/driver can be
   // corrected just by opening the right trip and ticking it, without needing Postpone/Transfer
   // (which only moves a DO between drivers on the SAME date, not to a different day).
-  const available = doRecords.filter(d => (!d.deliveryMethod || d.deliveryMethod === 'Own Fleet') && (alreadyOnThisTrip.has(d.doNo) || taken.has(d.doNo) || [...fleetSelectedDestinationChips].some(dest => boutiqueMatch(dest, d.boutique)))).slice()
+  // DOs already Delivered on ANOTHER (Completed) trip are not offered here (Oct 30, 2026, per Shaila: "do yg dah delivered jgn ade dalam ni") — ticking one used to silently pull it off its delivered trip.
+  const onOtherCompletedTrip = new Set();
+  fleetTrips.forEach(t => { if (t.id !== excludeTripId && t.status === 'Completed') (t.doNos || []).forEach(no => onOtherCompletedTrip.add(no)); });
+  const available = doRecords.filter(d => (!d.deliveryMethod || d.deliveryMethod === 'Own Fleet') && (alreadyOnThisTrip.has(d.doNo) || !onOtherCompletedTrip.has(d.doNo)) && (alreadyOnThisTrip.has(d.doNo) || taken.has(d.doNo) || [...fleetSelectedDestinationChips].some(dest => boutiqueMatch(dest, d.boutique)))).slice()
     .sort((a, b) => (b.createdDate || '').localeCompare(a.createdDate || ''));
   if (!available.length) {
     wrap.innerHTML = `<div class="empty-state" style="padding:16px;">No DO printed yet for the selected destination(s) — print one from the Progress Board, or come back later once it's ready.</div>`;
@@ -27133,6 +27231,7 @@ function openFleetTripModal(dateIso) {
   document.getElementById('fleetTripModalDispatchBtn').style.display = 'none';
   document.getElementById('fleetTripModalReassignBtn').style.display = 'none';
   document.getElementById('fleetTripModalDeleteBtn').style.display = 'none';
+  document.getElementById('fleetTripEditDoBtn').style.display = 'none';
   document.getElementById('fleetTripEditDateBtn').style.display = 'none';
   document.getElementById('fleetTripDateEditRow').style.display = 'none';
   document.getElementById('fleetTripEditDeliveryDateBtn').style.display = 'none';
@@ -27231,6 +27330,8 @@ function openFleetTripEditModal(tripId, fromCreateTab) {
     if (unlockBtn) unlockBtn.style.display = pastLocked ? '' : 'none';
   }
   document.getElementById('fleetTripModalCancelBtn').textContent = fleetTripModalViewOnly ? 'Close' : 'Cancel';
+  // Admin can fix the destination(s)/DO(s) of a trip that is already Delivered (Oct 30, 2026, per Shaila: "buat je kt sini saya boleh edit balik, tick2 tu").
+  document.getElementById('fleetTripEditDoBtn').style.display = (trip.status === 'Completed' && (getCurrentUser() || {}).isAdmin) ? '' : 'none';
   document.getElementById('tripDestinationField').style.display = '';
   document.getElementById('tripDoPickerField').style.display = '';
   document.getElementById('tripCreateNote').style.display = 'none';
@@ -27428,6 +27529,20 @@ document.getElementById('inputTripPlateNo').addEventListener('change', () => {
     return;
   }
   apply();
+});
+// Admin: unlock the destination chips + DO checkboxes of a Completed trip. Save only rewrites destinations/doNos (status stays Completed, driver/assistants unchanged).
+document.getElementById('fleetTripEditDoBtn').addEventListener('click', () => {
+  const trip = fleetTrips.find(t => t.id === fleetTripEditId);
+  if (!trip || trip.status !== 'Completed') return;
+  fleetTripModalViewOnly = false;
+  fleetTripModalFromCreateTab = true; // show every registered boutique to pick from
+  document.getElementById('fleetTripEditDoBtn').style.display = 'none';
+  document.getElementById('fleetTripModalSaveBtn').style.display = '';
+  document.getElementById('fleetTripModalSaveBtn').textContent = 'Save DO Changes';
+  document.getElementById('fleetTripModalCancelBtn').textContent = 'Cancel';
+  document.getElementById('tripDoPickerHint').style.display = '';
+  renderFleetDestinationChips();
+  renderTripDoPicker(fleetTripEditId);
 });
 document.getElementById('fleetTripModalSaveBtn').addEventListener('click', () => {
   if (!saveFleetTripFromModal()) return;
@@ -33164,7 +33279,7 @@ function openDOModalForBatch(orderNumbers, forceDoNo) {
     document.getElementById('doCourierTrackingNo').value = existing.courierTrackingNo || '';
   } else {
     doCurrentBatch = { orderNumbers: allOrderNumbers, boutique, doNo: null };
-    document.getElementById('doNo').value = formatDoNo(boutique, getDoCounter() + 1);
+    document.getElementById('doNo').value = formatDoNo(boutique, getNextDoSeq());
     document.getElementById('doDeliveryDate').value = todayStr();
     document.getElementById('doDeliveryMethod').value = 'Own Fleet';
     document.getElementById('doCourierTrackingNo').value = '';
@@ -33319,8 +33434,8 @@ function commitDoCurrentBatch() {
   // STO list; the delivery date stays editable and gets re-saved on every print so corrections
   // don't burn a new number.
   if (!doCurrentBatch.doNo) {
-    const next = getDoCounter() + 1;
-    setDoCounter(next);
+    const next = getNextDoSeq();
+    try { setDoCounter(next); } catch (e) { console.warn('DO counter not saved (storage full?)', e); }
     doCurrentBatch.doNo = formatDoNo(doCurrentBatch.boutique, next);
     doRecords.push({
       doNo: doCurrentBatch.doNo,
@@ -38467,7 +38582,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '26Oct-r453';
+const APP_BUILD_LABEL = '30Oct-r467';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
