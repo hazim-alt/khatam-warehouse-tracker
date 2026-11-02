@@ -2900,6 +2900,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
           <option value="orderNumber">Sort: STO No.</option>
         </select>
         <button class="btn-ghost" id="clearDataBtn">Reset STO List</button>
+        <button class="btn-ghost" id="stoDelivAllBtn" style="color:var(--green); border-color:var(--green);" title="Mark every STO shown below that has no DO as Delivered">&#10003; Mark shown (no DO) as Delivered</button>
       </div>
       <div id="tableWrap"></div>
       <div id="removedStoLogWrap" style="margin-top:16px;"></div>
@@ -9158,6 +9159,38 @@ function populateFilterOptions() {
   }
 }
 
+// STO List status: a Shipped ("DO Issued") STO shows its real delivery stage once its DO has a trip / courier result. Display only - r.progress is never changed.
+function stoStatusBadge(r, status) {
+  let label = progressLabel(status), cls = 'badge-gray';
+  try {
+    if (status === 'Shipped' && r.doNo) {
+      const d = doRecords.find(x => x.doNo === r.doNo);
+      if (d && d.deliveryMethod && d.deliveryMethod !== 'Own Fleet') { if (d.courierDeliveredDate) { label = 'Delivered'; cls = 'badge-green'; } }
+      else {
+        const t = fleetTripForDoNo(r.doNo);
+        if (!t && d && d.manualDeliveredAt) { label = 'Delivered'; cls = 'badge-green'; }
+        else if (t && t.status === 'Completed') { label = 'Delivered'; cls = 'badge-green'; }
+        else if (t && t.status === 'Out of Delivery') label = 'Out of Delivery';
+        else if (t) label = 'Scheduled';
+      }
+    }
+  } catch (e) {}
+  return `<span class="badge ${cls}">${escapeHtml(label)}</span>`;
+}
+// STO List: an old Shipped ("DO Issued") STO that has NO DO No. can be closed manually. Only adds r.manualDeliveredAt/By to the STO (hides it from this list) - stock, cartons and DO/trip data are untouched.
+function stoMarkDeliveredNoDo(orderNos) {
+  const recs = orderNos.map(on => records.find(r => r.orderNumber === on)).filter(r => r && (r.progress || 'Active') === 'Shipped' && !r.doNo && !r.manualDeliveredAt);
+  if (!recs.length) { alert('Nothing to mark.'); return; }
+  if (!confirm('Mark ' + recs.length + ' STO as Delivered?\n\nThey have no DO and will be removed from the STO List (nothing is deleted).')) return;
+  const cu = getCurrentUser() || {}, now = new Date().toISOString();
+  recs.forEach(r => { r.manualDeliveredAt = now; r.manualDeliveredBy = cu.name || cu.username || ''; });
+  try { saveRecords(); } catch (e) { recs.forEach(r => { delete r.manualDeliveredAt; delete r.manualDeliveredBy; }); alert('Save failed - nothing was marked.'); return; }
+  renderAll();
+}
+function stoMarkAllShownDelivered() {
+  const ons = Array.from(document.querySelectorAll('#tableWrap .senarai-deliv-btn')).map(b => b.dataset.order);
+  stoMarkDeliveredNoDo(ons);
+}
 function renderSenaraiTable() {
   const filterAmaran = document.getElementById('filterAmaran').value;
   const filterStatus = document.getElementById('filterStatus').value;
@@ -9172,6 +9205,7 @@ function renderSenaraiTable() {
     // Outbound has marked it Delivered themselves. Once that's true, it's done — no reason to
     // keep cluttering the STO List with it.
     if (r.doNo && isDoLockedByDispatch(r.doNo)) return false;
+    if (r.manualDeliveredAt) return false;   // closed manually (old STO with no DO)
     if (filterAmaran && a !== filterAmaran) return false;
     if (filterStatus && r.status !== filterStatus) return false;
     if (filterButik && r.toWarehouse !== filterButik) return false;
@@ -9193,25 +9227,27 @@ function renderSenaraiTable() {
   if (!list.length) { wrap.innerHTML = `<div class="empty-state">No STOs found. Upload a file to get started.</div>`; return; }
 
   let html = `<table><thead><tr>
-    <th>STO No.</th><th>Boutique</th><th>Qty</th><th>Created Date</th><th>Due Date</th><th>Days Left</th><th>Status</th><th>Alert</th><th></th>
+    <th>STO No.</th><th>DO No.</th><th>Boutique</th><th>Qty</th><th>Created Date</th><th>Due Date</th><th>Days Left</th><th>Status</th><th>Alert</th><th></th>
   </tr></thead><tbody>`;
   list.forEach(({ r, a, due }) => {
     const hb = daysDiffFromToday(due);
     const status = r.progress || 'Active';
     html += `<tr>
       <td class="mono-name">${escapeHtml(r.orderNumber)}</td>
+      <td>${escapeHtml(r.doNo || '-')}</td>
       <td>${escapeHtml(r.toWarehouse || '-')}</td>
       <td>${formatQty(r.totalOrderQty)}</td>
       <td>${formatDateLabel(r.createdDate)}</td>
       <td>${formatDateLabel(due)}</td>
       <td>${hb}</td>
-      <td><span class="badge badge-gray">${escapeHtml(progressLabel(status))}</span></td>
+      <td>${stoStatusBadge(r, status)}</td>
       <td><span class="badge ${amaranBadgeClass(a)}">${amaranLabel(a)}</span></td>
-      <td><button type="button" class="btn-ghost senarai-delete-btn" data-order="${escapeHtml(r.orderNumber)}" style="padding:4px 10px; color:var(--red); border-color:var(--red);">Delete</button></td>
+      <td>${(status === 'Shipped' && !r.doNo) ? `<button type="button" class="btn-ghost senarai-deliv-btn" data-order="${escapeHtml(r.orderNumber)}" style="padding:4px 10px; margin-right:6px; color:var(--green); border-color:var(--green);" title="No DO on this STO - mark it Delivered to remove it from this list">&#10003; Delivered</button>` : ''}<button type="button" class="btn-ghost senarai-delete-btn" data-order="${escapeHtml(r.orderNumber)}" style="padding:4px 10px; color:var(--red); border-color:var(--red);">Delete</button></td>
     </tr>`;
   });
   html += `</tbody></table>`;
   wrap.innerHTML = html;
+  wrap.querySelectorAll('.senarai-deliv-btn').forEach(btn => btn.addEventListener('click', () => stoMarkDeliveredNoDo([btn.dataset.order])));
   wrap.querySelectorAll('.senarai-delete-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const orderNumber = e.currentTarget.dataset.order;
@@ -9243,6 +9279,7 @@ function rollBackCartonCounterIfSafe(rec) {
   setCartonCounter(boutique, Math.min(...numbers) - 1);
 }
 
+document.getElementById('stoDelivAllBtn').addEventListener('click', stoMarkAllShownDelivered);
 ['filterAmaran','filterStatus','filterButik','sortBy'].forEach(id => document.getElementById(id).addEventListener('change', renderSenaraiTable));
 
 // Read-only "Delivery Status" tab (Operation Fleet) — every DO group that's reached "DO Issued"
@@ -9328,11 +9365,11 @@ function renderDeliveredTab() {
     // A DO with no CURRENT trip is either freshly printed (never attempted — "DO Issued") or was
     // freed up after a driver failed to reach it last trip ("Reschedule") — fleetIsDoPostponed
     // is the same flag the Progress Board and Fleet Dashboard already use for that distinction.
-    const status = !trip ? (fleetIsDoPostponed(group.doNo) ? 'Reschedule' : 'DO Issued')
+    const status = !trip ? (doRec && doRec.manualDeliveredAt ? 'Delivered' : fleetIsDoPostponed(group.doNo) ? 'Reschedule' : 'DO Issued')
       : trip.status === 'Completed' ? 'Delivered'
       : trip.status === 'Out of Delivery' ? 'Out of Delivery'
       : 'Scheduled';
-    const dateVal = status === 'Delivered' ? (trip && trip.deliveryDate) : (trip && trip.date);
+    const dateVal = status === 'Delivered' ? (trip ? trip.deliveryDate : (doRec && doRec.manualDeliveredDate)) : (trip && trip.date);
     return { group, trip, doRec, isCourier, status, totalCarton, dateVal };
   });
 
@@ -9401,7 +9438,7 @@ function renderDeliveredTab() {
       <td>${totalStoDisplay}</td>
       <td>${totalCarton}</td>
       <td>${dateVal ? escapeHtml(formatDateLabel(dateVal)) : '-'}</td>
-      <td>${(group.doNo && status === 'Courier — Pending') ? `<button type="button" class="btn-ghost delivered-courier-btn" data-do="${escapeHtml(group.doNo)}" style="padding:4px 10px; margin-right:6px; color:var(--green); border-color:var(--green);">✓ Mark Delivered</button>` : ''}${(group.doNo && status === 'DO Issued' && (getCurrentUser() || {}).isAdmin && (!doRec || !doRec.deliveryMethod || doRec.deliveryMethod === 'Own Fleet')) ? `<button type="button" class="btn-ghost delivered-attach-btn" data-do="${escapeHtml(group.doNo)}" data-boutique="${escapeHtml(group.boutique || '')}" style="padding:4px 10px; margin-right:6px;" title="Admin: attach this DO to one of its boutique's trips">Attach to trip</button>` : ''}${(group.doNo && (status === 'DO Issued' || status === 'Reschedule' || status === 'Courier — Pending' || (status === 'Scheduled' || status === 'Delivered'))) ? `<button type="button" class="btn-ghost delivered-do-delete-btn" data-do="${escapeHtml(group.doNo)}" style="padding:4px 10px; color:var(--red); border-color:var(--red);">Delete DO</button>` : ''}</td>
+      <td>${(group.doNo && (status === 'DO Issued' || status === 'Reschedule') && doRec && (!doRec.deliveryMethod || doRec.deliveryMethod === 'Own Fleet')) ? `<button type="button" class="btn-ghost delivered-manual-btn" data-do="${escapeHtml(group.doNo)}" style="padding:4px 10px; margin-right:6px; color:var(--green); border-color:var(--green);" title="No trip for this DO - mark it Delivered manually">&#10003; Mark Delivered</button>` : ''}${(group.doNo && status === 'Courier — Pending') ? `<button type="button" class="btn-ghost delivered-courier-btn" data-do="${escapeHtml(group.doNo)}" style="padding:4px 10px; margin-right:6px; color:var(--green); border-color:var(--green);">✓ Mark Delivered</button>` : ''}${(group.doNo && status === 'DO Issued' && (getCurrentUser() || {}).isAdmin && (!doRec || !doRec.deliveryMethod || doRec.deliveryMethod === 'Own Fleet')) ? `<button type="button" class="btn-ghost delivered-attach-btn" data-do="${escapeHtml(group.doNo)}" data-boutique="${escapeHtml(group.boutique || '')}" style="padding:4px 10px; margin-right:6px;" title="Admin: attach this DO to one of its boutique's trips">Attach to trip</button>` : ''}${(group.doNo && (status === 'DO Issued' || status === 'Reschedule' || status === 'Courier — Pending' || (status === 'Scheduled' || status === 'Delivered'))) ? `<button type="button" class="btn-ghost delivered-do-delete-btn" data-do="${escapeHtml(group.doNo)}" style="padding:4px 10px; color:var(--red); border-color:var(--red);">Delete DO</button>` : ''}</td>
     </tr>`;
   });
   html += `</tbody></table>`;
@@ -9469,6 +9506,7 @@ function renderDeliveredTab() {
       renderDeliveredTab();
     });
   });
+  wrap.querySelectorAll('.delivered-manual-btn').forEach(btn => btn.addEventListener('click', () => markDoDeliveredNoTrip(btn.dataset.do)));
   // Delete DO (Oct 13, 2026, per Shaila): only for a DO that has no trip yet (DO Issued / Reschedule). Removes the DO record and
   // unlinks its STOs; then asks whether the STOs themselves should also be removed from the STO List (logged, can be restored).
   wrap.querySelectorAll('.delivered-do-delete-btn').forEach(btn => {
@@ -9618,7 +9656,7 @@ function dlvOpenView(x) {
   steps.push({ t: 'DO Printed', done: !!(doRec && doRec.printedAt), w: doRec && doRec.printedAt ? fdt(doRec.printedAt) + by(doRec.printedBy) : 'Not printed yet' });
   if (!x.isCourier) steps.push({ t: 'Scheduled' + (trip ? ' — ' + fleetTripNumberOf(trip) : ''), done: !!trip, w: trip ? 'Trip date ' + formatDateLabel(trip.date) + by(trip.createdBy) : 'Not on a trip yet' });
   steps.push({ t: 'Out of Delivery', done: out || (x.isCourier && !!doRec), w: out && trip ? (trip.collectedAt ? fdt(trip.collectedAt) + by(trip.collectedBy) : 'Driver left') : (x.isCourier ? esc((doRec && doRec.deliveryMethod) || '') : '') });
-  steps.push({ t: 'Delivered', done: delivered, w: delivered ? ((trip && trip.deliveredAt) ? fdt(trip.deliveredAt) + by(trip.deliveredBy) : formatDateLabel((trip && trip.deliveryDate) || (doRec && doRec.courierDeliveredDate) || '')) + (trip && trip.deliveryRemark ? '<br>Remark: ' + esc(trip.deliveryRemark) : '') : '' });
+  steps.push({ t: 'Delivered', done: delivered, w: delivered ? ((trip && trip.deliveredAt) ? fdt(trip.deliveredAt) + by(trip.deliveredBy) : formatDateLabel((trip && trip.deliveryDate) || (doRec && (doRec.courierDeliveredDate || doRec.manualDeliveredDate)) || '')) + (trip && trip.deliveryRemark ? '<br>Remark: ' + esc(trip.deliveryRemark) : '') : '' });
   const kv = (k, v) => '<div><span class="k">' + k + '</span><span class="v">' + (v || '-') + '</span></div>';
   document.getElementById('dlvModalBox').innerHTML = '<h3>Delivery Order Details</h3>'
     + '<div class="dg">' + kv('DO Number', esc(group.doNo)) + kv('Status', dlvBadge(x.status)) + kv('Boutique', esc(group.boutique)) + kv('Trip Number', trip ? esc(fleetTripNumberOf(trip)) : '') + kv('Driver', x.isCourier ? esc((doRec && doRec.deliveryMethod) || '') : esc(trip && trip.driverName)) + kv('Assistant', as.length ? esc(as.join(', ')) : '') + kv('DO Date', doRec && doRec.createdDate ? esc(formatDateLabel(doRec.createdDate)) : '') + kv('Total Carton', String(x.totalCarton)) + '</div>'
@@ -9627,6 +9665,7 @@ function dlvOpenView(x) {
     + (x.actionsHtml && x.actionsHtml.trim() ? '<h4>Actions</h4><div class="dlv-actions">' + x.actionsHtml + '</div>' : '')
     + '<div class="acts"><button type="button" class="dlv-btn" id="dlvModalClose">Close</button></div>';
   const box = document.getElementById('dlvModalBox');
+
   document.getElementById('dlvModal').classList.remove('hidden');
   if (typeof window.__dlvBindActions === 'function') {
     window.__dlvBindActions(box);
@@ -9685,11 +9724,11 @@ function renderDlvNew() {
     // A DO with no CURRENT trip is either freshly printed (never attempted — "DO Issued") or was
     // freed up after a driver failed to reach it last trip ("Reschedule") — fleetIsDoPostponed
     // is the same flag the Progress Board and Fleet Dashboard already use for that distinction.
-    const status = !trip ? (fleetIsDoPostponed(group.doNo) ? 'Reschedule' : 'DO Issued')
+    const status = !trip ? (doRec && doRec.manualDeliveredAt ? 'Delivered' : fleetIsDoPostponed(group.doNo) ? 'Reschedule' : 'DO Issued')
       : trip.status === 'Completed' ? 'Delivered'
       : trip.status === 'Out of Delivery' ? 'Out of Delivery'
       : 'Scheduled';
-    const dateVal = status === 'Delivered' ? (trip && trip.deliveryDate) : (trip && trip.date);
+    const dateVal = status === 'Delivered' ? (trip ? trip.deliveryDate : (doRec && doRec.manualDeliveredDate)) : (trip && trip.date);
     return { group, trip, doRec, isCourier, status, totalCarton, dateVal };
   });
 
@@ -17616,6 +17655,7 @@ function rqRenderFlat(wrap, shown, fabric) {
     : { series: r => r.series || '', product: r => r.officialProductName || '', boutique: r => r.allocationBoutique || '', qc: qcRank, colour: r => rqRowColour(r), dist: r => r.distStatus || '', progress: r => Math.max(0, BQR_DIST_STATUSES.indexOf(bqrDistStatusOf(r))), updated: r => rqUpdMs(r, rqVal(r)), docs: r => rqLinks(r, 'qcFg').length + rqLinks(r, 'distForm').length };
   if (rqSort.k && !rqGet[rqSort.k]) rqSort.k = '';
   if (rqSort.k) list = sortApply(list, rqSort, rqGet);
+  else if (!fabric) list = list.slice().sort((x, y) => (bqrDistStatusOf(x) === 'Not distributed' ? 0 : 1) - (bqrDistStatusOf(y) === 'Not distributed' ? 0 : 1)); // default: Not Distributed on top (stable, keeps Series order)
   const pages = Math.max(1, Math.ceil(list.length / RQ_PAGE)); if (rqPage > pages) rqPage = pages;
   const st = (rqPage - 1) * RQ_PAGE, slice = list.slice(st, st + RQ_PAGE);
   if (!rqSel || !list.some(r => rqKey(r) === rqSel)) rqSel = slice.length ? rqKey(slice[0]) : '';
@@ -33378,6 +33418,18 @@ function doGroupCardHtml(group) {
 // no Fleet trip to mark Completed for these, so this is the ONLY thing that closes them out. Once
 // set, isDoLockedByDispatch treats this DO exactly like a dispatched Own Fleet one: it drops off the
 // Progress Board's DO Issued column and stops being eligible to fold new STO(s) into.
+// Delivery Status tab: a DO with no trip (old/legacy) can be closed manually. Adds doRec.manualDeliveredDate/At/By only - no stock/STO/trip data changed.
+function markDoDeliveredNoTrip(doNo) {
+  const doRec = doRecords.find(d => d.doNo === doNo);
+  if (!doRec) return;
+  const dt = prompt('Mark DO "' + doNo + '" as Delivered (it has no trip).\n\nDelivery date (YYYY-MM-DD):', todayStr());
+  if (dt === null) return;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dt.trim())) { alert('Date must be YYYY-MM-DD.'); return; }
+  const cu = getCurrentUser() || {};
+  doRec.manualDeliveredDate = dt.trim(); doRec.manualDeliveredAt = new Date().toISOString(); doRec.manualDeliveredBy = cu.name || cu.username || '';
+  try { saveDoRecords(); } catch (e) { delete doRec.manualDeliveredAt; delete doRec.manualDeliveredDate; delete doRec.manualDeliveredBy; alert('Save failed - DO not marked.'); return; }
+  try { renderDeliveredTab(); } catch (e) {} try { renderDlvNew(); } catch (e) {} try { renderSenaraiTable(); } catch (e) {} try { renderKanban(); } catch (e) {}
+}
 function markCourierDoDelivered(doNo) {
   const doRec = doRecords.find(d => d.doNo === doNo);
   if (!doRec) return;
@@ -34666,6 +34718,7 @@ function applyDoLockUI() {
 function isDoLockedByDispatch(doNo) {
   const doRec = doRecords.find(d => d.doNo === doNo);
   if (doRec && doRec.deliveryMethod && doRec.deliveryMethod !== 'Own Fleet') return !!doRec.courierDeliveredDate;
+  if (doRec && doRec.manualDeliveredAt) return true;
   return fleetTrips.some(t => Array.isArray(t.doNos) && t.doNos.includes(doNo) && (t.status === 'Out of Delivery' || t.status === 'Completed'));
 }
 // Finds an already-printed DO for this boutique that hasn't gone Out of Delivery yet, so a
@@ -40121,7 +40174,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '2Nov-r554';
+const APP_BUILD_LABEL = '2Nov-r560';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
