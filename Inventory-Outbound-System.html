@@ -7508,11 +7508,14 @@ function parseCsv(text) {
   });
 }
 
+// Names used in the ANTZ file that differ from the boutique/location name registered in this system (new imports only; existing STOs are not changed).
+const TO_WAREHOUSE_ALIAS = { 'PRODUCTION (FD) LOCATION': 'KHATAM, PRODUCTION' };
+function aliasToWarehouse(name) { const k = String(name || '').replace(/\s+/g, ' ').trim().toUpperCase(); return TO_WAREHOUSE_ALIAS[k] || name || ''; }
 function mapRowToRecord(row) {
   return {
     orderNumber: row['Order Number'] || row['Picking Order No'] || '',
     pickingOrderNo: row['Picking Order No'] || '',
-    toWarehouse: row['To Warehouse'] || '',
+    toWarehouse: aliasToWarehouse(row['To Warehouse']),
     fromWarehouse: row['From Warehouse'] || '',
     status: row['Status'] || '',
     createdDate: parseUsDateToIso(row['Created Date']),
@@ -9199,6 +9202,24 @@ function stoMarkAllShownDelivered() {
   const ons = Array.from(document.querySelectorAll('#tableWrap .senarai-deliv-btn')).map(b => b.dataset.order);
   stoMarkDeliveredNoDo(ons);
 }
+// Admin: correct the boutique name on one STO and on its DO record (same DO No. is kept). Only to a boutique name already registered in the system.
+function stoRenameBoutique(orderNo) {
+  const r = records.find(x => x.orderNumber === orderNo); if (!r) return;
+  const known = [...new Set(records.map(x => x.toWarehouse).filter(Boolean).concat(sla.extraButiks || [], Object.keys(sla.scheduleByButik || {})))].filter(n => n !== r.toWarehouse);
+  const v = prompt('Rename boutique for STO ' + orderNo + '\nCurrent: ' + (r.toWarehouse || '-') + '\n\nType the exact registered name:', known.find(n => /^KHATAM, PRODUCTION$/i.test(n)) || '');
+  if (v === null) return;
+  const nn = v.replace(/\s+/g, ' ').trim();
+  const hit = known.find(n => n.toUpperCase() === nn.toUpperCase());
+  if (!hit) { alert('"' + nn + '" is not a registered boutique name. Nothing changed.'); return; }
+  const d = r.doNo ? doRecords.find(x => x.doNo === r.doNo) : null;
+  if (d && (d.orderNumbers || []).length > 1) { alert('This DO has more than one STO - rename is only allowed for a DO with a single STO. Nothing changed.'); return; }
+  if (!confirm('Change boutique of STO ' + orderNo + (d ? ' and DO ' + d.doNo : '') + '\nfrom: ' + r.toWarehouse + '\nto: ' + hit + '\n\nBackup your data first. Continue?')) return;
+  const prevR = r.toWarehouse, prevD = d ? d.boutique : null;
+  r.toWarehouse = hit; if (d) d.boutique = hit;
+  try { saveRecords(); if (d) saveDoRecords(); }
+  catch (e) { r.toWarehouse = prevR; if (d) d.boutique = prevD; alert('Save failed - nothing changed.'); return; }
+  renderAll();
+}
 function renderSenaraiTable() {
   const filterAmaran = document.getElementById('filterAmaran').value;
   const filterStatus = document.getElementById('filterStatus').value;
@@ -9250,11 +9271,12 @@ function renderSenaraiTable() {
       <td>${hb}</td>
       <td>${stoStatusBadge(r, status)}</td>
       <td><span class="badge ${amaranBadgeClass(a)}">${amaranLabel(a)}</span></td>
-      <td>${(status === 'Shipped' && !r.doNo) ? `<button type="button" class="btn-ghost senarai-deliv-btn" data-order="${escapeHtml(r.orderNumber)}" style="padding:4px 10px; margin-right:6px; color:var(--green); border-color:var(--green);" title="No DO on this STO - mark it Delivered to remove it from this list">&#10003; Delivered</button>` : ''}<button type="button" class="btn-ghost senarai-delete-btn" data-order="${escapeHtml(r.orderNumber)}" style="padding:4px 10px; color:var(--red); border-color:var(--red);">Delete</button></td>
+      <td>${(status === 'Shipped' && !r.doNo) ? `<button type="button" class="btn-ghost senarai-deliv-btn" data-order="${escapeHtml(r.orderNumber)}" style="padding:4px 10px; margin-right:6px; color:var(--green); border-color:var(--green);" title="No DO on this STO - mark it Delivered to remove it from this list">&#10003; Delivered</button>` : ''}${((getCurrentUser() || {}).isAdmin) ? `<button type="button" class="btn-ghost senarai-rename-btn" data-order="${escapeHtml(r.orderNumber)}" style="padding:4px 10px; margin-right:6px;" title="Admin: correct the boutique name of this STO (and its DO)">Rename Boutique</button>` : ''}<button type="button" class="btn-ghost senarai-delete-btn" data-order="${escapeHtml(r.orderNumber)}" style="padding:4px 10px; color:var(--red); border-color:var(--red);">Delete</button></td>
     </tr>`;
   });
   html += `</tbody></table>`;
   wrap.innerHTML = html;
+  wrap.querySelectorAll('.senarai-rename-btn').forEach(btn => btn.addEventListener('click', () => stoRenameBoutique(btn.dataset.order)));
   wrap.querySelectorAll('.senarai-deliv-btn').forEach(btn => btn.addEventListener('click', () => stoMarkDeliveredNoDo([btn.dataset.order])));
   wrap.querySelectorAll('.senarai-delete-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -9446,7 +9468,7 @@ function renderDeliveredTab() {
       <td>${totalStoDisplay}</td>
       <td>${totalCarton}</td>
       <td>${dateVal ? escapeHtml(formatDateLabel(dateVal)) : '-'}</td>
-      <td>${(group.doNo && (status === 'DO Issued' || status === 'Reschedule') && doRec && (!doRec.deliveryMethod || doRec.deliveryMethod === 'Own Fleet')) ? `<button type="button" class="btn-ghost delivered-manual-btn" data-do="${escapeHtml(group.doNo)}" style="padding:4px 10px; margin-right:6px; color:var(--green); border-color:var(--green);" title="No trip for this DO - mark it Delivered manually">&#10003; Mark Delivered</button>` : ''}${(group.doNo && status === 'Courier — Pending') ? `<button type="button" class="btn-ghost delivered-courier-btn" data-do="${escapeHtml(group.doNo)}" style="padding:4px 10px; margin-right:6px; color:var(--green); border-color:var(--green);">✓ Mark Delivered</button>` : ''}${(group.doNo && status === 'DO Issued' && (getCurrentUser() || {}).isAdmin && (!doRec || !doRec.deliveryMethod || doRec.deliveryMethod === 'Own Fleet')) ? `<button type="button" class="btn-ghost delivered-attach-btn" data-do="${escapeHtml(group.doNo)}" data-boutique="${escapeHtml(group.boutique || '')}" style="padding:4px 10px; margin-right:6px;" title="Admin: attach this DO to one of its boutique's trips">Attach to trip</button>` : ''}${(group.doNo && (status === 'DO Issued' || status === 'Reschedule' || status === 'Courier — Pending' || (status === 'Scheduled' || status === 'Delivered'))) ? `<button type="button" class="btn-ghost delivered-do-delete-btn" data-do="${escapeHtml(group.doNo)}" style="padding:4px 10px; color:var(--red); border-color:var(--red);">Delete DO</button>` : ''}</td>
+      <td>${(group.doNo && status === 'Delivered' && !trip && doRec && doRec.manualDeliveredAt) ? `<button type="button" class="btn-ghost delivered-undo-btn" data-do="${escapeHtml(group.doNo)}" style="padding:4px 10px; margin-right:6px;" title="Marked manually - undo">Undo Delivered</button>` : ''}${(group.doNo && (status === 'DO Issued' || status === 'Reschedule') && doRec && (!doRec.deliveryMethod || doRec.deliveryMethod === 'Own Fleet')) ? `<button type="button" class="btn-ghost delivered-manual-btn" data-do="${escapeHtml(group.doNo)}" style="padding:4px 10px; margin-right:6px; color:var(--green); border-color:var(--green);" title="No trip for this DO - mark it Delivered manually">&#10003; Mark Delivered</button>` : ''}${(group.doNo && status === 'Courier — Pending') ? `<button type="button" class="btn-ghost delivered-courier-btn" data-do="${escapeHtml(group.doNo)}" style="padding:4px 10px; margin-right:6px; color:var(--green); border-color:var(--green);">✓ Mark Delivered</button>` : ''}${(group.doNo && status === 'DO Issued' && (getCurrentUser() || {}).isAdmin && (!doRec || !doRec.deliveryMethod || doRec.deliveryMethod === 'Own Fleet')) ? `<button type="button" class="btn-ghost delivered-attach-btn" data-do="${escapeHtml(group.doNo)}" data-boutique="${escapeHtml(group.boutique || '')}" style="padding:4px 10px; margin-right:6px;" title="Admin: attach this DO to one of its boutique's trips">Attach to trip</button>` : ''}${(group.doNo && (status === 'DO Issued' || status === 'Reschedule' || status === 'Courier — Pending' || (status === 'Scheduled' || status === 'Delivered'))) ? `<button type="button" class="btn-ghost delivered-do-delete-btn" data-do="${escapeHtml(group.doNo)}" style="padding:4px 10px; color:var(--red); border-color:var(--red);">Delete DO</button>` : ''}</td>
     </tr>`;
   });
   html += `</tbody></table>`;
@@ -9514,6 +9536,7 @@ function renderDeliveredTab() {
       renderDeliveredTab();
     });
   });
+  wrap.querySelectorAll('.delivered-undo-btn').forEach(btn => btn.addEventListener('click', () => undoDoDeliveredNoTrip(btn.dataset.do)));
   wrap.querySelectorAll('.delivered-manual-btn').forEach(btn => btn.addEventListener('click', () => markDoDeliveredNoTrip(btn.dataset.do)));
   // Delete DO (Oct 13, 2026, per Shaila): only for a DO that has no trip yet (DO Issued / Reschedule). Removes the DO record and
   // unlinks its STOs; then asks whether the STOs themselves should also be removed from the STO List (logged, can be restored).
@@ -9664,7 +9687,7 @@ function dlvOpenView(x) {
   steps.push({ t: 'DO Printed', done: !!(doRec && doRec.printedAt), w: doRec && doRec.printedAt ? fdt(doRec.printedAt) + by(doRec.printedBy) : 'Not printed yet' });
   if (!x.isCourier) steps.push({ t: 'Scheduled' + (trip ? ' — ' + fleetTripNumberOf(trip) : ''), done: !!trip, w: trip ? 'Trip date ' + formatDateLabel(trip.date) + by(trip.createdBy) : 'Not on a trip yet' });
   steps.push({ t: 'Out of Delivery', done: out || (x.isCourier && !!doRec), w: out && trip ? (trip.collectedAt ? fdt(trip.collectedAt) + by(trip.collectedBy) : 'Driver left') : (x.isCourier ? esc((doRec && doRec.deliveryMethod) || '') : '') });
-  steps.push({ t: 'Delivered', done: delivered, w: delivered ? ((trip && trip.deliveredAt) ? fdt(trip.deliveredAt) + by(trip.deliveredBy) : formatDateLabel((trip && trip.deliveryDate) || (doRec && (doRec.courierDeliveredDate || doRec.manualDeliveredDate)) || '')) + (trip && trip.deliveryRemark ? '<br>Remark: ' + esc(trip.deliveryRemark) : '') : '' });
+  steps.push({ t: 'Delivered', done: delivered, w: delivered ? ((trip && trip.deliveredAt) ? fdt(trip.deliveredAt) + by(trip.deliveredBy) : formatDateLabel((trip && trip.deliveryDate) || (doRec && (doRec.courierDeliveredDate || doRec.manualDeliveredDate)) || '') + (!trip && doRec && doRec.manualDeliveredAt ? ' &middot; marked manually ' + fdt(doRec.manualDeliveredAt) + by(doRec.manualDeliveredBy) : '')) + (trip && trip.deliveryRemark ? '<br>Remark: ' + esc(trip.deliveryRemark) : '') : '' });
   const kv = (k, v) => '<div><span class="k">' + k + '</span><span class="v">' + (v || '-') + '</span></div>';
   document.getElementById('dlvModalBox').innerHTML = '<h3>Delivery Order Details</h3>'
     + '<div class="dg">' + kv('DO Number', esc(group.doNo)) + kv('Status', dlvBadge(x.status)) + kv('Boutique', esc(group.boutique)) + kv('Trip Number', trip ? esc(fleetTripNumberOf(trip)) : '') + kv('Driver', x.isCourier ? esc((doRec && doRec.deliveryMethod) || '') : esc(trip && trip.driverName)) + kv('Assistant', as.length ? esc(as.join(', ')) : '') + kv('DO Date', doRec && doRec.createdDate ? esc(formatDateLabel(doRec.createdDate)) : '') + kv('Total Carton', String(x.totalCarton)) + '</div>'
@@ -33438,6 +33461,15 @@ function markDoDeliveredNoTrip(doNo) {
   try { saveDoRecords(); } catch (e) { delete doRec.manualDeliveredAt; delete doRec.manualDeliveredDate; delete doRec.manualDeliveredBy; alert('Save failed - DO not marked.'); return; }
   try { renderDeliveredTab(); } catch (e) {} try { renderDlvNew(); } catch (e) {} try { renderSenaraiTable(); } catch (e) {} try { renderKanban(); } catch (e) {}
 }
+function undoDoDeliveredNoTrip(doNo) {
+  const doRec = doRecords.find(d => d.doNo === doNo);
+  if (!doRec || !doRec.manualDeliveredAt) return;
+  if (!confirm('Undo "Delivered" for DO ' + doNo + '? It goes back to DO Issued.')) return;
+  const prev = { a: doRec.manualDeliveredAt, b: doRec.manualDeliveredBy, d: doRec.manualDeliveredDate };
+  delete doRec.manualDeliveredAt; delete doRec.manualDeliveredBy; delete doRec.manualDeliveredDate;
+  try { saveDoRecords(); } catch (e) { doRec.manualDeliveredAt = prev.a; doRec.manualDeliveredBy = prev.b; doRec.manualDeliveredDate = prev.d; alert('Save failed - nothing changed.'); return; }
+  try { renderDeliveredTab(); } catch (e) {} try { renderDlvNew(); } catch (e) {} try { renderSenaraiTable(); } catch (e) {} try { renderKanban(); } catch (e) {}
+}
 function markCourierDoDelivered(doNo) {
   const doRec = doRecords.find(d => d.doNo === doNo);
   if (!doRec) return;
@@ -40182,7 +40214,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '2Nov-r563';
+const APP_BUILD_LABEL = '2Nov-r568';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
@@ -42016,10 +42048,24 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
   const eligible = (r) => !r.doNo && ((r.progress === 'Packed' && !!r.cartonLock) || r.progress === 'Shipped');
   const bKey = (r) => String(r.toWarehouse || '-').replace(/\s+/g, ' ').trim().toUpperCase();
   const ctnOf = (r) => { if (!r.cartonLock) return 0; try { const n = getCartonLockNumbers(r); return n.length || r.cartonLock.totalCarton || 0; } catch (e) { return r.cartonLock.totalCarton || 0; } };
+  // A DO Issued STO leaves this list once it is Delivered (trip Completed, courier Delivered, or closed manually).
+  function isDelivered(r) {
+    if (r.progress !== 'Shipped') return false;
+    if (r.manualDeliveredAt) return true;
+    if (!r.doNo) return false;
+    try {
+      const dr = doRecords.find(x => x.doNo === r.doNo);
+      if (dr && dr.manualDeliveredAt) return true;
+      if (dr && dr.deliveryMethod && dr.deliveryMethod !== 'Own Fleet') return !!dr.courierDeliveredDate;
+      const t = fleetTripForDoNo(r.doNo);
+      return !!(t && t.status === 'Completed');
+    } catch (e) { return false; }
+  }
   function allTasks() {
     const d = today();
     // Packed STOs with no DO yet stay on the list until the DO is issued (even after midnight); DO Issued ones only show for the day they were packed.
-    return records.filter(r => r.progress === 'Packing' || r.progress === 'Packed' || (r.progress === 'Shipped' && (r.packingCompletedDate === d || (r.doNo && (doRecords.find(x => x.doNo === r.doNo) || {}).createdDate === d))));   // DO Issued rows show the day they were packed OR the day their DO was issued
+    return records.filter(r => !isDelivered(r) && (r.progress === 'Packing' || r.progress === 'Packed' || (r.progress === 'Shipped' && (!!r.doNo || r.packingCompletedDate === d))));   // DO Issued stays until Delivered (persistent workflow)
+    //   // DO Issued rows show the day they were packed OR the day their DO was issued
   }
   function scoped() {
     const t = myTeam();
