@@ -2198,11 +2198,8 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
       <span>Team Setup</span><span class="nav-group-chevron">▾</span>
     </button>
     <div class="nav-group" id="navGroupTeam">
-      <button class="tab-btn" data-tab="team-targets">Daily Targets</button>
       <button class="tab-btn" data-tab="team-pickers">Pickers</button>
       <button class="tab-btn" data-tab="team-rollcages">Rollcages / Trolleys</button>
-      <button class="tab-btn" data-tab="team-packing">Packing Stations</button>
-      <button class="tab-btn" data-tab="team-receiving">Receive Stations</button>
       <button class="tab-btn" data-tab="team-drivers">Drivers</button>
       <button class="tab-btn" data-tab="team-suppliers">Supplier Locations</button>
       <button class="tab-btn" data-tab="team-printers">Printers</button>
@@ -3209,50 +3206,6 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
     <div class="modal-overlay hidden" id="dlvModal"><div class="modal-box dlv-modal" id="dlvModalBox"></div></div>
   </section>
 
-  <section class="tab-panel" id="tab-team-targets">
-    <p class="section-title">Daily Targets (Overall)</p>
-    <div class="card" style="margin-bottom:24px;">
-      <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
-        <button type="button" class="btn-ghost" id="campaignModeToggleBtn" style="padding:4px 10px;" title="Click to switch Campaign Mode ON or OFF"><span class="badge badge-gray" id="campaignModeBadge">Campaign Mode: OFF</span></button>
-        <span class="data-note" style="margin:0;">OFF (default) = normal days, not campaign — follows Order quantity only, every target below is hidden. ON = the campaign targets below are active; saved numbers come back automatically when turned ON again, no need to retype.</span>
-      </div>
-      <div class="data-note" style="margin:0 0 10px; font-weight:700; color:var(--text); text-transform:uppercase; letter-spacing:0.04em; font-size:11px;">Weekday (Mon–Fri)</div>
-      <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom:18px;">
-        <div class="field">
-          <label>Picker (pcs/day)</label>
-          <input type="number" id="inputDailyTargetPickerWeekday" min="0" placeholder="e.g. 5000">
-        </div>
-        <div class="field">
-          <label>Packer (pcs/day)</label>
-          <input type="number" id="inputDailyTargetPackerWeekday" min="0" placeholder="e.g. 5000">
-        </div>
-        <div class="field">
-          <label>Inbound (pcs/day)</label>
-          <input type="number" id="inputDailyTargetInboundWeekday" min="0" placeholder="e.g. 5000">
-        </div>
-      </div>
-      <div class="data-note" style="margin:0 0 10px; font-weight:700; color:var(--text); text-transform:uppercase; letter-spacing:0.04em; font-size:11px;">Weekend (Sat–Sun)</div>
-      <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr;">
-        <div class="field">
-          <label>Picker (pcs/day)</label>
-          <input type="number" id="inputDailyTargetPickerWeekend" min="0" placeholder="e.g. 3000">
-        </div>
-        <div class="field">
-          <label>Packer (pcs/day)</label>
-          <input type="number" id="inputDailyTargetPackerWeekend" min="0" placeholder="e.g. 3000">
-        </div>
-        <div class="field">
-          <label>Inbound (pcs/day)</label>
-          <input type="number" id="inputDailyTargetInboundWeekend" min="0" placeholder="e.g. 3000">
-        </div>
-      </div>
-      <div class="data-note" style="margin-bottom:14px;">Separate targets for weekday vs weekend — the dashboards automatically use whichever applies to today. Separate from the individual picker/station targets below. Leave a field blank to hide that donut on that day.</div>
-      <div style="display:flex; align-items:center; gap:12px;">
-        <button type="button" class="btn-primary" id="saveDailyTargetsBtn">Save Daily Targets</button>
-        <span class="data-note" id="dailyTargetsDirtyNote" style="margin:0; color:var(--amber); display:none;">Unsaved changes — click Save before leaving this tab.</span>
-      </div>
-    </div>
-  </section>
 
   <section class="tab-panel" id="tab-team-pickers">
     <p class="section-title">Pickers</p>
@@ -3297,55 +3250,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
     </div>
   </section>
 
-  <section class="tab-panel" id="tab-team-packing">
-    <p class="section-title">Packing Stations</p>
-    <div class="card">
-      <div class="form-grid" style="grid-template-columns: 1fr 1.4fr auto; margin-bottom:16px;">
-        <div class="field">
-          <label>Station Name</label>
-          <input type="text" id="inputNewStationName" placeholder="e.g. Station 1">
-        </div>
-        <div class="field">
-          <label>Manpower (comma-separated)</label>
-          <input type="text" id="inputNewStationManpower" placeholder="e.g. Ali, Chong, Muthu">
-        </div>
-        <div class="field">
-          <button class="btn-primary" id="addStationBtn">+ Add Station</button>
-        </div>
-      </div>
-      <div class="data-note" style="margin-bottom:14px;">Registered stations are used to auto-assign STOs when they enter the Packing stage — each STO rotates to the next station in the list (round-robin). You can still change a card's station manually afterward. Target is auto-calculated: the overall Packer Daily Target above (Weekday/Weekend) is split evenly across only the stations currently ON — an OFF station shows "—" and doesn't shrink everyone else's share. "Today (pcs)" counts only pieces assigned to that station today and resets to 0 automatically the next day. By default (Auto) a station is ON only while someone actually has it picked as "This Device's Station" (sidebar), and auto-flips back OFF ~15 min after that device goes quiet (closes the tab, loses power, etc.) without anyone explicitly switching stations. Click the Status button to cycle Auto → Force ON → Force OFF → back to Auto — forcing it either way overrides device presence completely, for whenever you need full manual control. Name a station with "Day" or "Night" in it (e.g. "Day Shift Packer") and its Manpower auto-fills live from the Staff Schedule tab — every Active staff tagged Role = Packer and on that shift today, no typing needed; stations named any other way keep the freehand Manpower field.</div>
-      <div id="stationsTableWrap"></div>
-      <div style="display:flex; align-items:center; gap:12px; margin-top:12px;">
-        <button type="button" class="btn-primary" id="savePackingStationsBtn">Save Packing Stations</button>
-        <span class="data-note" id="packingStationsDirtyNote" style="margin:0; color:var(--amber); display:none;">Unsaved changes — click Save before leaving this tab.</span>
-      </div>
-    </div>
-  </section>
 
-  <section class="tab-panel" id="tab-team-receiving">
-    <p class="section-title">Receive Stations</p>
-    <div class="card">
-      <div class="form-grid" style="grid-template-columns: 1fr 1.4fr auto; margin-bottom:16px;">
-        <div class="field">
-          <label>Station Name</label>
-          <input type="text" id="inputNewReceiveStationName" placeholder="e.g. Receiving Bay 1">
-        </div>
-        <div class="field">
-          <label>Manpower (comma-separated)</label>
-          <input type="text" id="inputNewReceiveStationManpower" placeholder="e.g. Faiz, Aina, Ramesh">
-        </div>
-        <div class="field">
-          <button class="btn-primary" id="addReceiveStationBtn">+ Add Station</button>
-        </div>
-      </div>
-      <div class="data-note" style="margin-bottom:14px;">Registered stations show up when assigning who's receiving an incoming STO (dragging a card into "On Progress" on the Inbound Progress Board). Target is auto-calculated: the overall Inbound Daily Target above (Weekday/Weekend) is split evenly across only the stations currently ON — an OFF station shows "—" and doesn't shrink everyone else's share. "Today (pcs)" counts only pieces that finished receiving (moved to Complete) at that station today and resets to 0 automatically the next day. By default (Auto) a station is ON only while someone actually has it picked as "This Device's Station" (sidebar), and auto-flips back OFF ~15 min after that device goes quiet (closes the tab, loses power, etc.) without anyone explicitly switching stations. Click the Status button to cycle Auto → Force ON → Force OFF → back to Auto — forcing it either way overrides device presence completely, for whenever you need full manual control. Name a station with "Day" or "Night" in it (e.g. "Day Shift Receiver") and its Manpower auto-fills live from the Staff Schedule tab — every Active staff tagged Role = Receiver and on that shift today, no typing needed; stations named any other way keep the freehand Manpower field.</div>
-      <div id="receiveStationsTableWrap"></div>
-      <div style="display:flex; align-items:center; gap:12px; margin-top:12px;">
-        <button type="button" class="btn-primary" id="saveReceiveStationsBtn">Save Receive Stations</button>
-        <span class="data-note" id="receiveStationsDirtyNote" style="margin:0; color:var(--amber); display:none;">Unsaved changes — click Save before leaving this tab.</span>
-      </div>
-    </div>
-  </section>
 
   <section class="tab-panel" id="tab-team-drivers">
     <p class="section-title">Drivers</p>
@@ -3621,6 +3526,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
       #tab-packing-mgmt .pm-teams{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
       #tab-packing-mgmt .pm-team{display:grid;grid-template-columns:70px minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:center;padding:14px 16px;border:1px solid #8a6c35;border-radius:16px;background:#14100d;}
       #tab-packing-mgmt .pm-team.inactive{opacity:.6;}
+      #tab-packing-mgmt .pm-team.sel{border-color:#f4d88f;box-shadow:0 0 0 2px #d6a954,0 0 18px rgba(244,216,143,.35);}
       #tab-packing-mgmt .pm-team .ic{width:66px;height:66px;}
       #tab-packing-mgmt .pm-team b{font-family:Georgia,serif;font-size:20px;color:#fff;}
       #tab-packing-mgmt .pm-pill{display:inline-block;margin-left:8px;padding:2px 12px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid;}
@@ -4830,6 +4736,98 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
         <img class="chart" alt="" src="data:image/png;base64,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"></div>
     </div>
     <div id="dtpToast"></div>
+      <div class="dtp-card" id="dtpMgmt" style="display:none;">
+      <div class="dtp-h"><h3 style="margin:0;font-size:18px;">Station Management</h3><span class="s" style="font-size:12px;color:var(--text-muted);margin-left:10px;">Packing and Receive stations keep their own Active / Inactive status. Targets, shifts and manpower hours are set under Edit Targets above.</span></div>
+      <details class="dtp-d" style="display:none;"><summary><b>Campaign Mode &amp; Daily Targets (Team Setup)</b></summary><div style="padding:0 12px 12px;">
+    <div class="card" style="margin-bottom:24px;">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+        <button type="button" class="btn-ghost" id="campaignModeToggleBtn" style="padding:4px 10px;" title="Click to switch Campaign Mode ON or OFF"><span class="badge badge-gray" id="campaignModeBadge">Campaign Mode: OFF</span></button>
+        <span class="data-note" style="margin:0;">OFF (default) = normal days, not campaign — follows Order quantity only, every target below is hidden. ON = the campaign targets below are active; saved numbers come back automatically when turned ON again, no need to retype.</span>
+      </div>
+      <div class="data-note" style="margin:0 0 10px; font-weight:700; color:var(--text); text-transform:uppercase; letter-spacing:0.04em; font-size:11px;">Weekday (Mon–Fri)</div>
+      <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom:18px;">
+        <div class="field">
+          <label>Picker (pcs/day)</label>
+          <input type="number" id="inputDailyTargetPickerWeekday" min="0" placeholder="e.g. 5000">
+        </div>
+        <div class="field">
+          <label>Packer (pcs/day)</label>
+          <input type="number" id="inputDailyTargetPackerWeekday" min="0" placeholder="e.g. 5000">
+        </div>
+        <div class="field">
+          <label>Inbound (pcs/day)</label>
+          <input type="number" id="inputDailyTargetInboundWeekday" min="0" placeholder="e.g. 5000">
+        </div>
+      </div>
+      <div class="data-note" style="margin:0 0 10px; font-weight:700; color:var(--text); text-transform:uppercase; letter-spacing:0.04em; font-size:11px;">Weekend (Sat–Sun)</div>
+      <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+        <div class="field">
+          <label>Picker (pcs/day)</label>
+          <input type="number" id="inputDailyTargetPickerWeekend" min="0" placeholder="e.g. 3000">
+        </div>
+        <div class="field">
+          <label>Packer (pcs/day)</label>
+          <input type="number" id="inputDailyTargetPackerWeekend" min="0" placeholder="e.g. 3000">
+        </div>
+        <div class="field">
+          <label>Inbound (pcs/day)</label>
+          <input type="number" id="inputDailyTargetInboundWeekend" min="0" placeholder="e.g. 3000">
+        </div>
+      </div>
+      <div class="data-note" style="margin-bottom:14px;">Separate targets for weekday vs weekend — the dashboards automatically use whichever applies to today. Separate from the individual picker/station targets below. Leave a field blank to hide that donut on that day.</div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <button type="button" class="btn-primary" id="saveDailyTargetsBtn">Save Daily Targets</button>
+        <span class="data-note" id="dailyTargetsDirtyNote" style="margin:0; color:var(--amber); display:none;">Unsaved changes — click Save before leaving this tab.</span>
+      </div>
+    </div>
+</div></details>
+      <details class="dtp-d"><summary><b>Packing Stations</b><span class="sub">Station A = 1st, Station B = 2nd in the list. Active / Inactive here is the same as in Edit Targets.</span></summary><div style="padding:0 12px 12px;">
+    <div class="card">
+      <div class="form-grid" style="grid-template-columns: 1fr 1.4fr auto; margin-bottom:16px;">
+        <div class="field">
+          <label>Station Name</label>
+          <input type="text" id="inputNewStationName" placeholder="e.g. Station 1">
+        </div>
+        <div class="field">
+          <label>Manpower (comma-separated)</label>
+          <input type="text" id="inputNewStationManpower" placeholder="e.g. Ali, Chong, Muthu">
+        </div>
+        <div class="field">
+          <button class="btn-primary" id="addStationBtn">+ Add Station</button>
+        </div>
+      </div>
+      <div class="data-note" style="margin-bottom:14px;">Registered stations are used to auto-assign STOs when they enter the Packing stage — each STO rotates to the next station in the list (round-robin). You can still change a card's station manually afterward. Target is auto-calculated: the overall Packer Daily Target above (Weekday/Weekend) is split evenly across only the stations currently ON — an OFF station shows "—" and doesn't shrink everyone else's share. "Today (pcs)" counts only pieces assigned to that station today and resets to 0 automatically the next day. By default (Auto) a station is ON only while someone actually has it picked as "This Device's Station" (sidebar), and auto-flips back OFF ~15 min after that device goes quiet (closes the tab, loses power, etc.) without anyone explicitly switching stations. Click the Status button to cycle Auto → Force ON → Force OFF → back to Auto — forcing it either way overrides device presence completely, for whenever you need full manual control. Name a station with "Day" or "Night" in it (e.g. "Day Shift Packer") and its Manpower auto-fills live from the Staff Schedule tab — every Active staff tagged Role = Packer and on that shift today, no typing needed; stations named any other way keep the freehand Manpower field.</div>
+      <div id="stationsTableWrap"></div>
+      <div style="display:flex; align-items:center; gap:12px; margin-top:12px;">
+        <button type="button" class="btn-primary" id="savePackingStationsBtn">Save Packing Stations</button>
+        <span class="data-note" id="packingStationsDirtyNote" style="margin:0; color:var(--amber); display:none;">Unsaved changes — click Save before leaving this tab.</span>
+      </div>
+    </div>
+</div></details>
+      <details class="dtp-d"><summary><b>Receive Stations</b><span class="sub">Own Active / Inactive status, separate from Packing.</span></summary><div style="padding:0 12px 12px;">
+    <div class="card">
+      <div class="form-grid" style="grid-template-columns: 1fr 1.4fr auto; margin-bottom:16px;">
+        <div class="field">
+          <label>Station Name</label>
+          <input type="text" id="inputNewReceiveStationName" placeholder="e.g. Receiving Bay 1">
+        </div>
+        <div class="field">
+          <label>Manpower (comma-separated)</label>
+          <input type="text" id="inputNewReceiveStationManpower" placeholder="e.g. Faiz, Aina, Ramesh">
+        </div>
+        <div class="field">
+          <button class="btn-primary" id="addReceiveStationBtn">+ Add Station</button>
+        </div>
+      </div>
+      <div class="data-note" style="margin-bottom:14px;">Registered stations show up when assigning who's receiving an incoming STO (dragging a card into "On Progress" on the Inbound Progress Board). Target is auto-calculated: the overall Inbound Daily Target above (Weekday/Weekend) is split evenly across only the stations currently ON — an OFF station shows "—" and doesn't shrink everyone else's share. "Today (pcs)" counts only pieces that finished receiving (moved to Complete) at that station today and resets to 0 automatically the next day. By default (Auto) a station is ON only while someone actually has it picked as "This Device's Station" (sidebar), and auto-flips back OFF ~15 min after that device goes quiet (closes the tab, loses power, etc.) without anyone explicitly switching stations. Click the Status button to cycle Auto → Force ON → Force OFF → back to Auto — forcing it either way overrides device presence completely, for whenever you need full manual control. Name a station with "Day" or "Night" in it (e.g. "Day Shift Receiver") and its Manpower auto-fills live from the Staff Schedule tab — every Active staff tagged Role = Receiver and on that shift today, no typing needed; stations named any other way keep the freehand Manpower field.</div>
+      <div id="receiveStationsTableWrap"></div>
+      <div style="display:flex; align-items:center; gap:12px; margin-top:12px;">
+        <button type="button" class="btn-primary" id="saveReceiveStationsBtn">Save Receive Stations</button>
+        <span class="data-note" id="receiveStationsDirtyNote" style="margin:0; color:var(--amber); display:none;">Unsaved changes — click Save before leaving this tab.</span>
+      </div>
+    </div>
+</div></details>
+    </div>
   </section>
   <section class="tab-panel" id="tab-production-summary-test">
     <div style="display:none;"><button type="button" class="btn-ghost" id="pstMoodBtn" title="Switch between Dark Mood and Light Mood">Dark Mood</button></div>
@@ -6742,7 +6740,28 @@ function stationStatusOverride(station) {
   if (station.enabled === false) return 'off';
   return 'auto';
 }
+// ACTIVE / INACTIVE status is managed in Daily Target & Performance (packing and receive have SEPARATE settings):
+// - Packing Station 1 / 2 (= Station A / B): the saved "Station active" in dtp_settings_v1. Before that was ever saved, the old manual ON/OFF is honoured, otherwise A = active, B = inactive.
+//   Stations 3+ keep the old rules.
+// - Receive Stations: status 'off' = Inactive, anything else = Active (no more automatic OFF because nobody is scheduled / no device is logged in).
+// Day/Night-name and device-presence rules are no longer used for these stations, so an active station never turns OFF by itself.
+function dtpStationActive(station) {
+  try {
+    const pi = packingStations.indexOf(station);
+    if (pi >= 0) {
+      if (pi > 1) return null;
+      let raw = null; try { raw = JSON.parse(localStorage.getItem('dtp_settings_v1')); } catch (e) {}
+      const u = raw && raw.depts && raw.depts[pi === 0 ? 'packerA' : 'packerB'];
+      if (u && u.active !== undefined) return !!u.active;
+      const o = stationStatusOverride(station); if (o === 'on') return true; if (o === 'off') return false;
+      return pi === 0;
+    }
+    if (receiveStations.indexOf(station) >= 0) return stationStatusOverride(station) !== 'off';
+  } catch (e) {}
+  return null;
+}
 function isStationOnShift(station) {
+  const dtpOn = dtpStationActive(station); if (dtpOn !== null) return dtpOn;
   const override = stationStatusOverride(station);
   if (override === 'off') return false;
   if (override === 'on') return true;
@@ -11768,6 +11787,8 @@ document.getElementById('campaignModeToggleBtn').addEventListener('click', () =>
     // Turning ON: restore the last-saved campaign numbers without asking her to retype them.
     dailyTargets = JSON.parse(JSON.stringify(dailyTargetsCampaignSnapshot));
     campaignMode = true;
+    // Campaign ON = full capacity: both Packing Station A and B become Active (can be switched off again afterwards).
+    try { if (typeof window.dtpSetPackersActive === 'function') window.dtpSetPackersActive(true, true); } catch (e) {}
   }
   saveCampaignMode();
   saveDailyTargets();
@@ -11815,7 +11836,7 @@ function renderStationsTab() {
       .reduce((sum, r) => sum + (parseFloat(r.totalOrderQty) || 0), 0);
     const onShift = isStationOnShift(s);
     const override = stationStatusOverride(s);
-    const statusLabel = onShift ? (override === 'auto' ? 'ON' : 'ON (Manual)') : (override === 'auto' ? 'OFF' : 'OFF (Manual)');
+    const statusLabel = i < 2 ? (onShift ? 'Active' : 'Inactive') : (onShift ? (override === 'auto' ? 'ON' : 'ON (Manual)') : (override === 'auto' ? 'OFF' : 'OFF (Manual)'));
     const rowHasTarget = onShift && hasEffTarget;
     const overTarget = rowHasTarget && currentLoadQty > Number(effTarget);
     const shiftLabel = classifyStationShiftLabel(s);
@@ -11843,7 +11864,7 @@ function renderStationsTab() {
       <td>${manpowerCell}</td>
       <td>${onShift && autoCap.weekday !== null ? formatQty(autoCap.weekday) : '—'}</td>
       <td>${onShift && autoCap.weekend !== null ? formatQty(autoCap.weekend) : '—'}</td>
-      <td><button type="button" class="btn-ghost station-enabled-toggle-btn" data-idx="${i}" title="Click to cycle: Auto (${shiftLabel ? `follows the ${shiftLabel} shift on Staff Schedule` : `follows This Device's Station`}) → Force ON → Force OFF → back to Auto" style="padding:4px 10px;"><span class="badge ${onShift ? 'badge-green' : 'badge-gray'}">${statusLabel}</span></button></td>
+      <td><button type="button" class="btn-ghost station-enabled-toggle-btn" data-idx="${i}" title="${i < 2 ? 'Click to switch Active / Inactive (same setting as Packer Station ' + (i === 0 ? 'A' : 'B') + ' in Edit Targets)' : 'Click to cycle: Auto → Force ON → Force OFF → back to Auto'}" style="padding:4px 10px;"><span class="badge ${onShift ? 'badge-green' : 'badge-gray'}">${statusLabel}</span></button></td>
       <td>${rowHasTarget ? `<span class="badge ${overTarget ? 'badge-red' : 'badge-green'}">${formatQty(currentLoadQty)} / ${escapeHtml(String(effTarget))}</span>` : formatQty(currentLoadQty)}</td>
       <td class="row-actions">
         <button class="icon-btn remove-station-btn" data-idx="${i}" title="Delete">✕</button>
@@ -11862,6 +11883,7 @@ function renderStationsTab() {
   wrap.querySelectorAll('.station-enabled-toggle-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const idx = Number(e.currentTarget.dataset.idx);
+      if (idx < 2 && typeof window.dtpSetPackerActive === 'function') { if (window.dtpSetPackerActive(idx, !isStationOnShift(packingStations[idx]))) renderStationsTab(); return; }
       const cur = stationStatusOverride(packingStations[idx]);
       packingStations[idx].status = cur === 'auto' ? 'on' : cur === 'on' ? 'off' : 'auto';
       delete packingStations[idx].enabled;
@@ -38591,7 +38613,7 @@ function renderReceiveStationsTab() {
     const currentLoadQty = receiveStationTodayQty(s.name, today);
     const onShift = isStationOnShift(s);
     const override = stationStatusOverride(s);
-    const statusLabel = onShift ? (override === 'auto' ? 'ON' : 'ON (Manual)') : (override === 'auto' ? 'OFF' : 'OFF (Manual)');
+    const statusLabel = onShift ? 'Active' : 'Inactive';
     const rowHasTarget = onShift && hasEffTarget;
     const overTarget = rowHasTarget && currentLoadQty > Number(effTarget);
     const shiftLabel = classifyStationShiftLabel(s);
@@ -38619,7 +38641,7 @@ function renderReceiveStationsTab() {
       <td>${manpowerCell}</td>
       <td>${onShift && autoCap.weekday !== null ? formatQty(autoCap.weekday) : '—'}</td>
       <td>${onShift && autoCap.weekend !== null ? formatQty(autoCap.weekend) : '—'}</td>
-      <td><button type="button" class="btn-ghost receive-station-enabled-toggle-btn" data-idx="${i}" title="Click to cycle: Auto (${shiftLabel ? `follows the ${shiftLabel} shift on Staff Schedule` : `follows This Device's Station`}) → Force ON → Force OFF → back to Auto" style="padding:4px 10px;"><span class="badge ${onShift ? 'badge-green' : 'badge-gray'}">${statusLabel}</span></button></td>
+      <td><button type="button" class="btn-ghost receive-station-enabled-toggle-btn" data-idx="${i}" title="Click to switch Active / Inactive" style="padding:4px 10px;"><span class="badge ${onShift ? 'badge-green' : 'badge-gray'}">${statusLabel}</span></button></td>
       <td>${rowHasTarget ? `<span class="badge ${overTarget ? 'badge-red' : 'badge-green'}">${formatQty(currentLoadQty)} / ${escapeHtml(String(effTarget))}</span>` : formatQty(currentLoadQty)}</td>
       <td class="row-actions">
         <button class="icon-btn remove-receive-station-btn" data-idx="${i}" title="Delete">✕</button>
@@ -38637,8 +38659,7 @@ function renderReceiveStationsTab() {
   wrap.querySelectorAll('.receive-station-enabled-toggle-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const idx = Number(e.currentTarget.dataset.idx);
-      const cur = stationStatusOverride(receiveStations[idx]);
-      receiveStations[idx].status = cur === 'auto' ? 'on' : cur === 'on' ? 'off' : 'auto';
+      receiveStations[idx].status = isStationOnShift(receiveStations[idx]) ? 'off' : 'on';
       delete receiveStations[idx].enabled;
       saveReceiveStations();
       renderReceiveStationsTab();
@@ -40365,7 +40386,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '2Nov-r580';
+const APP_BUILD_LABEL = '3Nov-r599';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
@@ -41995,20 +42016,21 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
   /* ---------- Delete Selected (protected) ---------- */
   function classify(o) {
     const r = records.find(x => x.orderNumber === o); if (!r) return null;
-    if (!inScope(r) || hasActivity(r)) return { r, kind: 'blocked', why: 'has picking / packing activity - cannot be deleted here (cancel / archive via the normal process)' };
+    if (r.tripId) return { r, kind: 'blocked', why: 'already on a trip (' + r.tripId + ') - remove it from the trip first' };
+    if (!inScope(r) || hasActivity(r)) return isAdmin() ? { r, kind: 'activity', why: 'has picking / packing activity' + (r.doNo ? ' and DO ' + r.doNo : '') } : { r, kind: 'blocked', why: 'has picking / packing activity - cannot be deleted here (cancel / archive via the normal process)' };
     if (namesOf(r).length) return { r, kind: 'assigned', why: 'assigned to ' + namesOf(r).join(', ') };
     return { r, kind: 'ok' };
   }
   function openDelete() {
     const plan = [...sel].map(classify).filter(Boolean);
-    const ok = plan.filter(p => p.kind === 'ok'), asg = plan.filter(p => p.kind === 'assigned'), blk = plan.filter(p => p.kind === 'blocked');
-    const sup = isAdmin(), canAsg = sup ? asg : [];
+    const ok = plan.filter(p => p.kind === 'ok'), asg = plan.filter(p => p.kind === 'assigned'), blk = plan.filter(p => p.kind === 'blocked'), act = plan.filter(p => p.kind === 'activity');
+    const sup = isAdmin(), canAsg = sup ? asg.concat(act) : [];
     const todo = ok.concat(canAsg);
     delPlan = { todo: todo.map(p => p.r.orderNumber), needType: todo.length >= 5 || canAsg.length > 0 };
     const list = (arr, n) => arr.slice(0, n).map(p => '<div>&bull; <b>' + esc(p.r.orderNumber) + '</b>' + (p.why ? ' <span style="color:var(--text-muted);">- ' + esc(p.why) + '</span>' : '') + '</div>').join('') + (arr.length > n ? '<div style="color:var(--text-muted);">+ ' + (arr.length - n) + ' more</div>' : '');
     openModal('<h3>Delete STO</h3>'
       + (todo.length ? '<div class="warnbox bad"><b>' + todo.length + ' STO will be permanently deleted</b> from the STO List (kept in the Removed STO log so it can be restored).</div><div style="font-size:12.5px;margin-bottom:10px;">' + list(todo, 6) + '</div>' : '<div class="warnbox">Nothing in your selection can be deleted.</div>')
-      + (canAsg.length ? '<div class="warnbox">Supervisor handling: ' + canAsg.length + ' selected STO are already ASSIGNED to a picker. Deleting removes them from the picker too.</div>' : '')
+      + (canAsg.length ? '<div class="warnbox">Admin delete: ' + canAsg.length + ' selected STO are already assigned / have picking or packing activity. Deleting removes them everywhere (kept in the Removed STO log so it can be restored).</div>' : '')
       + (!sup && asg.length ? '<div class="warnbox">' + asg.length + ' assigned STO skipped - a supervisor (admin) must handle assigned STOs.<div style="margin-top:6px;">' + list(asg, 4) + '</div></div>' : '')
       + (blk.length ? '<div class="warnbox bad">' + blk.length + ' STO protected (not deleted):<div style="margin-top:6px;">' + list(blk, 4) + '</div></div>' : '')
       + (todo.length && delPlan.needType ? '<label class="fld">Type DELETE to confirm<input type="text" id="dfType" autocomplete="off"></label>' : '')
@@ -42019,7 +42041,7 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
     if (delPlan.needType && ($('dfType').value || '').trim() !== 'DELETE') { err.textContent = 'Type DELETE (capital letters) to confirm.'; err.style.display = 'block'; return; }
     // re-validate right now (someone may have assigned / started it meanwhile)
     const sup = isAdmin();
-    const targets = delPlan.todo.map(classify).filter(p => p && (p.kind === 'ok' || (p.kind === 'assigned' && sup))).map(p => p.r);
+    const targets = delPlan.todo.map(classify).filter(p => p && (p.kind === 'ok' || ((p.kind === 'assigned' || p.kind === 'activity') && sup))).map(p => p.r);
     if (!targets.length) { closeModal(); render(); return toast('Nothing deleted - the selection changed meanwhile.', true); }
     saving = true;
     const removed = targets.map(r => ({ r, i: records.indexOf(r) })).sort((a, b) => b.i - a.i);
@@ -42265,7 +42287,7 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
       label: rs.filter(r => r.progress === 'Packed' && canAct(r)),
       dl: rs.filter(r => !!r.cartonLock),
       dox: rs.filter(r => eligible(r) && canAct(r)),
-      team: isSup() ? rs.filter(r => ['ready', 'assigned', 'prog'].includes(stateOf(r))) : []
+      team: isSup() ? rs.filter(r => ['ready', 'assigned', 'prog'].includes(stateOf(r)) || (r.progress === 'Packed' && !r.doNo && !r.tripId)) : []
     };
   };
   function renderBulk() {
@@ -42327,7 +42349,7 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
   }
   function openBulkTeam() {
     if (!isSup()) return toast('Only the supervisor can reassign teams.', true);
-    const s = bulkSets(); if (!s.team.length) return toast('Nothing selected can be reassigned (only STO not yet packed).', true);
+    const s = bulkSets(); if (!s.team.length) return toast('Nothing selected can be reassigned (only STO not yet on a DO / trip).', true);
     openModal('<h3>Reassign Team</h3><div style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">Move ' + s.team.length + ' selected STO to:</div>' +
       packingStations.map((t, i) => '<label style="display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid #26201b;cursor:pointer;"><input type="radio" name="pmBT" value="' + esc(t.name) + '"' + (i === 0 ? ' checked' : '') + '><span class="pm-tm" style="background:' + colorOf(t.name) + ';">' + esc(tn(t.name)) + '</span><span style="color:var(--text-muted);font-size:12px;">' + (isStationOnShift(t) ? 'Active' : 'Inactive') + '</span></label>').join('') +
       '<div class="acts"><button type="button" data-x="close">Cancel</button><button type="button" data-x="bulkteamgo">Reassign</button></div>', 'bulkteam');
@@ -42495,18 +42517,26 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
   function renderTeams() {
     const mt = myTeam(), d = today();
     const teams = packingStations.filter(s => !mt || s.name === mt);
-    if (!teams.length) { $('pmTeams').innerHTML = '<div class="pm-empty" style="grid-column:1/-1;">' + (packingStations.length ? 'Your team is not set up.' : 'No packing teams registered. Add them in Team Setup &gt; Packing Stations.') + '</div>'; return; }
+    if (!teams.length) { $('pmTeams').innerHTML = '<div class="pm-empty" style="grid-column:1/-1;">' + (packingStations.length ? 'Your team is not set up.' : 'No packing teams registered. Add them in Daily Target &amp; Performance &gt; Packing Stations.') + '</div>'; return; }
     $('pmTeams').innerHTML = teams.map(s => {
       const act = isStationOnShift(s);
       const rem = workload(s.name), done = records.filter(r => r.packingStation === s.name && r.packingCompletedDate === d && (r.progress === 'Packed' || r.progress === 'Shipped')).reduce((a, r) => a + qtyOf(r), 0);
       const pct = (rem + done) ? Math.round(done / (rem + done) * 100) : 0;
       const stoN = records.filter(r => r.progress === 'Packing' && r.packingStation === s.name).length;
       const mem = (s.manpower || []).filter(Boolean);
-      return '<div class="pm-team' + (act ? '' : ' inactive') + '"><span class="ic">' + img('people') + '</span><div><b>' + esc(tn(s.name)) + '</b><span class="pm-pill ' + (act ? 'a' : 'i') + '">' + (act ? '&#10003; Active' : 'Inactive') + '</span><div class="pm-mem">Members: ' + (mem.length ? esc(mem.join(', ')) : '-') + '</div></div>' +
+      return '<div class="pm-team' + (act ? '' : ' inactive') + (teamFilter === s.name ? ' sel' : '') + '" data-tg="' + packingStations.indexOf(s) + '" style="cursor:pointer;" title="Click to show only this station\'s STO list (click again to show all)"><span class="ic">' + img('people') + '</span><div><b>' + esc(tn(s.name)) + '</b><span class="pm-pill ' + (act ? 'a' : 'i') + '">' + (act ? '&#10003; Active' : 'Inactive') + '</span><div class="pm-mem">Members: ' + (mem.length ? esc(mem.join(', ')) : '-') + '</div></div>' +
         '<div class="pm-rem"><div class="n">' + fq(rem) + '</div><div class="l">Items Remaining</div><div class="pm-bar"><i style="width:' + pct + '%"></i></div><small>' + stoN + ' Active STO &bull; ' + mem.length + ' Packer' + (mem.length === 1 ? '' : 's') + '</small></div></div>';
     }).join('');
   }
 
+  // Click a station card = show only that station's STO list (click it again, or the same card, to show all)
+  $('pmTeams').addEventListener('click', (e) => {
+    const c = e.target.closest('[data-tg]'); if (!c) return;
+    const st = packingStations[Number(c.dataset.tg)]; if (!st) return;
+    teamFilter = teamFilter === st.name ? 'all' : st.name;
+    render();
+    if (teamFilter !== 'all') { const l = $('pmList'); if (l && l.scrollIntoView) l.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  });
   function renderSmart() {
     const act = activeTeams();
     const nxt = pick(true);
@@ -42693,18 +42723,26 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
   }
   function manage() {
     const sup = isSup();
-    const rows = packingStations.map(s => {
-      const act = isStationOnShift(s), ov = stationStatusOverride(s), mem = (s.manpower || []).filter(Boolean);
-      return '<tr><td><span class="pm-tm" style="background:' + colorOf(s.name) + ';">' + esc(tn(s.name)) + '</span></td><td>' + (act ? '<span class="pm-pill a">Active</span>' : '<span class="pm-pill i">Inactive</span>') + '<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">' + (ov === 'auto' ? 'Auto (follows schedule / device)' : 'Manual') + '</div></td><td>' + (mem.length ? esc(mem.join(', ')) : '-') + '</td><td>' + fq(workload(s.name)) + '</td><td style="white-space:nowrap;">' +
-        '<button type="button" class="tb' + (ov === 'on' ? ' on' : '') + '" data-m="on" data-n="' + esc(s.name) + '"' + (sup ? '' : ' disabled') + '>Activate</button><button type="button" class="tb' + (ov === 'off' ? ' on' : '') + '" data-m="off" data-n="' + esc(s.name) + '"' + (sup ? '' : ' disabled') + '>Deactivate</button><button type="button" class="tb' + (ov === 'auto' ? ' on' : '') + '" data-m="auto" data-n="' + esc(s.name) + '"' + (sup ? '' : ' disabled') + '>Auto</button></td></tr>';
+    const rows = packingStations.map((s, si) => {
+      const act = isStationOnShift(s), mem = (s.manpower || []).filter(Boolean), fx = si < 2;
+      const ov = fx ? (act ? 'on' : 'off') : stationStatusOverride(s);   // Station A / B: Active / Inactive is the Daily Target & Performance setting
+      return '<tr><td><span class="pm-tm" style="background:' + colorOf(s.name) + ';">' + esc(tn(s.name)) + '</span></td><td>' + (act ? '<span class="pm-pill a">Active</span>' : '<span class="pm-pill i">Inactive</span>') + '<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">' + (fx ? 'Set in Daily Target &amp; Performance' : (ov === 'auto' ? 'Auto (follows schedule / device)' : 'Manual')) + '</div></td><td>' + (mem.length ? esc(mem.join(', ')) : '-') + '</td><td>' + fq(workload(s.name)) + '</td><td style="white-space:nowrap;">' +
+        '<button type="button" class="tb' + (ov === 'on' ? ' on' : '') + '" data-m="on" data-n="' + esc(s.name) + '"' + (sup ? '' : ' disabled') + '>Activate</button><button type="button" class="tb' + (ov === 'off' ? ' on' : '') + '" data-m="off" data-n="' + esc(s.name) + '"' + (sup ? '' : ' disabled') + '>Deactivate</button>' + (fx ? '' : '<button type="button" class="tb' + (ov === 'auto' ? ' on' : '') + '" data-m="auto" data-n="' + esc(s.name) + '"' + (sup ? '' : ' disabled') + '>Auto</button>') + '</td></tr>';
     }).join('');
-    openModal('<h3>Manage Teams</h3><div style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">Teams are your Packing Stations. The supervisor activates or deactivates a team; <b>Auto</b> hands control back to the Staff Schedule / device. ' + (sup ? '' : '<b>Only the supervisor can change this.</b>') + '</div>' +
+    openModal('<h3>Manage Teams</h3><div style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">Teams are your Packing Stations. The supervisor activates or deactivates a team (Station A / B use the same Active / Inactive as Daily Target &amp; Performance). ' + (sup ? '' : '<b>Only the supervisor can change this.</b>') + '</div>' +
       (packingStations.length ? '<table><thead><tr><th>Team</th><th>Status</th><th>Members</th><th>Workload</th><th>Set</th></tr></thead><tbody>' + rows + '</tbody></table>' : '<div class="pm-empty">No packing stations registered yet.</div>') +
-      '<div class="acts"><button type="button" data-x="close">Close</button><button type="button" data-x="setup">Edit teams &amp; members (Team Setup)</button></div>', 'manage');
+      '<div class="acts"><button type="button" data-x="close">Close</button><button type="button" data-x="setup">Open Daily Target &amp; Performance</button></div>', 'manage');
   }
   function setTeam(name, mode) {
     if (!isSup()) return toast('Only the supervisor can change teams.', true);
     const s = packingStations.find(x => x.name === name); if (!s) return;
+    const sidx = packingStations.indexOf(s);
+    if (sidx < 2 && typeof window.dtpSetPackerActive === 'function' && mode !== 'auto') {
+      if (!window.dtpSetPackerActive(sidx, mode === 'on')) return;
+      try { renderStationsTab(); } catch (e) {}
+      manage(); render(); autoAndRefresh();
+      return toast(tn(name) + ': ' + (mode === 'on' ? 'activated' : 'deactivated'));
+    }
     const prev = { status: s.status, enabled: s.enabled };
     s.status = mode; delete s.enabled;
     try { savePackingStations(); }
@@ -42759,7 +42797,7 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
     if (k === 'close') return closeModal();
     if (k === 'delgo') return doAdminDelete();
     if (k === 'bulkteamgo') return doBulkTeam();
-    if (k === 'setup') { closeModal(); const b = document.querySelector('.tab-btn[data-tab="team-packing"]'); if (b) b.click(); return; }
+    if (k === 'setup') { closeModal(); const b = document.querySelector('.tab-btn[data-tab="dtp"]'); if (b) b.click(); return; }
     closeModal();
     if (k === 'team') openPackingStationModal(o);
     else if (k === 'label') openStickerModal(o);
@@ -42956,8 +42994,10 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
   let editing = false, viewDate = '', picked = false;
 
   // ---------- settings (targets + per-department shifts) ----------
+  // Before the new Station A/B settings were ever saved, the station's existing status (manual ON/OFF) is carried over, so nothing flips by itself.
+  const legacyAct = (k) => { try { const st = packingStations[k === 'packerA' ? 0 : 1]; if (!st) return k === 'packerA'; const v = dtpStationActive(st); return v === null ? k === 'packerA' : v; } catch (e) { return k === 'packerA'; } };
   const defShift = (n) => n === 1 ? { on: true, start: '08:00', end: '17:00', mp: 0 } : { on: false, start: '17:00', end: '02:00', mp: 0 };
-  const DEF = () => { const d = { targets: { receiving: 0, putaway: 0, picking: 0, packing: 0 }, depts: {} }; DEPTS.forEach(x => { d.depts[x.k] = { s1: defShift(1), s2: defShift(2) }; if (x.st) d.depts[x.k].active = x.k === 'packerA'; }); return d; };
+  const DEF = () => { const d = { targets: { receiving: 0, putaway: 0, picking: 0, packing: 0 }, depts: {} }; DEPTS.forEach(x => { d.depts[x.k] = { s1: defShift(1), s2: defShift(2) }; if (x.st) d.depts[x.k].active = legacyAct(x.k); }); return d; };
   const mergeShift = (raw, def) => { const x = raw || {}; return { on: x.on === undefined ? def.on : !!x.on, start: TM.test(x.start) ? x.start : def.start, end: TM.test(x.end) ? x.end : def.end, mp: Math.max(0, num(x.mp)) }; };
   function mergeSet(raw) {
     const d = DEF(); if (!raw || typeof raw !== 'object') return d;
@@ -42978,6 +43018,7 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
   function loadSet() {
     let set; try { set = mergeSet(JSON.parse(localStorage.getItem(SETK))); } catch (e) { set = DEF(); }
     if (linked()) Object.keys(LINK).forEach(k => { const v = effectiveDailyTarget(LINK[k]); set.targets[k] = (v === null || v === undefined || v === '') ? 0 : Math.max(0, num(v)); });
+    set.targets.putaway = set.targets.receiving;   // Put Away target = Receiving target
     return set;
   }
   function loadHist() { try { const h = JSON.parse(localStorage.getItem(HISTK)); return (h && typeof h === 'object') ? h : {}; } catch (e) { return {}; } }
@@ -43035,7 +43076,10 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
 
   // ---------- actual completed PCS from the existing data (each transaction counted once, by its own completion date) ----------
   function stationNames() { try { const l = (typeof packingStations !== 'undefined' ? packingStations : []); return [(l[0] && l[0].name) || 'Station A', (l[1] && l[1].name) || 'Station B', !!l[0], !!l[1]]; } catch (e) { return ['Station A', 'Station B', false, false]; } }
-  function actuals(d, c) {
+  // The Dashboard reads garment receiving / put away from the Garment Order Tracker data (it swaps that data in with gotWithSheetData); do the same here so both always show the same numbers.
+  const withGot = (fn) => (typeof gotWithSheetData === 'function' ? gotWithSheetData(fn) : fn());
+  function actuals(d, c) { return withGot(() => actualsRaw(d, c)); }
+  function actualsRaw(d, c) {
     const o = { receiving: { s1: 0, s2: 0 }, putaway: { s1: 0, s2: 0 }, picking: { s1: 0, s2: 0 }, packA: { s1: 0, s2: 0 }, packB: { s1: 0, s2: 0 }, packO: { s1: 0, s2: 0 } };
     const add = (k, sh, q) => { if (q > 0) o[k][sh === 2 ? 's2' : 's1'] += q; };
     try {
@@ -43072,6 +43116,25 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
     return o;
   }
 
+  // Campaign Mode OFF: today's targets follow the live workload, exactly like the Dashboard (backlog still to do + already done today).
+  function backlogTargets(act) { return withGot(() => backlogTargetsRaw(act)); }
+  function backlogTargetsRaw(act) {
+    const sum = (o) => o.s1 + o.s2;
+    let gBack = 0, paPend = 0;
+    try {
+      gBack = garmentOrders.filter(b => garmentBatchStatus(b) !== 'Complete').reduce((a, b) => { const t = garmentBatchTotalsForBacklog(b); return a + Math.max(0, t.qtyOrder - t.qtyReceived); }, 0);
+      garmentOrders.forEach(o => (o.skus || []).forEach(k => {
+        if (garmentIsQtyOnlyCategory(k.category) || !(num(k.qtyReceived) > 0)) return;
+        const as = k.putawayAssignments || []; if (!as.length) return;
+        if (!as.every(x => x.status === 'done')) paPend += num(k.qtyReceived);
+      }));
+    } catch (e) { console.warn('dtp backlog inbound', e); }
+    // Picking / Packing use the Dashboard's own functions (backlog + done today) so the target is exactly the Dashboard's number.
+    let pk = sum(act.picking), pa = sum(act.packA) + sum(act.packB) + sum(act.packO);
+    try { pk = pickerBacklogQty() + pickerTodayTotalQty(); pa = packerBacklogQty() + packerTodayTotalQty(); } catch (e) { console.warn('dtp backlog outbound', e); }
+    return { receiving: Math.round(gBack + sum(act.receiving)), putaway: Math.round(gBack + sum(act.receiving)), picking: Math.round(pk), packing: Math.round(pa) };
+  }
+
   function toast(msg, bad) {
     const t = $('dtpToast'); t.textContent = msg;
     t.style.borderColor = bad ? '#7a2f2f' : '#2f6c4b'; t.style.background = bad ? '#2a1414' : '#13261c'; t.style.color = bad ? '#ff9c9c' : '#8fe0b2';
@@ -43082,8 +43145,11 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
   // ---------- Target Settings + per-department shift settings ----------
   function renderTargets() {
     const set = loadSet();
+    let bt = null; if (!linked()) { try { bt = backlogTargets(actuals(todayStr(), set)); } catch (e) { bt = null; } }
     PROC.forEach(p => {
       const el = $('dtpTv' + p.k.charAt(0).toUpperCase() + p.k.slice(1)); if (!el) return;
+      if (p.k === 'putaway') { el.innerHTML = '<b>' + fmt(bt ? bt.receiving : set.targets.receiving) + '<small>PCS</small></b>'; return; }
+      if (bt) { el.innerHTML = '<b>' + fmt(bt[p.k]) + '<small>PCS</small></b>'; return; }   // Campaign OFF: live workload, nothing to type
       el.innerHTML = editing ? '<input type="number" min="0" step="1" data-k="' + p.k + '" value="' + (set.targets[p.k] || '') + '" placeholder="0"> <small>PCS</small>'
         : (set.targets[p.k] > 0 ? '<b>' + fmt(set.targets[p.k]) + '<small>PCS</small></b>' : '<b style="font-size:17px;">Set a target</b>');
     });
@@ -43101,10 +43167,16 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
         h += '<label class="sw2"><input type="checkbox" ' + a + ' data-f="on"' + (s.on ? ' checked' : '') + '> Shift ' + n + '</label><input type="time" ' + a + ' data-f="start" value="' + s.start + '"><input type="time" ' + a + ' data-f="end" value="' + s.end + '"><input type="number" min="0" step="1" ' + a + ' data-f="mp" value="' + (s.mp || '') + '" placeholder="0">'; });
       h += '</div></details>';
     });
+    try {
+      if (typeof receiveStations !== 'undefined' && receiveStations.length) {
+        h += '<details class="dtp-d"><summary><b>Inbound – Receive Stations</b><span class="sub">Active / Inactive (separate from Packing)</span></summary><div style="padding:4px 12px 12px;display:flex;flex-wrap:wrap;gap:8px 22px;">' +
+          receiveStations.map((r, i) => '<label class="sw2"><input type="checkbox" data-rs="' + i + '"' + (isStationOnShift(r) ? ' checked' : '') + '> ' + (r.name || '').replace(/&/g, '&amp;').replace(/</g, '&lt;') + ' active</label>').join('') + '</div></details>';
+      }
+    } catch (e) {}
     return h + '<div class="dtp-alloc" id="dtpSumPack"></div>';
   }
   function readForm() {
-    const set = DEF();
+    const set = DEF(); { const base = loadSet().targets; PROC.forEach(p => { set.targets[p.k] = base[p.k]; }); }   // targets without an input (Campaign OFF = live) keep their stored value
     root.querySelectorAll('.dtp-row input[data-k]').forEach(i => { set.targets[i.dataset.k] = Math.max(0, Math.round(num(i.value))); });
     root.querySelectorAll('#dtpShForm input[data-d]').forEach(i => {
       const u = set.depts[i.dataset.d]; if (!u) return;
@@ -43112,6 +43184,7 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
       const s = u['s' + i.dataset.s]; if (!s) return;
       if (i.dataset.f === 'on') s.on = !!i.checked; else if (i.dataset.f === 'mp') s.mp = Math.max(0, num(i.value)); else s[i.dataset.f] = i.value;
     });
+    set.targets.putaway = set.targets.receiving;
     return set;
   }
   const r1 = (x) => Math.round(x * 10) / 10;
@@ -43152,10 +43225,12 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
     const isToday = viewDate === today;
     $('dtpHist').style.display = isToday ? 'none' : 'inline-block'; $('dtpHist').textContent = 'History - ' + viewDate;
     { const on = linked();
-      $('dtpLink').innerHTML = '<span style="display:inline-block;padding:3px 12px;border-radius:999px;font-weight:700;border:1px solid ' + (on ? '#2f8a5c;background:#13261c;color:#8fe0b2' : '#b98a35;background:#2a1f0c;color:#f0cd86') + ';">' + (on ? 'Campaign Mode ON \u2013 Synced with Team Setup' : 'Campaign Mode OFF \u2013 Independent Target') + '</span> <button type="button" class="dtp-btn" id="dtpCmToggle" style="height:28px;padding:0 12px;font-size:12px;">' + (on ? 'Turn OFF' : 'Turn ON') + '</button> <span style="color:var(--text-muted);">' + (on ? 'Receiving, Picking and Packing share Team Setup &gt; Daily Targets (Put Away is kept here only).' : 'The Dashboard uses the live order backlog. Turn Campaign Mode ON in Team Setup to share these targets.') + '</span>'; }
+      $('dtpLink').innerHTML = '<span style="display:inline-block;padding:3px 12px;border-radius:999px;font-weight:700;border:1px solid ' + (on ? '#2f8a5c;background:#13261c;color:#8fe0b2' : '#b98a35;background:#2a1f0c;color:#f0cd86') + ';">' + (on ? 'Campaign Mode ON \u2013 Synced with Team Setup' : 'Campaign Mode OFF \u2013 Independent Target') + '</span> <button type="button" class="dtp-btn" id="dtpCmToggle" style="height:28px;padding:0 12px;font-size:12px;">' + (on ? 'Turn OFF' : 'Turn ON') + '</button> <span style="color:var(--text-muted);">' + (on ? 'Receiving, Picking and Packing share Team Setup &gt; Daily Targets (Put Away is kept here only).' : 'Campaign Mode OFF: targets follow the live workload (backlog + done today), same as the Dashboard. Turn Campaign Mode ON to use fixed targets.') + '</span>'; }
     if (!editing) renderTargets();
-    const cfg = cfgFor(viewDate), P = plan(cfg), T = cfg.targets;
+    const cfg = cfgFor(viewDate);
     const act = actuals(viewDate, cfg);
+    if (isToday && !linked()) cfg.targets = backlogTargets(act);   // Campaign OFF: same live-workload targets as the Dashboard
+    const P = plan(cfg), T = cfg.targets;
     const hist = loadHist(), snap = hist[viewDate];
     if (!isToday && snap && snap.actual) Object.keys(act).forEach(k => { const live = act[k].s1 + act[k].s2, sv = snap.actual[k]; if (!live && sv && (sv.s1 || sv.s2)) act[k] = { s1: num(sv.s1), s2: num(sv.s2) }; });
     if (isToday) {   // keep today's snapshot (targets + shifts used + actual) so the history stays after settings are changed later
@@ -43174,19 +43249,33 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
     // Shift Breakdown rows by department
     const sn = stationNames(), aOn = unitOn(cfg, 'packerA'), bOn = unitOn(cfg, 'packerB');
     const shOn = (k, n) => actSh(cfg, k).indexOf(n) >= 0;
-    const rows = [
+    let rows = [
       { lbl: 'Inbound – Receiving', col: 'receiving', t: P.receiving, a: act.receiving, T: T.receiving, on: [shOn('inbound', 1), shOn('inbound', 2)] },
       { lbl: 'Inbound – Put Away', col: 'putaway', t: P.putaway, a: act.putaway, T: T.putaway, on: [shOn('inbound', 1), shOn('inbound', 2)] },
       { lbl: 'Picker – Picking', col: 'picking', t: P.picking, a: act.picking, T: T.picking, on: [shOn('picker', 1), shOn('picker', 2)] }
     ];
-    if (aOn) rows.push({ lbl: 'Packer – ' + sn[0], col: 'packing', t: P.packA, a: act.packA, T: P.packA.s1 + P.packA.s2, on: [shOn('packerA', 1), shOn('packerA', 2)] });
-    if (bOn) rows.push({ lbl: 'Packer – ' + sn[1], col: 'packing', t: P.packB, a: act.packB, T: P.packB.s1 + P.packB.s2, on: [shOn('packerB', 1), shOn('packerB', 2)] });
-    if ((aOn && bOn) || act.packO.s1 + act.packO.s2 > 0) rows.push({ lbl: 'Packing Total', col: 'packing', tot: true, t: { s1: (aOn ? P.packA.s1 : 0) + (bOn ? P.packB.s1 : 0), s2: (aOn ? P.packA.s2 : 0) + (bOn ? P.packB.s2 : 0) }, a: pack, T: T.packing, on: [shOn('packerA', 1) || shOn('packerB', 1), shOn('packerA', 2) || shOn('packerB', 2)] });
-    const two = rows.some(r => r.on[1]);
+    // Day station = Shift 1 and Night station = Shift 2: when Station A runs only Shift 1 and Station B runs only Shift 2, show ONE Packing row (Shift 1 = A, Shift 2 = B).
+    const merged = aOn && bOn && shOn('packerA', 1) && !shOn('packerA', 2) && !shOn('packerB', 1) && shOn('packerB', 2);
+    if (merged) {
+      rows.push({ lbl: 'Packer – Packing', col: 'packing', t: { s1: P.packA.s1, s2: P.packB.s2 }, a: { s1: act.packA.s1, s2: act.packB.s2 }, extra: act.packO.s1 + act.packO.s2 + act.packA.s2 + act.packB.s1, T: T.packing, on: [true, true] });
+    } else {
+      if (aOn) rows.push({ lbl: 'Packer – ' + sn[0], col: 'packing', t: P.packA, a: act.packA, T: P.packA.s1 + P.packA.s2, on: [shOn('packerA', 1), shOn('packerA', 2)] });
+      if (bOn) rows.push({ lbl: 'Packer – ' + sn[1], col: 'packing', t: P.packB, a: act.packB, T: P.packB.s1 + P.packB.s2, on: [shOn('packerB', 1), shOn('packerB', 2)] });
+      if ((aOn && bOn) || act.packO.s1 + act.packO.s2 > 0) rows.push({ lbl: 'Packing Total', col: 'packing', tot: true, t: { s1: (aOn ? P.packA.s1 : 0) + (bOn ? P.packB.s1 : 0), s2: (aOn ? P.packA.s2 : 0) + (bOn ? P.packB.s2 : 0) }, a: pack, T: T.packing, on: [shOn('packerA', 1) || shOn('packerB', 1), shOn('packerA', 2) || shOn('packerB', 2)] });
+    }
+    // Campaign Mode OFF = normal day without shifts: one daily Total per process. Shifts (and the per-station split) only apply while Campaign Mode is ON.
+    const shiftless = !linked();
+    if (shiftless) rows = [
+      { lbl: 'Inbound – Receiving', col: 'receiving', T: T.receiving, a: act.receiving },
+      { lbl: 'Inbound – Put Away', col: 'putaway', T: T.putaway, a: act.putaway },
+      { lbl: 'Picker – Picking', col: 'picking', T: T.picking, a: act.picking },
+      { lbl: 'Packer – Packing', col: 'packing', T: T.packing, a: pack }
+    ];
+    const two = !shiftless && rows.some(r => r.on[1]);
     const pill = (col, p) => '<span class="dtp-ach" style="background:' + PCOL[col] + ';">' + (Math.round(p * 10) / 10) + '%</span>';
     const cells = (r, n) => { if (!r.on[n - 1]) return '<td>&mdash;</td><td>&mdash;</td><td>&mdash;</td>'; const t = r.t['s' + n], a = r.a['s' + n]; return '<td>' + (t > 0 ? fmt(t) : '-') + '</td><td>' + fmt(a) + '</td><td>' + (t > 0 ? pill(r.col, a / t * 100) : '-') + '</td>'; };
-    let h = '<table class="dtp-t2"><thead><tr><th style="text-align:left;">Department / Process</th><th>Shift 1 Target</th><th>Shift 1 Actual</th><th>Shift 1 Achievement</th>' + (two ? '<th>Shift 2 Target</th><th>Shift 2 Actual</th><th>Shift 2 Achievement</th>' : '') + '<th>Total Target</th><th>Total Actual</th><th>Total Achievement</th></tr></thead><tbody>';
-    rows.forEach(r => { const A = r.a.s1 + r.a.s2; h += '<tr' + (r.tot ? ' style="background:#1b150e;font-weight:800;"' : '') + '><td>' + r.lbl + '</td>' + cells(r, 1) + (two ? cells(r, 2) : '') + '<td>' + (r.T > 0 ? fmt(r.T) : '-') + '</td><td>' + fmt(A) + '</td><td>' + (r.T > 0 ? pill(r.col, A / r.T * 100) : '-') + '</td></tr>'; });
+    let h = '<table class="dtp-t2"><thead><tr><th style="text-align:left;">Department / Process</th>' + (shiftless ? '' : '<th>Shift 1 Target</th><th>Shift 1 Actual</th><th>Shift 1 Achievement</th>') + (two ? '<th>Shift 2 Target</th><th>Shift 2 Actual</th><th>Shift 2 Achievement</th>' : '') + '<th>Total Target</th><th>Total Actual</th><th>Total Achievement</th></tr></thead><tbody>';
+    rows.forEach(r => { const A = r.a.s1 + r.a.s2 + (r.extra || 0); h += '<tr' + (r.tot ? ' style="background:#1b150e;font-weight:800;"' : '') + '><td>' + r.lbl + '</td>' + (shiftless ? '' : cells(r, 1)) + (two ? cells(r, 2) : '') + '<td>' + (r.T > 0 ? fmt(r.T) : '-') + '</td><td>' + fmt(A) + '</td><td>' + (r.T > 0 ? pill(r.col, A / r.T * 100) : '-') + '</td></tr>'; });
     const notes = [];
     if (P.inbound.inc || P.picker.inc || P.packInc) notes.push('Manpower is missing for some two-shift department, so its target is split by working hours only.');
     if (act.packO.s1 + act.packO.s2 > 0) notes.push('Some Packing PCS were packed at a station that is inactive or not matched to Station A/B - they are counted in the Packing total only.');
@@ -43221,6 +43310,18 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
     }
     const hist = loadHist(), today = todayStr(); hist[today] = Object.assign({}, hist[today] || {}, { targets: set.targets, depts: set.depts });
     const e2 = writeKey(HISTK, hist); if (e2) console.warn('dtp history not saved', e2);
+    // Receive Stations Active / Inactive (their own status field, saved with the station list)
+    try {
+      const boxes = root.querySelectorAll('#dtpShForm input[data-rs]');
+      if (boxes.length && typeof receiveStations !== 'undefined') {
+        const prev = receiveStations.map(r => ({ status: r.status, enabled: r.enabled }));
+        try {
+          boxes.forEach(b => { const r = receiveStations[Number(b.dataset.rs)]; if (!r) return; const was = isStationOnShift(r); if (was !== !!b.checked) { r.status = b.checked ? 'on' : 'off'; delete r.enabled; } });
+          saveReceiveStations();
+        } catch (e) { receiveStations.forEach((r, i) => { if (prev[i]) { r.status = prev[i].status; if (prev[i].enabled !== undefined) r.enabled = prev[i].enabled; } }); return bad('Receive Stations NOT saved - ' + ((e && e.message) || e) + ' (other settings were saved).'); }
+        try { renderReceiveStationsTab(); } catch (e) {}
+      }
+    } catch (e) {}
     editing = false; renderTargets(); render(); toast('Settings saved');
   }
 
@@ -43244,6 +43345,23 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
   $('dtpDate').addEventListener('change', (e) => { viewDate = e.target.value || todayStr(); picked = viewDate !== todayStr(); render(); });
   $('dtpRefresh').addEventListener('click', () => { render(); toast('Refreshed'); });
   setInterval(() => { try { if (root.offsetParent !== null) render(); } catch (e) { console.warn('dtp', e); } }, 20000);
+  // Used by the Packing Stations table (same Active / Inactive as the Station A / B checkbox in Edit Targets). Writes the SAME stored setting - no duplicate.
+  window.dtpSetPackerActive = function (i, on) {
+    const set = loadSet(), k = i === 0 ? 'packerA' : 'packerB';
+    let own; try { own = mergeSet(JSON.parse(localStorage.getItem(SETK))); } catch (e) { own = DEF(); }
+    own.depts[k].active = !!on;
+    if (!own.depts.packerA.active && !own.depts.packerB.active) { toast('At least one Packer station must stay Active.', true); return false; }
+    const err = writeKey(SETK, own); if (err) { toast('NOT saved - ' + err, true); return false; }
+    const hist = loadHist(), today = todayStr(); if (hist[today]) { hist[today].depts = own.depts; writeKey(HISTK, hist); }
+    if (editing) renderTargets(); render(); return true;
+  };
+  window.dtpSetPackersActive = function (a, b) {
+    let own; try { own = mergeSet(JSON.parse(localStorage.getItem(SETK))); } catch (e) { own = DEF(); }
+    own.depts.packerA.active = !!a; own.depts.packerB.active = !!b;
+    if (writeKey(SETK, own)) return false;
+    const hist = loadHist(), today = todayStr(); if (hist[today]) { hist[today].depts = own.depts; writeKey(HISTK, hist); }
+    try { render(); } catch (e) {} return true;
+  };
   window.dtpRender = render;
 })();
 </script>
