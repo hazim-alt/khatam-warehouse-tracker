@@ -12807,8 +12807,11 @@ function pushCollectionDiff(def, opts) {
   arr.forEach(rec => { nowKeyed[fbSafeKey(syncKeyOf(rec))] = rec; });
   const updateObj = {};
   let changed = false;
+  const keepBase = FB_KEEP_LOCAL_TABLES.has(def.table) ? fbBaseline[def.table] : null;
   Object.keys(nowKeyed).forEach(k => {
     const prevStr = (prev[k] !== undefined) ? stableStringify(prev[k]) : undefined;
+    // T1: a record that is unchanged on THIS device since the last sync, but differs from the server, means the SERVER is newer - never push our stale copy back over it.
+    if (keepBase && keepBase[k] !== undefined && prevStr !== undefined && stableStringify(nowKeyed[k]) === keepBase[k]) return;
     if (stableStringify(nowKeyed[k]) !== prevStr) { updateObj[k] = FB_PROTECTED_TABLES.has(def.table) ? Object.assign({}, nowKeyed[k], { _rv: FB_SV }) : nowKeyed[k]; changed = true; }
   });
   // Oct 14, 2026 (per Shaila: "kalau tkde sapa2 yg delete tkkn hilang" — applies to EVERY table): a push may only delete a record this device itself
@@ -12821,6 +12824,8 @@ function pushCollectionDiff(def, opts) {
     if (k in nowKeyed) return;
     if (def.table === 'Garment_Orders') { if (!garmentExplicitDeleteKeys.has(k)) return; }
     else if (!knownSet || !knownSet.has(k)) return;
+    // T1: the server copy was changed by someone else after this device last synced it, so a "missing here" must not delete it.
+    if (keepBase && keepBase[k] !== undefined && stableStringify(prev[k]) !== keepBase[k]) return;
     updateObj[k] = null; changed = true;
     deletedNow.push({ k, rec: prev[k] });
     if (def.table === 'Garment_Orders') {
@@ -28119,19 +28124,22 @@ const SYNC_COLLECTIONS = [
 // the user's stopped typing / clicked Save.
 let cloudSyncReconcileRunning = false;
 function cloudSyncReconcile() {
-  if (!fbDb || cloudSyncReconcileRunning || isUserActivelyTyping()) return;
+  if (!fbDb || cloudSyncReconcileRunning) return;
+  const typingNow = isUserActivelyTyping();
   cloudSyncReconcileRunning = true;
   try {
     SYNC_COLLECTIONS.forEach(def => {
       if (isTableDirty(def.table)) return;
-      if (pendingRemoteApply.has(def.table)) applyServerSnapshot(def.table);
+      // T1: while someone is typing, only the STO / DO / Trip / Inbound tables keep pushing (their push is limited to records changed on this device); everything else waits as before.
+      if (typingNow && !FB_KEEP_LOCAL_TABLES.has(def.table)) return;
+      if (!typingNow && pendingRemoteApply.has(def.table)) applyServerSnapshot(def.table);
       pushCollectionDiff(def);
     });
-    if (!anySetupDirty()) {
+    if (!typingNow && !anySetupDirty()) {
       if (settingsApplyPending) applySettingsSnapshot();
       pushSettingsDiff();
     }
-    pushPostponedDoNosDiff();
+    if (!typingNow) pushPostponedDoNosDiff();
   } finally {
     cloudSyncReconcileRunning = false;
   }
@@ -40428,7 +40436,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '4Nov-r604';
+const APP_BUILD_LABEL = '4Nov-r604-T1';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
