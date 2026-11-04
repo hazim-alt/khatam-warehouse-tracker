@@ -7382,16 +7382,31 @@ function backfillNaturalSyncIds(arr) {
 // cause — two devices racing before their first sync). Keeps whichever copy has progressed further
 // (not still sitting at the default "Active"), since that one's more likely to carry real work
 // already logged against it; ties keep whichever was seen first.
+// HOTFIX HF1: duplicate STO No. -> keep the copy with the most evidence of real work (DO No., carton lock, further stage, completion stamps), ties broken by the record key so EVERY device
+// picks the same copy. The other copy is only hidden locally: it is never deleted on the server (see the duplicate guard in pushCollectionDiff).
+const STO_STAGE_RANK = { Active: 0, Picking: 1, 'On Progress': 1, Packing: 2, Packed: 3, Shipped: 4, Complete: 5 };
+function stoEvidence(r) {
+  const st = STO_STAGE_RANK[r.progress || 'Active'];
+  return [r.doNo ? 1 : 0, r.cartonLock ? 1 : 0, st === undefined ? 0 : st, r.manualDeliveredAt ? 1 : 0, (r.pickingCompletedDate ? 1 : 0) + (r.packingCompletedDate ? 1 : 0) + (r.tripId ? 1 : 0), String(r.packingCompletedAt || r.pickingCompletedAt || '')];
+}
+function stoIsBetterCopy(a, b) {
+  const ea = stoEvidence(a), eb = stoEvidence(b);
+  for (let i = 0; i < ea.length; i++) { if (ea[i] > eb[i]) return true; if (ea[i] < eb[i]) return false; }
+  return String(a.id || a._syncId || '') < String(b.id || b._syncId || '');
+}
+const stoDupNoticed = new Set();
+function stoNoteDuplicate(orderNumber) {
+  if (stoDupNoticed.has(orderNumber)) return; stoDupNoticed.add(orderNumber);
+  try { showStoCollisionToast('Duplicate STO "' + orderNumber + '": the copy with more progress / DO / carton lock is shown. The other copy was NOT deleted - please ask admin to review it.'); } catch (e) {}
+}
 function dedupeStoRecordsByOrderNumber(arr) {
   const byKey = new Map();
   arr.forEach(r => {
     const key = (r.orderNumber || '').trim();
-    if (!key) { byKey.set(Symbol(), r); return; } // no order number at all — nothing to dedupe against
+    if (!key) { byKey.set(Symbol(), r); return; } // no order number at all - nothing to dedupe against
     if (!byKey.has(key)) { byKey.set(key, r); return; }
-    const existing = byKey.get(key);
-    const existingIsActive = (existing.progress || 'Active') === 'Active';
-    const newIsActive = (r.progress || 'Active') === 'Active';
-    if (existingIsActive && !newIsActive) byKey.set(key, r);
+    if (stoIsBetterCopy(r, byKey.get(key))) byKey.set(key, r);
+    stoNoteDuplicate(key);
   });
   return [...byKey.values()];
 }
@@ -12764,6 +12779,27 @@ const collectionPushInFlight = new Set();
 const FB_KEEP_LOCAL_TABLES = new Set(['STO_Records', 'DO_Records', 'Fleet_Trips', 'Inbound_STO']);
 const fbBaseline = {};
 function fbBaselineFrom(arr) { const m = {}; arr.forEach(r => { m[fbSafeKey(syncKeyOf(r))] = stableStringify(r); }); return m; }
+// ===== HOTFIX HF1 (Nov 4, 2026): STO status roll-back =====
+// Root cause: a record was always pushed as a WHOLE object, so a device holding an older copy (or a stale tab) that changed one field (picker, rollcage...) also pushed its old
+// progress / doNo / cartonLock over the newer server copy; and the duplicate cleanup could drop the newer duplicate locally and then delete it on the server.
+// Fix: (1) no push before the server copy was read and adopted, (2) for STO / DO / Trip that already exist on the server only the fields THIS device changed are written,
+// (3) an incoming server snapshot keeps this device's pending edits on top of the server copy (field by field), (4) a duplicate never causes a server delete, (5) deterministic duplicate choice.
+const FB_FIELD_LEVEL_TABLES = new Set(['STO_Records', 'DO_Records', 'Fleet_Trips']);
+const fbGateReady = {};   // table -> true once the server snapshot has been read AND adopted on this device (baseline loaded)
+const FB_META_FIELDS = new Set(['_rv', '_syncId']);
+function fbGateClosedTables() { return [...FB_KEEP_LOCAL_TABLES].filter(t => !fbGateReady[t]); }
+function fbChangedFields(local, base) {
+  const out = [], keys = new Set([...Object.keys(base || {}), ...Object.keys(local || {})]);
+  keys.forEach(f => { if (FB_META_FIELDS.has(f)) return; if (stableStringify(local ? local[f] : undefined) !== stableStringify(base ? base[f] : undefined)) out.push(f); });
+  return out;
+}
+function fbOverlayLocalOntoServer(serverRec, localRec, baseRec) {
+  const rec = JSON.parse(JSON.stringify(serverRec));
+  fbChangedFields(localRec, baseRec).forEach(f => { if (localRec[f] === undefined) delete rec[f]; else rec[f] = JSON.parse(JSON.stringify(localRec[f])); });
+  return rec;
+}
+function fbIdentityOf(rec) { return rec && (rec.orderNumber || rec.doNo) ? String(rec.orderNumber || rec.doNo).trim() : null; }
+function fbIdentityStillLocal(rec, nowKeyed) { const id = fbIdentityOf(rec); return !!id && Object.keys(nowKeyed).some(k2 => fbIdentityOf(nowKeyed[k2]) === id); }
 const fbKnownKeys = {}, fbKnownSig = {}; // table -> Set of record keys this device has held locally (persisted)
 function fbGetKnown(table) {
   if (!(table in fbKnownKeys)) {
@@ -12782,6 +12818,8 @@ function fbMayDelete(table, k) { const ks = fbGetKnown(table); return !ks || ks.
 const garmentExplicitDeleteKeys = new Set(); // Firebase keys of batches the user deliberately deleted (Delete button / Reset) — the only ones a push may remove
 function pushCollectionDiff(def, opts) {
   if (!fbDb) return;
+  // HOTFIX HF1: nothing is pushed for the workflow tables until this device has READ the server copy and adopted it. A failed or slow read keeps everything held back.
+  if (FB_KEEP_LOCAL_TABLES.has(def.table) && !fbGateReady[def.table]) return;
   const arr = def.getArray();
   const prev = fbLastServerSnapshot[def.table] || {};
   // CRITICAL safety guard: an empty local array must never be allowed to wipe an already-populated
@@ -12810,9 +12848,21 @@ function pushCollectionDiff(def, opts) {
   const keepBase = FB_KEEP_LOCAL_TABLES.has(def.table) ? fbBaseline[def.table] : null;
   Object.keys(nowKeyed).forEach(k => {
     const prevStr = (prev[k] !== undefined) ? stableStringify(prev[k]) : undefined;
-    // T1: a record that is unchanged on THIS device since the last sync, but differs from the server, means the SERVER is newer - never push our stale copy back over it.
+    // a record unchanged on THIS device since the last sync, but different from the server, means the SERVER is newer - never push our stale copy back over it.
     if (keepBase && keepBase[k] !== undefined && prevStr !== undefined && stableStringify(nowKeyed[k]) === keepBase[k]) return;
-    if (stableStringify(nowKeyed[k]) !== prevStr) { updateObj[k] = FB_PROTECTED_TABLES.has(def.table) ? Object.assign({}, nowKeyed[k], { _rv: FB_SV }) : nowKeyed[k]; changed = true; }
+    if (stableStringify(nowKeyed[k]) === prevStr) return;
+    if (FB_FIELD_LEVEL_TABLES.has(def.table) && prev[k] !== undefined) {
+      // HOTFIX HF1: the record already exists on the server -> write ONLY the fields this device changed since its last sync (never the whole, possibly stale, record).
+      const bStr = keepBase ? keepBase[k] : undefined;
+      if (bStr === undefined) return;   // this device never saw the server copy of this record: the server wins, a possibly stale copy is never pushed
+      let baseRec; try { baseRec = JSON.parse(bStr); } catch (e) { return; }
+      const fields = fbChangedFields(nowKeyed[k], baseRec).filter(f => stableStringify(nowKeyed[k][f]) !== stableStringify(prev[k][f]));
+      if (!fields.length) return;
+      fields.forEach(f => { updateObj[k + '/' + f] = nowKeyed[k][f] === undefined ? null : nowKeyed[k][f]; });
+      if (FB_PROTECTED_TABLES.has(def.table)) updateObj[k + '/_rv'] = FB_SV;
+      changed = true; return;
+    }
+    updateObj[k] = FB_PROTECTED_TABLES.has(def.table) ? Object.assign({}, nowKeyed[k], { _rv: FB_SV }) : nowKeyed[k]; changed = true;
   });
   // Oct 14, 2026 (per Shaila: "kalau tkde sapa2 yg delete tkkn hilang" — applies to EVERY table): a push may only delete a record this device itself
   // held in its own array (known keys, persisted across reloads). A record that merely appeared on the server and was never in THIS device's array
@@ -12824,8 +12874,10 @@ function pushCollectionDiff(def, opts) {
     if (k in nowKeyed) return;
     if (def.table === 'Garment_Orders') { if (!garmentExplicitDeleteKeys.has(k)) return; }
     else if (!knownSet || !knownSet.has(k)) return;
-    // T1: the server copy was changed by someone else after this device last synced it, so a "missing here" must not delete it.
+    // the server copy was changed by someone else after this device last synced it, so a "missing here" must not delete it.
     if (keepBase && keepBase[k] !== undefined && stableStringify(prev[k]) !== keepBase[k]) return;
+    // HOTFIX HF1: a duplicate that the local cleanup dropped is NOT a deletion: if the same STO No. / DO No. is still held locally under another key, leave the server copy alone.
+    if (def.table !== 'Garment_Orders' && fbIdentityStillLocal(prev[k], nowKeyed)) return;
     updateObj[k] = null; changed = true;
     deletedNow.push({ k, rec: prev[k] });
     if (def.table === 'Garment_Orders') {
@@ -12851,7 +12903,7 @@ function pushCollectionDiff(def, opts) {
   } else pushAll = pushMain();
   if (FB_KEEP_LOCAL_TABLES.has(def.table)) pushAll.then(() => {
     const b = fbBaseline[def.table] || (fbBaseline[def.table] = {});
-    Object.keys(updateObj).forEach(k => { if (updateObj[k] === null) delete b[k]; else if (nowKeyed[k]) b[k] = stableStringify(nowKeyed[k]); });
+    Object.keys(updateObj).forEach(p => { const k = p.split('/')[0]; if (p === k && updateObj[p] === null) delete b[k]; else if (nowKeyed[k]) b[k] = stableStringify(nowKeyed[k]); });
   }).catch(() => {});
   pushAll.catch(e => {
     cloudSyncStatus = 'error';
@@ -12861,7 +12913,7 @@ function pushCollectionDiff(def, opts) {
     // 2-second reconcile pushes them again (before, a failed push was never retried and a later server snapshot could bring the old status back).
     try {
       const snapNow = fbLastServerSnapshot[def.table];
-      if (snapNow) Object.keys(updateObj).forEach(k => { if (prev[k] === undefined) delete snapNow[k]; else snapNow[k] = prev[k]; });
+      if (snapNow) Object.keys(updateObj).forEach(p => { const k = p.split('/')[0]; if (prev[k] === undefined) delete snapNow[k]; else snapNow[k] = prev[k]; });
     } catch (e2) {}
   }).finally(() => { collectionPushInFlight.delete(def.table); });
 }
@@ -13010,16 +13062,18 @@ function applyServerSnapshot(table) {
         }
         if (base && base[k] !== undefined && stableStringify(lr) !== base[k]) {   // changed here since the last sync -> keep this device's version
           const i = remoteIdx.get(k);
-          if (stableStringify(remoteArr[i]) !== stableStringify(lr)) { out[i] = lr; keptLocal = true; }
+          // HOTFIX HF1: keep this device's pending edits ON TOP OF the newer server copy (field by field), not the whole stale local record.
+          const merged = FB_FIELD_LEVEL_TABLES.has(table) ? fbOverlayLocalOntoServer(remoteArr[i], lr, JSON.parse(base[k])) : lr;
+          if (stableStringify(remoteArr[i]) !== stableStringify(merged)) { out[i] = merged; keptLocal = true; }
         }
       });
       if (keptLocal) { remoteArr = out; if (def.sortKey) remoteArr.sort((a, b) => def.sortKey(a).localeCompare(def.sortKey(b))); }
     } catch (e) { console.warn('keep-local merge failed', e); keptLocal = false; remoteArr = remoteOnlyArr; }
   }
-  if (stableStringify(remoteArr) === stableStringify(def.getArray())) { if (FB_KEEP_LOCAL_TABLES.has(table)) fbBaseline[table] = fbBaselineFrom(remoteOnlyArr); pendingRemoteApply.delete(table); return; }
+  if (stableStringify(remoteArr) === stableStringify(def.getArray())) { if (FB_KEEP_LOCAL_TABLES.has(table)) { fbBaseline[table] = fbBaselineFrom(remoteOnlyArr); fbGateReady[table] = true; } pendingRemoteApply.delete(table); return; }
   if (isUserActivelyTyping() || isTableDirty(table)) { pendingRemoteApply.add(table); return; }
   def.setArray(remoteArr);
-  if (FB_KEEP_LOCAL_TABLES.has(table)) { fbBaseline[table] = fbBaselineFrom(remoteOnlyArr); if (keptLocal) { try { pushCollectionDiff(def, { skipEmptyGuard: true }); } catch (e) { console.warn('re-push of kept local changes failed', e); } } }
+  if (FB_KEEP_LOCAL_TABLES.has(table)) { fbBaseline[table] = fbBaselineFrom(remoteOnlyArr); fbGateReady[table] = true; if (keptLocal) { try { pushCollectionDiff(def, { skipEmptyGuard: true }); } catch (e) { console.warn('re-push of kept local changes failed', e); } } }
   try { fbSetKnown(table, def.getArray().map(r => fbSafeKey(syncKeyOf(r)))); } catch (e) {}
   if (def.afterPull) def.afterPull();
   pendingRemoteApply.delete(table);
@@ -28130,7 +28184,7 @@ function cloudSyncReconcile() {
   try {
     SYNC_COLLECTIONS.forEach(def => {
       if (isTableDirty(def.table)) return;
-      // T1: while someone is typing, only the STO / DO / Trip / Inbound tables keep pushing (their push is limited to records changed on this device); everything else waits as before.
+      // While someone is typing, only the STO / DO / Trip / Inbound tables keep pushing (limited to records changed on this device); everything else waits as before.
       if (typingNow && !FB_KEEP_LOCAL_TABLES.has(def.table)) return;
       if (!typingNow && pendingRemoteApply.has(def.table)) applyServerSnapshot(def.table);
       pushCollectionDiff(def);
@@ -28140,6 +28194,7 @@ function cloudSyncReconcile() {
       pushSettingsDiff();
     }
     if (!typingNow) pushPostponedDoNosDiff();
+    if (fbGateClosedTables().length) renderCloudSyncStatus();   // HOTFIX HF1: keep the 'not safe' notice visible while the gate is closed
   } finally {
     cloudSyncReconcileRunning = false;
   }
@@ -28176,7 +28231,7 @@ async function initialCloudSync() {
       const remoteObj = FB_PROTECTED_TABLES.has(def.table) ? fbStripRvMap(snap.val()) : (snap.val() || {});
       fbLastServerSnapshot[def.table] = remoteObj;
       const everMergedKey = fbEverMergedKey(def.table);
-      if (!localStorage.getItem(everMergedKey)) {
+      if (!FB_KEEP_LOCAL_TABLES.has(def.table) && !localStorage.getItem(everMergedKey)) {   // HOTFIX HF1: workflow tables are server-first on every sync
         const localArr = def.getArray();
         const localKeys = new Set(localArr.map(rec => fbSafeKey(syncKeyOf(rec))));
         const mergedArr = [...localArr];
@@ -28279,6 +28334,7 @@ function renderCloudSyncStatus() {
       shortText = cloudSyncLastAt ? `Synced ${cloudSyncLastAt.toLocaleTimeString()}` : 'Connected';
     }
   }
+  if (isCloudSyncEnabled() && cloudSyncStatus === 'idle' && fbGateClosedTables().length) { fullText = 'Sync NOT SAFE: waiting to read the server before sending changes (nothing is being sent).'; shortText = 'Sync NOT SAFE'; }   // HOTFIX HF1
   if (fullNote) fullNote.textContent = fullText;
   if (sidebarNote) sidebarNote.textContent = shortText;
   updateSidebarSyncBarVisibility();
@@ -40436,7 +40492,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '4Nov-r604-T1';
+const APP_BUILD_LABEL = '4Nov-r604-HF1';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
