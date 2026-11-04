@@ -18277,14 +18277,14 @@ function renderDashTest__orig() {
   const ordT = bq, ordA = qSum(batch, r => (r.progress || 'Active') !== 'Active');
   // Pending = whole garment orders not fully received / put away, and STOs not yet DO Issued
   const inPend = gos.filter(b => { const ps = garmentBatchPutawayStatus(b); return !(garmentBatchStatus(b) === 'Complete' && (ps === 'Done' || ps === null)); }).length;   // same rule as Garment Order tab's "Pending" list
-  const outPend = batch.filter(r => (r.progress || 'Active') !== 'Shipped').length;
+  const outPend = batch.filter(r => (r.progress || 'Active') !== 'Shipped' && (r.progress || 'Active') !== 'Packed' && !r.packingCompletedDate).length;   // Nov 4, 2026 (per Shaila): once Packing Completed is pressed the STO counts as settled
   const chev = '';
   const pendBig = (n, w) => `${fmt(n)} <span style="font-size:20px;color:var(--text-muted);">${w}</span>`;
   const kpis = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;flex-shrink:0;">`
     + kc(dtIco3('inboundpkg', 56), 'Inbound Today', '', `${fmt(inAct)} <span style="font-size:20px;color:var(--text-muted);">/ ${fmt(inTot)}</span>`, 'Completed / Target', dtDonut(pctOf(inAct, inTot), IN, 64, 8))
     + kc(dtIco3('pendtasks', 56), 'Pending — Inbound', '', pendBig(inPend, inPend === 1 ? 'Order' : 'Orders'), inPend ? 'Same as Garment Order › Pending' : 'No pending garment order', chev)
     + kc(dtIco3('truck', 56), 'Outbound Today', '', `${fmt(outAct)} <span style="font-size:20px;color:var(--text-muted);">/ ${fmt(outTot)}</span>`, 'Completed / Target', dtDonut(pctOf(outAct, outTot), OUT, 64, 8))
-    + kc(dtIco3('pendtasks', 56), 'Pending — Outbound', '', pendBig(outPend, 'STO'), outPend ? 'STO not yet DO Issued' : 'No pending STO', chev)
+    + kc(dtIco3('pendtasks', 56), 'Pending — Outbound', '', pendBig(outPend, 'STO'), outPend ? 'STO not yet packed' : 'No pending STO', chev)
     + `</div>`;
 
   // ---------- progress panels ----------
@@ -40386,7 +40386,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '3Nov-r599';
+const APP_BUILD_LABEL = '4Nov-r600';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
