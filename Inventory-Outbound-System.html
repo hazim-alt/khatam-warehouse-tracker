@@ -12755,6 +12755,12 @@ async function fbWipeTable(table) {
   await fbChunkedUpdate(fbDb.ref(table), nul);
 }
 const collectionPushInFlight = new Set();
+// Nov 4, 2026: per-table "what the server had when this device last synced" (key -> stable JSON). A record that differs from it was changed on THIS device and has
+// not reached the server yet; a record missing from it was added on THIS device. An incoming server snapshot must never throw those away (a staff 'Picking Done'
+// or a newly added STO used to vanish when a snapshot arrived while the push was held back).
+const FB_KEEP_LOCAL_TABLES = new Set(['STO_Records', 'DO_Records', 'Fleet_Trips', 'Inbound_STO']);
+const fbBaseline = {};
+function fbBaselineFrom(arr) { const m = {}; arr.forEach(r => { m[fbSafeKey(syncKeyOf(r))] = stableStringify(r); }); return m; }
 const fbKnownKeys = {}, fbKnownSig = {}; // table -> Set of record keys this device has held locally (persisted)
 function fbGetKnown(table) {
   if (!(table in fbKnownKeys)) {
@@ -12835,6 +12841,10 @@ function pushCollectionDiff(def, opts) {
     const tomb = {}; deletedNow.forEach(d => { tomb[d.k] = FB_SV; });
     pushAll = fbChunkedUpdate(fbDb.ref('Deleted/' + def.table), tomb).then(pushMain); // tombstone must exist BEFORE the delete is accepted
   } else pushAll = pushMain();
+  if (FB_KEEP_LOCAL_TABLES.has(def.table)) pushAll.then(() => {
+    const b = fbBaseline[def.table] || (fbBaseline[def.table] = {});
+    Object.keys(updateObj).forEach(k => { if (updateObj[k] === null) delete b[k]; else if (nowKeyed[k]) b[k] = stableStringify(nowKeyed[k]); });
+  }).catch(() => {});
   pushAll.catch(e => {
     cloudSyncStatus = 'error';
     cloudSyncLastError = `${def.table}: ${(e && e.message) || e}`;
@@ -12976,9 +12986,32 @@ function applyServerSnapshot(table) {
     });
     if (healed) remoteArr = copy;
   }
-  if (stableStringify(remoteArr) === stableStringify(def.getArray())) { pendingRemoteApply.delete(table); return; }
+  const remoteOnlyArr = remoteArr;   // exactly what the server has (before this device's unsent changes are merged back in)
+  let keptLocal = false;
+  if (FB_KEEP_LOCAL_TABLES.has(table)) {
+    try {
+      const base = fbBaseline[table], known = fbGetKnown(table);
+      const remoteIdx = new Map(); remoteArr.forEach((r, i) => remoteIdx.set(fbSafeKey(syncKeyOf(r)), i));
+      const out = remoteArr.slice();
+      def.getArray().forEach(lr => {
+        const k = fbSafeKey(syncKeyOf(lr));
+        if (!remoteIdx.has(k)) {
+          const neverOnServer = base ? (base[k] === undefined) : !(known && known.has(k));
+          if (neverOnServer) { out.push(lr); keptLocal = true; }   // added here, not on the server yet
+          return;
+        }
+        if (base && base[k] !== undefined && stableStringify(lr) !== base[k]) {   // changed here since the last sync -> keep this device's version
+          const i = remoteIdx.get(k);
+          if (stableStringify(remoteArr[i]) !== stableStringify(lr)) { out[i] = lr; keptLocal = true; }
+        }
+      });
+      if (keptLocal) { remoteArr = out; if (def.sortKey) remoteArr.sort((a, b) => def.sortKey(a).localeCompare(def.sortKey(b))); }
+    } catch (e) { console.warn('keep-local merge failed', e); keptLocal = false; remoteArr = remoteOnlyArr; }
+  }
+  if (stableStringify(remoteArr) === stableStringify(def.getArray())) { if (FB_KEEP_LOCAL_TABLES.has(table)) fbBaseline[table] = fbBaselineFrom(remoteOnlyArr); pendingRemoteApply.delete(table); return; }
   if (isUserActivelyTyping() || isTableDirty(table)) { pendingRemoteApply.add(table); return; }
   def.setArray(remoteArr);
+  if (FB_KEEP_LOCAL_TABLES.has(table)) { fbBaseline[table] = fbBaselineFrom(remoteOnlyArr); if (keptLocal) { try { pushCollectionDiff(def, { skipEmptyGuard: true }); } catch (e) { console.warn('re-push of kept local changes failed', e); } } }
   try { fbSetKnown(table, def.getArray().map(r => fbSafeKey(syncKeyOf(r)))); } catch (e) {}
   if (def.afterPull) def.afterPull();
   pendingRemoteApply.delete(table);
@@ -40392,7 +40425,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '4Nov-r602';
+const APP_BUILD_LABEL = '4Nov-r603';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
