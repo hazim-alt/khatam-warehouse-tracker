@@ -9360,7 +9360,7 @@ function stoStatusBadge(r, status) {
 }
 // STO List: an old Shipped ("DO Issued") STO that has NO DO No. can be closed manually. Only adds r.manualDeliveredAt/By to the STO (hides it from this list) - stock, cartons and DO/trip data are untouched.
 function stoMarkDeliveredNoDo(orderNos) {
-  const recs = orderNos.map(on => records.find(r => r.orderNumber === on)).filter(r => r && (r.progress || 'Active') === 'Shipped' && !r.doNo && !r.manualDeliveredAt);
+  const recs = orderNos.map(on => records.find(r => r.orderNumber === on)).filter(r => r && ['Shipped', 'Packed'].includes(r.progress || 'Active') && !r.doNo && !r.manualDeliveredAt);
   if (!recs.length) { alert('Nothing to mark.'); return; }
   if (!confirm('Mark ' + recs.length + ' STO as Delivered?\n\nThey have no DO and will be removed from the STO List (nothing is deleted).')) return;
   const cu = getCurrentUser() || {}, now = new Date().toISOString();
@@ -9441,7 +9441,7 @@ function renderSenaraiTable() {
       <td>${hb}</td>
       <td>${stoStatusBadge(r, status)}</td>
       <td><span class="badge ${amaranBadgeClass(a)}">${amaranLabel(a)}</span></td>
-      <td>${(status === 'Shipped' && !r.doNo) ? `<button type="button" class="btn-ghost senarai-deliv-btn" data-order="${escapeHtml(r.orderNumber)}" style="padding:4px 10px; margin-right:6px; color:var(--green); border-color:var(--green);" title="No DO on this STO - mark it Delivered to remove it from this list">&#10003; Delivered</button>` : ''}${((getCurrentUser() || {}).isAdmin) ? `<button type="button" class="btn-ghost senarai-rename-btn" data-order="${escapeHtml(r.orderNumber)}" style="padding:4px 10px; margin-right:6px;" title="Admin: correct the boutique name of this STO (and its DO)">Rename Boutique</button>` : ''}<button type="button" class="btn-ghost senarai-delete-btn" data-order="${escapeHtml(r.orderNumber)}" style="padding:4px 10px; color:var(--red); border-color:var(--red);">Delete</button></td>
+      <td>${((status === 'Shipped' || status === 'Packed') && !r.doNo) ? `<button type="button" class="btn-ghost senarai-deliv-btn" data-order="${escapeHtml(r.orderNumber)}" style="padding:4px 10px; margin-right:6px; color:var(--green); border-color:var(--green);" title="No DO on this STO - mark it Delivered to remove it from this list">&#10003; Delivered</button>` : ''}${((getCurrentUser() || {}).isAdmin) ? `<button type="button" class="btn-ghost senarai-rename-btn" data-order="${escapeHtml(r.orderNumber)}" style="padding:4px 10px; margin-right:6px;" title="Admin: correct the boutique name of this STO (and its DO)">Rename Boutique</button>` : ''}<button type="button" class="btn-ghost senarai-delete-btn" data-order="${escapeHtml(r.orderNumber)}" style="padding:4px 10px; color:var(--red); border-color:var(--red);">Delete</button></td>
     </tr>`;
   });
   html += `</tbody></table>`;
@@ -40392,7 +40392,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '4Nov-r601';
+const APP_BUILD_LABEL = '4Nov-r602';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
@@ -42229,6 +42229,7 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
   const ctnOf = (r) => { if (!r.cartonLock) return 0; try { const n = getCartonLockNumbers(r); return n.length || r.cartonLock.totalCarton || 0; } catch (e) { return r.cartonLock.totalCarton || 0; } };
   // A DO Issued STO leaves this list once it is Delivered (trip Completed, courier Delivered, or closed manually).
   function isDelivered(r) {
+    if (r.manualDeliveredAt && !r.doNo && (r.progress === 'Shipped' || r.progress === 'Packed')) return true;   // closed manually with no DO (e.g. DO was deleted)
     if (r.progress !== 'Shipped') return false;
     if (r.manualDeliveredAt) return true;
     if (!r.doNo) return false;
