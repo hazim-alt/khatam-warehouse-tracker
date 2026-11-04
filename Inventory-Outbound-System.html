@@ -7895,6 +7895,9 @@ document.getElementById('addManualStoBtn').addEventListener('click', () => {
   records.push(newRec);
   saveRecords();
   markStoJustCreatedByThisDevice('STO_Records', newRec);
+  // Nov 4, 2026: send just this new STO to Firebase right away. The box below keeps keyboard focus, and while an input has focus the background sync holds back,
+  // so a newly added STO used to sit unsent until an incoming server snapshot replaced the list and removed it.
+  try { if (typeof fbDb !== 'undefined' && fbDb) fbDb.ref('STO_Records/' + fbSafeKey(syncKeyOf(newRec))).set(Object.assign({}, newRec, { _rv: FB_SV })).catch(e => console.warn('immediate STO push failed (the background sync will retry)', e)); } catch (e) { console.warn(e); }
 
   note.textContent = `"${orderNumber}" added.`;
   note.style.color = '#4bb583';
@@ -40425,7 +40428,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '4Nov-r603';
+const APP_BUILD_LABEL = '4Nov-r604';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
