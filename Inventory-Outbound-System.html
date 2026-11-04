@@ -12839,6 +12839,12 @@ function pushCollectionDiff(def, opts) {
     cloudSyncStatus = 'error';
     cloudSyncLastError = `${def.table}: ${(e && e.message) || e}`;
     renderCloudSyncStatus();
+    // Nov 4, 2026: the push failed, so the server does NOT have these changes. Forget the optimistic "already on server" mark for those records so the next
+    // 2-second reconcile pushes them again (before, a failed push was never retried and a later server snapshot could bring the old status back).
+    try {
+      const snapNow = fbLastServerSnapshot[def.table];
+      if (snapNow) Object.keys(updateObj).forEach(k => { if (prev[k] === undefined) delete snapNow[k]; else snapNow[k] = prev[k]; });
+    } catch (e2) {}
   }).finally(() => { collectionPushInFlight.delete(def.table); });
 }
 // Rebuilds this table's local array from the cached server snapshot and adopts it, unless the user
@@ -40386,7 +40392,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '4Nov-r600';
+const APP_BUILD_LABEL = '4Nov-r601';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
