@@ -12561,6 +12561,10 @@ let fbConnected = null;                   // Firebase realtime connection (.info
 let fbDisconnectedAt = 0;
 let fbLastServerEventAt = 0;              // last time ANY server data/snapshot reached this device
 const FB_VERSION_PATH = 'AppMeta/latestBuild';
+// ROOT CAUSE of the endless "Checking version…" on the hosted page: this code lives in a different <script> block than APP_BUILD_NUM (defined ~28,000 lines later). On a slow
+// (hosted) load the browser can run the 0 ms timer BEFORE that later block has executed; reading APP_BUILD_NUM then threw, the timer callback died before it installed its
+// retry timer, and nothing ever re-checked. A local file loads instantly, so it never happened there. The build number is now read safely and the check just waits/retries.
+function fbBuildNum() { try { return (typeof APP_BUILD_NUM !== 'undefined') ? APP_BUILD_NUM : 0; } catch (e) { return 0; } }
 function fbWritesAllowed() { return fbVersionState === 'ok'; }
 // READS (and applying what the server has) only stop for an outdated build. While the version is still being checked (or the marker cannot be read) the device keeps
 // receiving server data, so it never sits on stale data because of the version check; only WRITES wait for 'ok'.
@@ -12658,7 +12662,7 @@ function fbVerifyViaRest() {
   const timer = setTimeout(() => { try { if (ctl) ctl.abort(); } catch (e) {} }, 8000);
   fetch(String(firebaseConfig.databaseURL).replace(/\/$/, '') + '/' + FB_VERSION_PATH + '.json?_=' + Date.now(), { cache: 'no-store', signal: ctl ? ctl.signal : undefined })
     .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-    .then(v => { const nv = Number(v) || 0; fbVersionError = ''; fbSetVersionState(nv > APP_BUILD_NUM ? 'outdated' : 'ok', nv); })
+    .then(v => { const nv = Number(v) || 0; const me = fbBuildNum(); if (!me) return; fbVersionError = ''; fbSetVersionState(nv > me ? 'outdated' : 'ok', nv); })
     .catch(e => { fbVersionError = (e && e.name === 'AbortError') ? 'no response within 8 seconds' : ((e && e.message) || String(e)); try { renderCloudSyncStatus(); } catch (e2) {} })
     .then(() => { clearTimeout(timer); fbRestVersionBusy = false; });
 }
@@ -12687,10 +12691,11 @@ let fbVersionListening = false;
 function fbVerifyVersion() {
   if (!fbDb) return;
   if (fbVersionState === 'outdated') return;   // sticky: only a reload (new page load) can clear it
-  const mine = APP_BUILD_NUM;
+  const mine = fbBuildNum();
+  if (!mine) return;   // the rest of the page has not finished loading yet: the 3-second timer simply tries again
   if (!fbVersionListening) {   // live listener from the start: gives the first value as soon as the connection is up, and reacts at once to a newer build
     fbVersionListening = true;
-    try { fbDb.ref(FB_VERSION_PATH).on('value', s => { const nv = Number(s.val()) || 0; fbSetVersionState(nv > APP_BUILD_NUM ? 'outdated' : 'ok', nv); }, () => {}); } catch (e) { fbVersionListening = false; }
+    try { fbDb.ref(FB_VERSION_PATH).on('value', s => { const nv = Number(s.val()) || 0; const me = fbBuildNum(); if (!me) return; fbSetVersionState(nv > me ? 'outdated' : 'ok', nv); }, () => {}); } catch (e) { fbVersionListening = false; }
   }
   fbVerifyViaRest();
   const read = fbDb.ref(FB_VERSION_PATH).once('value');
@@ -12699,15 +12704,17 @@ function fbVerifyVersion() {
     fbSetVersionState(v > mine ? 'outdated' : 'ok', v);
   }).catch((e) => { fbVersionError = fbVersionError || ((e && e.message) || 'no response'); /* server unreadable: stay 'unknown' (writes stay blocked) and retry */ });
 }
-setTimeout(() => {   // after the whole script has run (APP_BUILD_NUM is defined further down)
-  fbVerifyVersion();
-  try { fbDb.ref('.info/connected').on('value', s => { const c = s.val() === true; if (c !== fbConnected) { fbConnected = c; fbDisconnectedAt = c ? 0 : Date.now(); try { renderCloudSyncStatus(); } catch (e) {} } }); } catch (e) {}
+setTimeout(() => {   // retry timer is installed FIRST so nothing below can leave the page without re-checks
   setInterval(() => {
-    if (fbVersionState === 'unknown') fbVerifyVersion();
-    if (fbVersionState === 'outdated') fbShowUpdateOverlay();   // watchdog: the block cannot be removed by leaving the tab open
-    if (fbVersionState === 'unknown' || fbConnected === false) { try { renderCloudSyncStatus(); } catch (e) {} }   // keeps the message/timer current
-    if (fbConnected !== true && Date.now() - fbVersionStartedAt > 10000 && Date.now() - fbRestPollAt > 20000) fbRestPollTables();   // realtime channel not connected: HTTPS fallback
+    try {
+      if (fbVersionState === 'unknown') fbVerifyVersion();
+      if (fbVersionState === 'outdated') fbShowUpdateOverlay();   // watchdog: the block cannot be removed by leaving the tab open
+      if (fbVersionState === 'unknown' || fbConnected === false) { try { renderCloudSyncStatus(); } catch (e) {} }   // keeps the message/timer current
+      if (fbConnected !== true && Date.now() - fbVersionStartedAt > 10000 && Date.now() - fbRestPollAt > 20000) fbRestPollTables();   // realtime channel not connected: HTTPS fallback
+    } catch (e) { console.warn('version watchdog', e); }
   }, 3000);
+  try { fbVerifyVersion(); } catch (e) { console.warn('version check', e); }
+  try { fbDb.ref('.info/connected').on('value', s => { const c = s.val() === true; if (c !== fbConnected) { fbConnected = c; fbDisconnectedAt = c ? 0 : Date.now(); try { renderCloudSyncStatus(); } catch (e) {} } }); } catch (e) {}
 }, 0);
 
 function genSyncId() { return 'sy' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
@@ -40851,7 +40858,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '5Nov-r613-FU5';
+const APP_BUILD_LABEL = '5Nov-r614-FU6';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
