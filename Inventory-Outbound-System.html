@@ -35700,8 +35700,10 @@ function renderDOPreview() {
     .filter(on => !doPrintSelection || doPrintSelection.has(on))
     .map(on => {
       const rec = stoRecordForDo(on, doCurrentBatch.doNo);
-      if (rec) return { on, numbers: rec.cartonLock ? getCartonLockNumbers(rec) : [1] };
       const snap = doRecForPreview && doRecForPreview.stoSnapshot && doRecForPreview.stoSnapshot[on];
+      if (rec && rec.cartonLock) return { on, numbers: getCartonLockNumbers(rec) };
+      if (rec && !(snap && snap.length)) return { on, numbers: [1] };   // r618: STO lost its cartonLock -> use the numbers saved on the DO, not "1"
+      if (rec) return { on, numbers: snap.slice() };
       if (snap && snap.length) return { on, numbers: snap.slice() };
       const logged = removedLog.find(e => e.orderNumber === on && e.rec);
       if (logged) return { on, numbers: logged.rec.cartonLock ? getCartonLockNumbers(logged.rec) : [1] };
@@ -35818,7 +35820,8 @@ function commitDoCurrentBatch() {
     doRec.stoSnapshot = doRec.stoSnapshot || {};
     doCurrentBatch.orderNumbers.forEach(on => {
       const r = records.find(x => x.orderNumber === on);
-      if (r) doRec.stoSnapshot[on] = r.cartonLock ? getCartonLockNumbers(r) : [1];
+      if (r && r.cartonLock) doRec.stoSnapshot[on] = getCartonLockNumbers(r);
+      else if (r && !(doRec.stoSnapshot[on] && doRec.stoSnapshot[on].length)) doRec.stoSnapshot[on] = [1];   // r618: never overwrite saved carton numbers with [1]
     });
   }
   let anyLinked = false;
