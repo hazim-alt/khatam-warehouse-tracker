@@ -1325,6 +1325,42 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
   .driver-trip-name-col { position: sticky; left: 0; background: var(--card); z-index: 2; text-align: left; }
   .driver-trip-count-cell { text-align: center; font-weight: 600; }
   .driver-trip-count-cell.zero { color: var(--text-muted); font-weight: 400; }
+  /* Driver Trip Summary (Premium Black & Gold) — new tab, own classes (dts-), does not touch Driver Trip above */
+  .dts-wrap { background: linear-gradient(160deg, #0b0a08 0%, #15110b 100%); border: 1px solid #3a2f1d; border-radius: 14px; padding: 18px; }
+  .dts-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+  .dts-title { display: flex; align-items: center; gap: 14px; }
+  .dts-title .dts-ico { font-size: 38px; line-height: 1; filter: drop-shadow(0 0 6px rgba(199,155,74,.45)); }
+  .dts-title h2 { margin: 0; font-family: Georgia, 'Times New Roman', serif; letter-spacing: 3px; font-size: 26px; background: linear-gradient(90deg, #f3d58a, #c79b4a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .dts-title .dts-sub { color: #e9dfc9; font-size: 13px; margin-top: 2px; }
+  .dts-btn { background: linear-gradient(180deg, #e3bd6a, #b98a33); color: #1b1408; border: 0; border-radius: 8px; padding: 9px 16px; font-weight: 700; cursor: pointer; }
+  .dts-btn:hover { filter: brightness(1.08); }
+  .dts-filter { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: #100d09; border: 1px solid #3a2f1d; border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; color: #e9dfc9; font-weight: 600; }
+  .dts-filter input[type=date] { background: #1b1610; color: #f1e7d0; border: 1px solid #4a3b22; border-radius: 8px; padding: 7px 10px; color-scheme: dark; }
+  .dts-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; background: linear-gradient(90deg, #1a140b, #241a0c); border: 1px solid #3a2f1d; border-radius: 12px; margin-bottom: 14px; }
+  .dts-kpi { padding: 12px 18px; border-right: 1px solid #3a2f1d; }
+  .dts-kpi:last-child { border-right: 0; }
+  .dts-kpi .l { font-size: 12px; color: #d9cdb2; }
+  .dts-kpi .v { font-size: 24px; font-weight: 800; color: #fff; margin-top: 2px; }
+  .dts-kpi .v.sm { font-size: 17px; margin-top: 7px; }
+  .dts-scroll { overflow: auto; height: calc(100vh - 360px); min-height: 320px; border: 1px solid #5a4620; border-radius: 12px; }
+  table.dts-table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; background: #0e0c09; }
+  .dts-table th { background: linear-gradient(180deg, #d9b25f, #a97c2c); color: #1b1408; font-size: 11.5px; font-weight: 800; text-transform: uppercase; padding: 10px 10px; text-align: center; position: sticky; top: 0; z-index: 3; border-right: 1px solid rgba(0,0,0,.25); min-width: 86px; white-space: normal; }
+  .dts-table td { padding: 8px 10px; border-bottom: 1px solid #2a2216; border-right: 1px solid #1c1710; font-size: 12.5px; text-align: center; color: #f1e7d0; }
+  .dts-table tbody tr:nth-child(even) td { background: #120f0a; }
+  .dts-table tbody tr:hover td { background: #1d170d; }
+  .dts-table .dts-no { min-width: 44px; width: 44px; position: sticky; left: 0; z-index: 2; background: #0e0c09; }
+  .dts-table th.dts-no { z-index: 5; background: linear-gradient(180deg, #d9b25f, #a97c2c); }
+  .dts-table .dts-bq { text-align: left; font-weight: 700; min-width: 230px; position: sticky; left: 44px; z-index: 2; background: #0e0c09; white-space: nowrap; }
+  .dts-table th.dts-bq { z-index: 5; background: linear-gradient(180deg, #d9b25f, #a97c2c); }
+  .dts-table td.zero { color: #7d735f; }
+  .dts-table td.n { font-weight: 800; color: #f3d58a; }
+  .dts-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 12px; background: #100d09; border: 1px solid #3a2f1d; border-radius: 12px; padding: 10px 14px; color: #d9cdb2; font-size: 12.5px; }
+  .dts-foot select { background: #1b1610; color: #f1e7d0; border: 1px solid #4a3b22; border-radius: 8px; padding: 5px 8px; }
+  .dts-pg { display: inline-flex; gap: 6px; align-items: center; }
+  .dts-pg button { min-width: 30px; height: 30px; border-radius: 7px; border: 1px solid #4a3b22; background: #1b1610; color: #f1e7d0; cursor: pointer; }
+  .dts-pg button.on { background: linear-gradient(180deg, #e3bd6a, #b98a33); color: #1b1408; font-weight: 800; border-color: #e3bd6a; }
+  .dts-pg button:disabled { opacity: .4; cursor: default; }
+  @media (max-width: 800px) { .dts-kpis { grid-template-columns: repeat(2, 1fr); } .dts-kpi:nth-child(2) { border-right: 0; } }
   .kanban-col {
     background: var(--card);
     border: 1px solid var(--border);
@@ -2177,6 +2213,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
       <button class="tab-btn" data-tab="fleet-board">Trip Schedule</button>
       <button class="tab-btn" data-tab="fleet-board-new">Trip Dispatch</button>
       <button class="tab-btn" data-tab="fleet-driver-trip">Driver Trip</button>
+      <button class="tab-btn" data-tab="fleet-driver-trip-summary">Driver Trip Summary</button>
       <button class="tab-btn" data-tab="delivered" data-perm="delivered-fleet">Delivery Status</button>
       <button class="tab-btn" data-tab="delivered-new" data-perm="delivered-fleet-new">DO Tracking</button>
     </div>
@@ -4343,6 +4380,32 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
         <button type="button" class="btn-ghost" id="driverTripRangeClearBtn">Clear</button>
       </div>
       <div id="driverTripGridWrap" style="overflow-x:auto;"></div>
+    </div>
+  </section>
+
+  <section class="tab-panel" id="tab-fleet-driver-trip-summary">
+    <div class="dts-wrap">
+      <div class="dts-head">
+        <div class="dts-title"><span class="dts-ico">🚚</span><div><h2>DRIVER TRIP SUMMARY</h2><div class="dts-sub">Trip Summary by Driver and Boutique</div></div></div>
+        <button type="button" class="dts-btn" id="dtsExportBtn">⬇ Export Report</button>
+      </div>
+      <div class="dts-filter">
+        <span>From:</span><input type="date" id="dtsFromInput">
+        <span>To:</span><input type="date" id="dtsToInput">
+        <button type="button" class="dts-btn" id="dtsClearBtn">⟳ Clear</button>
+      </div>
+      <div class="dts-kpis">
+        <div class="dts-kpi"><div class="l">Total Boutiques</div><div class="v" id="dtsKpiBoutiques">0</div></div>
+        <div class="dts-kpi"><div class="l">Total Drivers</div><div class="v" id="dtsKpiDrivers">0</div></div>
+        <div class="dts-kpi"><div class="l">Total Trips</div><div class="v" id="dtsKpiTrips">0</div></div>
+        <div class="dts-kpi"><div class="l">Period</div><div class="v sm" id="dtsKpiPeriod">All Records</div></div>
+      </div>
+      <div class="dts-scroll" id="dtsTableWrap"></div>
+      <div class="dts-foot">
+        <span>💡 <b>Tip:</b> Use date filter to view specific period. '-' means no trip record.</span>
+        <span>Rows per page: <select id="dtsPerPage"><option value="15">15</option><option value="20">20</option><option value="30">30</option></select></span>
+        <span class="dts-pg" id="dtsPager"></span>
+      </div>
     </div>
   </section>
 
@@ -7912,7 +7975,7 @@ document.getElementById('addManualStoBtn').addEventListener('click', () => {
   markStoJustCreatedByThisDevice('STO_Records', newRec);
   // Nov 4, 2026: send just this new STO to Firebase right away. The box below keeps keyboard focus, and while an input has focus the background sync holds back,
   // so a newly added STO used to sit unsent until an incoming server snapshot replaced the list and removed it.
-  try { if (typeof fbDb !== 'undefined' && fbDb) fbDb.ref('STO_Records/' + fbSafeKey(syncKeyOf(newRec))).set(Object.assign({}, newRec, { _rv: FB_SV })).catch(e => console.warn('immediate STO push failed (the background sync will retry)', e)); } catch (e) { console.warn(e); }
+  try { if (typeof fbDb !== 'undefined' && fbDb) fbDb.ref('STO_Records/' + fbSafeKey(syncKeyOf(newRec))).set(Object.assign({}, newRec, { _rv: FB_SV, _bv: fbBvStamp() })).catch(e => console.warn('immediate STO push failed (the background sync will retry)', e)); } catch (e) { console.warn(e); }
 
   note.textContent = `"${orderNumber}" added.`;
   note.style.color = '#4bb583';
@@ -8201,7 +8264,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'inbound-sla') renderInboundSlaTab();
     if (btn.dataset.tab === 'inbound-fg-arriving') renderFgArrivingTab();
     if (btn.dataset.tab === 'rm-fabric-arriving') renderFabricArrivingTab();
-    if (btn.dataset.tab === 'fleet-today' || btn.dataset.tab === 'fleet-trips' || btn.dataset.tab === 'fleet-board' || btn.dataset.tab === 'fleet-driver-trip') renderFleetTab();
+    if (btn.dataset.tab === 'fleet-today' || btn.dataset.tab === 'fleet-trips' || btn.dataset.tab === 'fleet-board' || btn.dataset.tab === 'fleet-driver-trip' || btn.dataset.tab === 'fleet-driver-trip-summary') renderFleetTab();
     if (btn.dataset.tab === 'staff-schedule') { renderStaffRosterList(); renderStaffScheduleGrid(); }
     if (btn.dataset.tab === 'item-master') renderItemMasterTab();
     if (btn.dataset.tab === 'stock-available') { renderStockAvailableTab(); refreshStockAvailableFromServer(); }
@@ -12094,6 +12157,7 @@ const PERMISSION_TABS = [
   { id: 'fleet-board', label: 'Trip Schedule (Fleet)' },
   { id: 'fleet-board-new', label: 'Trip Dispatch' },
   { id: 'fleet-driver-trip', label: 'Driver Trip (Fleet)' },
+  { id: 'fleet-driver-trip-summary', label: 'Driver Trip Summary (Fleet)' },
   { id: 'delivered-fleet', label: 'Delivery Status (Fleet)' },
   { id: 'delivered-fleet-new', label: 'DO Tracking (Fleet)' },
   { id: 'team-targets', label: 'Daily Targets (Team Setup)' },
@@ -12329,7 +12393,7 @@ function renderUsersTable() {
 const PERMISSION_GROUPS = [
   { title: 'Dashboard & Overview', ids: ['dashboard', 'production-summary-test', 'release-schedule', 'bulk-qc-result', 'distribution-status'] },
   { title: 'Outbound', ids: ['senarai', 'papan', 'pb-new', 'sto-mgmt', 'picking-new', 'packing-mgmt', 'delivered-outbound', 'delivered-outbound-new', 'sla'] },
-  { title: 'Fleet', ids: ['fleet-today', 'fleet-trips', 'fleet-trips-new', 'fleet-board', 'fleet-board-new', 'fleet-driver-trip', 'delivered-fleet', 'delivered-fleet-new'] },
+  { title: 'Fleet', ids: ['fleet-today', 'fleet-trips', 'fleet-trips-new', 'fleet-board', 'fleet-board-new', 'fleet-driver-trip', 'fleet-driver-trip-summary', 'delivered-fleet', 'delivered-fleet-new'] },
   { title: 'Inbound', ids: ['inbound-garment', 'inbound-garment-receiving', 'inbound-sto', 'inbound-board', 'inbound-fg-arriving', 'inbound-sla'] },
   { title: 'Raw Material', ids: ['rm-import', 'rm-receive-pick', 'rm-sto', 'rm-stock', 'rm-print', 'rm-price-tag', 'rm-fabric-arriving'] },
   { title: 'Production', ids: ['production-summary', 'production-release-calendar', 'production-stock-balance', 'production-fg', 'production-rm', 'production-restock', 'production-received-product', 'production-bulk-qc', 'production-timeline'] },
@@ -12481,6 +12545,113 @@ try {
   fbDb = firebase.database();
 } catch (e) { console.error('Firebase init failed', e); }
 function isCloudSyncEnabled() { return !!fbDb; }
+
+/* ===== FORCED VERSION UPDATE (r609) =====
+   Every Firebase WRITE from this page is blocked until the page has verified, against the server's AppMeta/latestBuild, that it is NOT an
+   outdated build. State: 'unknown' (not verified yet / server unreadable) -> writes blocked, nothing is sent; 'ok' -> normal; 'outdated' -> writes
+   blocked AND a full-screen "SYSTEM UPDATE REQUIRED" screen that cannot be dismissed. Reads still work. Only the version marker itself
+   (AppMeta/latestBuild) is exempt, so the newest build can publish its number. This protects against stale data only for builds that contain
+   this code; older builds are stopped on the server side by the Firebase Rules (see FORCED-UPDATE-PLAN.md). */
+let fbVersionState = 'unknown';          // 'unknown' | 'ok' | 'outdated'
+let fbVersionLatest = 0;
+let fbStartupSyncPending = false;
+const FB_VERSION_PATH = 'AppMeta/latestBuild';
+function fbWritesAllowed() { return fbVersionState === 'ok'; }
+(function fbInstallWriteGuard() {
+  if (!fbDb || fbDb.__writeGuarded) return;
+  const rawRef = fbDb.ref.bind(fbDb);
+  const WRITE_METHODS = ['set', 'update', 'remove', 'transaction', 'setWithPriority'];
+  const guard = (path, ref) => {
+    if (!ref || ref.__writeGuarded) return ref;
+    const exempt = String(path || '').replace(/^\/+|\/+$/g, '') === FB_VERSION_PATH;
+    const blocked = () => Promise.reject(new Error('WRITE_BLOCKED: ' + (fbVersionState === 'outdated' ? 'system update required' : 'system version not verified yet')));
+    WRITE_METHODS.forEach(m => {
+      const orig = ref[m];
+      if (typeof orig !== 'function') return;
+      ref[m] = function () { if (!exempt && !fbWritesAllowed()) return blocked(); return orig.apply(this, arguments); };
+    });
+    const origPush = ref.push;
+    if (typeof origPush === 'function') ref.push = function () { if (arguments.length && !exempt && !fbWritesAllowed()) return blocked(); return origPush.apply(this, arguments); };
+    const origChild = ref.child;
+    if (typeof origChild === 'function') ref.child = function (c) { return guard(String(path || '') + '/' + c, origChild.call(this, c)); };
+    try { ref.__writeGuarded = true; } catch (e) {}
+    return ref;
+  };
+  fbDb.ref = function (path) { return guard(path, rawRef(path)); };
+  fbDb.__writeGuarded = true;
+})();
+function fbForceRefresh() {
+  try { sessionStorage.setItem('fbForcedRefreshAt', String(Date.now())); } catch (e) {}
+  const go = () => {
+    if (/^https?:$/.test(location.protocol)) { const u = new URL(location.href); u.searchParams.set('v', String(Date.now())); location.replace(u.toString()); }
+    else location.reload();
+  };
+  const jobs = [];
+  try { if (window.caches && caches.keys) jobs.push(caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k))))); } catch (e) {}
+  try { if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) jobs.push(navigator.serviceWorker.getRegistrations().then(rs => Promise.all(rs.map(r => r.unregister())))); } catch (e) {}
+  Promise.race([Promise.all(jobs.map(j => j.catch(() => {}))), new Promise(r => setTimeout(r, 2500))]).then(go, go);
+}
+function fbShowUpdateOverlay() {
+  if (document.getElementById('forcedUpdateOverlay') || !document.body) return;
+  let tried = false; try { tried = Date.now() - Number(sessionStorage.getItem('fbForcedRefreshAt') || 0) < 120000; } catch (e) {}
+  const ov = document.createElement('div');
+  ov.id = 'forcedUpdateOverlay';
+  ov.setAttribute('role', 'alertdialog');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(8,6,4,0.97);display:flex;align-items:center;justify-content:center;padding:20px;font-family:Inter,Arial,sans-serif;';
+  ov.innerHTML = '<div style="max-width:460px;width:100%;text-align:center;background:linear-gradient(160deg,#17120b,#0b0a08);border:1px solid #c79b4a;border-radius:16px;padding:30px 26px;box-shadow:0 0 40px rgba(199,155,74,.25);">'
+    + '<div style="font-size:42px;line-height:1;margin-bottom:10px;">⚠️</div>'
+    + '<div style="font-family:Georgia,serif;letter-spacing:2px;font-size:22px;font-weight:700;color:#f3d58a;">SYSTEM UPDATE REQUIRED</div>'
+    + '<div style="margin-top:14px;font-size:17px;font-weight:700;color:#fff;">New Version Available</div>'
+    + '<div style="margin-top:8px;font-size:14px;line-height:1.5;color:#e9dfc9;">Your current version is outdated. Please refresh the system to continue.</div>'
+    + '<button type="button" id="forcedUpdateBtn" style="margin-top:22px;background:linear-gradient(180deg,#e3bd6a,#b98a33);color:#1b1408;border:0;border-radius:10px;padding:13px 26px;font-size:15px;font-weight:800;letter-spacing:1px;cursor:pointer;">REFRESH SYSTEM</button>'
+    + '<div id="forcedUpdateNote" style="margin-top:14px;font-size:12px;color:#d9a05b;display:' + (tried ? 'block' : 'none') + ';">Still showing an old version. Close this tab completely and open the system again (or clear the browser cache), then try again.</div>'
+    + '<div style="margin-top:10px;font-size:11px;color:#8d826c;">Your version: ' + (typeof APP_BUILD_LABEL !== 'undefined' ? APP_BUILD_LABEL : '') + ' · Required: build ' + fbVersionLatest + '</div>'
+    + '</div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click', (e) => e.stopPropagation(), true);
+  const btn = document.getElementById('forcedUpdateBtn');
+  btn.addEventListener('click', () => { btn.disabled = true; btn.textContent = 'REFRESHING…'; fbForceRefresh(); });
+  Array.prototype.forEach.call(document.body.children, el => { if (el !== ov && el.tagName !== 'SCRIPT') { try { el.setAttribute('inert', ''); el.setAttribute('aria-hidden', 'true'); } catch (e) {} } });
+  try { if (document.activeElement && document.activeElement !== btn && document.activeElement.blur) document.activeElement.blur(); btn.focus(); } catch (e) {}
+}
+// Keyboard cannot reach the app behind the overlay while an update is required.
+document.addEventListener('keydown', (e) => {
+  if (fbVersionState !== 'outdated') return;
+  const ov = document.getElementById('forcedUpdateOverlay');
+  if (ov && ov.contains(e.target)) return;
+  e.stopPropagation(); e.preventDefault();
+}, true);
+function fbSetVersionState(next, latest) {
+  if (typeof latest === 'number') fbVersionLatest = latest;
+  const prev = fbVersionState;
+  if (prev === next) { if (next === 'outdated') fbShowUpdateOverlay(); return; }
+  fbVersionState = next;
+  if (next === 'outdated') fbShowUpdateOverlay();
+  try { renderCloudSyncStatus(); } catch (e) {}
+  if (next === 'ok' && fbStartupSyncPending && typeof syncThenRecheckAuthGate === 'function') { fbStartupSyncPending = false; try { syncThenRecheckAuthGate(); } catch (e) {} }
+}
+let fbVersionListening = false;
+function fbVerifyVersion() {
+  if (!fbDb) return;
+  if (fbVersionState === 'outdated') return;   // sticky: only a reload (new page load) can clear it
+  const mine = APP_BUILD_NUM;
+  const read = fbDb.ref(FB_VERSION_PATH).once('value');
+  Promise.race([read, new Promise((_, rej) => setTimeout(() => rej(new Error('version check timeout')), 10000))]).then(snap => {
+    const v = Number(snap.val()) || 0;
+    fbSetVersionState(v > mine ? 'outdated' : 'ok', v);
+    if (!fbVersionListening) {
+      fbVersionListening = true;
+      fbDb.ref(FB_VERSION_PATH).on('value', s => { const nv = Number(s.val()) || 0; if (nv > APP_BUILD_NUM) fbSetVersionState('outdated', nv); });
+    }
+  }).catch(() => { /* server unreadable: stay 'unknown' (writes stay blocked) and retry */ });
+}
+setTimeout(() => {   // after the whole script has run (APP_BUILD_NUM is defined further down)
+  fbVerifyVersion();
+  setInterval(() => {
+    if (fbVersionState === 'unknown') fbVerifyVersion();
+    if (fbVersionState === 'outdated') fbShowUpdateOverlay();   // watchdog: the block cannot be removed by leaving the tab open
+  }, 3000);
+}, 0);
 
 function genSyncId() { return 'sy' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 // Every synced record needs a STABLE key across computers. Records that already carry their own
@@ -12755,11 +12926,15 @@ function anySetupDirty() {
 const FB_PROTECTED_TABLES = new Set(['STO_Records', 'DO_Records', 'Fleet_Trips', 'Garment_Orders', 'Garment_Receive_Logs', 'Inbound_STO', 'RequestStock', 'Accessories_Receipts', 'ProductionDecisions', 'ProductionRmDecisions', 'PriceTag_Stickers', 'PriceTag_DOs',
   'Users', 'Fleet_Drivers', 'Packing_Stations', 'Receive_Stations', 'Pickers', 'Staff_Roster', 'Rollcages', 'RawMaterial_Rolls', 'RawMaterial_Picks', 'RawMaterial_STOs', 'RawMaterial_DOs']);
 const FB_SV = { '.sv': 'timestamp' };
+// VERSION STAMP (r610): every write to an existing STO / DO / Trip record carries a fresh _bv = build number * 1e12 + a per-write value. The Firebase Rules
+// (firebase-rules-version-lock.json) only accept a change to these records when _bv is >= the minimum build AND different from the stored one, so a build that
+// does not know about _bv (r604-r609 or older) can never overwrite them, however long the tab stays open. _bv is stripped from every incoming snapshot.
+function fbBvStamp() { return APP_BUILD_NUM * 1e12 + (Date.now() % 1e9) * 1000 + Math.floor(Math.random() * 1000); }
 function fbStripRvMap(map) {
   const out = {};
   Object.keys(map || {}).forEach(k => {
     const r = map[k];
-    if (r && typeof r === 'object' && '_rv' in r) { const c = Object.assign({}, r); delete c._rv; out[k] = c; } else out[k] = r;
+    if (r && typeof r === 'object' && ('_rv' in r || '_bv' in r)) { const c = Object.assign({}, r); delete c._rv; delete c._bv; out[k] = c; } else out[k] = r;
   });
   return out;
 }
@@ -12786,7 +12961,7 @@ function fbBaselineFrom(arr) { const m = {}; arr.forEach(r => { m[fbSafeKey(sync
 // (3) an incoming server snapshot keeps this device's pending edits on top of the server copy (field by field), (4) a duplicate never causes a server delete, (5) deterministic duplicate choice.
 const FB_FIELD_LEVEL_TABLES = new Set(['STO_Records', 'DO_Records', 'Fleet_Trips']);
 const fbGateReady = {};   // table -> true once the server snapshot has been read AND adopted on this device (baseline loaded)
-const FB_META_FIELDS = new Set(['_rv', '_syncId']);
+const FB_META_FIELDS = new Set(['_rv', '_bv', '_syncId']);
 function fbGateClosedTables() { return [...FB_KEEP_LOCAL_TABLES].filter(t => !fbGateReady[t]); }
 function fbChangedFields(local, base) {
   const out = [], keys = new Set([...Object.keys(base || {}), ...Object.keys(local || {})]);
@@ -12818,6 +12993,7 @@ function fbMayDelete(table, k) { const ks = fbGetKnown(table); return !ks || ks.
 const garmentExplicitDeleteKeys = new Set(); // Firebase keys of batches the user deliberately deleted (Delete button / Reset) — the only ones a push may remove
 function pushCollectionDiff(def, opts) {
   if (!fbDb) return;
+  if (!fbWritesAllowed()) return;   // FORCED UPDATE: outdated / unverified build never pushes
   // HOTFIX HF1: nothing is pushed for the workflow tables until this device has READ the server copy and adopted it. A failed or slow read keeps everything held back.
   if (FB_KEEP_LOCAL_TABLES.has(def.table) && !fbGateReady[def.table]) return;
   const arr = def.getArray();
@@ -12860,9 +13036,10 @@ function pushCollectionDiff(def, opts) {
       if (!fields.length) return;
       fields.forEach(f => { updateObj[k + '/' + f] = nowKeyed[k][f] === undefined ? null : nowKeyed[k][f]; });
       if (FB_PROTECTED_TABLES.has(def.table)) updateObj[k + '/_rv'] = FB_SV;
+      updateObj[k + '/_bv'] = fbBvStamp();   // r610 version stamp (required by the server rules)
       changed = true; return;
     }
-    updateObj[k] = FB_PROTECTED_TABLES.has(def.table) ? Object.assign({}, nowKeyed[k], { _rv: FB_SV }) : nowKeyed[k]; changed = true;
+    updateObj[k] = FB_PROTECTED_TABLES.has(def.table) ? Object.assign({}, nowKeyed[k], { _rv: FB_SV }, FB_FIELD_LEVEL_TABLES.has(def.table) ? { _bv: fbBvStamp() } : {}) : nowKeyed[k]; changed = true;
   });
   // Oct 14, 2026 (per Shaila: "kalau tkde sapa2 yg delete tkkn hilang" — applies to EVERY table): a push may only delete a record this device itself
   // held in its own array (known keys, persisted across reloads). A record that merely appeared on the server and was never in THIS device's array
@@ -28179,6 +28356,7 @@ const SYNC_COLLECTIONS = [
 let cloudSyncReconcileRunning = false;
 function cloudSyncReconcile() {
   if (!fbDb || cloudSyncReconcileRunning) return;
+  if (!fbWritesAllowed()) { try { renderCloudSyncStatus(); } catch (e) {} return; }   // FORCED UPDATE: nothing is pushed unless this build is verified current
   const typingNow = isUserActivelyTyping();
   cloudSyncReconcileRunning = true;
   try {
@@ -28334,7 +28512,9 @@ function renderCloudSyncStatus() {
       shortText = cloudSyncLastAt ? `Synced ${cloudSyncLastAt.toLocaleTimeString()}` : 'Connected';
     }
   }
-  if (isCloudSyncEnabled() && cloudSyncStatus === 'idle' && fbGateClosedTables().length) { fullText = 'Sync NOT SAFE: waiting to read the server before sending changes (nothing is being sent).'; shortText = 'Sync NOT SAFE'; }   // HOTFIX HF1
+  if (isCloudSyncEnabled() && fbVersionState === 'unknown') { fullText = 'Checking system version… (changes are not being sent yet).'; shortText = 'Checking version…'; }
+  else if (isCloudSyncEnabled() && fbVersionState === 'outdated') { fullText = 'SYSTEM UPDATE REQUIRED — nothing is being sent. Refresh the system.'; shortText = 'Update required'; }
+  else if (isCloudSyncEnabled() && cloudSyncStatus === 'idle' && fbGateClosedTables().length) { fullText = 'Sync NOT SAFE: waiting to read the server before sending changes (nothing is being sent).'; shortText = 'Sync NOT SAFE'; }   // HOTFIX HF1
   if (fullNote) fullNote.textContent = fullText;
   if (sidebarNote) sidebarNote.textContent = shortText;
   updateSidebarSyncBarVisibility();
@@ -30211,6 +30391,7 @@ function renderFleetTab() {
   renderFleetCalendar();
   renderFleetKanban();
   renderFleetDriverTripTab();
+  try { renderDriverTripSummaryTab(); } catch (e) { console.warn('driver trip summary render failed', e); }
   // No Chart.js canvases on this slide (just a KPI grid + table), so unlike the outbound/inbound
   // dashboard slides there's no display:none-canvas sizing issue — safe to refresh unconditionally.
   renderFleetDashboard();
@@ -32374,6 +32555,110 @@ function renderFleetDriverTripTab() {
   html += `</tbody></table>`;
   wrap.innerHTML = html;
 }
+
+/* ---------- Driver Trip Summary (new tab, Nov 5, 2026) ---------- */
+// READ-ONLY view over the SAME fleetTrips / doRecords the Driver Trip tab uses (no new data, nothing written). Same counting rule as
+// fleetDriverBoutiqueCounts: only COMPLETED trips, by delivery date (falls back to trip date), only destinations that really had a DO,
+// driver + assistants credited once each. Has its own From/To state so it never changes the Driver Trip tab's filter.
+let dtsFrom = null, dtsTo = null, dtsPage = 1, dtsPerPage = 15;
+function dtsCompute() {
+  const counts = {};
+  let trips = 0;
+  fleetTrips.forEach(t => {
+    if (!t.driverName || t.status !== 'Completed') return;
+    const eff = t.deliveryDate || t.date;
+    if (dtsFrom && (!eff || eff < dtsFrom)) return;
+    if (dtsTo && (!eff || eff > dtsTo)) return;
+    const doNos = Array.isArray(t.doNos) ? t.doNos : [];
+    const people = [...new Set([t.driverName, ...fleetTripAssistantsArray(t)].filter(Boolean))];
+    let counted = false;
+    fleetTripDestinationsArray(t).forEach(dest => {
+      if (!dest || fleetIsExcludedDestination(dest)) return;
+      const has = doNos.some(doNo => { const d = doRecords.find(x => x.doNo === doNo); return d && boutiqueMatch(d.boutique, dest); });
+      if (!has) return;
+      counted = true;
+      people.forEach(p => { counts[p] = counts[p] || {}; counts[p][dest] = (counts[p][dest] || 0) + 1; });
+    });
+    if (counted) trips++;
+  });
+  return { counts, trips };
+}
+function dtsPeriodLabel() {
+  if (dtsFrom && dtsTo) return formatDateLabel(dtsFrom) + ' - ' + formatDateLabel(dtsTo);
+  if (dtsFrom) return 'From ' + formatDateLabel(dtsFrom);
+  if (dtsTo) return 'Up to ' + formatDateLabel(dtsTo);
+  return 'All Records';
+}
+function renderDriverTripSummaryTab() {
+  const wrap = document.getElementById('dtsTableWrap');
+  if (!wrap) return;
+  const drivers = fleetDriverTripDriverNames();
+  const boutiques = fleetAllBoutiqueNames();
+  const { counts, trips } = dtsCompute();
+  document.getElementById('dtsKpiBoutiques').textContent = boutiques.length;
+  document.getElementById('dtsKpiDrivers').textContent = drivers.length;
+  document.getElementById('dtsKpiTrips').textContent = trips.toLocaleString();
+  document.getElementById('dtsKpiPeriod').textContent = dtsPeriodLabel();
+  const pager = document.getElementById('dtsPager');
+  if (!drivers.length || !boutiques.length) {
+    wrap.innerHTML = '<div class="empty-state" style="padding:24px;">' + (!drivers.length ? 'No drivers or trips yet.' : 'No boutiques registered yet.') + '</div>';
+    pager.innerHTML = '';
+    return;
+  }
+  const pages = Math.max(1, Math.ceil(boutiques.length / dtsPerPage));
+  if (dtsPage > pages) dtsPage = pages;
+  if (dtsPage < 1) dtsPage = 1;
+  const start = (dtsPage - 1) * dtsPerPage;
+  let html = '<table class="dts-table"><thead><tr><th class="dts-no">No.</th><th class="dts-bq">Boutique</th>';
+  drivers.forEach(d => { html += '<th>' + escapeHtml(d) + '</th>'; });
+  html += '</tr></thead><tbody>';
+  boutiques.slice(start, start + dtsPerPage).forEach((b, i) => {
+    html += '<tr><td class="dts-no">' + (start + i + 1) + '</td><td class="dts-bq">' + escapeHtml(b) + '</td>';
+    drivers.forEach(d => {
+      const n = (counts[d] && counts[d][b]) || 0;
+      html += '<td class="' + (n ? 'n' : 'zero') + '">' + (n || '-') + '</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+  let pg = '<button type="button" data-dts-pg="' + (dtsPage - 1) + '"' + (dtsPage <= 1 ? ' disabled' : '') + '>‹</button>';
+  for (let p = 1; p <= pages; p++) pg += '<button type="button" data-dts-pg="' + p + '"' + (p === dtsPage ? ' class="on"' : '') + '>' + p + '</button>';
+  pg += '<button type="button" data-dts-pg="' + (dtsPage + 1) + '"' + (dtsPage >= pages ? ' disabled' : '') + '>›</button>';
+  pager.innerHTML = pg;
+}
+(function wireDriverTripSummary() {
+  const $ = (id) => document.getElementById(id);
+  if (!$('dtsFromInput')) return;
+  const apply = () => {
+    const f = $('dtsFromInput').value, t = $('dtsToInput').value;
+    if (f && t && f > t) { alert('"From" date must be on or before "To" date.'); return; }
+    dtsFrom = f || null; dtsTo = t || null; dtsPage = 1;
+    renderDriverTripSummaryTab();
+  };
+  $('dtsFromInput').addEventListener('change', apply);
+  $('dtsToInput').addEventListener('change', apply);
+  $('dtsClearBtn').addEventListener('click', () => { $('dtsFromInput').value = ''; $('dtsToInput').value = ''; dtsFrom = null; dtsTo = null; dtsPage = 1; renderDriverTripSummaryTab(); });
+  $('dtsPerPage').addEventListener('change', () => { dtsPerPage = Number($('dtsPerPage').value) || 15; dtsPage = 1; renderDriverTripSummaryTab(); });
+  $('dtsPager').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-dts-pg]');
+    if (!b || b.disabled) return;
+    dtsPage = Number(b.getAttribute('data-dts-pg')) || 1;
+    renderDriverTripSummaryTab();
+  });
+  $('dtsExportBtn').addEventListener('click', () => {
+    const drivers = fleetDriverTripDriverNames(), boutiques = fleetAllBoutiqueNames(), { counts } = dtsCompute();
+    const q = (s) => '"' + String(s == null ? '' : s).replace(/"/g, '""') + '"';
+    const lines = [[q('No.'), q('Boutique')].concat(drivers.map(q)).join(',')];
+    boutiques.forEach((b, i) => lines.push([i + 1, q(b)].concat(drivers.map(d => (counts[d] && counts[d][b]) || 0)).join(',')));
+    const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'driver-trip-summary-' + (dtsPeriodLabel().replace(/[^A-Za-z0-9]+/g, '_')) + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  });
+})();
 
 /* ---------- Reports ---------- */
 // A single From/To range shared by every card on this tab (Outbound/Fleet/Inbound/Garment KPIs +
@@ -39808,6 +40093,7 @@ renderLoginBoutiqueMarkers();
 // screen is actually correct (e.g. a shared Admin account just came down from another computer).
 initAuthGate();
 async function syncThenRecheckAuthGate() {
+  if (isCloudSyncEnabled() && !fbWritesAllowed()) { fbStartupSyncPending = true; return; }   // FORCED UPDATE: no startup sync/write until the version is verified (it re-runs once verified)
   if (isCloudSyncEnabled()) {
     // Run together (not one-after-another) so the large Item Master sync doesn't add extra wait
     // time on top of the normal (much smaller/faster) collections sync before the login gate re-checks.
@@ -40492,7 +40778,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '4Nov-r606-HF3';
+const APP_BUILD_LABEL = '5Nov-r610-FU2';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
