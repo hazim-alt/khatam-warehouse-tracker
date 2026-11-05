@@ -35515,6 +35515,23 @@ function openDoBatchOrderNumbersForBoutique(boutique, mustInclude) {
 // number and STO list are reused; otherwise, if this boutique already has an open (not-yet-
 // dispatched) DO waiting, they're folded into that same DO No.; only if neither exists does a
 // fresh DO No. get created.
+// r618: popup bila boutique sudah ada DO (sudah dicetak) dan ada STO/carton baru.
+function doAskMergeOrNew(doNo, boutique, newOnes, cb) {
+  const old = document.getElementById('doAskMergeOv'); if (old) old.remove();
+  const ov = document.createElement('div'); ov.id = 'doAskMergeOv';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;';
+  const btn = 'display:block;width:100%;margin-top:10px;padding:12px;border-radius:8px;cursor:pointer;font-size:14px;';
+  ov.innerHTML = `<div style="background:#1a1510;border:1px solid var(--gold,#c9a24b);border-radius:12px;padding:22px;max-width:460px;width:92%;color:#eee;">
+    <div style="font-size:17px;font-weight:700;color:var(--gold,#c9a24b);margin-bottom:8px;">STO baru untuk boutique yang sudah ada DO</div>
+    <div style="font-size:13px;line-height:1.5;">${escapeHtml(boutique)}<br>DO sedia ada: <b>${escapeHtml(doNo)}</b><br>STO baru: <b>${newOnes.map(escapeHtml).join(', ')}</b></div>
+    <button id="doAskMerge" style="${btn}background:#2a2216;border:1px solid var(--gold,#c9a24b);color:var(--gold,#c9a24b);">Masuk DO lama (${escapeHtml(doNo)}) — perlu cetak semula</button>
+    <button id="doAskNew" style="${btn}background:var(--gold,#c9a24b);border:none;color:#000;font-weight:700;">Buat DO BARU (DO lama tidak diubah)</button>
+    <button id="doAskCancel" style="${btn}background:none;border:1px solid #555;color:#aaa;">Batal</button></div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#doAskMerge').onclick = () => { ov.remove(); cb('merge'); };
+  ov.querySelector('#doAskNew').onclick = () => { ov.remove(); cb('new'); };
+  ov.querySelector('#doAskCancel').onclick = () => ov.remove();
+}
 function openDOModalForBatch(orderNumbers, forceDoNo) {
   const forcedDo = forceDoNo ? doRecords.find(d => d.doNo === forceDoNo) : null;
   const recs = forcedDo ? [] : orderNumbers.map(on => records.find(r => r.orderNumber === on)).filter(Boolean);
@@ -35538,6 +35555,26 @@ function openDOModalForBatch(orderNumbers, forceDoNo) {
       }
     }
     if (!existing) existing = findOpenDoForBoutique(boutique);
+    // r618: DO sudah wujud/dicetak untuk boutique ini. STO baru -> tanya: masuk DO lama atau DO baru. Cetak semula DO lama -> hanya STO DO itu sahaja.
+    if (existing) {
+      const onExisting = on => { const rr = records.find(x => x.orderNumber === on); return (Array.isArray(existing.orderNumbers) && existing.orderNumbers.includes(on)) || !!(rr && rr.doNo === existing.doNo); };
+      if (orderNumbers.length && orderNumbers.every(onExisting)) {
+        allOrderNumbers = orderNumbers.slice();                 // reprint DO lama sahaja
+      } else {
+        const choice = window.__doChoice; window.__doChoice = null;
+        if (choice === 'new') {
+          allOrderNumbers = allOrderNumbers.filter(on => !onExisting(on));
+          existing = null;                                      // DO baru, no. carton disambung
+        } else if (choice !== 'merge') {
+          const newOnes = allOrderNumbers.filter(on => !onExisting(on));
+          if (newOnes.length) {
+            const exNo = existing.doNo, mustCopy = orderNumbers.slice();
+            doAskMergeOrNew(exNo, boutique, newOnes, (c) => { window.__doChoice = c; openDOModalForBatch(mustCopy, forceDoNo); window.__doChoice = null; });
+            return;
+          }
+        }
+      }
+    }
   } else {
     // Every underlying STO record behind this DO has since been removed from the active list (e.g.
     // a fresh STO upload marked them no longer Active, per the Upload STO File rule) — but the DO
@@ -40910,7 +40947,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '5Nov-r617-FU9';
+const APP_BUILD_LABEL = '5Nov-r618-FU10';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
