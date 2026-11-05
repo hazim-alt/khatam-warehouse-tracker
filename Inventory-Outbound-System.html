@@ -7476,6 +7476,7 @@ function dedupeStoRecordsByOrderNumber(arr) {
 function saveRecords() {
   records = dedupeStoRecordsByOrderNumber(records);
   backfillNaturalSyncIds(records);
+  try { fbNoteLocalSave(records); } catch (e) {}
   const json = JSON.stringify(records);
   try {
     localStorage.setItem(RECORDS_KEY, json);
@@ -12620,7 +12621,7 @@ function fbShowUpdateOverlay() {
     + '<div style="margin-top:10px;font-size:11px;color:#8d826c;">Your version: ' + (typeof APP_BUILD_LABEL !== 'undefined' ? APP_BUILD_LABEL : '') + ' · Required: build ' + fbVersionLatest + '</div>'
     + '</div>';
   document.body.appendChild(ov);
-  ov.addEventListener('click', (e) => e.stopPropagation(), true);
+  ov.addEventListener('click', (e) => { if (e.target === ov) e.stopPropagation(); }, false);   // r615: the old capture-phase stopPropagation also swallowed the REFRESH SYSTEM button's own click
   const btn = document.getElementById('forcedUpdateBtn');
   btn.addEventListener('click', () => { btn.disabled = true; btn.textContent = 'REFRESHING…'; fbForceRefresh(); });
   Array.prototype.forEach.call(document.body.children, el => { if (el !== ov && el.tagName !== 'SCRIPT') { try { el.setAttribute('inert', ''); el.setAttribute('aria-hidden', 'true'); } catch (e) {} } });
@@ -13067,6 +13068,31 @@ function fbSetKnown(table, keys) {
 }
 function fbMayDelete(table, k) { const ks = fbGetKnown(table); return !ks || ks.has(k); } // import-mirrored tables: first run after upgrade (nothing persisted yet) keeps the old behaviour
 const garmentExplicitDeleteKeys = new Set(); // Firebase keys of batches the user deliberately deleted (Delete button / Reset) — the only ones a push may remove
+// ===== r616 (FU8): STO status can never go BACKWARDS by accident =====
+// A STO that is ahead on the server (e.g. Packed) is never pushed back to an earlier stage by a device unless a person on THAT device deliberately moved it backwards
+// (drag back / Reset) within the last few seconds. Any other regression is dropped and this device re-adopts the server copy. Works whatever the cause (stale tablet, cache, race).
+const FB_STAGE_RANK = { 'Active': 0, 'Picking': 1, 'Packing': 2, 'Packed': 3, 'Shipped': 4 };
+const fbRegressOk = new Map();      // key -> time a person deliberately moved this STO backwards on this device
+const fbLocalProgSeen = {};         // key -> last progress this device saw locally
+let fbUserEventAt = 0, fbInSetArray = false;
+['pointerup', 'click', 'keydown', 'drop', 'touchend'].forEach(ev => { try { document.addEventListener(ev, () => { fbUserEventAt = Date.now(); }, true); } catch (e) {} });
+function fbNoteLocalSave(arr) {
+  try {
+    const intent = !fbInSetArray && Date.now() - fbUserEventAt < 3000;
+    arr.forEach(r => {
+      const k = fbSafeKey(syncKeyOf(r)), now = FB_STAGE_RANK[r.progress], was = FB_STAGE_RANK[fbLocalProgSeen[k]];
+      if (intent && now !== undefined && was !== undefined && now < was) fbRegressOk.set(k, Date.now());
+      fbLocalProgSeen[k] = r.progress;
+    });
+  } catch (e) {}
+}
+function fbIsAccidentalRegress(table, k, nowRec, prevRec) {
+  if (table !== 'STO_Records' || !nowRec || !prevRec) return false;
+  const a = FB_STAGE_RANK[nowRec.progress], b = FB_STAGE_RANK[prevRec.progress];
+  if (a === undefined || b === undefined || a >= b) return false;
+  const t = fbRegressOk.get(k);
+  return !(t && Date.now() - t < 60000);
+}
 function pushCollectionDiff(def, opts) {
   if (!fbDb) return;
   if (!fbWritesAllowed()) return;   // FORCED UPDATE: outdated / unverified build never pushes
@@ -13109,6 +13135,10 @@ function pushCollectionDiff(def, opts) {
       if (bStr === undefined) return;   // this device never saw the server copy of this record: the server wins, a possibly stale copy is never pushed
       let baseRec; try { baseRec = JSON.parse(bStr); } catch (e) { return; }
       const fields = fbChangedFields(nowKeyed[k], baseRec).filter(f => stableStringify(nowKeyed[k][f]) !== stableStringify(prev[k][f]));
+      if (fields.indexOf('progress') >= 0 && fbIsAccidentalRegress(def.table, k, nowKeyed[k], prev[k])) {   // r616: would move a STO backwards without a deliberate user action -> drop it and re-adopt the server copy
+        console.warn('Blocked accidental status regression', k, prev[k].progress, '->', nowKeyed[k].progress);
+        fbBaseline[def.table][k] = stableStringify(nowKeyed[k]); pendingRemoteApply.add(def.table); return;
+      }
       if (!fields.length) return;
       fields.forEach(f => { updateObj[k + '/' + f] = nowKeyed[k][f] === undefined ? null : nowKeyed[k][f]; });
       if (FB_PROTECTED_TABLES.has(def.table)) updateObj[k + '/_rv'] = FB_SV;
@@ -28385,7 +28415,7 @@ document.getElementById('downloadRmDoImportTemplateBtn').addEventListener('click
 });
 
 const SYNC_COLLECTIONS = [
-  { table: 'STO_Records', getArray: () => records, setArray: (a) => { records = a; saveRecords(); } },
+  { table: 'STO_Records', getArray: () => records, setArray: (a) => { records = a; fbInSetArray = true; try { saveRecords(); } finally { fbInSetArray = false; } } },
   { table: 'DO_Records', getArray: () => doRecords, setArray: (a) => { doRecords = a; saveDoRecords(); } },
   { table: 'Fleet_Drivers', getArray: () => fleetDrivers, setArray: (a) => { fleetDrivers = a; saveFleetDrivers(); } },
   { table: 'Fleet_Trips', getArray: () => fleetTrips, setArray: (a) => { fleetTrips = a; saveFleetTrips(); } },
@@ -40861,7 +40891,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '5Nov-r615-FU7';
+const APP_BUILD_LABEL = '5Nov-r616-FU8';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
