@@ -12555,6 +12555,11 @@ function isCloudSyncEnabled() { return !!fbDb; }
 let fbVersionState = 'unknown';          // 'unknown' | 'ok' | 'outdated'
 let fbVersionLatest = 0;
 let fbStartupSyncPending = false;
+let fbVersionStartedAt = Date.now();      // when this page started checking the version (drives the 'cannot reach Firebase' message)
+let fbVersionError = '';                  // last reason the version marker could not be read
+let fbConnected = null;                   // Firebase realtime connection (.info/connected): null unknown, true, false
+let fbDisconnectedAt = 0;
+let fbLastServerEventAt = 0;              // last time ANY server data/snapshot reached this device
 const FB_VERSION_PATH = 'AppMeta/latestBuild';
 function fbWritesAllowed() { return fbVersionState === 'ok'; }
 // READS (and applying what the server has) only stop for an outdated build. While the version is still being checked (or the marker cannot be read) the device keeps
@@ -12634,6 +12639,50 @@ function fbSetVersionState(next, latest) {
   try { renderCloudSyncStatus(); } catch (e) {}
   if (next === 'ok' && fbStartupSyncPending && typeof syncThenRecheckAuthGate === 'function') { fbStartupSyncPending = false; try { syncThenRecheckAuthGate(); } catch (e) {} }
 }
+// Status text for the sidebar while the version check / connection is not healthy. Never leaves the page on a bare 'Checking version...' forever.
+function fbConnectionNote() {
+  if (fbVersionState === 'outdated') return { full: 'SYSTEM UPDATE REQUIRED — nothing is being sent. Refresh the system.', short: 'Update required' };
+  if (fbVersionState === 'unknown') {
+    if (Date.now() - fbVersionStartedAt < 12000) return { full: 'Checking system version… (changes are not being sent yet).', short: 'Checking version…' };
+    return { full: 'Cannot reach Firebase to check the system version' + (fbVersionError ? ' (' + fbVersionError + ')' : ' (no response)') + '. Check the internet / Wi-Fi and any ad-blocker or firewall. Changes are NOT being saved until this is resolved; the system keeps retrying.', short: 'No connection ⚠' };
+  }
+  if (fbConnected === false && fbDisconnectedAt && Date.now() - fbDisconnectedAt > 8000) return { full: 'Offline: no connection to Firebase. Changes stay on this device and are sent automatically when the connection returns.', short: 'Offline ⚠' };
+  return null;
+}
+// Same read as the SDK, over plain HTTPS: works even when the realtime (WebSocket) channel is slow or blocked on a network.
+let fbRestVersionBusy = false;
+function fbVerifyViaRest() {
+  if (fbRestVersionBusy || typeof fetch !== 'function' || typeof firebaseConfig === 'undefined') return;
+  fbRestVersionBusy = true;
+  const ctl = (typeof AbortController === 'function') ? new AbortController() : null;
+  const timer = setTimeout(() => { try { if (ctl) ctl.abort(); } catch (e) {} }, 8000);
+  fetch(String(firebaseConfig.databaseURL).replace(/\/$/, '') + '/' + FB_VERSION_PATH + '.json?_=' + Date.now(), { cache: 'no-store', signal: ctl ? ctl.signal : undefined })
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(v => { const nv = Number(v) || 0; fbVersionError = ''; fbSetVersionState(nv > APP_BUILD_NUM ? 'outdated' : 'ok', nv); })
+    .catch(e => { fbVersionError = (e && e.name === 'AbortError') ? 'no response within 8 seconds' : ((e && e.message) || String(e)); try { renderCloudSyncStatus(); } catch (e2) {} })
+    .then(() => { clearTimeout(timer); fbRestVersionBusy = false; });
+}
+// SAFETY NET for networks where the realtime (WebSocket) channel is slow or blocked: while the SDK is not connected, the workflow tables (STO / DO / Trip / Inbound)
+// are fetched over plain HTTPS every ~20 s and applied exactly like a realtime snapshot (same merge rules: this device's unsent edits are kept on top, nothing stale is
+// pushed back). An empty / failed response is never adopted. Not used while the realtime connection is healthy.
+let fbRestPollBusy = false, fbRestPollAt = 0;
+function fbRestPollTables() {
+  if (fbRestPollBusy || fbConnected === true || !fbReadsAllowed() || typeof fetch !== 'function' || typeof firebaseConfig === 'undefined') return;
+  fbRestPollBusy = true; fbRestPollAt = Date.now();
+  const base = String(firebaseConfig.databaseURL).replace(/\/$/, '');
+  Promise.all(Array.from(FB_KEEP_LOCAL_TABLES).map(t => fetch(base + '/' + t + '.json?_=' + Date.now(), { cache: 'no-store' })
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(v => ({ t, v }))))
+    .then(list => list.forEach(({ t, v }) => {
+      if (!v || typeof v !== 'object') return;   // null / error body: never adopted
+      if (fbConnected === true) return;           // the realtime channel came back meanwhile: it takes over
+      fbLastServerEventAt = Date.now();
+      fbLastServerSnapshot[t] = FB_PROTECTED_TABLES.has(t) ? fbStripRvMap(v) : v;
+      applyServerSnapshot(t);
+    }))
+    .catch(e => { fbVersionError = fbVersionError || ((e && e.message) || ''); })
+    .then(() => { fbRestPollBusy = false; });
+}
 let fbVersionListening = false;
 function fbVerifyVersion() {
   if (!fbDb) return;
@@ -12643,17 +12692,21 @@ function fbVerifyVersion() {
     fbVersionListening = true;
     try { fbDb.ref(FB_VERSION_PATH).on('value', s => { const nv = Number(s.val()) || 0; fbSetVersionState(nv > APP_BUILD_NUM ? 'outdated' : 'ok', nv); }, () => {}); } catch (e) { fbVersionListening = false; }
   }
+  fbVerifyViaRest();
   const read = fbDb.ref(FB_VERSION_PATH).once('value');
   Promise.race([read, new Promise((_, rej) => setTimeout(() => rej(new Error('version check timeout')), 10000))]).then(snap => {
     const v = Number(snap.val()) || 0;
     fbSetVersionState(v > mine ? 'outdated' : 'ok', v);
-  }).catch(() => { /* server unreadable: stay 'unknown' (writes stay blocked) and retry */ });
+  }).catch((e) => { fbVersionError = fbVersionError || ((e && e.message) || 'no response'); /* server unreadable: stay 'unknown' (writes stay blocked) and retry */ });
 }
 setTimeout(() => {   // after the whole script has run (APP_BUILD_NUM is defined further down)
   fbVerifyVersion();
+  try { fbDb.ref('.info/connected').on('value', s => { const c = s.val() === true; if (c !== fbConnected) { fbConnected = c; fbDisconnectedAt = c ? 0 : Date.now(); try { renderCloudSyncStatus(); } catch (e) {} } }); } catch (e) {}
   setInterval(() => {
     if (fbVersionState === 'unknown') fbVerifyVersion();
     if (fbVersionState === 'outdated') fbShowUpdateOverlay();   // watchdog: the block cannot be removed by leaving the tab open
+    if (fbVersionState === 'unknown' || fbConnected === false) { try { renderCloudSyncStatus(); } catch (e) {} }   // keeps the message/timer current
+    if (fbConnected !== true && Date.now() - fbVersionStartedAt > 10000 && Date.now() - fbRestPollAt > 20000) fbRestPollTables();   // realtime channel not connected: HTTPS fallback
   }, 3000);
 }, 0);
 
@@ -13284,6 +13337,7 @@ function applyServerSnapshot(table) {
 function attachCollectionListener(def) {
   if (!fbDb) return;
   fbDb.ref(def.table).on('value', snapshot => {
+    fbLastServerEventAt = Date.now();
     fbLastServerSnapshot[def.table] = FB_PROTECTED_TABLES.has(def.table) ? fbStripRvMap(snapshot.val()) : (snapshot.val() || {});
     applyServerSnapshot(def.table);
   }, error => {
@@ -28531,11 +28585,11 @@ function renderCloudSyncStatus() {
       shortText = cloudSyncLastAt ? `Synced ${cloudSyncLastAt.toLocaleTimeString()}` : 'Connected';
     }
   }
-  if (isCloudSyncEnabled() && fbVersionState === 'unknown') { fullText = 'Checking system version… (changes are not being sent yet).'; shortText = 'Checking version…'; }
-  else if (isCloudSyncEnabled() && fbVersionState === 'outdated') { fullText = 'SYSTEM UPDATE REQUIRED — nothing is being sent. Refresh the system.'; shortText = 'Update required'; }
+  const fbNote = isCloudSyncEnabled() ? fbConnectionNote() : null;
+  if (fbNote) { fullText = fbNote.full; shortText = fbNote.short; }
   else if (isCloudSyncEnabled() && cloudSyncStatus === 'idle' && fbGateClosedTables().length) { fullText = 'Sync NOT SAFE: waiting to read the server before sending changes (nothing is being sent).'; shortText = 'Sync NOT SAFE'; }   // HOTFIX HF1
   if (fullNote) fullNote.textContent = fullText;
-  if (sidebarNote) sidebarNote.textContent = shortText;
+  if (sidebarNote) { sidebarNote.textContent = shortText; try { sidebarNote.title = fbLastServerEventAt ? 'Last data from the server: ' + new Date(fbLastServerEventAt).toLocaleTimeString() : 'No data received from the server yet'; } catch (e) {} }
   updateSidebarSyncBarVisibility();
 }
 document.getElementById('cloudSyncNowBtn').addEventListener('click', () => { initialCloudSync(); initialItemMasterCloudSync(); initialStockAvailableCloudSync(); initialCampaignTimelineCloudSync(); initialSkuPriceCloudSync(); });
@@ -40797,7 +40851,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '5Nov-r612-FU4';
+const APP_BUILD_LABEL = '5Nov-r613-FU5';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
