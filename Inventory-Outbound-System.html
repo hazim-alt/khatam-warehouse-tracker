@@ -13076,6 +13076,8 @@ const fbRegressOk = new Map();      // key -> time a person deliberately moved t
 const fbLocalProgSeen = {};         // key -> last progress this device saw locally
 let fbUserEventAt = 0, fbInSetArray = false;
 ['pointerup', 'click', 'keydown', 'drop', 'touchend'].forEach(ev => { try { document.addEventListener(ev, () => { fbUserEventAt = Date.now(); }, true); } catch (e) {} });
+// a confirm()/prompt() dialog can stay open for many seconds: the answer itself counts as the person's action
+['confirm', 'prompt'].forEach(fn => { try { const orig = window[fn]; window[fn] = function () { const r = orig.apply(window, arguments); fbUserEventAt = Date.now(); return r; }; } catch (e) {} });
 function fbNoteLocalSave(arr) {
   try {
     const intent = !fbInSetArray && Date.now() - fbUserEventAt < 3000;
@@ -13155,7 +13157,7 @@ function pushCollectionDiff(def, opts) {
   // (snapshot cache running ahead of the local array) is never removed by a "missing locally" diff. Garment Orders are stricter still: only an explicit
   // Delete / Reset action (garmentExplicitDeleteKeys) can remove a batch.
   const knownSet = fbGetKnown(def.table);
-  const deletedNow = [];
+  const deletedNow = [], blockedDel = [];
   Object.keys(prev).forEach(k => {
     if (k in nowKeyed) return;
     if (def.table === 'Garment_Orders') { if (!garmentExplicitDeleteKeys.has(k)) return; }
@@ -13164,6 +13166,9 @@ function pushCollectionDiff(def, opts) {
     if (keepBase && keepBase[k] !== undefined && stableStringify(prev[k]) !== keepBase[k]) return;
     // HOTFIX HF1: a duplicate that the local cleanup dropped is NOT a deletion: if the same STO No. / DO No. is still held locally under another key, leave the server copy alone.
     if (def.table !== 'Garment_Orders' && fbIdentityStillLocal(prev[k], nowKeyed)) return;
+    // r618: STO / DO / Trip records are NEVER deleted from the server unless a person on THIS device just did something (click / key / drag, incl. confirm dialogs).
+    // A background "missing locally" diff (stale cache, wrong build, reset storage) is dropped and this device re-adopts the server copy.
+    if (FB_FIELD_LEVEL_TABLES.has(def.table) && !(Date.now() - fbUserEventAt < 4000)) { blockedDel.push(k); nowKeyed[k] = prev[k]; return; }
     updateObj[k] = null; changed = true;
     deletedNow.push({ k, rec: prev[k] });
     if (def.table === 'Garment_Orders') {
@@ -13176,6 +13181,7 @@ function pushCollectionDiff(def, opts) {
       } catch (e) {}
     }
   });
+  if (blockedDel.length) { console.warn('r618: blocked background delete of', blockedDel.length, def.table, 'record(s); server copy re-adopted'); pendingRemoteApply.add(def.table); }
   fbSetKnown(def.table, Object.keys(nowKeyed));
   try { dhRecordDeletions(def.table, deletedNow); } catch (e) { console.warn('delete history failed', e); }
   if (!changed) return;
