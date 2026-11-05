@@ -12557,6 +12557,9 @@ let fbVersionLatest = 0;
 let fbStartupSyncPending = false;
 const FB_VERSION_PATH = 'AppMeta/latestBuild';
 function fbWritesAllowed() { return fbVersionState === 'ok'; }
+// READS (and applying what the server has) only stop for an outdated build. While the version is still being checked (or the marker cannot be read) the device keeps
+// receiving server data, so it never sits on stale data because of the version check; only WRITES wait for 'ok'.
+function fbReadsAllowed() { return fbVersionState !== 'outdated'; }
 (function fbInstallWriteGuard() {
   if (!fbDb || fbDb.__writeGuarded) return;
   const rawRef = fbDb.ref.bind(fbDb);
@@ -12624,6 +12627,7 @@ document.addEventListener('keydown', (e) => {
 function fbSetVersionState(next, latest) {
   if (typeof latest === 'number') fbVersionLatest = latest;
   const prev = fbVersionState;
+  if (prev === 'outdated' && next !== 'outdated') return;   // sticky: only a reload clears it
   if (prev === next) { if (next === 'outdated') fbShowUpdateOverlay(); return; }
   fbVersionState = next;
   if (next === 'outdated') fbShowUpdateOverlay();
@@ -12635,14 +12639,14 @@ function fbVerifyVersion() {
   if (!fbDb) return;
   if (fbVersionState === 'outdated') return;   // sticky: only a reload (new page load) can clear it
   const mine = APP_BUILD_NUM;
+  if (!fbVersionListening) {   // live listener from the start: gives the first value as soon as the connection is up, and reacts at once to a newer build
+    fbVersionListening = true;
+    try { fbDb.ref(FB_VERSION_PATH).on('value', s => { const nv = Number(s.val()) || 0; fbSetVersionState(nv > APP_BUILD_NUM ? 'outdated' : 'ok', nv); }, () => {}); } catch (e) { fbVersionListening = false; }
+  }
   const read = fbDb.ref(FB_VERSION_PATH).once('value');
   Promise.race([read, new Promise((_, rej) => setTimeout(() => rej(new Error('version check timeout')), 10000))]).then(snap => {
     const v = Number(snap.val()) || 0;
     fbSetVersionState(v > mine ? 'outdated' : 'ok', v);
-    if (!fbVersionListening) {
-      fbVersionListening = true;
-      fbDb.ref(FB_VERSION_PATH).on('value', s => { const nv = Number(s.val()) || 0; if (nv > APP_BUILD_NUM) fbSetVersionState('outdated', nv); });
-    }
   }).catch(() => { /* server unreadable: stay 'unknown' (writes stay blocked) and retry */ });
 }
 setTimeout(() => {   // after the whole script has run (APP_BUILD_NUM is defined further down)
@@ -28370,7 +28374,8 @@ const SYNC_COLLECTIONS = [
 let cloudSyncReconcileRunning = false;
 function cloudSyncReconcile() {
   if (!fbDb || cloudSyncReconcileRunning) return;
-  if (!fbWritesAllowed()) { try { renderCloudSyncStatus(); } catch (e) {} return; }   // FORCED UPDATE: nothing is pushed unless this build is verified current
+  if (!fbReadsAllowed()) { try { renderCloudSyncStatus(); } catch (e) {} return; }   // FORCED UPDATE: an outdated build does nothing
+  const fbWritesOk = fbWritesAllowed();   // while the version is only being checked, incoming server data is still applied but nothing is pushed
   const typingNow = isUserActivelyTyping();
   cloudSyncReconcileRunning = true;
   try {
@@ -28379,13 +28384,13 @@ function cloudSyncReconcile() {
       // While someone is typing, only the STO / DO / Trip / Inbound tables keep pushing (limited to records changed on this device); everything else waits as before.
       if (typingNow && !FB_KEEP_LOCAL_TABLES.has(def.table)) return;
       if (!typingNow && pendingRemoteApply.has(def.table)) applyServerSnapshot(def.table);
-      pushCollectionDiff(def);
+      if (fbWritesOk) pushCollectionDiff(def);
     });
     if (!typingNow && !anySetupDirty()) {
       if (settingsApplyPending) applySettingsSnapshot();
-      pushSettingsDiff();
+      if (fbWritesOk) pushSettingsDiff();
     }
-    if (!typingNow) pushPostponedDoNosDiff();
+    if (!typingNow && fbWritesOk) pushPostponedDoNosDiff();
     if (fbGateClosedTables().length) renderCloudSyncStatus();   // HOTFIX HF1: keep the 'not safe' notice visible while the gate is closed
   } finally {
     cloudSyncReconcileRunning = false;
@@ -40107,7 +40112,7 @@ renderLoginBoutiqueMarkers();
 // screen is actually correct (e.g. a shared Admin account just came down from another computer).
 initAuthGate();
 async function syncThenRecheckAuthGate() {
-  if (isCloudSyncEnabled() && !fbWritesAllowed()) { fbStartupSyncPending = true; return; }   // FORCED UPDATE: no startup sync/write until the version is verified (it re-runs once verified)
+  if (isCloudSyncEnabled() && !fbReadsAllowed()) return;   // FORCED UPDATE: an outdated build does nothing; while the version is only being checked, reads proceed and writes wait
   if (isCloudSyncEnabled()) {
     // Run together (not one-after-another) so the large Item Master sync doesn't add extra wait
     // time on top of the normal (much smaller/faster) collections sync before the login gate re-checks.
@@ -40792,7 +40797,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '5Nov-r611-FU3';
+const APP_BUILD_LABEL = '5Nov-r612-FU4';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
