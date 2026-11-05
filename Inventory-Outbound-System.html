@@ -34118,8 +34118,6 @@ function doGroupCardHtml(group) {
     </div>` : ''}
     ${(!group.doNo && (getCurrentUser() || {}).isAdmin) ? `<button type="button" class="kc-assign-do" data-group-ids='${idsJson}' style="margin-top:6px;width:100%;background:none;border:1px dashed var(--gold);color:var(--gold);border-radius:6px;padding:5px 8px;font-size:12px;cursor:pointer;">Masukkan ke DO sedia ada (admin)</button>` : ''}
     <button type="button" class="kc-do-group-btn" data-group-ids='${idsJson}'>Print DO</button>
-    ${(group.doNo && doRec && !doRec.closedToMerge) ? `<button type="button" class="kc-do-separate-btn" data-do="${escapeHtml(group.doNo)}" title="STO baru boutique ini akan dapat DO baru, tidak digabung ke DO ini" style="margin-top:6px;width:100%;background:none;border:1px dashed var(--gold);color:var(--gold);border-radius:6px;padding:5px;font-size:11px;cursor:pointer;">Asingkan DO ini</button>` : ''}
-    ${(group.doNo && doRec && doRec.closedToMerge) ? `<div style="margin-top:6px;font-size:11px;color:var(--gold);text-align:center;">DO ini diasingkan (STO baru dapat DO baru)</div>` : ''}
     ${isCourier ? `<button type="button" class="kc-courier-delivered-btn" data-do="${escapeHtml(group.doNo)}" style="margin-top:6px;">✓ Mark Delivered (${escapeHtml(doRec.deliveryMethod)})</button>` : ''}
   </div>`;
 }
@@ -35522,11 +35520,11 @@ function doAskMergeOrNew(doNo, boutique, newOnes, cb) {
   ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;';
   const btn = 'display:block;width:100%;margin-top:10px;padding:12px;border-radius:8px;cursor:pointer;font-size:14px;';
   ov.innerHTML = `<div style="background:#1a1510;border:1px solid var(--gold,#c9a24b);border-radius:12px;padding:22px;max-width:460px;width:92%;color:#eee;">
-    <div style="font-size:17px;font-weight:700;color:var(--gold,#c9a24b);margin-bottom:8px;">STO baru untuk boutique yang sudah ada DO</div>
-    <div style="font-size:13px;line-height:1.5;">${escapeHtml(boutique)}<br>DO sedia ada: <b>${escapeHtml(doNo)}</b><br>STO baru: <b>${newOnes.map(escapeHtml).join(', ')}</b></div>
-    <button id="doAskMerge" style="${btn}background:#2a2216;border:1px solid var(--gold,#c9a24b);color:var(--gold,#c9a24b);">Masuk DO lama (${escapeHtml(doNo)}) — perlu cetak semula</button>
-    <button id="doAskNew" style="${btn}background:var(--gold,#c9a24b);border:none;color:#000;font-weight:700;">Buat DO BARU (DO lama tidak diubah)</button>
-    <button id="doAskCancel" style="${btn}background:none;border:1px solid #555;color:#aaa;">Batal</button></div>`;
+    <div style="font-size:17px;font-weight:700;color:var(--gold,#c9a24b);margin-bottom:8px;">New STO for a boutique that already has a DO</div>
+    <div style="font-size:13px;line-height:1.5;">${escapeHtml(boutique)}<br>Existing DO: <b>${escapeHtml(doNo)}</b><br>New STO: <b>${newOnes.map(escapeHtml).join(', ')}</b></div>
+    <button id="doAskMerge" style="${btn}background:#2a2216;border:1px solid var(--gold,#c9a24b);color:var(--gold,#c9a24b);">Add to existing DO (${escapeHtml(doNo)}) — must reprint</button>
+    <button id="doAskNew" style="${btn}background:var(--gold,#c9a24b);border:none;color:#000;font-weight:700;">Create NEW DO (existing DO unchanged)</button>
+    <button id="doAskCancel" style="${btn}background:none;border:1px solid #555;color:#aaa;">Cancel</button></div>`;
   document.body.appendChild(ov);
   ov.querySelector('#doAskMerge').onclick = () => { ov.remove(); cb('merge'); };
   ov.querySelector('#doAskNew').onclick = () => { ov.remove(); cb('new'); };
