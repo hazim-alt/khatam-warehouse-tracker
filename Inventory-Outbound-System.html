@@ -34118,6 +34118,8 @@ function doGroupCardHtml(group) {
     </div>` : ''}
     ${(!group.doNo && (getCurrentUser() || {}).isAdmin) ? `<button type="button" class="kc-assign-do" data-group-ids='${idsJson}' style="margin-top:6px;width:100%;background:none;border:1px dashed var(--gold);color:var(--gold);border-radius:6px;padding:5px 8px;font-size:12px;cursor:pointer;">Masukkan ke DO sedia ada (admin)</button>` : ''}
     <button type="button" class="kc-do-group-btn" data-group-ids='${idsJson}'>Print DO</button>
+    ${(group.doNo && doRec && !doRec.closedToMerge) ? `<button type="button" class="kc-do-separate-btn" data-do="${escapeHtml(group.doNo)}" title="STO baru boutique ini akan dapat DO baru, tidak digabung ke DO ini" style="margin-top:6px;width:100%;background:none;border:1px dashed var(--gold);color:var(--gold);border-radius:6px;padding:5px;font-size:11px;cursor:pointer;">Asingkan DO ini</button>` : ''}
+    ${(group.doNo && doRec && doRec.closedToMerge) ? `<div style="margin-top:6px;font-size:11px;color:var(--gold);text-align:center;">DO ini diasingkan (STO baru dapat DO baru)</div>` : ''}
     ${isCourier ? `<button type="button" class="kc-courier-delivered-btn" data-do="${escapeHtml(group.doNo)}" style="margin-top:6px;">✓ Mark Delivered (${escapeHtml(doRec.deliveryMethod)})</button>` : ''}
   </div>`;
 }
@@ -34364,6 +34366,18 @@ function renderKanban() {
 
   board.querySelectorAll('.kc-assign-do').forEach(btn => {
     btn.addEventListener('click', (e) => { e.stopPropagation(); assignStosToExistingDo(JSON.parse(btn.dataset.groupIds || '[]')); });
+  });
+
+  board.querySelectorAll('.kc-do-separate-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const dn = btn.dataset.do, d = doRecords.find(x => x.doNo === dn);
+      if (!d) return;
+      if (!confirm('Asingkan DO ' + dn + '?\n\nSTO baru untuk boutique yang sama akan mendapat DO BARU. DO ini tidak diubah dan masih boleh dihantar seperti biasa.')) return;
+      d.closedToMerge = true; d.closedToMergeAt = new Date().toISOString();
+      try { saveDoRecords(); } catch (err) { delete d.closedToMerge; alert('Tidak disimpan: ' + (err && err.message ? err.message : err)); return; }
+      renderAll();
+    });
   });
 
   board.querySelectorAll('.kc-courier-delivered-btn').forEach(btn => {
@@ -35441,8 +35455,10 @@ function isDoLockedByDispatch(doNo) {
 // Finds an already-printed DO for this boutique that hasn't gone Out of Delivery yet, so a
 // newly-arriving STO for the same destination can be folded into it instead of starting a
 // fresh DO No. Picks the most recently created one if somehow more than one is open.
+// r617: "Asingkan DO" - a person marked this printed DO as SEPARATE: no new STO is ever folded into it (the DO itself is untouched and can still go out on a trip).
+function isDoClosedToMerge(doNo) { const d = doRecords.find(x => x.doNo === doNo); return !!(d && d.closedToMerge); }
 function findOpenDoForBoutique(boutique) {
-  const candidates = doRecords.filter(d => boutiqueMatch(d.boutique, boutique) && !isDoLockedByDispatch(d.doNo));
+  const candidates = doRecords.filter(d => boutiqueMatch(d.boutique, boutique) && !isDoLockedByDispatch(d.doNo) && !d.closedToMerge);
   if (!candidates.length) return null;
   return candidates.slice().sort((a, b) => (b.createdDate || '').localeCompare(a.createdDate || ''))[0];
 }
@@ -35459,7 +35475,7 @@ function assignStosToExistingDo(orderNumbers) {
   const recs = (orderNumbers || []).map(on => records.find(r => r.orderNumber === on)).filter(Boolean);
   if (!recs.length) return;
   const boutique = recs[0].toWarehouse || '-';
-  const open = doRecords.filter(d => boutiqueMatch(d.boutique, boutique) && !isDoLockedByDispatch(d.doNo)).sort((a, b) => (b.createdDate || '').localeCompare(a.createdDate || ''));
+  const open = doRecords.filter(d => boutiqueMatch(d.boutique, boutique) && !isDoLockedByDispatch(d.doNo) && !d.closedToMerge).sort((a, b) => (b.createdDate || '').localeCompare(a.createdDate || ''));
   if (!open.length) { alert('Tiada DO yang masih boleh ditambah untuk boutique ini (semua sudah Out of Delivery / Delivered).\nTekan Print DO untuk buat DO baru bagi STO ini.'); return; }
   const v = prompt(`Masukkan STO ke DO yang sudah dicetak (belum Out of Delivery)\nBoutique: ${boutique}\nSTO: ${orderNumbers.join(', ')}\n\nDO yang boleh ditambah:\n${open.slice(0, 10).map(d => d.doNo).join('\n')}\n\nTaip No. DO:`);
   if (v === null || !v.trim()) return;
@@ -35477,12 +35493,15 @@ function assignStosToExistingDo(orderNumbers) {
 }
 function openDoBatchOrderNumbersForBoutique(boutique, mustInclude) {
   const set = new Set(mustInclude);
+  // r617: Print DO on a DO marked separate prints ONLY its own STOs; and a new batch never pulls in STOs that sit on a separate DO.
+  if (mustInclude.some(on => { const r = records.find(x => x.orderNumber === on); return r && r.doNo && isDoClosedToMerge(r.doNo); })) return [...set];
   // Progress Board (Baru): a DO is made from the STOs that were ticked / chosen there ONLY — unticked siblings are not folded in.
   if (window.__doStrictIds && mustInclude.length && mustInclude.every(id => window.__doStrictIds.has(id))) return [...set];
   records.forEach(r => {
     if (r.progress !== 'Shipped') return;
     if (!boutiqueMatch(r.toWarehouse || '-', boutique)) return;
     if (r.doNo && isDoLockedByDispatch(r.doNo)) return; // already gone out on its own DO — leave it alone
+    if (r.doNo && isDoClosedToMerge(r.doNo)) return;   // r617: separate DO - leave it alone
     // Also skip an STO that is listed inside ANY saved DO that has already gone out / been delivered (even if the STO's own doNo field is empty or stale).
     if (doRecords.some(d => Array.isArray(d.orderNumbers) && d.orderNumbers.includes(r.orderNumber) && isDoLockedByDispatch(d.doNo))) return;
     set.add(r.orderNumber);
@@ -40891,7 +40910,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '5Nov-r616-FU8';
+const APP_BUILD_LABEL = '5Nov-r617-FU9';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
