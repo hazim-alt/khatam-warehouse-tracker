@@ -12879,11 +12879,17 @@ let settingsApplyPending = false;
 // out whatever's NOT yet saved in a field the user is actively typing into (it hasn't reached
 // localStorage yet, so the rebuilt HTML doesn't have it). Skipping while an input/textarea/select
 // currently has focus avoids that.
+// Nov 5, 2026 (STALE-DEVICE FIX): this used to be true for as long as ANY input/select merely HAD FOCUS (e.g. a search box or the Carton No. field clicked once and left),
+// which deferred every incoming server update for that device indefinitely - the board then stayed on old data while other devices moved on. Now it is only true
+// while the user has actually typed/changed something in the last 30 seconds; the deferred update is applied by the 2-second reconcile as soon as that stops.
+let fbLastKeyAt = 0;
+try { ['keydown', 'input', 'change', 'paste'].forEach(ev => document.addEventListener(ev, () => { fbLastKeyAt = Date.now(); }, true)); } catch (e) {}
 function isUserActivelyTyping() {
   const el = document.activeElement;
   if (!el) return false;
   const tag = el.tagName;
-  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+  if (!(tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT')) return false;
+  return Date.now() - fbLastKeyAt < 30000;
 }
 // A handful of Team Setup sections use an explicit "must click Save before switching tabs" pattern
 // (Daily Targets, Drivers, Pickers, Packing/Receive Stations) — their edits live only in memory
@@ -12929,6 +12935,12 @@ const FB_SV = { '.sv': 'timestamp' };
 // VERSION STAMP (r610): every write to an existing STO / DO / Trip record carries a fresh _bv = build number * 1e12 + a per-write value. The Firebase Rules
 // (firebase-rules-version-lock.json) only accept a change to these records when _bv is >= the minimum build AND different from the stored one, so a build that
 // does not know about _bv (r604-r609 or older) can never overwrite them, however long the tab stays open. _bv is stripped from every incoming snapshot.
+// STALE-DEVICE FIX (aliasing): the records a device adopted from the server used to be the SAME objects as the cached server snapshot, so a later local edit
+// (e.g. dragging a card) silently changed the cached "server copy" too, the diff then saw "nothing changed" and the edit was not pushed until some other change
+// happened on that table. Adopted/pushed records of the workflow tables are now independent copies.
+function fbCloneRecord(r) { return (r && typeof r === 'object') ? JSON.parse(JSON.stringify(r)) : r; }
+function fbCloneRecords(arr) { return (arr || []).map(fbCloneRecord); }
+function fbCloneMap(map) { const o = {}; Object.keys(map || {}).forEach(k => { o[k] = fbCloneRecord(map[k]); }); return o; }
 function fbBvStamp() { return APP_BUILD_NUM * 1e12 + (Date.now() % 1e9) * 1000 + Math.floor(Math.random() * 1000); }
 function fbStripRvMap(map) {
   const out = {};
@@ -13070,7 +13082,7 @@ function pushCollectionDiff(def, opts) {
   fbSetKnown(def.table, Object.keys(nowKeyed));
   try { dhRecordDeletions(def.table, deletedNow); } catch (e) { console.warn('delete history failed', e); }
   if (!changed) return;
-  fbLastServerSnapshot[def.table] = nowKeyed;
+  fbLastServerSnapshot[def.table] = FB_KEEP_LOCAL_TABLES.has(def.table) ? fbCloneMap(nowKeyed) : nowKeyed;
   collectionPushInFlight.add(def.table);
   const pushMain = () => fbChunkedUpdate(fbDb.ref(def.table), updateObj);
   let pushAll;
@@ -13098,7 +13110,9 @@ function pushCollectionDiff(def, opts) {
 // is actively typing or has an unsaved edit pending in this exact section (see isTableDirty above)
 // — in which case it's queued in pendingRemoteApply for cloudSyncReconcile() to retry shortly.
 function applyServerSnapshot(table) {
-  if (collectionPushInFlight.has(table)) return;
+  // STALE-DEVICE FIX: a snapshot that arrives while this device's own push is still landing used to be dropped (and never retried, so the device stayed on old
+  // data until some later change happened). It is now queued; the 2-second reconcile applies it as soon as the push has finished.
+  if (collectionPushInFlight.has(table)) { pendingRemoteApply.add(table); return; }
   const def = SYNC_COLLECTIONS.find(d => d.table === table);
   if (!def) return;
   const remoteObj = fbLastServerSnapshot[table] || {};
@@ -13249,7 +13263,7 @@ function applyServerSnapshot(table) {
   }
   if (stableStringify(remoteArr) === stableStringify(def.getArray())) { if (FB_KEEP_LOCAL_TABLES.has(table)) { fbBaseline[table] = fbBaselineFrom(remoteOnlyArr); fbGateReady[table] = true; } pendingRemoteApply.delete(table); return; }
   if (isUserActivelyTyping() || isTableDirty(table)) { pendingRemoteApply.add(table); return; }
-  def.setArray(remoteArr);
+  def.setArray(FB_KEEP_LOCAL_TABLES.has(table) ? fbCloneRecords(remoteArr) : remoteArr);
   if (FB_KEEP_LOCAL_TABLES.has(table)) { fbBaseline[table] = fbBaselineFrom(remoteOnlyArr); fbGateReady[table] = true; if (keptLocal) { try { pushCollectionDiff(def, { skipEmptyGuard: true }); } catch (e) { console.warn('re-push of kept local changes failed', e); } } }
   try { fbSetKnown(table, def.getArray().map(r => fbSafeKey(syncKeyOf(r)))); } catch (e) {}
   if (def.afterPull) def.afterPull();
@@ -40778,7 +40792,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '5Nov-r610-FU2';
+const APP_BUILD_LABEL = '5Nov-r611-FU3';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
