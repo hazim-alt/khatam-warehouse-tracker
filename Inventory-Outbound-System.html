@@ -12624,6 +12624,18 @@ function fbShowUpdateOverlay() {
   ov.addEventListener('click', (e) => { if (e.target === ov) e.stopPropagation(); }, false);   // r615: the old capture-phase stopPropagation also swallowed the REFRESH SYSTEM button's own click
   const btn = document.getElementById('forcedUpdateBtn');
   btn.addEventListener('click', () => { btn.disabled = true; btn.textContent = 'REFRESHING…'; fbForceRefresh(); });
+  // r618: refresh by itself after 10 s (once - if the page is still old after a refresh the note above is shown instead of looping), so an idle / forgotten tab never stays on an old build.
+  if (!tried) try {
+    let left = 10;
+    const tick = document.createElement('div'); tick.style.cssText = 'margin-top:10px;font-size:12px;color:#f3d58a;';
+    try { (ov.firstChild || ov).appendChild(tick); } catch (e) { /* label only */ }
+    const t = setInterval(() => {
+      if (!document.getElementById('forcedUpdateOverlay')) { clearInterval(t); return; }
+      if (btn.disabled) { clearInterval(t); return; }
+      tick.textContent = 'Refreshing automatically in ' + left + ' s…';
+      if (left-- <= 0) { clearInterval(t); btn.disabled = true; btn.textContent = 'REFRESHING…'; fbForceRefresh(); }
+    }, 1000);
+  } catch (e) { console.warn('auto refresh timer', e); }
   Array.prototype.forEach.call(document.body.children, el => { if (el !== ov && el.tagName !== 'SCRIPT') { try { el.setAttribute('inert', ''); el.setAttribute('aria-hidden', 'true'); } catch (e) {} } });
   try { if (document.activeElement && document.activeElement !== btn && document.activeElement.blur) document.activeElement.blur(); btn.focus(); } catch (e) {}
 }
@@ -13077,7 +13089,7 @@ const fbLocalProgSeen = {};         // key -> last progress this device saw loca
 let fbUserEventAt = 0, fbInSetArray = false;
 ['pointerup', 'click', 'keydown', 'drop', 'touchend'].forEach(ev => { try { document.addEventListener(ev, () => { fbUserEventAt = Date.now(); }, true); } catch (e) {} });
 // a confirm()/prompt() dialog can stay open for many seconds: the answer itself counts as the person's action
-['confirm', 'prompt'].forEach(fn => { try { const orig = window[fn]; window[fn] = function () { const r = orig.apply(window, arguments); fbUserEventAt = Date.now(); return r; }; } catch (e) {} });
+['confirm', 'prompt'].forEach(fn => { try { const orig = window[fn]; window[fn] = function () { const r = orig.apply(window, arguments); fbUserEventAt = Date.now(); if (fn === 'confirm' && r) globalThis.__fbBulkDeleteOkUntil = Date.now() + 15000; return r; }; } catch (e) {} });
 function fbNoteLocalSave(arr) {
   try {
     const intent = !fbInSetArray && Date.now() - fbUserEventAt < 3000;
@@ -13181,6 +13193,12 @@ function pushCollectionDiff(def, opts) {
       } catch (e) {}
     }
   });
+  // r618: a push that would delete 3+ STO / DO / Trip records at once is only allowed right after a person confirmed it in a confirm() dialog (Delete selected / Reset ...).
+  // Anything else (a stale / wrong device wiping a whole upload batch) is dropped and the server copy is re-adopted.
+  if (FB_FIELD_LEVEL_TABLES.has(def.table) && deletedNow.length >= 3 && !((globalThis.__fbBulkDeleteOkUntil || 0) > Date.now())) {
+    deletedNow.forEach(d => { delete updateObj[d.k]; nowKeyed[d.k] = prev[d.k]; blockedDel.push(d.k); });
+    deletedNow.length = 0; changed = Object.keys(updateObj).length > 0;
+  }
   if (blockedDel.length) { console.warn('r618: blocked background delete of', blockedDel.length, def.table, 'record(s); server copy re-adopted'); pendingRemoteApply.add(def.table); }
   fbSetKnown(def.table, Object.keys(nowKeyed));
   try { dhRecordDeletions(def.table, deletedNow); } catch (e) { console.warn('delete history failed', e); }
@@ -36524,6 +36542,8 @@ function renderRemovedStoLog() {
   }));
 }
 function renderAll() {
+  // r618: empty "undefined" STO cards (a record with no STO No. - leftover of a write to an already-deleted STO) are never shown or kept
+  try { if (records.some(r => !r || !r.orderNumber)) { records = records.filter(r => r && r.orderNumber); fbInSetArray = true; try { saveRecords(); } finally { fbInSetArray = false; } } } catch (e) { console.warn('empty STO cleanup', e); }
   populateFilterOptions();
   renderSenaraiTable();
   try { renderRemovedStoLog(); } catch (e) { console.warn('removed log render failed', e); }
@@ -40954,7 +40974,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '5Nov-r618-FU10';
+const APP_BUILD_LABEL = '5Nov-r619-FU11';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
