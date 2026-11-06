@@ -12858,6 +12858,11 @@ setTimeout(() => {   // retry timer is installed FIRST so nothing below can leav
       if (fbVersionState === 'outdated') fbShowUpdateOverlay();   // watchdog: the block cannot be removed by leaving the tab open
       if (fbVersionState === 'unknown' || fbConnected === false) { try { renderCloudSyncStatus(); } catch (e) {} }   // keeps the message/timer current
       if (fbConnected !== true && Date.now() - fbVersionStartedAt > 10000 && Date.now() - fbRestPollAt > 20000) fbRestPollTables();   // realtime channel not connected: HTTPS fallback
+      // r625: a realtime connection that stays down (stuck socket on a long-open tab) is re-opened: goOffline -> goOnline (same SDK, same data, nothing is written or cleared).
+      if (fbConnected === false && fbDisconnectedAt && Date.now() - fbDisconnectedAt > 20000 && Date.now() - (globalThis.__fbKickAt || 0) > 45000) {
+        globalThis.__fbKickAt = Date.now();
+        try { fbDb.goOffline(); setTimeout(() => { try { fbDb.goOnline(); } catch (e) {} }, 1500); } catch (e) { console.warn('reconnect', e); }
+      }
     } catch (e) { console.warn('version watchdog', e); }
   }, 3000);
   try { fbVerifyVersion(); } catch (e) { console.warn('version check', e); }
@@ -41114,7 +41119,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '6Nov-r624-FU16';
+const APP_BUILD_LABEL = '6Nov-r625-FU17';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
