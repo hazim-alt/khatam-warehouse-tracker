@@ -35542,19 +35542,20 @@ function openDoBatchOrderNumbersForBoutique(boutique, mustInclude) {
 // dispatched) DO waiting, they're folded into that same DO No.; only if neither exists does a
 // fresh DO No. get created.
 // r618: popup bila boutique sudah ada DO (sudah dicetak) dan ada STO/carton baru.
-function doAskMergeOrNew(doNo, boutique, newOnes, cb) {
+function doAskMergeOrNew(doNos, boutique, newOnes, cb) {
   const old = document.getElementById('doAskMergeOv'); if (old) old.remove();
+  const list = Array.isArray(doNos) ? doNos : [doNos];
   const ov = document.createElement('div'); ov.id = 'doAskMergeOv';
   ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;';
   const btn = 'display:block;width:100%;margin-top:10px;padding:12px;border-radius:8px;cursor:pointer;font-size:14px;';
-  ov.innerHTML = `<div style="background:#1a1510;border:1px solid var(--gold,#c9a24b);border-radius:12px;padding:22px;max-width:460px;width:92%;color:#eee;">
-    <div style="font-size:17px;font-weight:700;color:var(--gold,#c9a24b);margin-bottom:8px;">New STO for a boutique that already has a DO</div>
-    <div style="font-size:13px;line-height:1.5;">${escapeHtml(boutique)}<br>Existing DO: <b>${escapeHtml(doNo)}</b><br>New STO: <b>${newOnes.map(escapeHtml).join(', ')}</b></div>
-    <button id="doAskMerge" style="${btn}background:#2a2216;border:1px solid var(--gold,#c9a24b);color:var(--gold,#c9a24b);">Add to existing DO (${escapeHtml(doNo)}) — must reprint</button>
-    <button id="doAskNew" style="${btn}background:var(--gold,#c9a24b);border:none;color:#000;font-weight:700;">Create NEW DO (existing DO unchanged)</button>
+  ov.innerHTML = `<div style="background:#1a1510;border:1px solid var(--gold,#c9a24b);border-radius:12px;padding:22px;max-width:460px;width:92%;max-height:90vh;overflow:auto;color:#eee;">
+    <div style="font-size:17px;font-weight:700;color:var(--gold,#c9a24b);margin-bottom:8px;">New STO for a boutique that already has ${list.length > 1 ? list.length + ' DOs' : 'a DO'}</div>
+    <div style="font-size:13px;line-height:1.5;">${escapeHtml(boutique)}<br>Existing DO: <b>${list.map(escapeHtml).join(' , ')}</b><br>New STO: <b>${newOnes.map(escapeHtml).join(', ')}</b></div>
+    ${list.map((d, i) => `<button class="doAskMergeBtn" data-i="${i}" style="${btn}background:#2a2216;border:1px solid var(--gold,#c9a24b);color:var(--gold,#c9a24b);">Add to existing DO (${escapeHtml(d)}) — must reprint</button>`).join('')}
+    <button id="doAskNew" style="${btn}background:var(--gold,#c9a24b);border:none;color:#000;font-weight:700;">Create NEW DO (existing DOs unchanged)</button>
     <button id="doAskCancel" style="${btn}background:none;border:1px solid #555;color:#aaa;">Cancel</button></div>`;
   document.body.appendChild(ov);
-  ov.querySelector('#doAskMerge').onclick = () => { ov.remove(); cb('merge'); };
+  Array.prototype.forEach.call(ov.querySelectorAll('.doAskMergeBtn'), el => { el.onclick = () => { ov.remove(); cb('merge', list[Number(el.dataset.i)]); }; });
   ov.querySelector('#doAskNew').onclick = () => { ov.remove(); cb('new'); };
   ov.querySelector('#doAskCancel').onclick = () => ov.remove();
 }
@@ -35581,23 +35582,28 @@ function openDOModalForBatch(orderNumbers, forceDoNo) {
       }
     }
     if (!existing) existing = findOpenDoForBoutique(boutique);
-    // r618: DO sudah wujud/dicetak untuk boutique ini. STO baru -> tanya: masuk DO lama atau DO baru. Cetak semula DO lama -> hanya STO DO itu sahaja.
-    if (existing) {
-      const onExisting = on => { const rr = records.find(x => x.orderNumber === on); return (Array.isArray(existing.orderNumbers) && existing.orderNumbers.includes(on)) || !!(rr && rr.doNo === existing.doNo); };
-      if (orderNumbers.length && orderNumbers.every(onExisting)) {
-        allOrderNumbers = orderNumbers.slice();                 // reprint DO lama sahaja
+    // r618/r620: the boutique already has one or MORE open DOs. New STO(s) -> ask: add to one of them (pick which) or create a NEW DO. Reprint of an existing DO -> only that DO's own STO(s).
+    const openDos = doRecords.filter(d => boutiqueMatch(d.boutique, boutique) && !isDoLockedByDispatch(d.doNo) && !d.closedToMerge).sort((a, b) => String(b.createdDate || '').localeCompare(String(a.createdDate || '')) || String(b.doNo).localeCompare(String(a.doNo)));
+    if (openDos.length) {
+      const onDo = (on, d) => { const rr = records.find(x => x.orderNumber === on); return (Array.isArray(d.orderNumbers) && d.orderNumbers.includes(on)) || !!(rr && rr.doNo === d.doNo); };
+      const onAnyOpen = on => openDos.some(d => onDo(on, d));
+      if (orderNumbers.length && orderNumbers.every(onAnyOpen)) {
+        allOrderNumbers = orderNumbers.slice();                 // reprint an existing DO only
+        existing = openDos.find(d => onDo(orderNumbers[0], d)) || existing;
+        window.__doChoice = null; window.__doChoiceDo = null;
       } else {
-        const choice = window.__doChoice; window.__doChoice = null;
+        const choice = window.__doChoice, pick = window.__doChoiceDo; window.__doChoice = null; window.__doChoiceDo = null;
+        const newOnes = allOrderNumbers.filter(on => !onAnyOpen(on));
         if (choice === 'new') {
-          allOrderNumbers = allOrderNumbers.filter(on => !onExisting(on));
-          existing = null;                                      // DO baru, no. carton disambung
-        } else if (choice !== 'merge') {
-          const newOnes = allOrderNumbers.filter(on => !onExisting(on));
-          if (newOnes.length) {
-            const exNo = existing.doNo, mustCopy = orderNumbers.slice();
-            doAskMergeOrNew(exNo, boutique, newOnes, (c) => { window.__doChoice = c; openDOModalForBatch(mustCopy, forceDoNo); window.__doChoice = null; });
-            return;
-          }
+          allOrderNumbers = newOnes;
+          existing = null;                                      // NEW DO; carton numbers continue
+        } else if (choice === 'merge' && pick) {
+          existing = doRecords.find(d => d.doNo === pick) || existing;
+          allOrderNumbers = newOnes.concat(allOrderNumbers.filter(on => onDo(on, existing)));
+        } else if (newOnes.length) {
+          const mustCopy = orderNumbers.slice();
+          doAskMergeOrNew(openDos.map(d => d.doNo), boutique, newOnes, (c, dn) => { window.__doChoice = c; window.__doChoiceDo = dn || null; openDOModalForBatch(mustCopy, forceDoNo); window.__doChoice = null; window.__doChoiceDo = null; });
+          return;
         }
       }
     }
@@ -40978,7 +40984,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '6Nov-r620-FU12';
+const APP_BUILD_LABEL = '6Nov-r621-FU13';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
