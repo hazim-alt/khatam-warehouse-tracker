@@ -7329,6 +7329,10 @@ const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function loadData() {
+  globalThis.__fbLoading = true;   // r619: a reload of this device's own stored copy is never a person's action (see fbNoteLocalSave)
+  try { loadDataImpl(); } finally { globalThis.__fbLoading = false; }
+}
+function loadDataImpl() {
   try { records = JSON.parse(localStorage.getItem(RECORDS_KEY)) || []; } catch (e) { records = []; }
   try { sla = JSON.parse(localStorage.getItem(SLA_KEY)) || { default: 3, byButik: {}, extraButiks: [], scheduleByButik: {}, codeByButik: {}, addressByButik: {}, zoneByButik: {}, emailByButik: {}, cityByButik: {} }; } catch (e) { sla = { default: 3, byButik: {}, extraButiks: [], scheduleByButik: {}, codeByButik: {}, addressByButik: {}, zoneByButik: {}, emailByButik: {}, cityByButik: {} }; }
   if (!sla.cityByButik) sla.cityByButik = {}; // migration: older saved sla blobs won't have this key yet
@@ -13092,7 +13096,7 @@ let fbUserEventAt = 0, fbInSetArray = false;
 ['confirm', 'prompt'].forEach(fn => { try { const orig = window[fn]; window[fn] = function () { const r = orig.apply(window, arguments); fbUserEventAt = Date.now(); if (fn === 'confirm' && r) globalThis.__fbBulkDeleteOkUntil = Date.now() + 15000; return r; }; } catch (e) {} });
 function fbNoteLocalSave(arr) {
   try {
-    const intent = !fbInSetArray && Date.now() - fbUserEventAt < 3000;
+    const intent = !fbInSetArray && !globalThis.__fbLoading && Date.now() - fbUserEventAt < 3000;
     arr.forEach(r => {
       const k = fbSafeKey(syncKeyOf(r)), now = FB_STAGE_RANK[r.progress], was = FB_STAGE_RANK[fbLocalProgSeen[k]];
       if (intent && now !== undefined && was !== undefined && now < was) fbRegressOk.set(k, Date.now());
@@ -40974,7 +40978,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '5Nov-r619-FU11';
+const APP_BUILD_LABEL = '6Nov-r620-FU12';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
