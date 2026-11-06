@@ -3668,25 +3668,155 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
       #tab-packing-mgmt input.pm-ck,#tab-packing-mgmt input.pm-gck,#tab-packing-mgmt #pmSelAll{width:18px;height:18px;accent-color:#d6a954;cursor:pointer;}
       #tab-packing-mgmt .pm-tablewrap{max-height:none;}
       @media (max-width:1100px){#tab-packing-mgmt .pm-top{flex-wrap:wrap;}#tab-packing-mgmt .pm-cnt{flex-wrap:wrap;gap:10px;}}
+      /* ===== r622 Packing tab redesign: Premium Black & Gold (UI only) ===== */
+      #tab-packing-mgmt{--pg1:#f6dc9a;--pg2:#d9a94c;--pg3:#8a6420;--pbg:#0b0907;}
+      #tab-packing-mgmt .pm-card,#tab-packing-mgmt .pm-cnt{background:radial-gradient(ellipse at 100% 0%,rgba(214,169,84,.13),transparent 55%),linear-gradient(135deg,#17120e,#0b0907);border:1px solid #a47c33;border-radius:20px;box-shadow:0 0 0 1px rgba(246,220,154,.10) inset,0 10px 30px rgba(0,0,0,.5),0 0 26px rgba(214,169,84,.12);}
+      #tab-packing-mgmt .pm-ico{display:inline-block;width:58px;height:58px;flex:0 0 auto;filter:drop-shadow(0 3px 5px rgba(0,0,0,.7)) drop-shadow(0 0 7px rgba(240,200,110,.30));}
+      #tab-packing-mgmt .pm-ico svg{width:100%;height:100%;display:block;}
+      #tab-packing-mgmt .pm-ico.sm{width:42px;height:42px;}
+      #tab-packing-mgmt .pm-top{flex-wrap:nowrap;gap:18px;padding:4px 2px;}
+      #tab-packing-mgmt .pm-top .ic{width:68px;height:68px;}
+      #tab-packing-mgmt .pm-top h3{font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:34px;font-weight:800;letter-spacing:.01em;background:linear-gradient(180deg,#fff3cf,#e0b25a 60%,#b98a35);-webkit-background-clip:text;background-clip:text;color:transparent;}
+      #tab-packing-mgmt .pm-top .s{font-size:14px;color:#e8d7ae;letter-spacing:.03em;}
+      #tab-packing-mgmt .pm-live{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border:1px solid #a47c33;border-radius:999px;background:#10240f;color:#fff;font-weight:700;}
+      #tab-packing-mgmt .pm-live i{width:11px;height:11px;border-radius:50%;background:#2fe06a;box-shadow:0 0 10px #2fe06a;}
+      #tab-packing-mgmt .pm-date{background:transparent;border:0;color:#f6dc9a;font-size:16px;height:auto;padding:0 6px;}
+      #tab-packing-mgmt .pm-sbox,#tab-packing-mgmt #pmSearchTop{display:none;}
+      #tab-packing-mgmt .pm-kpis{display:none;}
+      #tab-packing-mgmt .pm-h{display:flex;align-items:center;gap:12px;margin:0 0 12px;}
+      #tab-packing-mgmt .pm-h h4{margin:0;font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:19px;font-weight:800;color:#fff;letter-spacing:.01em;}
+      #tab-packing-mgmt .pm-h h4 .no{color:#e0b25a;margin-right:6px;}
+      #tab-packing-mgmt .pm-h .ic{width:40px;height:40px;}
+      #tab-packing-mgmt .pm-teams{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;}
+      #tab-packing-mgmt .pm-team{grid-template-columns:84px minmax(0,1fr) minmax(190px,1.1fr);gap:18px;padding:18px 20px;border:1px solid #b98a35;border-radius:18px;background:linear-gradient(135deg,#1c1610,#0f0c09);box-shadow:0 0 0 1px rgba(246,220,154,.10) inset,0 0 20px rgba(214,169,84,.14);}
+      #tab-packing-mgmt .pm-team .ic{width:78px;height:78px;}
+      #tab-packing-mgmt .pm-team b{font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:22px;font-weight:800;}
+      #tab-packing-mgmt .pm-team .pm-mem{font-size:13px;margin-top:8px;color:#e8d7ae;line-height:1.5;}
+      #tab-packing-mgmt .pm-rem .n{font-size:44px;color:#f3cf7e;}
+      #tab-packing-mgmt .pm-rem .l{font-size:14px;}
+      #tab-packing-mgmt .pm-rem .pm-pr{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#e8d7ae;margin-top:8px;}
+      #tab-packing-mgmt .pm-rem .pm-pr b{font-size:16px;color:#fff;font-family:inherit;}
+      #tab-packing-mgmt .pm-bar{height:11px;margin:5px 0 8px;}
+      #tab-packing-mgmt .pm-trl{display:flex;align-items:center;gap:8px;font-size:13px;color:#e8d7ae;}
+      #tab-packing-mgmt .pm-trl .ic2{width:20px;height:20px;}
+      #tab-packing-mgmt .pm-ico.sm2{width:20px;height:20px;filter:none;}
+      #tab-packing-mgmt .pm-do .pm-act svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;}
+      #tab-packing-mgmt #pmSmart{margin:12px 0 0 !important;padding:10px 16px;border:1px dashed #6b5530;border-radius:14px;background:rgba(0,0,0,.25);box-shadow:none;}
+      #tab-packing-mgmt #pmSmart .pm-h{display:inline-flex;margin:0 14px 0 0;vertical-align:middle;}
+      #tab-packing-mgmt #pmSmart .pm-h .ic{width:24px;height:24px;}
+      #tab-packing-mgmt #pmSmart .pm-h h4{font-size:14px !important;color:#f6dc9a;}
+      #tab-packing-mgmt #pmSmart .pm-smart{display:inline;font-size:12.5px;color:#cdbf9f;}
+      #tab-packing-mgmt #pmSmart .pm-smart ul{display:flex;flex-wrap:wrap;gap:6px 18px;border:0;margin:8px 0 0;padding:0;}
+      #tab-packing-mgmt #pmSmart .pm-smart li{padding:0;}
+      #tab-packing-mgmt .pm-cnt{flex-wrap:nowrap;gap:12px;padding:14px 20px;margin-bottom:14px;}
+      #tab-packing-mgmt .pm-cnt select{min-width:200px;max-width:260px;}
+      #tab-packing-mgmt .pm-cnt .cgrp{padding:0 16px;}
+      #tab-packing-mgmt .pm-cnt .pm-cnh{display:flex;align-items:center;gap:12px;margin-right:14px;}
+      #tab-packing-mgmt .pm-cnt .pm-cnh h4{margin:0;font-size:19px;font-weight:800;color:#fff;font-family:Inter,'Segoe UI',Arial,sans-serif;}
+      #tab-packing-mgmt .pm-cnt .pm-cnh h4 .no{color:#e0b25a;margin-right:6px;}
+      #tab-packing-mgmt .pm-cnt .cgrp{border-right:1px solid #5b4a31;}
+      #tab-packing-mgmt .pm-cnt .cv{font-size:34px;color:#f3cf7e;}
+      #tab-packing-mgmt .pm-cnt .cic{width:44px;height:44px;}
+      #tab-packing-mgmt .pm-cnt button{margin-left:auto;border-color:#b98a35;color:#f6dc9a;background:#15100b;}
+      #tab-packing-mgmt .pm-main{display:block;}
+      #tab-packing-mgmt .pm-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-left:auto;}
+      #tab-packing-mgmt .pm-pillb{height:42px;padding:0 18px;border-radius:12px;font-size:14px;font-weight:600;border:1px solid #6b5530;}
+      #tab-packing-mgmt .pm-pillb.on{box-shadow:0 0 14px rgba(240,200,110,.35);}
+      #tab-packing-mgmt .pm-tools .pm-in{height:42px;min-width:280px;border-radius:12px;border-color:#6b5530;}
+      #tab-packing-mgmt .pm-tablewrap{overflow-x:auto;border:1px solid #3c342e;border-radius:14px;background:rgba(0,0,0,.25);}
+      #tab-packing-mgmt .pm-tablewrap table{width:100%;border-collapse:collapse;min-width:900px;}
+      #tab-packing-mgmt thead th{background:#1b150d;color:#f6dc9a;border-bottom:1px solid #8a6c35;position:sticky;top:0;}
+      #tab-packing-mgmt tbody tr.pm-row:hover{background:rgba(214,169,84,.07);}
+      #tab-packing-mgmt tbody tr.pm-row td{border-bottom:1px solid #2a231b;}
+      #tab-packing-mgmt tr.pm-grp td{background:linear-gradient(90deg,#2d2210,#16110b) !important;border-top:1px solid #8a6c35 !important;}
+      #tab-packing-mgmt .pm-act{min-height:40px;border-radius:10px;}
+      #tab-packing-mgmt .pm-act.go{background:linear-gradient(180deg,#f6dc9a,#c8903a);border-color:#f6dc9a;}
+      #tab-packing-mgmt .pm-st{border-radius:999px;font-weight:700;}
+      /* Section 4: DO Management */
+      #tab-packing-mgmt .pm-do{margin-top:14px;}
+      #tab-packing-mgmt .pm-do .pm-dobody{display:grid;grid-template-columns:150px minmax(0,1fr) 190px;gap:18px;align-items:center;}
+      #tab-packing-mgmt .pm-do .pm-doic{text-align:center;color:#f6dc9a;font-weight:800;font-size:17px;}
+      #tab-packing-mgmt .pm-do .pm-doic .ic{width:84px;height:84px;display:block;margin:0 auto 6px;}
+      #tab-packing-mgmt .pm-do .pm-dolist{border:1px solid #3c342e;border-radius:14px;background:rgba(0,0,0,.25);padding:10px;}
+      #tab-packing-mgmt .pm-do .pm-dotbl{max-height:340px;overflow:auto;}
+      #tab-packing-mgmt .pm-do .pm-dochips{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}
+      #tab-packing-mgmt .pm-do .pm-dohint{font-size:12px;color:#cdbf9f;margin-left:6px;}
+      #tab-packing-mgmt .pm-do table{width:100%;border-collapse:collapse;min-width:640px;}
+      #tab-packing-mgmt .pm-do .pm-manage{height:60px;border-radius:14px;border:1px solid #b98a35;background:linear-gradient(180deg,#2a2116,#171109);color:#f6dc9a;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 0 16px rgba(214,169,84,.22);}
+      #tab-packing-mgmt .pm-do .pm-manage:hover{background:linear-gradient(180deg,#f6dc9a,#c8903a);color:#1b1408;}
+      @media (max-width:1100px){
+        #tab-packing-mgmt .pm-teams{grid-template-columns:1fr 1fr;}
+        #tab-packing-mgmt .pm-team{grid-template-columns:64px 1fr;padding:14px;}
+        #tab-packing-mgmt .pm-team .ic{width:60px;height:60px;}
+        #tab-packing-mgmt .pm-rem{grid-column:1 / 3;border-left:0;padding-left:0;border-top:1px solid #3c342e;padding-top:10px;}
+        #tab-packing-mgmt .pm-top h3{font-size:26px;}
+        #tab-packing-mgmt .pm-cnt{flex-wrap:wrap;}
+        #tab-packing-mgmt .pm-cnt .cgrp{border-right:0;padding:0 10px 0 0;}
+        #tab-packing-mgmt .pm-do .pm-dobody{grid-template-columns:1fr;}
+        #tab-packing-mgmt .pm-do .pm-manage{width:100%;}
+        #tab-packing-mgmt .pm-tools{margin-left:0;width:100%;}
+        #tab-packing-mgmt .pm-tools .pm-in{flex:1;min-width:200px;}
+      }
+      @media (max-width:720px){#tab-packing-mgmt .pm-teams{grid-template-columns:1fr;}#tab-packing-mgmt .pm-top{flex-wrap:wrap;}}
+
+      /* ===== r623 sub-tabs Pending / Issued ===== */
+      #tab-packing-mgmt .pm-subtabs{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:2px 0 14px;}
+      #tab-packing-mgmt .pm-subtab{display:flex;align-items:center;justify-content:center;gap:12px;height:62px;border-radius:16px 16px 4px 4px;border:1px solid #6b5530;background:linear-gradient(180deg,#26201a,#14100c);color:#e8d7ae;font-size:22px;font-weight:800;cursor:pointer;letter-spacing:.01em;}
+      #tab-packing-mgmt .pm-subtab b{font-weight:800;}
+      #tab-packing-mgmt .pm-subtab.on{background:linear-gradient(180deg,#f8dd8e,#d49a3a 60%,#b9822b);color:#1b1408;border-color:#fff0c0;box-shadow:0 0 22px rgba(240,200,110,.45),0 0 0 1px rgba(255,240,192,.5) inset;}
+      #tab-packing-mgmt .pm-subtab .pm-ico{width:38px;height:38px;}
+      #tab-packing-mgmt .pm-subtab:hover:not(.on){border-color:#b98a35;color:#fff;}
+      #tab-packing-mgmt .pm-wsnote{margin-left:auto;font-size:12.5px;color:#cdbf9f;}
+      #tab-packing-mgmt .pm-ws .pm-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;width:100%;}
+      #tab-packing-mgmt .pm-sbox2{flex:1 1 280px;max-width:420px;}
+      #tab-packing-mgmt .pm-sbox2 .pm-in{width:100%;height:46px;border-radius:14px;font-size:15px;}
+      #tab-packing-mgmt .pm-ws .pm-pillb{height:44px;}
+      #tab-packing-mgmt .pm-ws .pm-btn{height:46px;border-radius:14px;}
+      #tab-packing-mgmt .pm-dosum{display:flex;align-items:center;gap:34px;flex-wrap:wrap;padding:12px 20px;margin:0 0 12px;border:1px solid #6b5530;border-radius:16px;background:rgba(0,0,0,.28);}
+      #tab-packing-mgmt .pm-dosum .it{display:flex;align-items:center;gap:12px;}
+      #tab-packing-mgmt .pm-dosum .n{font-size:34px;font-weight:800;color:#f3cf7e;line-height:1;}
+      #tab-packing-mgmt .pm-dosum .n.g{color:#6fe39b;}#tab-packing-mgmt .pm-dosum .n.m{color:#cdbf9f;}
+      #tab-packing-mgmt .pm-dosum .l{font-size:14px;color:#f1e8d4;font-weight:600;line-height:1.2;}
+      #tab-packing-mgmt .pm-dosum .hint{margin-left:auto;font-size:12.5px;color:#cdbf9f;max-width:330px;}
+      #tab-packing-mgmt .pm-dolist{max-height:460px;overflow:auto;}
+      #tab-packing-mgmt #pmList tr.pm-row td:last-child{white-space:normal !important;min-width:250px;}
+      #tab-packing-mgmt #pmList .pm-act{margin:2px 4px 2px 0;}
+      #tab-packing-mgmt #pmList th,#tab-packing-mgmt #pmList td{padding-left:8px;padding-right:8px;}
+      #tab-packing-mgmt .pm-stolist{font-size:12px;color:#cdbf9f;line-height:1.5;}
+      @media (max-width:1100px){#tab-packing-mgmt .pm-subtab{height:58px;font-size:19px;}#tab-packing-mgmt .pm-dosum .hint{margin-left:0;max-width:none;}}
 </style>
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+      <linearGradient id="pgA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3cf"/><stop offset=".35" stop-color="#f0c868"/><stop offset=".7" stop-color="#c8903a"/><stop offset="1" stop-color="#7a5418"/></linearGradient>
+      <linearGradient id="pgB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe9a8"/><stop offset=".5" stop-color="#d9a94c"/><stop offset="1" stop-color="#8a6420"/></linearGradient>
+      <linearGradient id="pgC" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7a5418"/><stop offset=".5" stop-color="#e9bf62"/><stop offset="1" stop-color="#7a5418"/></linearGradient>
+    </defs></svg>
     <div class="pm-card">
-      <div class="pm-top"><span class="ic" id="pmIcTop"></span><span class="pm-vdiv"></span><div><h3>Packing Management</h3><div class="s">Smart Team Assignment &amp; Progress Tracking</div></div>
-        <div class="pm-hbar"><span class="pm-date" id="pmDate"></span><span class="pm-sbox"><input type="text" class="pm-in" id="pmSearchTop" placeholder="Search STO No. / Boutique..."><span class="pm-sic">&#128269;</span></span></div></div>
+      <div class="pm-top"><span class="ic pm-ico" id="pmIcTop"></span><span class="pm-vdiv"></span><div><h3>Packing Operations</h3><div class="s">Khatam Warehouse Management</div></div>
+        <div class="pm-hbar"><span class="pm-date" id="pmDate"></span><span class="pm-vdiv" style="min-height:30px;"></span><span class="pm-live"><i></i>Live</span><span class="pm-sbox"><input type="text" class="pm-in" id="pmSearchTop" placeholder="Search STO No. / Boutique..."><span class="pm-sic">&#128269;</span></span></div></div>
     </div>
     <div class="pm-kpis" id="pmKpis"></div>
     <div class="pm-card">
-      <div class="pm-h"><span class="ic" id="pmIcTeams"></span><h4>Today's Active Teams</h4><span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;"><button type="button" class="pm-btn" id="pmTrolleys">&#128722; Trolleys</button><button type="button" class="pm-btn" id="pmManage">&#9881; Manage Teams</button></span></div>
+      <div class="pm-h"><span class="ic pm-ico sm" id="pmIcTeams"></span><h4>Today's Active Teams</h4><span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;"><button type="button" class="pm-btn" id="pmTrolleys">&#128722; Trolleys</button><button type="button" class="pm-btn" id="pmManage">&#9881; Manage Teams</button></span></div>
       <div class="pm-teams" id="pmTeams"></div>
+      <div id="pmSmart"></div>
     </div>
     <div class="pm-cnt" id="pmCounter"></div>
-    <div class="pm-main">
-      <div class="pm-card" style="margin-bottom:0;">
-        <div class="pm-h"><span class="ic" id="pmIcList"></span><h4>Packing Task List</h4>
-          <div class="pm-tools"><input type="text" class="pm-in" id="pmSearch" placeholder="Search STO No. / Boutique..."><span id="pmPills" style="display:flex;gap:6px;flex-wrap:wrap;"></span><button type="button" class="pm-btn" id="pmRefresh" title="Refresh">&#8635;</button></div></div>
+    <div class="pm-card pm-ws">
+      <div class="pm-h"><span class="ic pm-ico sm" id="pmIcList"></span><h4>Packing Workspace</h4><span class="pm-wsnote" id="pmWsNote"></span></div>
+      <div class="pm-subtabs" role="tablist">
+        <button type="button" class="pm-subtab on" data-ws="pending" role="tab"><span class="pm-ico sm" id="pmIcPend"></span><span>Pending <b id="pmCntPend">(0)</b></span></button>
+        <button type="button" class="pm-subtab" data-ws="issued" role="tab"><span class="pm-ico sm" id="pmIcIss"></span><span>Issued <b id="pmCntIss">(0)</b></span></button>
+      </div>
+      <div id="pmPanePending">
+        <div class="pm-tools"><span class="pm-sbox2"><input type="text" class="pm-in" id="pmSearch" placeholder="Search STO / Boutique..."></span><span id="pmPills" style="display:flex;gap:8px;flex-wrap:wrap;"></span><button type="button" class="pm-btn" id="pmRefresh" title="Refresh" style="margin-left:auto;">&#8635; Refresh</button></div>
         <div class="pm-bulk" id="pmBulk" style="display:none;"></div>
         <div class="pm-tablewrap" id="pmList"></div>
       </div>
-      <div class="pm-card" style="margin-bottom:0;" id="pmSmart"></div>
+      <div id="pmPaneIssued" style="display:none;">
+        <div class="pm-dosum" id="pmDoCnt"></div>
+        <div class="pm-tools"><span class="pm-sbox2"><input type="text" class="pm-in" id="pmDoSearch" placeholder="Search DO Number / Boutique..."></span><span id="pmDoChips" style="display:flex;gap:8px;flex-wrap:wrap;"></span><button type="button" class="pm-btn go" id="pmDoManage" style="margin-left:auto;">&#9881; Manage DO</button></div>
+        <div class="pm-tablewrap pm-dolist" id="pmDoList"></div>
+      </div>
     </div>
     <div class="pm-foot" style="margin-top:12px;"><span id="pmUpdated">Last Updated: -</span><button type="button" class="pm-btn" id="pmSummary" style="margin-left:auto;">&#128202; Packing Summary</button></div>
     <div id="pmModal"><div class="box" id="pmModalBox"></div></div>
@@ -40984,7 +41114,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '6Nov-r621-FU13';
+const APP_BUILD_LABEL = '6Nov-r624-FU16';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
@@ -42855,10 +42985,31 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
     const t = myTeam();
     return t ? allTasks().filter(r => r.packingStation === t) : allTasks();
   }
+  const isPend = (r) => { const s = stateOf(r); return ['ready', 'assigned', 'prog', 'packed', 'printed', 'dopend'].includes(s) || ((s === 'rtd' || s === 'trip') && !r.doNo); };
+  const isPackedP = (r) => ['packed', 'printed', 'dopend', 'rtd', 'trip'].includes(stateOf(r));
   const canAct = (r) => { const t = myTeam(); return !t || r.packingStation === t; };
   const LABEL = { ready: ['Ready to Pack', 'r'], assigned: ['Assigned', 'a'], prog: ['Packing In Progress', 'p'], packed: ['Completed', 'c'], printed: ['Labels Printed', 'l'], rtd: ['DO Issued', 'd'], trip: ['Assigned to Trip', 'd'], dopend: ['DO Pending', 'a'], done: ['DO Issued', 'd'] };
 
   /* ---------- Carton No. counter (per boutique, always visible above the Packing Task List; same counter + reset logic as before) ---------- */
+
+  function pmClock() { const el = $('pmDate'); if (!el) return; let tm = ''; try { tm = new Date().toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit', second: '2-digit' }); } catch (e) {} el.textContent = formatDateLabel(today()) + (tm ? '  ' + tm : ''); }
+  setInterval(() => { try { if (root.offsetParent !== null) pmClock(); } catch (e) {} }, 1000);
+  /* ---------- r622: 3D metallic gold icons (inline SVG, gradients defined once in the tab: pgA/pgB/pgC) ---------- */
+  const GI = (() => {
+    const S = (b) => '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">' + b + '</svg>';
+    const ST = 'stroke="#5a3d0c" stroke-width="1.2" stroke-linejoin="round"';
+    return {
+      warehouse: S('<path d="M4 26 32 8l28 18v30H4z" fill="url(#pgB)" ' + ST + '/><path d="M4 26 32 8l28 18" fill="none" stroke="#fff3cf" stroke-width="1.6" stroke-linejoin="round"/><rect x="14" y="30" width="36" height="26" rx="1.5" fill="url(#pgC)" ' + ST + '/><g fill="url(#pgA)" ' + ST + '><rect x="17" y="33" width="30" height="5"/><rect x="17" y="40" width="30" height="5"/><rect x="17" y="47" width="30" height="7"/></g><path d="M4 56h56" stroke="#5a3d0c" stroke-width="2"/>'),
+      team: S('<circle cx="32" cy="17" r="9" fill="url(#pgA)" ' + ST + '/><path d="M15 44c0-9 7-14 17-14s17 5 17 14v5H15z" fill="url(#pgB)" ' + ST + '/><circle cx="13" cy="25" r="6.5" fill="url(#pgC)" ' + ST + '/><path d="M1 46c0-7 5-11 12-11 2 0 4 .4 5.500 1.200C15 39 14 42 14 46v3H1z" fill="url(#pgC)" ' + ST + '/><circle cx="51" cy="25" r="6.5" fill="url(#pgC)" ' + ST + '/><path d="M63 46c0-7-5-11-12-11-2 0-4 .4-5.500 1.200C49 39 50 42 50 46v3h13z" fill="url(#pgC)" ' + ST + '/><path d="M12 54h40" stroke="#5a3d0c" stroke-width="2.500" stroke-linecap="round"/>'),
+      boutique: S('<path d="M6 22 11 8h42l5 14z" fill="url(#pgA)" ' + ST + '/><path d="M6 22c0 5 4 8 8.500 8s8.500-3 8.500-8c0 5 4 8 9 8s9-3 9-8c0 5 4 8 8.500 8S58 27 58 22z" fill="url(#pgB)" ' + ST + '/><rect x="9" y="30" width="46" height="26" fill="url(#pgC)" ' + ST + '/><rect x="26" y="38" width="12" height="18" fill="url(#pgA)" ' + ST + '/><rect x="12" y="35" width="11" height="11" fill="#2a1d08" stroke="#f0c868" stroke-width="1.200"/><rect x="41" y="35" width="11" height="11" fill="#2a1d08" stroke="#f0c868" stroke-width="1.200"/><path d="M4 56h56" stroke="#5a3d0c" stroke-width="2"/>'),
+      carton: S('<path d="M32 6 56 17v28L32 58 8 45V17z" fill="url(#pgB)" ' + ST + '/><path d="M32 6 56 17 32 29 8 17z" fill="url(#pgA)" ' + ST + '/><path d="M32 29v29" stroke="#5a3d0c" stroke-width="1.400"/><path d="M20 11.500 44 23v8l-6 2.500V25.500L14 14z" fill="#fff3cf" opacity=".55"/><path d="M44 36l7-3.300v9L44 45z" fill="url(#pgC)" ' + ST + '/>'),
+      task: S('<rect x="10" y="9" width="44" height="50" rx="5" fill="url(#pgB)" ' + ST + '/><rect x="14" y="14" width="36" height="41" rx="2.500" fill="#2a1d08"/><rect x="21" y="4" width="22" height="11" rx="3.500" fill="url(#pgA)" ' + ST + '/><g stroke="url(#pgA)" stroke-width="3" stroke-linecap="round" fill="none"><path d="M20 25h3M27 25h17M20 34h3M27 34h17M20 43h3M27 43h12"/></g>'),
+      printer: S('<path d="M17 4h30v16H17z" fill="url(#pgA)" ' + ST + '/><rect x="5" y="19" width="54" height="26" rx="6" fill="url(#pgB)" ' + ST + '/><rect x="5" y="19" width="54" height="8" rx="4" fill="#fff3cf" opacity=".4"/><rect x="15" y="36" width="34" height="22" rx="2" fill="url(#pgA)" ' + ST + '/><g stroke="#5a3d0c" stroke-width="1.500" stroke-linecap="round"><path d="M21 43h22M21 49h16"/></g><circle cx="50" cy="27" r="2.200" fill="#2fe06a"/>'),
+      check: S('<circle cx="32" cy="32" r="26" fill="url(#pgB)" ' + ST + '/><path d="M19 33l9 9 17-20" fill="none" stroke="#2a1d08" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>'),
+      trolley: S('<path d="M4 10h9l7 30h31l7-22H17" fill="none" stroke="url(#pgA)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="24" cy="52" r="5" fill="url(#pgB)" ' + ST + '/><circle cx="46" cy="52" r="5" fill="url(#pgB)" ' + ST + '/>')
+    };
+  })();
+  const gi = (n, cls) => '<span class="pm-ico' + (cls ? ' ' + cls : '') + '">' + GI[n] + '</span>';
   let cnB = '';
   const cnNames = () => [...new Set(records.map(r => r.toWarehouse).filter(Boolean).concat((typeof sla !== 'undefined' && sla.extraButiks) || []))].filter(n => { try { return !senaraiIsExcludedBoutique(n); } catch (e) { return true; } }).sort((a, b) => a.localeCompare(b));
   function renderCounter() {
@@ -42870,8 +43021,8 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
     if (box.contains(document.activeElement) && document.activeElement.id === 'pmCnB') return;   // don't close an open dropdown
     if (!cnB) { box.innerHTML = '<div class="cl">Carton No. counter</div><div style="color:var(--text-muted);font-size:13px;">No boutiques yet.</div>'; return; }
     const cur = getCartonCounter(cnB);
-    box.innerHTML = '<div class="cgrp"><span class="cic">' + img('box') + '</span><span class="cl">Boutique:</span><select id="pmCnB">' + names.map(n => '<option value="' + esc(n) + '"' + (n === cnB ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + '</select></div>'
-      + '<div class="cgrp"><span class="cl">Current Counter:</span><span class="cv">' + cur + '</span></div>'
+    box.innerHTML = '<div class="pm-cnh"><span class="pm-ico sm">' + GI.boutique + '</span><h4>Boutique &amp; Carton Counter</h4></div><div class="cgrp"><span class="cl">Selected Boutique:</span><select id="pmCnB">' + names.map(n => '<option value="' + esc(n) + '"' + (n === cnB ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + '</select></div>'
+      + '<div class="cgrp"><span class="pm-ico sm">' + GI.carton + '</span><span class="cl">Current Carton:</span><span class="cv">' + cur + '</span></div>'
       + '<div class="cgrp" style="border-right:0;"><span class="cl">Next Carton No:</span><span class="cv">' + (cur + 1) + '</span></div>'
       + '<button type="button" id="pmCnGo">&#8635; Reset Counter</button>';
   }
@@ -42996,7 +43147,7 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
   /* ---------- render ---------- */
   function render() {
     if (root.offsetParent === null) return;
-    $('pmIcTop').innerHTML = img('box'); $('pmIcTeams').innerHTML = img('people'); $('pmIcList').innerHTML = img('clipboard');
+    $('pmIcTop').innerHTML = GI.warehouse; $('pmIcTeams').innerHTML = GI.team; $('pmIcList').innerHTML = GI.carton; $('pmIcPend').innerHTML = GI.task; $('pmIcIss').innerHTML = GI.printer;
         const all = scoped();
     const cnt = { ready: 0, assigned: 0, prog: 0, completed: 0 };
     all.forEach(r => { const s = stateOf(r); if (s === 'ready') cnt.ready++; else if (s === 'assigned') cnt.assigned++; else if (s === 'prog') cnt.prog++; else cnt.completed++; });
@@ -43005,24 +43156,26 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
     renderTeams();
     try { autoReleaseTrolleys(); } catch (e) { console.warn('autoRelease', e); }
     renderCounter();
-    $('pmDate').innerHTML = '&#128197; ' + esc(formatDateLabel(today()));
+    pmClock();
     { const ts = $('pmSearchTop'); if (ts && ts.value !== q && document.activeElement !== ts) ts.value = q; const ls = $('pmSearch'); if (ls && ls.value !== q && document.activeElement !== ls) ls.value = q; }
     // task list
     const mt = myTeam();
     const teamNames = packingStations.map(s => s.name).filter(n => !mt || n === mt);
     if (teamFilter !== 'all' && !teamNames.includes(teamFilter)) teamFilter = 'all';
-    const nUn = all.filter(r => stateOf(r) === 'ready').length, nAs = all.filter(r => r.progress === 'Packing' && r.packingStation).length;
-    $('pmPills').innerHTML = [['all', 'All (' + all.length + ')'], ['un', 'Unassigned (' + nUn + ')'], ['as', 'Assigned (' + nAs + ')']].map(p => '<button type="button" class="pm-pillb' + (afilt === p[0] ? ' on' : '') + '" data-t="' + p[0] + '">' + p[1] + '</button>').join('');
+    const pend = all.filter(isPend);                                  // Pending = STO still needing a Packing / Label / DO action (no DO yet)
+    const nAs = pend.filter(r => r.progress === 'Packing' && r.packingStation).length, nPk = pend.filter(isPackedP).length;
+    $('pmCntPend').textContent = '(' + pend.length + ')';
+    $('pmPills').innerHTML = [['all', 'All (' + pend.length + ')'], ['as', 'Assigned (' + nAs + ')'], ['pk', 'Packed (' + nPk + ')']].map(p => '<button type="button" class="pm-pillb' + (afilt === p[0] ? ' on' : '') + '" data-t="' + p[0] + '">' + p[1] + '</button>').join('');
     const ql = q.toLowerCase();
     const order = { prog: 0, assigned: 1, ready: 2, packed: 3, printed: 4, dopend: 4, rtd: 5, trip: 6, done: 7 };
     const match = (s) => stFilter === 'all' || (stFilter === 'completed' ? (s === 'packed' || s === 'printed' || s === 'rtd' || s === 'trip' || s === 'dopend' || s === 'done') : s === stFilter);
-    const list = all.filter(r => match(stateOf(r)) && (afilt === 'all' || (afilt === 'un' ? stateOf(r) === 'ready' : (r.progress === 'Packing' && !!r.packingStation))) && (teamFilter === 'all' || r.packingStation === teamFilter) && (!ql || String(r.orderNumber || '').toLowerCase().includes(ql) || String(r.toWarehouse || '').toLowerCase().includes(ql) || String(r.doNo || '').toLowerCase().includes(ql)))
+    const list = pend.filter(r => match(stateOf(r)) && (afilt === 'all' || (afilt === 'pk' ? isPackedP(r) : (r.progress === 'Packing' && !!r.packingStation))) && (teamFilter === 'all' || r.packingStation === teamFilter) && (!ql || String(r.orderNumber || '').toLowerCase().includes(ql) || String(r.toWarehouse || '').toLowerCase().includes(ql) || String(r.doNo || '').toLowerCase().includes(ql)))
       .sort((a, b) => (order[stateOf(a)] - order[stateOf(b)]) || String(a.orderNumber).localeCompare(String(b.orderNumber)));
     const readyCount = all.filter(r => stateOf(r) === 'ready').length;
     pmVisible = list.map(r => r.orderNumber);
     { const ex = new Set(all.map(r => r.orderNumber)); [...pmSel].forEach(o => { if (!ex.has(o)) pmSel.delete(o); }); }
     if (!list.length) {
-      $('pmList').innerHTML = '<div class="pm-empty">' + (all.length ? 'No STO matches your search / filter.' : 'No STO to pack right now. STOs appear here after Picking is done.') + '</div>';
+      $('pmList').innerHTML = '<div class="pm-empty">' + (pend.length ? 'No STO matches your search / filter.' : 'No pending STO. Issued DO are in the Issued tab.') + '</div>';
     } else {
       $('pmList').innerHTML = '<table><thead><tr><th style="width:34px;"><input type="checkbox" id="pmSelAll" title="Select all"' + (list.length && list.every(r => pmSel.has(r.orderNumber)) ? ' checked' : '') + '></th><th>#</th><th>STO Number</th><th>Boutique</th><th>Team</th><th>Trolley</th><th>Items</th><th>Cartons</th><th>Progress</th><th>Status</th><th>Action</th></tr></thead><tbody>' + groupRows(list) + '</tbody></table>';
     }
@@ -43031,13 +43184,16 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
         const team = r.packingStation ? '<span class="pm-tm" style="background:' + colorOf(r.packingStation) + ';">' + esc(tn(r.packingStation)) + '</span>' : '<span style="color:var(--text-muted);">-</span>';
         const bar = '<div class="pm-pb ' + (s === 'prog' ? 'p' : (s === 'packed' || s === 'printed' || s === 'rtd' || s === 'trip' || s === 'dopend' || s === 'done') ? 'd' : '') + '"><i></i></div>';
         const act = canAct(r);
+        const PRT = '<svg viewBox="0 0 24 24"><path d="M7 9V3h10v6M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><rect x="7" y="14" width="10" height="7" rx="1"/></svg>';
+        const DOI = '<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg>';
         let btn = '';
         if (s === 'ready') btn = '<span style="color:var(--text-muted);font-size:12px;margin-right:6px;">Waiting for active team</span>';
         else if ((s === 'assigned' || s === 'prog') && act) btn = '<button type="button" class="pm-act go" data-a="finish" data-s="' + s + '" data-o="' + o + '">&#10003; Packing Completed</button>';
-        else if (s === 'packed' && act) btn = '<button type="button" class="pm-act go" data-a="label" data-s="' + s + '" data-o="' + o + '"><svg viewBox="0 0 24 24"><path d="M7 9V3h10v6M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><rect x="7" y="14" width="10" height="7" rx="1"/></svg>Print Carton Label</button>';
-        else if (s === 'printed' && act) btn = '<button type="button" class="pm-act sec" data-a="label" data-s="' + s + '" data-o="' + o + '"><svg viewBox="0 0 24 24"><path d="M7 9V3h10v6M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><rect x="7" y="14" width="10" height="7" rx="1"/></svg>Carton Label</button>';
-        else if ((s === 'rtd' || s === 'trip' || s === 'dopend' || s === 'done') && act) btn = '<button type="button" class="pm-act sec" data-a="label" data-s="' + s + '" data-o="' + o + '"><svg viewBox="0 0 24 24"><path d="M7 9V3h10v6M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><rect x="7" y="14" width="10" height="7" rx="1"/></svg>Carton Label</button>';
-        return '<tr class="pm-row" data-o="' + o + '"><td><input type="checkbox" class="pm-ck" data-o="' + o + '"' + (pmSel.has(r.orderNumber) ? ' checked' : '') + '></td><td>' + (i + 1) + '</td><td><b>' + o + '</b></td><td>' + esc(r.toWarehouse || '-') + '</td><td>' + team + '</td><td>' + trolleyCell(r) + '</td><td>' + fq(qtyOf(r)) + '</td><td>' + (ctnOf(r) || '-') + '</td><td>' + bar + '</td><td><span class="pm-st ' + lab[1] + '">' + lab[0] + '</span></td><td style="white-space:nowrap;">' + btn + '<button type="button" class="pm-act sec" data-a="view" data-o="' + o + '"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>View</button>' + (isSup() ? '<button type="button" class="pm-act sec" data-a="del" data-o="' + o + '" style="border-color:#a54545;color:#f0a0a0;">Delete</button>' : '') + '</td></tr>';
+        else if (act && ['packed', 'printed', 'dopend', 'rtd', 'trip'].includes(s)) {
+          btn = '<button type="button" class="pm-act ' + (s === 'packed' ? 'go' : 'sec') + '" data-a="label" data-s="' + s + '" data-o="' + o + '">' + PRT + 'Print Carton Label</button>'
+              + (eligible(r) ? '<button type="button" class="pm-act go" data-a="issuedo1" data-o="' + o + '">' + DOI + 'Issue DO</button>' : '');
+        }
+        return '<tr class="pm-row" data-o="' + o + '"><td><input type="checkbox" class="pm-ck" data-o="' + o + '"' + (pmSel.has(r.orderNumber) ? ' checked' : '') + '></td><td>' + (i + 1) + '</td><td><b>' + o + '</b></td><td>' + esc(r.toWarehouse || '-') + '</td><td>' + team + '</td><td>' + trolleyCell(r) + '</td><td>' + fq(qtyOf(r)) + '</td><td>' + (ctnOf(r) || '-') + '</td><td>' + bar + '</td><td><span class="pm-st ' + lab[1] + '">' + lab[0] + '</span></td><td style="white-space:nowrap;">' + btn + '<button type="button" class="pm-act sec" data-a="view" data-o="' + o + '"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>View Details</button>' + (isSup() ? '<button type="button" class="pm-act sec" data-a="del" data-o="' + o + '" style="border-color:#a54545;color:#f0a0a0;">Delete</button>' : '') + '</td></tr>';
     }
     // Visual grouping by boutique: one header row per boutique with combined items / cartons and ONE shared DO button.
     function groupRows(list) {
@@ -43060,6 +43216,7 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
     }
     renderBulk();
     renderSmart();
+    try { renderDoMgmt(); } catch (e) { console.warn('DO mgmt', e); }
     $('pmUpdated').textContent = 'Last Updated: ' + formatDateTimeLabel(new Date().toISOString());
   }
 
@@ -43135,8 +43292,9 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
       const pct = (rem + done) ? Math.round(done / (rem + done) * 100) : 0;
       const stoN = records.filter(r => r.progress === 'Packing' && r.packingStation === s.name).length;
       const mem = (s.manpower || []).filter(Boolean);
-      return '<div class="pm-team' + (act ? '' : ' inactive') + (teamFilter === s.name ? ' sel' : '') + '" data-tg="' + packingStations.indexOf(s) + '" style="cursor:pointer;" title="Click to show only this station\'s STO list (click again to show all)"><span class="ic">' + img('people') + '</span><div><b>' + esc(tn(s.name)) + '</b><span class="pm-pill ' + (act ? 'a' : 'i') + '">' + (act ? '&#10003; Active' : 'Inactive') + '</span><div class="pm-mem">Members: ' + (mem.length ? esc(mem.join(', ')) : '-') + '</div></div>' +
-        '<div class="pm-rem"><div class="n">' + fq(rem) + '</div><div class="l">Items Remaining</div><div class="pm-bar"><i style="width:' + pct + '%"></i></div><small>' + stoN + ' Active STO &bull; ' + mem.length + ' Packer' + (mem.length === 1 ? '' : 's') + '</small></div></div>';
+      const trl = [...new Set(records.filter(r => r.progress === 'Packing' && r.packingStation === s.name).reduce((a, r) => a.concat(recordRollcageNos(r)), []))];
+      return '<div class="pm-team' + (act ? '' : ' inactive') + (teamFilter === s.name ? ' sel' : '') + '" data-tg="' + packingStations.indexOf(s) + '" style="cursor:pointer;" title="Click to show only this station\'s STO list (click again to show all)"><span class="ic pm-ico">' + GI.team + '</span><div><b>' + esc(tn(s.name)) + '</b><span class="pm-pill ' + (act ? 'a' : 'i') + '">' + (act ? '&#10003; Active' : 'Idle') + '</span><div class="pm-mem">Members: ' + (mem.length ? esc(mem.join(', ')) : '-') + '</div></div>' +
+        '<div class="pm-rem"><div class="n">' + fq(rem) + '</div><div class="l">Items Remaining</div><div class="pm-pr"><span>Progress</span><b>' + pct + '%</b></div><div class="pm-bar"><i style="width:' + pct + '%"></i></div><small>' + stoN + ' Active STO &bull; ' + mem.length + ' Packer' + (mem.length === 1 ? '' : 's') + '</small><div class="pm-trl"><span class="ic2 pm-ico" style="width:20px;height:20px;">' + GI.trolley + '</span>Trolley: ' + (trl.length ? esc(trl.join(', ')) : '-') + '</div></div></div>';
     }).join('');
   }
 
@@ -43148,11 +43306,99 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
     render();
     if (teamFilter !== 'all') { const l = $('pmList'); if (l && l.scrollIntoView) l.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
   });
+
+  /* ---------- r622: Section 4 DO Management (read-only view of existing doRecords; Reprint uses the same existing DO window) ---------- */
+  function doCartons(d) {
+    const ons = Array.isArray(d.orderNumbers) ? d.orderNumbers : [];
+    let n = 0;
+    ons.forEach(o => { const r = records.find(x => x.orderNumber === o); if (r && r.cartonLock) n += ctnOf(r); else if (d.stoSnapshot && Array.isArray(d.stoSnapshot[o])) n += d.stoSnapshot[o].length; });
+    return n;
+  }
+  /* DO Status (can this DO still receive more STO?) uses the SAME existing rule as the Add-to-DO popup / findOpenDoForBoutique:
+     Open   = not locked by dispatch (trip Out of Delivery / Completed, courier delivered, manually delivered) AND not closedToMerge.
+     Print Status (printedAt / awaitPrint) is separate: a Printed DO can still be Open. */
+  let doF = 'all', doQ = '', wsTab = 'pending';
+  function doState(d) {
+    let locked = false, why = '';
+    try {
+      if (d.closedToMerge) { locked = true; why = 'Closed to new STO'; }
+      else if (isDoLockedByDispatch(d.doNo)) {
+        locked = true;
+        if (d.deliveryMethod && d.deliveryMethod !== 'Own Fleet') why = d.courierDeliveredDate ? 'Courier delivered' : '';
+        else if (d.manualDeliveredAt) why = 'Marked delivered';
+        else { const tr = fleetTrips.find(x => Array.isArray(x.doNos) && x.doNos.includes(d.doNo) && (x.status === 'Out of Delivery' || x.status === 'Completed')); why = tr ? (tr.status === 'Completed' ? 'Trip completed' : 'Out of Delivery') : ''; }
+      }
+    } catch (e) { locked = false; }
+    return { open: !locked, why: why };
+  }
+  function doItems(d) {
+    let n = 0;
+    (Array.isArray(d.orderNumbers) ? d.orderNumbers : []).forEach(o => { const r = records.find(x => x.orderNumber === o); if (r) n += qtyOf(r); });
+    return n;
+  }
+  function renderDoMgmt() {
+    const box = $('pmDoList'); if (!box) return;
+    let all = [];
+    try { all = doRecords.filter(d => d && d.doNo).map(d => ({ d, s: doState(d) })).filter(x => x.s.open); } catch (e) { all = []; }   // r624: only DO still Ready to Delivery (not yet Out of Delivery / Delivered / closed)
+    const nOpen = all.length;
+    $('pmCntIss').textContent = '(' + all.length + ')';
+    $('pmDoCnt').innerHTML = '<div class="it">' + gi('task') + '<div><div class="n">' + all.length + '</div><div class="l">DO Ready to Delivery</div></div></div>'
+      + '<div class="hint">Only DO that have not gone Out of Delivery yet are shown. Delivered / closed DO are in Trip Schedule. Print / Reprint always uses the same DO record.</div>';
+    const nPr = all.filter(x => !!x.d.printedAt).length;
+    $('pmDoChips').innerHTML = [['all', 'All (' + all.length + ')'], ['pr', 'Printed (' + nPr + ')'], ['np', 'Not Printed (' + (all.length - nPr) + ')']].map(c => '<button type="button" class="pm-pillb' + (doF === c[0] ? ' on' : '') + '" data-dof="' + c[0] + '">' + c[1] + '</button>').join('');
+    const ql = doQ.toLowerCase();
+    all.sort((x, y) => String(y.d.createdDate || '').localeCompare(String(x.d.createdDate || '')) || String(y.d.doNo).localeCompare(String(x.d.doNo)));
+    const view = all.filter(x => (doF === 'all' || (doF === 'pr' ? !!x.d.printedAt : !x.d.printedAt)) && (!ql || String(x.d.doNo).toLowerCase().includes(ql) || String(x.d.boutique || '').toLowerCase().includes(ql)));
+    if (!view.length) { box.innerHTML = '<div class="pm-empty">' + (all.length ? 'No DO matches your search / filter.' : 'No DO waiting for delivery.') + '</div>'; return; }
+    const prt = '<svg viewBox="0 0 24 24"><path d="M7 9V3h10v6M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><rect x="7" y="14" width="10" height="7" rx="1"/></svg>';
+    const eye = '<svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+    box.innerHTML = '<table><thead><tr><th>Boutique</th><th>DO Number</th><th>STO in this DO</th><th>Total STO</th><th>Total Items</th><th>Total Cartons</th><th>Print Status</th><th>Action</th></tr></thead><tbody>' + groupedDo(view, x => {
+      const d = x.d, printed = !!d.printedAt, ons = Array.isArray(d.orderNumbers) ? d.orderNumbers : [];
+      const ps = printed ? '<span class="pm-st d">&#10003; Printed</span>' : '<span class="pm-st a">' + (d.awaitPrint ? 'Awaiting Print' : 'Not Printed') + '</span>';
+      const ds = x.s.open ? '<span class="pm-st r">Open</span>' : '<span class="pm-st c">Closed</span>' + (x.s.why ? '<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">' + esc(x.s.why) + '</div>' : '');
+      return '<tr class="pm-row"><td>' + esc(d.boutique || '-') + '</td><td><b>' + esc(d.doNo) + '</b></td><td class="pm-stolist">' + (ons.length ? ons.map(esc).join('<br>') : '-') + '</td><td>' + ons.length + '</td><td>' + (fq(doItems(d)) || '-') + '</td><td>' + (doCartons(d) || '-') + '</td><td>' + ps + '</td><td style="white-space:nowrap;"><button type="button" class="pm-act sec" data-vdo="' + esc(d.doNo) + '">' + eye + 'View DO Details</button><button type="button" class="pm-act ' + (printed ? 'sec' : 'go') + '" data-rdo="' + esc(d.doNo) + '">' + prt + (printed ? 'Reprint DO' : 'Print DO') + '</button></td></tr>';
+    }) + '</tbody></table>';
+  }
+  // Group the Issued list by boutique (same look as the Pending list): one header row per boutique, DO rows below it.
+  function groupedDo(view, rowFn) {
+    const m = new Map();
+    view.forEach(x => { const k = String(x.d.boutique || '-').replace(/\s+/g, ' ').trim().toUpperCase(); if (!m.has(k)) m.set(k, { name: x.d.boutique || '-', items: [] }); m.get(k).items.push(x); });
+    return [...m.values()].sort((a, b) => a.name.localeCompare(b.name)).map(g => {
+      const nSto = g.items.reduce((a, x) => a + (Array.isArray(x.d.orderNumbers) ? x.d.orderNumbers.length : 0), 0), nIt = g.items.reduce((a, x) => a + doItems(x.d), 0), nCt = g.items.reduce((a, x) => a + doCartons(x.d), 0);
+      return '<tr class="pm-grp"><td colspan="8"><div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;"><b style="font-family:Georgia,serif;font-size:15px;flex:1;min-width:200px;">' + esc(g.name) + '</b><span style="font-size:12.5px;color:#e8d7ae;">' + g.items.length + ' DO &middot; ' + nSto + ' STO &middot; ' + fq(nIt) + ' items &middot; ' + nCt + ' cartons</span></div></td></tr>' + g.items.map(rowFn).join('');
+    }).join('');
+  }
+  function viewDo(no) {
+    const d = doRecords.find(x => x.doNo === no); if (!d) return;
+    const s = doState(d), ons = Array.isArray(d.orderNumbers) ? d.orderNumbers : [];
+    const rows = ons.map(o => { const r = records.find(x => x.orderNumber === o); const c = r ? (ctnOf(r) || (d.stoSnapshot && d.stoSnapshot[o] ? d.stoSnapshot[o].length : 0)) : ((d.stoSnapshot && d.stoSnapshot[o]) ? d.stoSnapshot[o].length : 0); return '<tr><td><b>' + esc(o) + '</b></td><td>' + (r ? fq(qtyOf(r)) : '-') + '</td><td>' + (c || '-') + '</td></tr>'; }).join('');
+    openModal('<h3>DO ' + esc(d.doNo) + '</h3><div class="kv">' + kv('Boutique', d.boutique) + kv('Print Status', d.printedAt ? 'Printed ' + formatDateTimeLabel(d.printedAt) : (d.awaitPrint ? 'Awaiting Print' : 'Not Printed')) + kv('DO Status', s.open ? 'Open (can still receive extra STO)' : 'Closed' + (s.why ? ' - ' + s.why : '')) + kv('Delivery method', d.deliveryMethod) + kv('Created', d.createdDate) + '</div>'
+      + '<table style="margin-top:12px;"><thead><tr><th>STO</th><th>Items</th><th>Cartons</th></tr></thead><tbody>' + (rows || '<tr><td colspan="3">No STO</td></tr>') + '</tbody></table>'
+      + '<div class="acts"><button type="button" data-x="close">Close</button></div>', 'dodet');
+  }
+  $('pmDoList').addEventListener('click', (e) => {
+    const v = e.target.closest('[data-vdo]'); if (v) return viewDo(v.dataset.vdo);
+    const b = e.target.closest('[data-rdo]'); if (!b) return;
+    const no = b.dataset.rdo, rec = doRecords.find(x => x.doNo === no); if (!rec) return;
+    const ids = (rec.orderNumbers || []).slice();
+    window.__doStrictIds = new Set(ids); openDOModalForBatch(ids, no); if (!doCurrentBatch) window.__doStrictIds = null;   // same existing DO window / same DO record: prints only the STO already on this DO, never creates a new DO
+  });
+  $('pmDoChips').addEventListener('click', (e) => { const c = e.target.closest('[data-dof]'); if (c) { doF = c.dataset.dof; renderDoMgmt(); } });
+  $('pmDoSearch').addEventListener('input', (e) => { doQ = e.target.value.trim(); renderDoMgmt(); });
+  function setWs(w) {
+    wsTab = w === 'issued' ? 'issued' : 'pending';
+    $('pmPanePending').style.display = wsTab === 'pending' ? '' : 'none';
+    $('pmPaneIssued').style.display = wsTab === 'issued' ? '' : 'none';
+    Array.prototype.forEach.call(root.querySelectorAll('.pm-subtab'), b => b.classList.toggle('on', b.dataset.ws === wsTab));
+    if (wsTab === 'issued') renderDoMgmt();
+  }
+  root.querySelector('.pm-subtabs').addEventListener('click', (e) => { const b = e.target.closest('[data-ws]'); if (b) setWs(b.dataset.ws); });
+  $('pmDoManage').addEventListener('click', () => { const b = document.querySelector('.tab-btn[data-tab="fleet-board"]'); if (b) b.click(); });
   function renderSmart() {
     const act = activeTeams();
     const nxt = pick(true);
-    $('pmSmart').innerHTML = '<div class="pm-h"><span class="ic">' + img('check') + '</span><h4 style="font-size:17px;">Smart Assignment</h4></div><div class="pm-smart">Every STO is automatically assigned to the active team with the lowest remaining workload. Round-robin is used when workloads are equal.' +
-      '<ul>' + (act.length ? act.map(s => '<li>' + img('check') + esc(tn(s.name)) + ' : ' + fq(workload(s.name)) + ' items</li>').join('') + '<li>' + img('check') + 'Next STO &rarr; ' + esc(nxt ? tn(nxt) : '-') + '</li>' : '<li>No active team. Ready-to-Pack STOs wait and are assigned automatically as soon as a team becomes active.</li>') + '</ul></div>';
+    $('pmSmart').innerHTML = '<div class="pm-h"><span class="ic pm-ico">' + GI.check + '</span><h4>Smart Assignment</h4></div><div class="pm-smart">Every STO is automatically assigned to the active team with the lowest remaining workload. Round-robin is used when workloads are equal.' +
+      '<ul>' + (act.length ? act.map(s => '<li>' + gi('check','sm2') + esc(tn(s.name)) + ' : ' + fq(workload(s.name)) + ' items</li>').join('') + '<li>' + gi('check','sm2') + 'Next STO &rarr; ' + esc(nxt ? tn(nxt) : '-') + '</li>' : '<li>No active team. Ready-to-Pack STOs wait and are assigned automatically as soon as a team becomes active.</li>') + '</ul></div>';
   }
 
   /* ---------- writes (stale-check, rollback, no double click) ---------- */
@@ -43234,6 +43480,17 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
     render();
     if (made && made.length) toast('DO issued: ' + made.join(', ') + ' (' + ids.length + ' STO). Print it from Trip Schedule.');
     else toast('DO was not issued (cancelled or nothing to issue).', true);
+  }
+  // r623: per-row "Issue DO" = the same existing DO issuing path as the boutique-level / bulk button, for this one STO (Add-to-existing / Create-NEW popup applies as before).
+  function issueOne(o) {
+    if (!guard()) return;
+    const r = records.find(x => x.orderNumber === o);
+    if (!r || !eligible(r) || !canAct(r)) { render(); return toast('This STO cannot get a DO now (print the Carton Label first). List refreshed.', true); }
+    if (typeof window.tsIssueDoSilent !== 'function') return toast('DO issuing is not available.', true);
+    const made = window.tsIssueDoSilent([o]);
+    render();
+    if (made && made.length) toast('DO issued: ' + made.join(', ') + '. Open the Issued tab to print it.');
+    else toast('DO was not issued (cancelled or choose in the popup).', true);
   }
   // Team presses "Ready to Delivery" AFTER all carton labels are printed -> STO moves to Trip Schedule > Ready for Trip.
   function markReady(o) {
@@ -43394,6 +43651,7 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
       if (a === 'ready') return markReady(o);
       if (a === 'label') return openStickerModal(o);
       if (a === 'view') return details(o);
+      if (a === 'issuedo1') return issueOne(o);
       if (a === 'del') return openAdminDelete(o);
       return;
     }
