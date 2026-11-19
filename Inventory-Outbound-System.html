@@ -18437,7 +18437,7 @@ function rqColourCell(r) {
 // A finished-QC FG item only appears in the Bulk QC / Distribution Status tabs once the sheet has a Distribution Status or a Distribution Form link for it.
 function rqAllFgRows() { let a = []; try { a = Array.isArray(campaignAccList) ? campaignAccList : []; } catch (e) {} a.forEach(r => { if (!r.distStatus && accLinkMap[r.id] && accLinkMap[r.id].distStatus) r.distStatus = accLinkMap[r.id].distStatus; }); a = a.map(r => { // r629: Accessories whose QC cell is blank but whose sheet 'Distribution Status' already says Passed / Passed with condition (e.g. SONGKOK) -> use that as the QC result (copy only, never saved back)
     if (r && String(r.qcFg || '').trim() === '' && /^pass/i.test(String(r.distStatus || '').trim())) return Object.assign({}, r, { qcFg: /condition/i.test(r.distStatus) ? 'PASS WITH CONDITION' : 'PASS' });
-    return r; });
+    return r; }).map(r => (r && !String(r.officialProductName || '').trim() && String(r.projectDescription || '').trim()) ? Object.assign({}, r, { officialProductName: r.projectDescription }) : r); // r631: accessories with no Official Product Name show the Project Description instead of '-'
   return (campaignTimelineList || []).concat(a); } // Finished Goods + Accessories (one list)
 function rqHasDistInfo(r) { return rqLinksRaw(r, 'distForm').length > 0; } // only items that already have a Distribution Form (complete) appear in Bulk QC / Distribution Status
 function rqDocColour() { return ''; }
@@ -41176,7 +41176,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '7Nov-r630-FU22';
+const APP_BUILD_LABEL = '7Nov-r631-FU23';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
