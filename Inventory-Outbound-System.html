@@ -3783,6 +3783,48 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
       #tab-packing-mgmt #pmList .pm-act{margin:2px 4px 2px 0;}
       #tab-packing-mgmt #pmList th,#tab-packing-mgmt #pmList td{padding-left:8px;padding-right:8px;}
       #tab-packing-mgmt .pm-stolist{font-size:12px;color:#cdbf9f;line-height:1.5;}
+      #tab-packing-mgmt .pm-acts{white-space:normal !important;min-width:210px;}
+      #tab-packing-mgmt .pm-acts .pm-act{margin:2px 4px 2px 0;}
+      #pmModal .pm-dlform{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;}
+      #pmModal .pm-fl{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--text-muted);}
+      #pmModal .pm-fl input,#pmModal .pm-fl select{height:42px;border-radius:10px;border:1px solid #5b4a31;background:#0f0c0a;color:var(--text);padding:0 12px;font-size:14px;}
+      #pmModal .pm-dlnote{margin-top:12px;padding:10px 12px;border-radius:10px;border:1px solid #5b4a31;background:#14100d;font-size:13px;color:#e8d7ae;}
+      #pmModal .pm-dlnote.ok{border-color:#2f6c4b;color:#c9f5dc;}#pmModal .pm-dlnote.warn{border-color:#b98a35;color:#ffe9b8;}
+      @media (max-width:700px){#pmModal .pm-dlform{grid-template-columns:1fr;}}
+      /* r627: premium custom dropdown for Delivery Method */
+      #pmModal .dl-head{display:flex;align-items:center;gap:14px;padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid #8a6c35;}
+      #pmModal .dl-head h3{margin:0;flex:1;font-family:Inter,'Segoe UI',Arial,sans-serif;font-size:24px;font-weight:800;background:linear-gradient(180deg,#fff3cf,#e0b25a);-webkit-background-clip:text;background-clip:text;color:transparent;}
+      #pmModal .dl-x{width:40px;height:40px;border-radius:10px;border:1px solid #6b5530;background:transparent;color:#f0cd86;font-size:18px;cursor:pointer;}
+      #pmModal .dl-x:hover{background:#2a2116;}
+      #pmModal .dl-ic{display:inline-flex;width:30px;height:30px;flex:0 0 auto;align-items:center;justify-content:center;}
+      #pmModal .dl-ic svg{width:100%;height:100%;fill:none;stroke:url(#pgA);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6));}
+      #pmModal .dl-ic.big{width:46px;height:46px;}
+      #pmModal #dlMethod{display:none !important;}
+      #pmModal .dl-dd{position:relative;}
+      #pmModal .dl-dd-btn{display:flex;align-items:center;gap:12px;width:100%;height:56px;padding:0 16px;border-radius:14px;border:1px solid #b98a35;background:linear-gradient(180deg,#1c1610,#0f0c09);color:#fff;font-size:16px;cursor:pointer;text-align:left;box-shadow:0 0 0 1px rgba(246,220,154,.08) inset;transition:border-color .15s,box-shadow .15s;}
+      #pmModal .dl-dd-btn:hover,#pmModal .dl-dd-btn.open{border-color:#f0cd86;box-shadow:0 0 0 1px rgba(240,205,134,.45),0 0 18px rgba(214,169,84,.25);}
+      #pmModal .dl-dd-txt{flex:1;font-weight:600;}#pmModal .dl-dd-txt.ph{color:#9c8f78;font-weight:400;}
+      #pmModal .dl-chev{width:22px;height:22px;fill:none;stroke:#f0cd86;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s;}
+      #pmModal .dl-dd-btn.open .dl-chev{transform:rotate(180deg);}
+      #pmModal .dl-dd-panel{position:fixed;z-index:4000;display:flex;flex-direction:column;overflow:hidden;border-radius:16px;border:1px solid #b98a35;background:linear-gradient(180deg,#1b1610,#0e0b08);box-shadow:0 18px 44px rgba(0,0,0,.7),0 0 22px rgba(214,169,84,.18);opacity:0;transform:translateY(-6px) scale(.98);transition:opacity .16s ease,transform .16s ease;padding:10px;}
+      #pmModal .dl-dd-panel.open{opacity:1;transform:none;}
+      #pmModal .dl-dd-search{display:flex;align-items:center;gap:10px;height:46px;padding:0 14px;margin-bottom:8px;border-radius:12px;border:1px solid #6b5530;background:#0b0907;}
+      #pmModal .dl-dd-search:focus-within{border-color:#f0cd86;}
+      #pmModal .dl-dd-search svg{width:20px;height:20px;fill:none;stroke:#f0cd86;stroke-width:2;stroke-linecap:round;}
+      #pmModal .dl-dd-search input{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;color:#fff;font-size:15px;}
+      #pmModal .dl-dd-list{display:flex;flex-direction:column;gap:4px;overflow:auto;}
+      #pmModal .dl-dd-opt{display:flex;align-items:center;gap:14px;width:100%;min-height:52px;padding:0 14px;border-radius:12px;border:1px solid transparent;background:transparent;color:#eee;font-size:16px;cursor:pointer;text-align:left;transition:background .12s,border-color .12s;}
+      #pmModal .dl-dd-opt:hover{background:rgba(214,169,84,.12);border-color:#5b4a31;}
+      #pmModal .dl-dd-opt.sel{background:linear-gradient(90deg,rgba(240,205,134,.32),rgba(185,138,53,.22));border-color:#b98a35;color:#fff;font-weight:700;}
+      #pmModal .dl-o-t{flex:1;}
+      #pmModal .dl-tick{width:24px;height:24px;fill:none;stroke:#f6dc9a;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;}
+      #pmModal .dl-dd-none{padding:14px;color:#9c8f78;text-align:center;font-size:14px;}
+      #pmModal .dl-acts button{display:flex;align-items:center;justify-content:center;gap:10px;height:54px;border-radius:14px;font-size:17px;font-weight:700;}
+      #pmModal .dl-acts button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;}
+      #pmModal .dl-acts button:not(.go){background:linear-gradient(180deg,#1c1610,#0f0c09);border:1px solid #b98a35;color:#f6dc9a;}
+      #pmModal .dl-acts button:not(.go):hover{background:#2a2116;}
+      #pmModal .dl-acts button.go{background:linear-gradient(180deg,#f8dd8e,#d49a3a 60%,#b9822b);color:#1b1408;border:1px solid #fff0c0;box-shadow:0 0 18px rgba(240,200,110,.35);}
+      #pmModal .dl-acts button.go:disabled{opacity:.45;box-shadow:none;}
       @media (max-width:1100px){#tab-packing-mgmt .pm-subtab{height:58px;font-size:19px;}#tab-packing-mgmt .pm-dosum .hint{margin-left:0;max-width:none;}}
 </style>
     <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -4380,6 +4422,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
     <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
       <p class="section-title" style="margin-bottom:0;">Trip Schedule</p>
       <div style="display:flex; gap:8px;">
+        <button class="btn-primary" id="tsCreateTripBtn" type="button" style="height:42px;padding:0 20px;font-weight:700;">+ Create Trip</button>
         <button class="btn-ghost" id="undoResetTripBtn" style="display:none;">↩ Undo Reset</button>
         <button class="btn-ghost" id="resetFleetTripsBtn">Reset Trip Schedule</button>
       </div>
@@ -6097,6 +6140,7 @@ tr.bqr-new td { background:rgba(224,69,58,0.10); }
           <option value="Grab">Grab</option>
           <option value="Ninja Van">Ninja Van</option>
           <option value="Other Courier">Other Courier</option>
+          <option value="Bus">Bus</option>
         </select>
       </div>
       <div class="field data-note" id="doLockNote" style="display:none; margin:0;"></div>
@@ -18391,7 +18435,10 @@ function rqColourCell(r) {
   return E(a.slice(0, 3).join(', ')) + ` <span class="rq-pill cond" style="padding:1px 8px;font-size:11px;cursor:help;" title="${E(a.join(', '))}">+${a.length - 3}</span>`;
 }
 // A finished-QC FG item only appears in the Bulk QC / Distribution Status tabs once the sheet has a Distribution Status or a Distribution Form link for it.
-function rqAllFgRows() { let a = []; try { a = Array.isArray(campaignAccList) ? campaignAccList : []; } catch (e) {} a.forEach(r => { if (!r.distStatus && accLinkMap[r.id] && accLinkMap[r.id].distStatus) r.distStatus = accLinkMap[r.id].distStatus; }); return (campaignTimelineList || []).concat(a); } // Finished Goods + Accessories (one list)
+function rqAllFgRows() { let a = []; try { a = Array.isArray(campaignAccList) ? campaignAccList : []; } catch (e) {} a.forEach(r => { if (!r.distStatus && accLinkMap[r.id] && accLinkMap[r.id].distStatus) r.distStatus = accLinkMap[r.id].distStatus; }); a = a.map(r => { // r629: Accessories whose QC cell is blank but whose sheet 'Distribution Status' already says Passed / Passed with condition (e.g. SONGKOK) -> use that as the QC result (copy only, never saved back)
+    if (r && String(r.qcFg || '').trim() === '' && /^pass/i.test(String(r.distStatus || '').trim())) return Object.assign({}, r, { qcFg: /condition/i.test(r.distStatus) ? 'PASS WITH CONDITION' : 'PASS' });
+    return r; });
+  return (campaignTimelineList || []).concat(a); } // Finished Goods + Accessories (one list)
 function rqHasDistInfo(r) { return rqLinksRaw(r, 'distForm').length > 0; } // only items that already have a Distribution Form (complete) appear in Bulk QC / Distribution Status
 function rqDocColour() { return ''; }
 function rqColours(r) { return rqRowColour(r); }
@@ -18520,10 +18567,10 @@ function renderDistStatusTab() {
   if (!document.getElementById('dstKpis')) return;
   bqrDistStart();
   const all = dstAllRows();
-  const qcDone = (campaignTimelineList || []).filter(r => ['pass', 'pass-with', 'fail'].includes(bqcStatusKey(r.qcFg))).length;
+  const qcDone = (rqAllFgRows() || []).filter(r => ['pass', 'pass-with', 'fail'].includes(bqcStatusKey(r.qcFg))).length;
   const nDist = all.filter(r => bqrDistStatusOf(r) === 'Distributed').length;
   const kc = (ico, lbl, n, sub) => `<div class="dst-kpi"><div class="dst-ico">${ico}</div><div><div class="dst-lbl">${lbl}</div><div class="dst-num">${n}</div><div class="dst-sub">${sub}</div></div></div>`;
-  document.getElementById('dstKpis').innerHTML = kc('📦', 'Total Items', qcDone, 'QC finished (all results)') + kc('✅', 'QC Approved', all.length, 'Ready for distribution') + kc('🚚', 'Distributed', nDist, 'Completed') + kc('🕒', 'Pending Distribution', all.length - nDist, 'Not yet distributed');
+  document.getElementById('dstKpis').innerHTML = kc('📦', 'Total Items', qcDone, 'QC finished (FG + Accessories)') + kc('✅', 'QC Approved', all.length, 'Ready for distribution') + kc('🚚', 'Distributed', nDist, 'Completed') + kc('🕒', 'Pending Distribution', all.length - nDist, 'Not yet distributed');
   renderPscfFilterBar('dstFilterWrap', [
     { key: 'series', label: 'Series', options: [...new Set(all.map(r => r.series).filter(Boolean))].sort(), getValue: r => r.series || '' },
     { key: 'status', label: 'Status', options: BQR_DIST_STATUSES.map(v => ({ value: v, text: v === 'Not distributed' ? 'Not Distributed' : v })), getValue: r => bqrDistStatusOf(r) },
@@ -30289,13 +30336,18 @@ function fleetTripCardHtml(t) {
     : t.status === 'Out of Delivery'
     ? `<button type="button" class="kc-fleet-deliver-btn" data-id="${escapeHtml(t.id)}">✓ Confirm Delivery</button>`
     : '';
+  let tripNoText = ''; try { tripNoText = fleetTripNumberOf(t); } catch (e) {}
+  const notesHtml = t.notes ? `<div class="kc-sub-info" style="opacity:.8;">Note: ${escapeHtml(t.notes)}</div>` : '';
+  const editBtn = `<button type="button" class="kc-fleet-edit-btn" data-id="${escapeHtml(t.id)}" style="margin-top:6px;width:100%;height:34px;border-radius:8px;border:1px solid #7c6238;background:transparent;color:#f0cd86;font-weight:700;cursor:pointer;">${t.status === 'Scheduled' ? 'Edit Assignment' : 'View Details'}</button>`;
   return `<div class="kanban-card" draggable="true" data-id="${escapeHtml(t.id)}">
-    <div class="kc-top-row"><div class="kc-order">${driverText}</div></div>
+    <div class="kc-top-row"><div class="kc-order">${tripNoText ? `<span style="color:#f0cd86;">${escapeHtml(tripNoText)}</span> &middot; ` : ''}${driverText}</div></div>
     <div class="kc-butik">${destText}</div>
     ${doHtml}
     <div class="kc-sub-info">${formatDateLabel(t.date)}</div>
+    ${notesHtml}
     ${deliveredHtml}
     ${quickActionBtn}
+    ${editBtn}
   </div>`;
 }
 // Trip Schedule board defaults to showing only TODAY's trips per column (otherwise a future-dated
@@ -30377,6 +30429,11 @@ function renderFleetKanban() {
   });
 
 }
+document.addEventListener('click', (e) => {   // r626: Trip Schedule "+ Create Trip" -> same existing Create Trip form (Trip Management tab)
+  const b = e.target.closest && e.target.closest('#tsCreateTripBtn'); if (!b) return;
+  const tb = document.querySelector('.tab-btn[data-tab="fleet-trips-new"]'); if (tb) tb.click();
+  setTimeout(() => { try { if (typeof window.ctOpenCreate === 'function') window.ctOpenCreate(); } catch (er) { console.warn('open create trip', er); } }, 80);
+});
 // Broken out so the past-locked (Admin password) path above and the normal path can share the
 // exact same drop logic instead of duplicating it.
 function fleetKanbanApplyDrop(trip, stage) {
@@ -41119,7 +41176,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '6Nov-r625-FU17';
+const APP_BUILD_LABEL = '7Nov-r630-FU22';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
@@ -41779,7 +41836,7 @@ try {
   function openModal(dateIso, editId) {
     const t = editId ? trips().find(x => x.id === editId) : null;
     if (editId && !t) return;
-    m = { editId: t ? t.id : '', date: t ? t.date : (dateIso || selDate || todayStr()), driver: t ? (t.driverName || '') : '', assts: t ? assts(t).slice(0, 2) : [], plate: t ? (t.plateNo || '') : '', chosen: new Set(t ? dests(t) : []), off: new Set(t ? (t.excludedDoNos || []) : []), search: '', open: false, addA: false, view: !!t && t.status !== 'Scheduled', status: t ? t.status : '' };
+    m = { editId: t ? t.id : '', date: t ? t.date : (dateIso || selDate || todayStr()), driver: t ? (t.driverName || '') : '', assts: t ? assts(t).slice(0, 2) : [], plate: t ? (t.plateNo || '') : '', notes: t ? (t.notes || '') : '', chosen: new Set(t ? dests(t) : []), off: new Set(t ? (t.excludedDoNos || []) : []), search: '', open: false, addA: false, view: !!t && t.status !== 'Scheduled', status: t ? t.status : '' };
     drawModal(); $('ctModal').classList.add('open');
   }
   function closeModal() { $('ctModal').classList.remove('open'); m = null; busy = false; }
@@ -41829,7 +41886,8 @@ try {
       '<div class="ctn-grid">' +
       '<div class="ctn-card"><div class="ctn-h"><span class="no">1</span>' + ico(k3('people'), true) + 'Driver &amp; Vehicle</div>' +
       '<div class="two"><label class="ctn-l">Driver *<select id="ctDriver"' + (ro ? ' disabled' : '') + '>' + opt + '</select></label><label class="ctn-l">Vehicle Plate No.<input type="text" id="ctPlate" placeholder="e.g. WXY 1234" value="' + esc(m.plate) + '"' + (ro && !m.plateEdit ? ' disabled' : '') + '></label></div>' +
-      '<div class="ctn-l" style="margin-top:10px;">Assistant Driver(s) (max 2)</div><div class="ctn-chips" id="ctAsst"></div></div>' +
+      '<div class="ctn-l" style="margin-top:10px;">Assistant Driver(s) (max 2)</div><div class="ctn-chips" id="ctAsst"></div>' +
+      '<label class="ctn-l" style="margin-top:10px;">Notes (optional)<input type="text" id="ctNotes" placeholder="e.g. collect return carton" value="' + esc(m.notes || '') + '"' + (ro ? ' disabled' : '') + '></label></div>' +
       '<div class="ctn-card"><div class="ctn-h"><span class="no">2</span>' + ico(k3('truck'), true) + 'Destination(s)' + (ro ? '' : '<button type="button" class="ctn-lnk" id="ctClear" style="margin-left:auto;">Clear</button>') + '</div>' +
       '<div class="ctn-ddwrap"><input type="text" id="ctSearch" placeholder="Search boutique name..." autocomplete="off" value="' + esc(m.search) + '"' + (ro ? ' disabled' : '') + '><div class="ctn-dd" id="ctDd" style="display:none;"></div></div>' +
       '<div class="ctn-chips" id="ctChips" style="margin-top:10px;"></div></div>' +
@@ -41907,7 +41965,7 @@ try {
       if (edit) {
         const before = JSON.parse(JSON.stringify(tr)), recSnap = [];
         const dropped = (tr.doNos || []).filter(n => picked.indexOf(n) < 0);
-        tr.driverName = m.driver; tr.plateNo = (m.plate || '').trim(); tr.driverAssistants = as; tr.date = m.date; tr.destinations = [...m.chosen]; tr.doNos = picked; tr.excludedDoNos = excluded; tr.editedAt = new Date().toISOString(); tr.editedBy = userName();
+        tr.driverName = m.driver; tr.plateNo = (m.plate || '').trim(); tr.driverAssistants = as; tr.date = m.date; tr.destinations = [...m.chosen]; tr.doNos = picked; tr.excludedDoNos = excluded; tr.notes = (m.notes || '').trim(); tr.editedAt = new Date().toISOString(); tr.editedBy = userName();
         records.forEach(r => { if (r.tripId === tr.id && (dropped.indexOf(r.doNo) >= 0 || (r.toWarehouse && ![...m.chosen].some(b => boutiqueMatch(b, r.toWarehouse))))) { recSnap.push({ r, tripId: r.tripId }); delete r.tripId; } });
         const undo = () => { Object.keys(tr).forEach(k => { delete tr[k]; }); Object.assign(tr, before); recSnap.forEach(s => { s.r.tripId = s.tripId; }); };
         try { saveFleetTrips(); if (recSnap.length) saveRecords(); }
@@ -41917,7 +41975,7 @@ try {
         toast('Trip updated: ' + (tr.driverName || '') + ' (' + tr.destinations.length + ' destination(s), ' + picked.length + ' DO)');
         return;
       }
-      const trip = { id: genFleetId(), tripNo: fleetNextTripNo(), createdBy: userName(), createdAt: new Date().toISOString(), date: m.date, driverName: m.driver, plateNo: (m.plate || '').trim(), driverAssistants: as, destinations: [...m.chosen], doNos: picked, excludedDoNos: excluded, status: 'Scheduled', createdDate: todayStr() };
+      const trip = { id: genFleetId(), tripNo: fleetNextTripNo(), createdBy: userName(), createdAt: new Date().toISOString(), date: m.date, driverName: m.driver, plateNo: (m.plate || '').trim(), driverAssistants: as, destinations: [...m.chosen], notes: (m.notes || '').trim(), doNos: picked, excludedDoNos: excluded, status: 'Scheduled', createdDate: todayStr() };
       fleetTrips.push(trip);
       try { saveFleetTrips(); }
       catch (e) { const i = fleetTrips.indexOf(trip); if (i >= 0) fleetTrips.splice(i, 1); return fail('Browser storage is FULL - trip was NOT saved. (' + (e && e.message ? e.message : e) + ')'); }
@@ -42079,10 +42137,12 @@ try {
   modal.addEventListener('input', (e) => {
     if (!m) return;
     if (e.target.id === 'ctPlate') m.plate = e.target.value;
+    else if (e.target.id === 'ctNotes') m.notes = e.target.value;
     else if (e.target.id === 'ctSearch') { m.search = e.target.value; m.open = true; drawDest(); }
   });
 
   window.ctRender = render;
+  window.ctOpenCreate = () => openModal();   // r626: Trip Schedule's "+ Create Trip" opens this same existing form
   // Stay in step with the rest of Fleet (any trip save/status change redraws via renderFleetTab).
   const _rft = renderFleetTab;
   renderFleetTab = function () { const out = _rft.apply(this, arguments); try { render(); } catch (e) { console.warn('ctRender', e); } return out; };
@@ -42096,8 +42156,8 @@ try {
   if (!root) return;
   const esc = (s) => escapeHtml(s == null ? '' : s);
   const PAGE = 8;
-  const ST = { 'Scheduled': { label: 'Scheduled', cls: 's0' }, 'Out of Delivery': { label: 'Out of Delivery', cls: 's1' }, 'Completed': { label: 'Delivered', cls: 's2' } };
-  const VIEWS = [['all', 'All'], ['Scheduled', 'Scheduled'], ['Out of Delivery', 'In Progress'], ['Completed', 'Delivered']];
+  const ST = { 'Scheduled': { label: 'Assigned', cls: 's0' }, 'Out of Delivery': { label: 'Out of Delivery', cls: 's1' }, 'Completed': { label: 'Delivered', cls: 's2' } };
+  const VIEWS = [['all', 'All'], ['Scheduled', 'Assigned'], ['Out of Delivery', 'In Progress'], ['Completed', 'Delivered']];
   let date = todayStr(), q = '', view = 'all', fDriver = 'all', fButik = 'all', page = 1, pending = null, lockUntil = 0, drawerId = null;
 
   const svg = (p, sz) => '<svg width="' + sz + '" height="' + sz + '" viewBox="0 0 24 24" fill="none" stroke="url(#tsG1)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>';
@@ -43357,20 +43417,161 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
     if (!view.length) { box.innerHTML = '<div class="pm-empty">' + (all.length ? 'No DO matches your search / filter.' : 'No DO waiting for delivery.') + '</div>'; return; }
     const prt = '<svg viewBox="0 0 24 24"><path d="M7 9V3h10v6M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><rect x="7" y="14" width="10" height="7" rx="1"/></svg>';
     const eye = '<svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>';
-    box.innerHTML = '<table><thead><tr><th>Boutique</th><th>DO Number</th><th>STO in this DO</th><th>Total STO</th><th>Total Items</th><th>Total Cartons</th><th>Print Status</th><th>Action</th></tr></thead><tbody>' + groupedDo(view, x => {
+    const DLV = '<svg viewBox="0 0 24 24"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/></svg>';
+    box.innerHTML = '<table><thead><tr><th>Boutique</th><th>DO Number</th><th>STO in this DO</th><th>Total STO</th><th>Total Items</th><th>Total Cartons</th><th>Delivery</th><th>Print Status</th><th>Action</th></tr></thead><tbody>' + groupedDo(view, x => {
       const d = x.d, printed = !!d.printedAt, ons = Array.isArray(d.orderNumbers) ? d.orderNumbers : [];
       const ps = printed ? '<span class="pm-st d">&#10003; Printed</span>' : '<span class="pm-st a">' + (d.awaitPrint ? 'Awaiting Print' : 'Not Printed') + '</span>';
       const ds = x.s.open ? '<span class="pm-st r">Open</span>' : '<span class="pm-st c">Closed</span>' + (x.s.why ? '<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">' + esc(x.s.why) + '</div>' : '');
-      return '<tr class="pm-row"><td>' + esc(d.boutique || '-') + '</td><td><b>' + esc(d.doNo) + '</b></td><td class="pm-stolist">' + (ons.length ? ons.map(esc).join('<br>') : '-') + '</td><td>' + ons.length + '</td><td>' + (fq(doItems(d)) || '-') + '</td><td>' + (doCartons(d) || '-') + '</td><td>' + ps + '</td><td style="white-space:nowrap;"><button type="button" class="pm-act sec" data-vdo="' + esc(d.doNo) + '">' + eye + 'View DO Details</button><button type="button" class="pm-act ' + (printed ? 'sec' : 'go') + '" data-rdo="' + esc(d.doNo) + '">' + prt + (printed ? 'Reprint DO' : 'Print DO') + '</button></td></tr>';
+      const lock = !x.s.open && !!x.s.why;
+      const nonFleet = !!(d.deliveryMethod && d.deliveryMethod !== 'Own Fleet');
+      const mark = (nonFleet && !d.courierDeliveredDate) ? '<button type="button" class="pm-act go" data-mdel="' + esc(d.doNo) + '">&#10003; Mark Delivered</button>' : '';
+      const upd = '<button type="button" class="pm-act sec" data-udl="' + esc(d.doNo) + '">' + DLV + 'Update Delivery Information</button>';
+      return '<tr class="pm-row"><td>' + esc(d.boutique || '-') + '</td><td><b>' + esc(d.doNo) + '</b></td><td class="pm-stolist">' + (ons.length ? ons.map(esc).join('<br>') : '-') + '</td><td>' + ons.length + '</td><td>' + (fq(doItems(d)) || '-') + '</td><td>' + (doCartons(d) || '-') + '</td><td>' + dlCell(d) + '</td><td>' + ps + '</td><td class="pm-acts"><button type="button" class="pm-act sec" data-vdo="' + esc(d.doNo) + '">' + eye + 'View DO Details</button><button type="button" class="pm-act ' + (printed ? 'sec' : 'go') + '" data-rdo="' + esc(d.doNo) + '">' + prt + (printed ? 'Reprint DO' : 'Print DO') + '</button>' + upd + mark + '</td></tr>';
     }) + '</tbody></table>';
   }
+  /* ---------- r626: DO delivery information (additive fields on the DO record; never touches DO no., STO list, cartons, issue / print dates) ---------- */
+  const DL_LABEL = { 'Khatam Fleet': 'Khatam Fleet', 'Bus': 'Bus', 'Courier': 'Courier' };
+  const DL_MAP = { 'Khatam Fleet': 'Own Fleet', 'Bus': 'Bus', 'Courier': 'Other Courier' };   // -> existing deliveryMethod values (keeps Open/Closed + trip logic working)
+  function dlCell(d) {
+    if (d.deliveryInfoUpdatedAt && d.actualDeliveryMethod) {
+      const sub = [d.deliveryCompany, d.deliveryRef].filter(Boolean).join(' / ');
+      return '<b>' + esc(DL_LABEL[d.actualDeliveryMethod] || d.actualDeliveryMethod) + '</b>' + (sub ? '<div class="pm-stolist">' + esc(sub) + '</div>' : '') + (d.handoverDate ? '<div class="pm-stolist">Handover: ' + esc(d.handoverDate) + '</div>' : '') + (d.courierDeliveredDate ? '<div class="pm-stolist" style="color:#6fe39b;">Delivered ' + esc(d.courierDeliveredDate) + '</div>' : '');
+    }
+    if (d.deliveryMethod && d.deliveryMethod !== 'Own Fleet') return '<b>' + esc(d.deliveryMethod) + '</b>' + (d.courierTrackingNo ? '<div class="pm-stolist">' + esc(d.courierTrackingNo) + '</div>' : '') + (d.courierDeliveredDate ? '<div class="pm-stolist" style="color:#6fe39b;">Delivered ' + esc(d.courierDeliveredDate) + '</div>' : '');
+    return '<span style="color:var(--text-muted);">Not Updated</span>';
+  }
+  const curMethod = (d) => d.deliveryInfoUpdatedAt && d.actualDeliveryMethod ? d.actualDeliveryMethod : '';
+  const DL_ICON = {
+    'Khatam Fleet': '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 7h11v9H2zM13 10h4.500l3 3v3H13z"/><circle cx="6.500" cy="18" r="1.900"/><circle cx="17" cy="18" r="1.900"/><path d="M0.500 9.500h3M0 12h2.500"/></svg>',
+    'Bus': '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="14" rx="3"/><path d="M4 11h16M8 3v8M16 3v8"/><circle cx="8" cy="14.500" r=".9"/><circle cx="16" cy="14.500" r=".9"/><path d="M6 17v3M18 17v3"/></svg>',
+    'Courier': '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 7.500v9L12 21 4 16.500v-9z"/><path d="M4 7.500 12 12l8-4.500M12 12v9"/></svg>'
+  };
+  const DL_CHEV = '<svg viewBox="0 0 24 24" aria-hidden="true" class="dl-chev"><path d="M6 9l6 6 6-6"/></svg>';
+  function dlDropdown(cur) {
+    const opts = '<select id="dlMethod" style="display:none;"><option value="">Select...</option>' + Object.keys(DL_LABEL).map(k => '<option value="' + k + '"' + (cur === k ? ' selected' : '') + '>' + DL_LABEL[k] + '</option>').join('') + '</select>';
+    const btn = '<button type="button" class="dl-dd-btn" id="dlDdBtn" aria-haspopup="listbox" aria-expanded="false"><span class="dl-ic">' + (cur ? DL_ICON[cur] : DL_ICON['Khatam Fleet']) + '</span><span class="dl-dd-txt' + (cur ? '' : ' ph') + '">' + esc(cur ? DL_LABEL[cur] : 'Select Delivery Method...') + '</span>' + DL_CHEV + '</button>';
+    return '<div class="pm-fl" style="grid-column:1 / -1;"><span>Actual Delivery Method *</span><div class="dl-dd" id="dlDd">' + opts + btn + '</div></div>';
+  }
+  function dlOpenPanel() {
+    dlClosePanel();
+    const btn = document.getElementById('dlDdBtn'); if (!btn) return;
+    const cur = (document.getElementById('dlMethod') || {}).value || '';
+    const pn = document.createElement('div'); pn.className = 'dl-dd-panel'; pn.id = 'dlDdPanel'; pn.setAttribute('role', 'listbox');
+    pn.innerHTML = '<div class="dl-dd-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.500"/><path d="M16 16l4.500 4.500"/></svg><input type="text" id="dlDdSearch" placeholder="Search delivery method..." autocomplete="off"></div><div class="dl-dd-list" id="dlDdList">' +
+      Object.keys(DL_LABEL).map(k => '<button type="button" class="dl-dd-opt' + (cur === k ? ' sel' : '') + '" data-v="' + k + '" role="option"><span class="dl-ic">' + DL_ICON[k] + '</span><span class="dl-o-t">' + esc(DL_LABEL[k]) + '</span>' + (cur === k ? '<svg viewBox="0 0 24 24" class="dl-tick" aria-hidden="true"><path d="M5 12.500l4.500 4.500L19 7"/></svg>' : '') + '</button>').join('') + '<div class="dl-dd-none" style="display:none;">No match</div></div>';
+    document.getElementById('pmModal').appendChild(pn);
+    const r = btn.getBoundingClientRect(), h = pn.offsetHeight || 230, below = window.innerHeight - r.bottom - 12, up = r.top - 12;
+    pn.style.width = r.width + 'px'; pn.style.left = Math.max(8, Math.min(r.left, window.innerWidth - r.width - 8)) + 'px';
+    if (below >= Math.min(h, 230) || below >= up) { pn.style.top = (r.bottom + 6) + 'px'; pn.style.maxHeight = Math.max(140, below) + 'px'; }
+    else { pn.style.bottom = (window.innerHeight - r.top + 6) + 'px'; pn.style.maxHeight = Math.max(140, up) + 'px'; }
+    btn.setAttribute('aria-expanded', 'true'); btn.classList.add('open');
+    requestAnimationFrame(() => pn.classList.add('open'));
+    const s = document.getElementById('dlDdSearch'); if (s) s.focus();
+  }
+  function dlClosePanel() {
+    const pn = document.getElementById('dlDdPanel'); if (pn) pn.remove();
+    const btn = document.getElementById('dlDdBtn'); if (btn) { btn.setAttribute('aria-expanded', 'false'); btn.classList.remove('open'); }
+  }
+  let dlm = null;
+  function drawDl() {
+    const d = doRecords.find(x => x.doNo === dlm.doNo); if (!d) return closeModal();
+    const tr = (typeof fleetTripForDoNo === 'function') ? fleetTripForDoNo(d.doNo) : null;
+    const m = dlm.method;
+    const row = (lab, inner) => '<label class="pm-fl"><span>' + lab + '</span>' + inner + '</label>';
+    const inp = (id, val, ph, type) => '<input type="' + (type || 'text') + '" id="' + id + '" value="' + esc(val || '') + '" placeholder="' + esc(ph || '') + '">';
+    let fields = dlDropdown(m);
+    if (m) {
+      fields += row('Actual Handover Date *', inp('dlDate', dlm.date, '', 'date'));
+      if (m === 'Bus' || m === 'Courier') fields += row(m === 'Bus' ? 'Assign Driver *' : 'Company Name *', inp('dlCompany', dlm.company, m === 'Bus' ? 'Driver who sends to the bus station' : 'e.g. courier company'));
+      if (m === 'Bus') fields += row('Bus Route / Reference No.', inp('dlRef', dlm.ref, 'route or reference'));
+      if (m === 'Courier') fields += row('Courier Tracking No.', inp('dlRef', dlm.ref, 'tracking number'));
+      fields += row('Person In Charge / Staff', inp('dlPic', dlm.pic, 'staff name'));
+      fields += row('Notes (optional)', inp('dlNotes', dlm.notes, ''));
+    }
+    let fleetInfo = '';
+    if (m === 'Khatam Fleet') {
+      fleetInfo = tr ? '<div class="pm-dlnote ok">On trip <b>' + esc(fleetTripNumberOf(tr)) + '</b> (' + esc(tr.driverName || 'no driver') + ', ' + esc(tr.status) + '). No change to the trip.</div>'
+        : '<div class="pm-dlnote">This DO is not on a Khatam Fleet trip yet. After saving you can assign it through Trip Schedule.<br><button type="button" class="pm-act sec" id="dlGoTrip" style="margin-top:8px;">Open Trip Schedule / Create Trip</button></div>';
+    } else if ((m === 'Bus' || m === 'Courier') && tr) {
+      fleetInfo = '<div class="pm-dlnote warn">This DO is on trip <b>' + esc(fleetTripNumberOf(tr)) + '</b> (' + esc(tr.status) + '). Saving will take <b>this DO only</b> off that trip. The trip and its other DOs stay as they are.' + (tr.status !== 'Scheduled' ? '<br><b>The trip is already ' + esc(tr.status) + ': supervisor only.</b>' : '') + '</div>';
+    }
+    const hist = (Array.isArray(d.deliveryHistory) && d.deliveryHistory.length) ? '<div class="pm-stolist" style="margin-top:10px;">History: ' + d.deliveryHistory.slice(-3).map(h => esc((h.from || 'Not Updated') + ' → ' + h.to + ' (' + (h.by || '-') + ', ' + String(h.at || '').slice(0, 16).replace('T', ' ') + ')')).join('<br>') + '</div>' : '';
+    dlClosePanel();
+    openModal('<div class="dl-head"><span class="dl-ic big">' + DL_ICON['Khatam Fleet'] + '</span><h3>Update Delivery Information</h3><button type="button" class="dl-x" data-x="close" aria-label="Close">&#10005;</button></div><div class="pm-stolist" style="margin-bottom:10px;">DO <b>' + esc(d.doNo) + '</b> &middot; ' + esc(d.boutique || '') + ' &middot; current: <b>' + esc(curMethod(d) ? DL_LABEL[curMethod(d)] || curMethod(d) : 'Not Updated') + '</b></div><div class="pm-dlform">' + fields + '</div>' + fleetInfo + hist +
+      '<div class="acts dl-acts"><button type="button" id="dlClear"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.500-5.800M4 4v4.500h4.500"/></svg>Clear</button><button type="button" class="go" id="dlSave"' + (m ? '' : ' disabled') + '><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.500l4.500 4.500L19 7"/></svg>Confirm</button></div>', 'dlinfo');
+  }
+  function openDl(no) {
+    const d = doRecords.find(x => x.doNo === no); if (!d) return;
+    dlm = { doNo: no, method: curMethod(d), date: d.handoverDate || today(), company: d.deliveryCompany || '', ref: (d.actualDeliveryMethod === 'Courier' ? (d.courierTrackingNo || d.deliveryRef) : d.deliveryRef) || '', pic: d.deliveryPic || who(), notes: d.deliveryNotes || '' };
+    drawDl();
+  }
+  function saveDl() {
+    if (!dlm) return;
+    const d = doRecords.find(x => x.doNo === dlm.doNo); if (!d) return closeModal();
+    const g = (id) => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; };
+    const f = { method: g('dlMethod') || dlm.method, date: g('dlDate'), company: g('dlCompany'), ref: g('dlRef'), pic: g('dlPic'), notes: g('dlNotes') };
+    if (!f.method) return toast('Choose the delivery method.', true);
+    if (!f.date) return toast('Enter the actual handover date.', true);
+    if ((f.method === 'Bus' || f.method === 'Courier') && !f.company) return toast(f.method === 'Bus' ? 'Enter the driver name.' : 'Enter the company name.', true);
+    const prev = curMethod(d), tr = (typeof fleetTripForDoNo === 'function') ? fleetTripForDoNo(d.doNo) : null;
+    if (prev && prev !== f.method && !isSup()) return toast('Only the supervisor can change a delivery method that was already recorded.', true);
+    const leaving = f.method !== 'Khatam Fleet' && !!tr;
+    if (leaving) {
+      if (tr.status !== 'Scheduled' && !isSup()) return toast('This DO is on a trip that is already ' + tr.status + '. Only the supervisor can change it.', true);
+      if (!confirm('DO ' + d.doNo + ' is on trip ' + fleetTripNumberOf(tr) + ' (' + tr.status + ').\n\nChange it to ' + DL_LABEL[f.method] + '? This DO is taken off that trip. The trip and the trip\'s other DOs are NOT changed.' + (tr.status !== 'Scheduled' ? '\n\nThe trip is already ' + tr.status + ' (supervisor confirmation).' : ''))) return;
+    }
+    const keys = ['deliveryMethod', 'actualDeliveryMethod', 'handoverDate', 'deliveryCompany', 'deliveryRef', 'courierTrackingNo', 'deliveryPic', 'deliveryNotes', 'deliveryInfoUpdatedAt', 'deliveryInfoUpdatedBy', 'deliveryHistory'];
+    const snapD = {}; keys.forEach(k => { snapD[k] = d[k] === undefined ? undefined : JSON.parse(JSON.stringify(d[k])); });
+    const snapTrip = leaving ? { tr, doNos: (tr.doNos || []).slice(), recs: records.filter(r => r.tripId === tr.id && r.doNo === d.doNo).map(r => ({ r, tripId: r.tripId })) } : null;
+    const now = new Date().toISOString();
+    d.deliveryMethod = DL_MAP[f.method]; d.actualDeliveryMethod = f.method; d.handoverDate = f.date; d.deliveryPic = f.pic; d.deliveryNotes = f.notes;
+    d.deliveryCompany = (f.method === 'Khatam Fleet') ? '' : f.company;
+    d.deliveryRef = (f.method === 'Khatam Fleet') ? '' : f.ref;
+    if (f.method === 'Courier' && f.ref) d.courierTrackingNo = f.ref;
+    d.deliveryInfoUpdatedAt = now; d.deliveryInfoUpdatedBy = who();
+    d.deliveryHistory = (Array.isArray(d.deliveryHistory) ? d.deliveryHistory.slice() : []).concat([{ from: prev || (snapD.deliveryMethod ? 'Not Updated (' + snapD.deliveryMethod + ')' : 'Not Updated'), to: f.method, by: who(), at: now, handoverDate: f.date }]);
+    if (leaving) { tr.doNos = (tr.doNos || []).filter(n => n !== d.doNo); snapTrip.recs.forEach(s => { delete s.r.tripId; }); }
+    const undo = () => { keys.forEach(k => { if (snapD[k] === undefined) delete d[k]; else d[k] = snapD[k]; }); if (snapTrip) { tr.doNos = snapTrip.doNos; snapTrip.recs.forEach(s => { s.r.tripId = s.tripId; }); } };
+    try { saveDoRecords(); if (leaving) { saveFleetTrips(); if (snapTrip.recs.length) saveRecords(); } }
+    catch (e) { undo(); try { saveDoRecords(); if (leaving) saveFleetTrips(); } catch (e2) {} return toast('NOT saved - nothing changed. ' + (e && e.message ? e.message : e), true); }
+    if (f.method === 'Khatam Fleet') { try { if (typeof autoAttachDoNosToTrips === 'function') autoAttachDoNosToTrips(); } catch (e) { console.warn('auto attach', e); } }
+    closeModal(); dlm = null;
+    try { renderAll(); } catch (e) {} try { renderFleetTab(); } catch (e) {} render();
+    toast('Delivery information saved for ' + d.doNo + ' (' + DL_LABEL[f.method] + ').');
+  }
+  function dlPick(v) {
+    const sel = document.getElementById('dlMethod'); if (!sel || !dlm) return;
+    const g = (id) => { const el = document.getElementById(id); return el ? String(el.value || '') : ''; };
+    dlm.date = g('dlDate') || dlm.date; dlm.company = g('dlCompany') || dlm.company; dlm.ref = g('dlRef') || dlm.ref; dlm.pic = g('dlPic') || dlm.pic; dlm.notes = g('dlNotes') || dlm.notes;
+    sel.value = v; dlm.method = v; dlClosePanel(); drawDl();
+  }
+  $('pmModal').addEventListener('click', (e) => {
+    if (e.target.closest('#dlSave')) return saveDl();
+    if (e.target.closest('#dlGoTrip')) { closeModal(); const tb = document.querySelector('.tab-btn[data-tab="fleet-board"]'); if (tb) tb.click(); return; }
+    if (e.target.closest('#dlClear')) { if (!dlm) return; dlm.method = ''; dlm.company = ''; dlm.ref = ''; dlm.notes = ''; dlClosePanel(); drawDl(); return; }
+    const ob = e.target.closest('.dl-dd-opt'); if (ob) return dlPick(ob.dataset.v);
+    const bt = e.target.closest('#dlDdBtn'); if (bt) { return document.getElementById('dlDdPanel') ? dlClosePanel() : dlOpenPanel(); }
+    if (document.getElementById('dlDdPanel') && !e.target.closest('#dlDdPanel')) dlClosePanel();   // click anywhere else closes the list
+  });
+  $('pmModal').addEventListener('input', (e) => {
+    if (e.target.id !== 'dlDdSearch') return;
+    const q = String(e.target.value || '').trim().toLowerCase(); let n = 0;
+    Array.prototype.forEach.call(document.querySelectorAll('#dlDdList .dl-dd-opt'), el => { const hit = !q || el.textContent.toLowerCase().includes(q); el.style.display = hit ? '' : 'none'; if (hit) n++; });
+    const none = document.querySelector('#dlDdList .dl-dd-none'); if (none) none.style.display = n ? 'none' : '';
+  });
+  $('pmModal').addEventListener('keydown', (e) => {
+    if (!document.getElementById('dlDdPanel')) return;
+    if (e.key === 'Escape') { e.stopPropagation(); dlClosePanel(); }
+    else if (e.key === 'Enter' && e.target.id === 'dlDdSearch') { e.preventDefault(); const f = [...document.querySelectorAll('#dlDdList .dl-dd-opt')].find(x => x.style.display !== 'none'); if (f) dlPick(f.dataset.v); }
+  }, true);
+  window.addEventListener('resize', () => { try { dlClosePanel(); } catch (e) {} });
   // Group the Issued list by boutique (same look as the Pending list): one header row per boutique, DO rows below it.
   function groupedDo(view, rowFn) {
     const m = new Map();
     view.forEach(x => { const k = String(x.d.boutique || '-').replace(/\s+/g, ' ').trim().toUpperCase(); if (!m.has(k)) m.set(k, { name: x.d.boutique || '-', items: [] }); m.get(k).items.push(x); });
     return [...m.values()].sort((a, b) => a.name.localeCompare(b.name)).map(g => {
       const nSto = g.items.reduce((a, x) => a + (Array.isArray(x.d.orderNumbers) ? x.d.orderNumbers.length : 0), 0), nIt = g.items.reduce((a, x) => a + doItems(x.d), 0), nCt = g.items.reduce((a, x) => a + doCartons(x.d), 0);
-      return '<tr class="pm-grp"><td colspan="8"><div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;"><b style="font-family:Georgia,serif;font-size:15px;flex:1;min-width:200px;">' + esc(g.name) + '</b><span style="font-size:12.5px;color:#e8d7ae;">' + g.items.length + ' DO &middot; ' + nSto + ' STO &middot; ' + fq(nIt) + ' items &middot; ' + nCt + ' cartons</span></div></td></tr>' + g.items.map(rowFn).join('');
+      return '<tr class="pm-grp"><td colspan="9"><div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;"><b style="font-family:Georgia,serif;font-size:15px;flex:1;min-width:200px;">' + esc(g.name) + '</b><span style="font-size:12.5px;color:#e8d7ae;">' + g.items.length + ' DO &middot; ' + nSto + ' STO &middot; ' + fq(nIt) + ' items &middot; ' + nCt + ' cartons</span></div></td></tr>' + g.items.map(rowFn).join('');
     }).join('');
   }
   function viewDo(no) {
@@ -43383,6 +43584,8 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
   }
   $('pmDoList').addEventListener('click', (e) => {
     const v = e.target.closest('[data-vdo]'); if (v) return viewDo(v.dataset.vdo);
+    const u = e.target.closest('[data-udl]'); if (u) return openDl(u.dataset.udl);
+    const md = e.target.closest('[data-mdel]'); if (md) { try { markCourierDoDelivered(md.dataset.mdel); } catch (er) { console.warn(er); } setTimeout(render, 60); return; }
     const b = e.target.closest('[data-rdo]'); if (!b) return;
     const no = b.dataset.rdo, rec = doRecords.find(x => x.doNo === no); if (!rec) return;
     const ids = (rec.orderNumbers || []).slice();
@@ -43582,7 +43785,7 @@ window.K3D.gauge='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS
 
   /* ---------- modals ---------- */
   function openModal(html, kind) { $('pmModalBox').innerHTML = html; $('pmModal').classList.add('open'); modalKind = kind || ''; }
-  function closeModal() { $('pmModal').classList.remove('open'); modalKind = ''; modalOrder = ''; }
+  function closeModal() { try { const pn = document.getElementById('dlDdPanel'); if (pn) pn.remove(); } catch (e) {} $('pmModal').classList.remove('open'); modalKind = ''; modalOrder = ''; }
   const kv = (k, v) => '<span class="k">' + k + '</span><span>' + (v ? esc(v) : '-') + '</span>';
   function details(o) {
     const r = records.find(x => x.orderNumber === o); if (!r) return;
