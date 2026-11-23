@@ -8154,7 +8154,7 @@ document.getElementById('addManualStoBtn').addEventListener('click', () => {
   markStoJustCreatedByThisDevice('STO_Records', newRec);
   // Nov 4, 2026: send just this new STO to Firebase right away. The box below keeps keyboard focus, and while an input has focus the background sync holds back,
   // so a newly added STO used to sit unsent until an incoming server snapshot replaced the list and removed it.
-  try { if (typeof fbDb !== 'undefined' && fbDb) fbDb.ref('STO_Records/' + fbSafeKey(syncKeyOf(newRec))).set(Object.assign({}, newRec, { _rv: FB_SV, _bv: fbBvStamp() })).catch(e => console.warn('immediate STO push failed (the background sync will retry)', e)); } catch (e) { console.warn(e); }
+  try { if (typeof fbDb !== 'undefined' && fbDb && !fbTableHeld('STO_Records')) fbDb.ref('STO_Records/' + fbSafeKey(syncKeyOf(newRec))).set(Object.assign({}, newRec, { _rv: FB_SV, _bv: fbBvStamp() })).catch(e => console.warn('immediate STO push failed (the background sync will retry)', e)); } catch (e) { console.warn(e); }
 
   note.textContent = `"${orderNumber}" added.`;
   note.style.color = '#4bb583';
@@ -12739,6 +12739,7 @@ let fbVersionError = '';                  // last reason the version marker coul
 let fbConnected = null;                   // Firebase realtime connection (.info/connected): null unknown, true, false
 let fbDisconnectedAt = 0;
 let fbLastServerEventAt = 0;              // last time ANY server data/snapshot reached this device
+let fbRestPollOkAt = 0;                   // r632: last time the HTTPS fallback read succeeded (lets the status say 'Limited (HTTPS)' instead of a bare 'Offline')
 const FB_VERSION_PATH = 'AppMeta/latestBuild';
 // ROOT CAUSE of the endless "Checking version…" on the hosted page: this code lives in a different <script> block than APP_BUILD_NUM (defined ~28,000 lines later). On a slow
 // (hosted) load the browser can run the 0 ms timer BEFORE that later block has executed; reading APP_BUILD_NUM then threw, the timer callback died before it installed its
@@ -12748,6 +12749,108 @@ function fbWritesAllowed() { return fbVersionState === 'ok'; }
 // READS (and applying what the server has) only stop for an outdated build. While the version is still being checked (or the marker cannot be read) the device keeps
 // receiving server data, so it never sits on stale data because of the version check; only WRITES wait for 'ok'.
 function fbReadsAllowed() { return fbVersionState !== 'outdated'; }
+/* ===== r635 SAFETY LAYER (additive; no database path / structure / business rule is changed) =====
+   1. fbGuardHold: the central write guard below also refuses EVERY write (including one-shot writers such as BqrDistrib, ReleaseSchedule, Reset ...) while this device is offline or
+      has not yet validated a table against fresh server data. Refused writes are reported (red bar), never silently queued for blind replay by the Firebase SDK.
+   2. fbTrackWrite: every write's result is watched; a rejected write (e.g. PERMISSION_DENIED from the server Rules) is logged and shown, not swallowed.
+   3. T17 window: writes already queued inside the SDK at the moment the disconnect is detected CANNOT be cancelled from the page. They are counted and reported ('queued').
+      The only real fix is on the server (Rules) - see RULES-PROPOSAL-r635.md.
+   4. Offline reload: if the page is reloaded/closed while offline, unvalidated or with un-acknowledged writes, a marker is left and the next start offers a RECOVERY FILE with this
+      device's local data as it was BEFORE the server copy replaces it. */
+const FB_ISSUE_KEY = 'fbWriteIssuesV1', FB_DIRTY_KEY = 'fbOfflineDirtyV1';
+const fbInflightWrites = new Map(); let fbInflightSeq = 0;
+function fbGuardHold(path) {
+  try {
+    const table = String(path || '').replace(/^\/+|\/+$/g, '').split('/')[0];
+    if (!table || table === 'AppMeta' || table === '.info') return '';
+    if (!fbEverConnected) return '';   // before the first connection the version gate (fbWritesAllowed) already blocks everything
+    if (fbConnected === false || fbNavOffline()) return 'offline';
+    if (fbRevalNeeded) {
+      if (table === 'Deleted' || table === RM_SHARED_TOMBSTONES_TABLE) return '';   // tombstones are written by already-gated delete flows
+      const known = fbRevalTargets().some(t => t.table === table);
+      if (known ? fbTableHeld(table) : true) return 'validating';
+    }
+  } catch (e) {}
+  return '';
+}
+function fbIssueLog() { try { const a = JSON.parse(localStorage.getItem(FB_ISSUE_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+function fbNoteWriteIssue(kind, path, op, detail) {
+  try {
+    const log = fbIssueLog(), now = Date.now(), last = log[log.length - 1];
+    if (last && last.kind === kind && last.path === path && last.op === op && now - last.ts < 5000) last.n = (last.n || 1) + 1;
+    else log.push({ ts: now, at: new Date(now).toISOString(), kind: kind, path: String(path || ''), op: op, detail: String(detail || '').slice(0, 240), n: 1 });
+    localStorage.setItem(FB_ISSUE_KEY, JSON.stringify(log.slice(-100)));
+    localStorage.setItem(FB_DIRTY_KEY, JSON.stringify({ at: new Date(now).toISOString(), reason: kind }));
+    console.warn('r635 write issue:', kind, op, path, detail);
+  } catch (e) {}
+  try { fbRenderSafetyBars(); } catch (e) {}
+}
+function fbTrackWrite(path, op, p) {
+  try {
+    if (!p || typeof p.then !== 'function') return p;
+    const id = ++fbInflightSeq; fbInflightWrites.set(id, { path: String(path || ''), op: op, t: Date.now() });
+    p.then(() => { fbInflightWrites.delete(id); }, e => { fbInflightWrites.delete(id); fbNoteWriteIssue('failed', path, op, (e && (e.code || e.message)) || e); });
+  } catch (e) {}
+  return p;
+}
+function fbNoteQueuedAtDisconnect() {
+  if (!fbInflightWrites.size) return;
+  const items = [...fbInflightWrites.values()].map(w => w.op + ' ' + w.path);
+  fbNoteWriteIssue('queued', items.slice(0, 4).join('; '), 'T17', items.length + ' write(s) were already queued inside the Firebase SDK when the disconnect was detected. The SDK re-sends them blindly when the connection returns and the page cannot cancel them. Check the affected records.');
+}
+try { window.addEventListener('pagehide', () => { try { if (fbAnyHeld() || fbInflightWrites.size) localStorage.setItem(FB_DIRTY_KEY, JSON.stringify({ at: new Date().toISOString(), reason: 'page closed/reloaded while offline, unvalidated or with unacknowledged writes' })); } catch (e) {} }); } catch (e) {}
+// ---- visible reporting (bottom-left, does not touch any existing screen) ----
+function fbSafetyHost() {
+  if (!document.body) return null;
+  let h = document.getElementById('fbSafetyBars');
+  if (!h) { h = document.createElement('div'); h.id = 'fbSafetyBars'; h.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:99998;display:flex;flex-direction:column;gap:6px;max-width:92vw;font:13px system-ui'; document.body.appendChild(h); }
+  return h;
+}
+function fbRenderSafetyBars() {
+  const h = fbSafetyHost(); if (!h) { document.addEventListener('DOMContentLoaded', () => { try { fbRenderSafetyBars(); } catch (e) {} }, { once: true }); return; }
+  let b = document.getElementById('fbIssueBar');
+  const log = fbIssueLog().filter(x => !x.reviewed), n = log.reduce((a, x) => a + (x.n || 1), 0);
+  if (!log.length) { if (b) b.remove(); }
+  else {
+    if (!b) { b = document.createElement('div'); b.id = 'fbIssueBar'; b.style.cssText = 'background:#8b1d1d;color:#fff;padding:8px 12px;border-radius:8px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.4)'; b.onclick = fbShowWriteIssues; h.appendChild(b); }
+    b.textContent = '⚠ ' + n + ' cloud write problem(s) - changes may NOT be saved to the cloud. Tap for details.';
+  }
+}
+function fbShowWriteIssues() {
+  try {
+    const old = document.getElementById('fbIssueModal'); if (old) old.remove();
+    const log = fbIssueLog(), esc = v => String(v == null ? '' : v).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    const box = document.createElement('div'); box.id = 'fbIssueModal'; box.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+    box.innerHTML = '<div style="background:#1b2430;color:#e8eef5;max-width:960px;width:100%;max-height:85vh;overflow:auto;border-radius:10px;padding:18px;font:13px system-ui"><h3 style="margin:0 0 6px">Cloud write problems (' + log.length + ')</h3>'
+      + '<div style="opacity:.85;margin-bottom:10px">held = refused because this device was offline / not yet checked against the server (nothing was sent). failed = the server rejected it. queued = already queued inside the SDK when the connection dropped (will be re-sent by the SDK; check the records). blocked = this page version is not allowed to write. Re-do held / failed changes after the status bar shows the device is online and synced.</div>'
+      + '<table style="width:100%;border-collapse:collapse"><tr style="text-align:left;opacity:.7"><th>When</th><th>Kind</th><th>Operation</th><th>Path</th><th>x</th><th>Detail</th></tr>'
+      + log.slice().reverse().map(x => '<tr style="border-top:1px solid #33404f"><td>' + esc((x.at || '').replace('T', ' ').slice(0, 19)) + '</td><td>' + esc(x.kind) + '</td><td>' + esc(x.op) + '</td><td>' + esc(x.path) + '</td><td>' + esc(x.n || 1) + '</td><td>' + esc(x.detail) + '</td></tr>').join('')
+      + '</table><div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end"><button id="fbIssDl">Download list</button><button id="fbIssMark">Mark all as reviewed</button><button id="fbIssClose">Close</button></div></div>';
+    document.body.appendChild(box);
+    document.getElementById('fbIssClose').onclick = () => box.remove();
+    document.getElementById('fbIssMark').onclick = () => { try { localStorage.setItem(FB_ISSUE_KEY, JSON.stringify(fbIssueLog().map(x => Object.assign(x, { reviewed: true })))); } catch (e) {} box.remove(); fbRenderSafetyBars(); };
+    document.getElementById('fbIssDl').onclick = () => fbDownloadBlob(new Blob([JSON.stringify(fbIssueLog(), null, 1)], { type: 'application/json' }), 'khatam-write-problems-' + Date.now() + '.json');
+  } catch (e) { console.warn(e); }
+}
+function fbDownloadBlob(blob, name) { try { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { try { a.remove(); URL.revokeObjectURL(a.href); } catch (e) {} }, 4000); } catch (e) { console.warn(e); } }
+// ---- offline-reload recovery: runs at page start, BEFORE any server snapshot can replace local data ----
+(function fbRecoveryOnBoot() {
+  try {
+    const m = localStorage.getItem(FB_DIRTY_KEY); if (!m) return;
+    localStorage.removeItem(FB_DIRTY_KEY);
+    const data = {}; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k !== FB_DIRTY_KEY) data[k] = localStorage.getItem(k); }
+    window.__fbRecoveryBlob = new Blob([JSON.stringify({ kind: 'khatam-offline-recovery', savedAt: new Date().toISOString(), marker: JSON.parse(m), note: 'Copy of this browser\'s local data taken at page start, BEFORE the cloud copy replaced it. Use it to re-enter changes that did not reach the cloud. Nothing in the cloud was changed by creating this file.', localStorage: data })], { type: 'application/json' });
+    const show = () => {
+      const h = fbSafetyHost(); if (!h || document.getElementById('fbRecoveryBar')) return;
+      const b = document.createElement('div'); b.id = 'fbRecoveryBar'; b.style.cssText = 'background:#7a5a00;color:#fff;padding:8px 12px;border-radius:8px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.4)';
+      b.textContent = '⚠ The previous session ended while offline / unsynced. Tap to download a RECOVERY COPY of this device\'s data (taken before the cloud copy replaced it).';
+      b.onclick = () => { fbDownloadBlob(window.__fbRecoveryBlob, 'khatam-recovery-' + Date.now() + '.json'); b.remove(); };
+      h.appendChild(b);
+    };
+    if (document.body) show(); else document.addEventListener('DOMContentLoaded', show, { once: true });
+  } catch (e) {}
+})();
+document.addEventListener('DOMContentLoaded', () => { try { fbRenderSafetyBars(); } catch (e) {} }, { once: true });
 (function fbInstallWriteGuard() {
   if (!fbDb || fbDb.__writeGuarded) return;
   const rawRef = fbDb.ref.bind(fbDb);
@@ -12759,10 +12862,19 @@ function fbReadsAllowed() { return fbVersionState !== 'outdated'; }
     WRITE_METHODS.forEach(m => {
       const orig = ref[m];
       if (typeof orig !== 'function') return;
-      ref[m] = function () { if (!exempt && !fbWritesAllowed()) return blocked(); return orig.apply(this, arguments); };
+      ref[m] = function () {
+        if (!exempt && !fbWritesAllowed()) { fbNoteWriteIssue('blocked', path, m, fbVersionState === 'outdated' ? 'system update required' : 'system version not verified yet'); return blocked(); }
+        const hold = exempt ? '' : fbGuardHold(path);   // r635: EVERY writer (also one-shot writers) is refused while offline / not yet validated against the server - visible, never silently queued
+        if (hold) { fbNoteWriteIssue('held', path, m, hold); return Promise.reject(new Error('WRITE_HELD: ' + hold)); }
+        return fbTrackWrite(path, m, orig.apply(this, arguments));
+      };
     });
     const origPush = ref.push;
-    if (typeof origPush === 'function') ref.push = function () { if (arguments.length && !exempt && !fbWritesAllowed()) return blocked(); return origPush.apply(this, arguments); };
+    if (typeof origPush === 'function') ref.push = function () {
+      if (arguments.length && !exempt && !fbWritesAllowed()) { fbNoteWriteIssue('blocked', path, 'push', 'system version not verified yet'); return blocked(); }
+      if (arguments.length && !exempt) { const hold = fbGuardHold(path); if (hold) { fbNoteWriteIssue('held', path, 'push', hold); return Promise.reject(new Error('WRITE_HELD: ' + hold)); } }
+      return fbTrackWrite(path, 'push', origPush.apply(this, arguments));
+    };
     const origChild = ref.child;
     if (typeof origChild === 'function') ref.child = function (c) { return guard(String(path || '') + '/' + c, origChild.call(this, c)); };
     try { ref.__writeGuarded = true; } catch (e) {}
@@ -12841,7 +12953,9 @@ function fbConnectionNote() {
     if (Date.now() - fbVersionStartedAt < 12000) return { full: 'Checking system version… (changes are not being sent yet).', short: 'Checking version…' };
     return { full: 'Cannot reach Firebase to check the system version' + (fbVersionError ? ' (' + fbVersionError + ')' : ' (no response)') + '. Check the internet / Wi-Fi and any ad-blocker or firewall. Changes are NOT being saved until this is resolved; the system keeps retrying.', short: 'No connection ⚠' };
   }
-  if (fbConnected === false && fbDisconnectedAt && Date.now() - fbDisconnectedAt > 8000) return { full: 'Offline: no connection to Firebase. Changes stay on this device and are sent automatically when the connection returns.', short: 'Offline ⚠' };
+  if (fbRevalNeeded && fbConnected === true && fbEverConnected) return { full: 'Reconnected: checking the changes made on this device while offline against the latest server data. Nothing is sent until that check is done.', short: 'Validating…' };
+  if (fbConnected === false && fbDisconnectedAt && Date.now() - fbDisconnectedAt > 8000 && Date.now() - fbRestPollOkAt < 45000) return { full: 'Realtime connection is down; data is being read over HTTPS every ~20 s. Changes you make are kept on this device (nothing is sent) and are checked against the server and sent when the realtime connection returns.', short: 'Limited (HTTPS) ⚠' };
+  if (fbConnected === false && fbDisconnectedAt && Date.now() - fbDisconnectedAt > 8000) return { full: 'Offline: no connection to Firebase. Changes stay on this device (nothing is sent) and are checked against the latest server data and sent automatically when the connection returns.', short: 'Offline ⚠' };
   return null;
 }
 // Same read as the SDK, over plain HTTPS: works even when the realtime (WebSocket) channel is slow or blocked on a network.
@@ -12871,7 +12985,7 @@ function fbRestPollTables() {
     .then(list => list.forEach(({ t, v }) => {
       if (!v || typeof v !== 'object') return;   // null / error body: never adopted
       if (fbConnected === true) return;           // the realtime channel came back meanwhile: it takes over
-      fbLastServerEventAt = Date.now();
+      fbLastServerEventAt = Date.now(); fbRestPollOkAt = Date.now();
       fbLastServerSnapshot[t] = FB_PROTECTED_TABLES.has(t) ? fbStripRvMap(v) : v;
       applyServerSnapshot(t);
     }))
@@ -12886,7 +13000,7 @@ function fbVerifyVersion() {
   if (!mine) return;   // the rest of the page has not finished loading yet: the 3-second timer simply tries again
   if (!fbVersionListening) {   // live listener from the start: gives the first value as soon as the connection is up, and reacts at once to a newer build
     fbVersionListening = true;
-    try { fbDb.ref(FB_VERSION_PATH).on('value', s => { const nv = Number(s.val()) || 0; const me = fbBuildNum(); if (!me) return; fbSetVersionState(nv > me ? 'outdated' : 'ok', nv); }, () => {}); } catch (e) { fbVersionListening = false; }
+    try { fbDb.ref(FB_VERSION_PATH).on('value', s => { const nv = Number(s.val()) || 0; const me = fbBuildNum(); if (!me) return; fbSetVersionState(nv > me ? 'outdated' : 'ok', nv); }, () => { fbVersionListening = false; }); } catch (e) { fbVersionListening = false; }
   }
   fbVerifyViaRest();
   const read = fbDb.ref(FB_VERSION_PATH).once('value');
@@ -12910,7 +13024,8 @@ setTimeout(() => {   // retry timer is installed FIRST so nothing below can leav
     } catch (e) { console.warn('version watchdog', e); }
   }, 3000);
   try { fbVerifyVersion(); } catch (e) { console.warn('version check', e); }
-  try { fbDb.ref('.info/connected').on('value', s => { const c = s.val() === true; if (c !== fbConnected) { fbConnected = c; fbDisconnectedAt = c ? 0 : Date.now(); try { renderCloudSyncStatus(); } catch (e) {} } }); } catch (e) {}
+  try { fbDb.ref('.info/serverTimeOffset').on('value', so => { globalThis.__fbSrvOff = Number(so.val()) || 0; }); } catch (e) {}   // PHASE 2: read-only listener
+  try { fbDb.ref('.info/connected').on('value', s => { fbOnConnectedChange(s.val() === true); }); } catch (e) {}
 }, 0);
 
 function genSyncId() { return 'sy' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
@@ -12973,7 +13088,7 @@ function rmMarkDeletedAndPushNow(table, deletedSyncKeys) {
   // Firebase directly for the exact keys being deleted (a `.update()` with each key set to null, same
   // as a normal diff push but guaranteed to run regardless of listener/reconcile timing) instead of
   // only going through pushCollectionDiff (kept as the catch-up path for everything else that changed).
-  if (fbDb && deletedSyncKeys && deletedSyncKeys.length) {
+  if (fbDb && deletedSyncKeys && deletedSyncKeys.length && !fbTableHeld(table)) {   // r633: while held, the diff push sends the delete (with its tombstone) after validation
     const directDelete = {};
     deletedSyncKeys.forEach(key => { directDelete[fbSafeKey(key)] = null; });
     const tombFirst = FB_PROTECTED_TABLES.has(table)
@@ -13012,11 +13127,12 @@ rmPruneSyncTombstones();
 // collection listeners) so every device learns about every other device's deliberate deletions, not just its own.
 const RM_SHARED_TOMBSTONES_TABLE = 'RawMaterial_SharedTombstones';
 let fbSharedRmTombstones = {};
-function attachRmSharedTombstoneListener() {
+function attachRmSharedTombstoneListener(force) {
   if (!fbDb) return;
-  fbDb.ref(RM_SHARED_TOMBSTONES_TABLE).on('value', snapshot => {
+  fbAttachOnValue('RM deletions list', RM_SHARED_TOMBSTONES_TABLE, snapshot => {
+    fbListenerOk('RM deletions list');
     fbSharedRmTombstones = snapshot.val() || {};
-  }, () => {});
+  }, error => { fbListenerFailed('RM deletions list', error, attachRmSharedTombstoneListener); }, { force: force === true });
 }
 // Firebase Realtime Database keys can't contain '.', '#', '$', '[', ']', or '/'. None of the IDs
 // this app generates itself ever do, but this guards against a stray character (e.g. a DO number
@@ -13068,6 +13184,375 @@ function fbChunkedUpdate(ref, updateObj, chunkSize) {
 let cloudSyncStatus = 'idle'; // 'idle' | 'syncing' | 'error'
 let cloudSyncLastError = '';
 let cloudSyncLastAt = null;
+
+/* ===== r632 SYNC FIX (21 Nov 2026) =====
+   ROOT CAUSES found by reading the sync code (see SYNC-FIX-REPORT):
+   1. A realtime listener that Firebase CANCELS (permission / quota / size error) was never re-attached. The old error callbacks only set the status text; two listeners
+      (Postponed DOs, RM shared tombstones) swallowed the error completely. That table then silently stopped updating on that device until a page reload ("changes from other staff
+      do not appear", "only Sync Now helps").
+   2. "Sync error" never cleared by itself: the status stayed red after the failed table pushed successfully a moment later.
+   3. A failed push was retried every 2 s forever (no back-off, no limit, permission errors hammered the server) and the message was a bare, unclassified text.
+   4. Raw Material tables (Rolls / Picks / STOs / DOs) had NO stale-overwrite protection: a device with an old copy could push whole old records back
+      (a Completed pick back to Open, a roll balance back to full). They are now written field-by-field and an unexplained backwards move is dropped.
+   5. 'Sync Now' only re-ran the initial pull; it did not re-open a dead connection, re-attach dead listeners, release parked retries, or confirm anything with the server.
+   Nothing here touches Firebase config, paths or Rules. */
+const fbPushState = {};        // table -> { fails, nextAt, parked, kind, text }
+const fbSnapStamp = {};        // table -> number of realtime snapshots received (lets a fresh read tell whether a newer snapshot arrived meanwhile)
+const fbListenerState = {};    // label -> { fails, timer, dead, parked, text, reattach }
+// r633 (Fix 2): ONE registry for every realtime listener that has recovery. At most one live on('value') exists per label. A re-attach request (reconnect, Sync Now, retry timer - even
+// all at once, even while the first snapshot of the previous attach is still pending) is a no-op while the listener is live; only a listener Firebase CANCELLED (error callback) is
+// attached again. Callbacks of a replaced attach carry an old generation number and are ignored, and the replaced callback is detached with off().
+const fbListeners = {};        // label -> { gen, live, cb, path, query, attachedAt, gotSnap }
+function fbAttachOnValue(label, path, onValue, onError, opts) {
+  opts = opts || {};
+  let e = fbListeners[label];
+  if (e && e.live && !opts.force) return false;   // already attached (snapshot may still be pending): never attach a second one
+  if (e && e.cb) { try { (e.query || fbDb.ref(e.path)).off('value', e.cb); } catch (x) {} }
+  e = fbListeners[label] = { gen: ((e && e.gen) || 0) + 1, live: true, path, query: opts.query || null, attachedAt: Date.now(), gotSnap: false, cb: null };
+  const gen = e.gen;
+  e.cb = snap => { if (fbListeners[label] !== e || e.gen !== gen) return; e.gotSnap = true; onValue(snap); };
+  (opts.query || fbDb.ref(path)).on('value', e.cb, err => { if (fbListeners[label] !== e || e.gen !== gen) return; e.live = false; e.cb = null; try { onError(err); } catch (x) { console.warn(x); } });
+  return true;
+}
+// Sync Now: a listener that is "live" but has delivered no first snapshot for 20 s is replaced (off + on = still exactly one).
+function fbForceStuckListeners() {
+  Object.keys(fbListeners).forEach(l => { const e = fbListeners[l]; if (e && e.live && !e.gotSnap && Date.now() - e.attachedAt > 20000 && fbListenerState[l] && fbListenerState[l].reattach) { try { fbListenerState[l].reattach(true); } catch (x) {} } });
+}
+let fbCloudErrorFromPush = false;
+function fbErrText(e) { return String((e && (e.message || e.code)) || e || 'unknown error'); }
+function fbClassifyError(e) {
+  const raw = fbErrText(e), code = String((e && e.code) || '');
+  if (/WRITE_BLOCKED/.test(raw)) return { kind: 'blocked', text: raw.replace(/^.*WRITE_BLOCKED:\s*/, 'Writes are paused: ') };
+  if (/permission[_ -]?denied/i.test(raw + ' ' + code)) return { kind: 'permission', text: 'Firebase refused the change (permission denied by the database rules, not a network problem): ' + raw };
+  if (/quota|bandwidth|usage limit|over limit|database.{0,20}disabled/i.test(raw)) return { kind: 'quota', text: 'Firebase usage limit / quota problem: ' + raw };
+  if (/offline|network|disconnect|timeout|timed out|unavailable|failed to fetch|cannot read server|no response/i.test(raw + ' ' + code)) return { kind: 'network', text: 'Network problem reaching Firebase: ' + raw };
+  return { kind: 'other', text: raw };
+}
+const FB_MAX_AUTO_RETRIES = { permission: 3, quota: 3, other: 6, network: 12, blocked: 0 };
+function fbBackoffMs(n) { return Math.min(60000, 2000 * Math.pow(2, Math.max(0, n - 1))); }   // 2, 4, 8, 16, 32, 60 s
+function fbPushBackoffActive(table) { const s = fbPushState[table]; return !!s && (s.parked || Date.now() < s.nextAt); }
+function fbPendingCount() { let n = collectionPushInFlight.size; Object.keys(fbPushState).forEach(t => { if (!collectionPushInFlight.has(t)) n++; }); return n; }
+function fbActiveErrorText() {
+  const pk = Object.keys(fbPushState).map(t => fbPushState[t]).filter(s => s.text);
+  const lk = Object.keys(fbListenerState).map(l => fbListenerState[l]).filter(s => s.dead);
+  const parts = pk.map(s => s.text + (s.parked ? ' - automatic retry stopped; press Sync Now once the cause is fixed.' : ' - retrying automatically (attempt ' + s.fails + ').'))
+    .concat(lk.map(s => s.text + (s.parked ? ' - automatic reconnect stopped; press Sync Now.' : ' - reconnecting automatically.')));
+  return parts.join(' | ');
+}
+function fbRefreshErrorState() {
+  const txt = fbActiveErrorText();
+  if (txt) { cloudSyncStatus = 'error'; cloudSyncLastError = txt; fbCloudErrorFromPush = true; }
+  else if (cloudSyncStatus === 'error' && fbCloudErrorFromPush) { cloudSyncStatus = 'idle'; cloudSyncLastError = ''; cloudSyncLastAt = new Date(); fbCloudErrorFromPush = false; }
+  try { renderCloudSyncStatus(); } catch (x) {}
+}
+function fbPushFailed(table, e) {
+  const c = fbClassifyError(e), s = fbPushState[table] || (fbPushState[table] = { fails: 0 });
+  s.fails++; s.kind = c.kind; s.text = table + ': ' + c.text;
+  if (s.fails > (FB_MAX_AUTO_RETRIES[c.kind] || 0)) { s.parked = true; s.nextAt = 0; } else { s.parked = false; s.nextAt = Date.now() + fbBackoffMs(s.fails); }
+  fbRefreshErrorState();
+}
+function fbPushSucceeded(table) { if (!fbPushState[table]) return; delete fbPushState[table]; fbRefreshErrorState(); }
+function fbListenerOk(label) { const s = fbListenerState[label]; if (!s || !s.dead) return; if (s.timer) clearTimeout(s.timer); delete fbListenerState[label]; fbRefreshErrorState(); }
+function fbListenerFailed(label, error, reattach) {
+  const c = fbClassifyError(error), s = fbListenerState[label] || (fbListenerState[label] = { fails: 0 });
+  s.fails++; s.dead = true; s.reattach = reattach; s.text = label + ' (live updates stopped on this device): ' + c.text;
+  if (s.timer) { clearTimeout(s.timer); s.timer = null; }
+  if (s.fails > (FB_MAX_AUTO_RETRIES[c.kind] || 0) + 1 || c.kind === 'blocked') s.parked = true;
+  else { s.parked = false; s.timer = setTimeout(() => { s.timer = null; try { reattach(); } catch (e2) { fbListenerFailed(label, e2, reattach); } }, Math.max(5000, fbBackoffMs(s.fails) * 2)); }
+  fbRefreshErrorState();
+}
+// The realtime connection came back (.info/connected -> true): network-type failures are retried at once (back-off reset) and listeners Firebase cancelled are re-attached.
+function fbOnReconnected() {
+  try { fbStartReval(); } catch (e) { console.warn('r633 revalidation', e); }   // r633: validate pending offline changes against the fresh server copy BEFORE anything is sent
+  Object.keys(fbPushState).forEach(tb => { const s = fbPushState[tb]; if (s.kind === 'network' || s.kind === 'other') { s.fails = 0; s.nextAt = 0; s.parked = false; } });
+  Object.keys(fbListenerState).forEach(l => { const s = fbListenerState[l]; if (s && s.dead && s.reattach) { if (s.timer) { clearTimeout(s.timer); s.timer = null; } try { s.reattach(); } catch (e) { fbListenerFailed(l, e, s.reattach); } } });
+}
+// 'Sync Now': release every parked / waiting retry and re-attach every listener Firebase cancelled.
+function fbRetryNow() {
+  Object.keys(fbPushState).forEach(t => { delete fbPushState[t]; });
+  Object.keys(fbListenerState).forEach(l => { const s = fbListenerState[l]; if (s && s.dead && s.reattach) { if (s.timer) { clearTimeout(s.timer); s.timer = null; } s.parked = false; try { s.reattach(); } catch (e) { fbListenerFailed(l, e, s.reattach); } } });
+}
+// ===== r637: Raw Material roll CLAIM by server-side transaction (compare-and-set) =====
+// Scanning a roll to send it deducts meters. Two devices scanning the same roll (or a stale device) used to overwrite each other's value. When this device is online and validated,
+// the deduction is now a Firebase TRANSACTION on RawMaterial_Rolls/<key>: the SDK re-runs the function on the SERVER's current value, so a roll that was already sent (0 m) or has
+// fewer meters than asked is ABORTED and nothing is written; the scan then reports 'already sent' and the STO item is NOT marked Completed. Offline / unvalidated / no SDK:
+// the previous (guarded, revalidated) flow is used unchanged. Only the roll's own record is touched; no path, table or other record changes. No delete, no reset.
+const fbRmClaiming = new Set();
+function fbRmTxnUsable() { try { return !!fbDb && fbWritesAllowed() && fbConnected === true && !fbNavOffline() && !fbTableHeld('RawMaterial_Rolls') && !fbTableHeld('RawMaterial_STOs'); } catch (e) { return false; } }
+function fbRmClaimRoll(roll, take) {
+  return new Promise(resolve => {
+    let key; try { key = fbSafeKey(syncKeyOf(roll)); } catch (e) { return resolve({ ok: false, reason: 'error', err: e }); }
+    if (fbRmClaiming.has(key)) return resolve({ ok: false, reason: 'busy' });
+    fbRmClaiming.add(key); fbRmTxAt[key] = Date.now();
+    let done = false, tm = null;
+    const finish = r => { if (done) return; done = true; fbRmClaiming.delete(key); fbRmTxAt[key] = Date.now(); if (tm) clearTimeout(tm); resolve(r); };
+    tm = setTimeout(() => finish({ ok: false, reason: 'timeout' }), 20000);   // nothing was confirmed: the caller treats it as NOT sent
+    try {
+      fbDb.ref('RawMaterial_Rolls/' + key).transaction(cur => {
+        if (cur === null) return cur;   // SDK first guess when the record is not cached: the server value arrives and this function is re-run
+        const left = Math.round((Number(cur.meterRemaining) || 0) * 100) / 100;
+        if (left <= 0 || left + 0.005 < take) return;   // undefined = ABORT: already sent / not enough meters on the SERVER copy
+        return Object.assign({}, cur, { meterRemaining: Math.max(0, Math.round((left - take) * 100) / 100), _rv: FB_SV, _bv: fbBvStamp() });
+      }, (err, committed, snap) => {
+        if (err) return finish({ ok: false, reason: 'error', err });
+        if (!committed) return finish({ ok: false, reason: 'already' });
+        let v = null; try { v = snap && snap.val(); } catch (e) {}
+        if (!v) return finish({ ok: false, reason: 'missing' });
+        finish({ ok: true, key, value: v });
+      }, false);
+    } catch (e) { finish({ ok: false, reason: 'error', err: e }); }
+  });
+}
+// after a committed claim the server value IS the truth: adopt it locally (record, snapshot cache, baseline) so the normal diff push does not re-send an older local number
+function fbRmAdopt(roll, key, serverVal, table) {
+  try {
+    const clean = fbStripRvMap({ [key]: serverVal })[key];
+    Object.keys(clean).forEach(f => { roll[f] = clean[f]; });
+    const t = table || 'RawMaterial_Rolls';
+    (fbLastServerSnapshot[t] || (fbLastServerSnapshot[t] = {}))[key] = fbCloneRecord(clean);
+    if (FB_BASELINE_TABLES.has(t)) (fbBaseline[t] || (fbBaseline[t] = {}))[key] = stableStringify(clean);
+  } catch (e) { console.warn('r637 adopt', e); }
+}
+// ===== r639: ATOMIC Raw Material operations (server-side transactions) =====
+// r637 protected only the scan. Every other operation that changes a roll's balance (Manual Complete, Deduct Stock Now, Manual STO reconciliation, Delete STO + restore, Edit Roll,
+// Import Roll, Import History Pick/STO) used to write an ABSOLUTE number computed from this device's possibly stale copy, so two people working at the same time overwrote each other
+// (lost updates, duplicate deductions, wrong balances). Now each of them runs as a Firebase TRANSACTION on RawMaterial_Rolls/<key> (and, where an STO item must change exactly once,
+// on RawMaterial_STOs/<key>): the SDK runs the function on the SERVER's current value, so
+//   deduct  = server balance - take (never below 0, never more than the server has)      restore = server balance + add (capped at the roll's total, marked _adj)
+//   set     = compare-and-set: only if the server balance is still the value the person saw (otherwise REFUSED, nothing written)
+// Operations that need the server (everything except the offline scan/manual-complete fallback) are REFUSED with a visible message when this device is offline or not validated:
+// nothing is queued for blind replay. A device-local journal (fbRmJournalV1) remembers which parts of a multi-roll operation already committed, so repeating an interrupted
+// operation never deducts the same meters twice. Only existing records are touched (a roll's balance fields, an STO item's status fields); no path, table or other record changes;
+// nothing is deleted or reset.
+const FB_RM_JOURNAL_KEY = 'fbRmJournalV1';
+const fbRmTxAt = {};   // key -> last time an atomic operation started / finished on that roll on this device
+function fbRmRecentlyTx(key) { return Date.now() - (fbRmTxAt[key] || 0) < 15000; }
+function fbRm2(n) { return Math.round((Number(n) || 0) * 100) / 100; }
+function fbRmJournal() { try { return JSON.parse(localStorage.getItem(FB_RM_JOURNAL_KEY)) || {}; } catch (e) { return {}; } }
+function fbRmJournalGet(op) { return fbRmJournal()[op] || { parts: {} }; }
+function fbRmJournalPut(op, part, val) { try { const j = fbRmJournal(); const e = j[op] || (j[op] = { at: Date.now(), parts: {} }); e.parts[part] = val; localStorage.setItem(FB_RM_JOURNAL_KEY, JSON.stringify(j)); } catch (e) {} }
+function fbRmJournalClear(op) { try { const j = fbRmJournal(); delete j[op]; localStorage.setItem(FB_RM_JOURNAL_KEY, JSON.stringify(j)); } catch (e) {} }
+function fbRmRollKey(roll) { return fbSafeKey(syncKeyOf(roll)); }
+// generic promise wrapper: ok:true only when the SERVER committed. Any other outcome means NOTHING was written by this call, except 'timeout' (unknown: it may still commit later).
+function fbRmTx(path, lockKey, fn) {
+  return new Promise(resolve => {
+    if (!fbRmTxnUsable()) return resolve({ ok: false, reason: 'offline' });
+    if (fbRmClaiming.has(lockKey)) return resolve({ ok: false, reason: 'busy' });
+    fbRmClaiming.add(lockKey);
+    const txKey = path.split('/').pop(); if (path.indexOf('RawMaterial_Rolls/') === 0) fbRmTxAt[txKey] = Date.now();
+    let done = false, tm = null, info = {};
+    const finish = r => { if (done) return; done = true; fbRmClaiming.delete(lockKey); if (path.indexOf('RawMaterial_Rolls/') === 0) fbRmTxAt[txKey] = Date.now(); if (tm) clearTimeout(tm); r.info = r.info || info; resolve(r); };
+    tm = setTimeout(() => finish({ ok: false, reason: 'timeout' }), 20000);
+    try {
+      fbDb.ref(path).transaction(cur => {
+        if (cur === null) return cur;   // SDK first guess when the record is not cached: the server value arrives and this function is re-run
+        info = {};
+        return fn(cur, info);           // undefined = ABORT
+      }, (err, committed, snap) => {
+        if (err) return finish({ ok: false, reason: 'error', err });
+        if (!committed) return finish({ ok: false, reason: info.abort || 'already' });
+        let v = null; try { v = snap && snap.val(); } catch (e) {}
+        if (!v) return finish({ ok: false, reason: 'missing' });
+        finish({ ok: true, key: path.split('/').pop(), value: v });
+      }, false);
+    } catch (e) { finish({ ok: false, reason: 'error', err: e }); }
+  });
+}
+// deduct UP TO `want` meters from the SERVER balance
+function fbRmDeductUpTo(roll, want) {
+  return fbRmTx('RawMaterial_Rolls/' + fbRmRollKey(roll), 'roll:' + fbRmRollKey(roll), (cur, info) => {
+    const left = fbRm2(cur.meterRemaining), take = Math.min(left, fbRm2(want));
+    if (!(take > 0)) { info.abort = 'empty'; return; }
+    info.taken = take;
+    return Object.assign({}, cur, { meterRemaining: fbRm2(left - take), _rv: FB_SV, _bv: fbBvStamp() });
+  });
+}
+// history imports: a roll created by the SAME import (not on the server yet, nobody else can hold it) is deducted locally; a roll that exists on the server is deducted by transaction
+function fbRmRollOnServer(roll) { try { return !!((fbLastServerSnapshot['RawMaterial_Rolls'] || {})[fbRmRollKey(roll)]); } catch (e) { return true; } }
+async function fbRmDeductImport(roll, want) {
+  if (!fbRmRollOnServer(roll)) { const left = fbRm2(roll.meterRemaining), take = Math.min(left, fbRm2(want)); if (!(take > 0)) return { ok: false, reason: 'empty' }; roll.meterRemaining = fbRm2(left - take); return { ok: true, local: true, info: { taken: take } }; }
+  return fbRmDeductUpTo(roll, want);
+}
+// give meters back (delete-STO restore / compensation): server balance + add, never above the roll's total; a deliberate step UP is marked _adj == _bv for the Rules
+function fbRmAddBack(roll, add, cap) {
+  return fbRmTx('RawMaterial_Rolls/' + fbRmRollKey(roll), 'roll:' + fbRmRollKey(roll), (cur, info) => {
+    const left = fbRm2(cur.meterRemaining); let nv = fbRm2(left + fbRm2(add)); if (cap > 0) nv = Math.min(nv, fbRm2(cap));
+    if (!(nv > left)) { info.abort = 'nochange'; return; }
+    info.added = fbRm2(nv - left); const bv = fbBvStamp();
+    return Object.assign({}, cur, { meterRemaining: nv, _rv: FB_SV, _bv: bv, _adj: bv });
+  });
+}
+// compare-and-set: the balance is set only if the SERVER still holds the value the person saw
+function fbRmSetBalance(roll, expected, newVal) {
+  return fbRmTx('RawMaterial_Rolls/' + fbRmRollKey(roll), 'roll:' + fbRmRollKey(roll), (cur, info) => {
+    const left = fbRm2(cur.meterRemaining);
+    if (Math.abs(left - fbRm2(expected)) > 0.005) { info.abort = 'changed'; info.server = left; return; }
+    const bv = fbBvStamp(), o = Object.assign({}, cur, { meterRemaining: fbRm2(newVal), _rv: FB_SV, _bv: bv });
+    if (fbRm2(newVal) > left) o._adj = bv;
+    return o;
+  });
+}
+// an STO item changes exactly once: the transaction decides on the SERVER copy
+function fbRmItemTx(item, fn) {
+  const key = fbSafeKey(syncKeyOf(item));
+  return fbRmTx('RawMaterial_STOs/' + key, 'sto:' + key, fn);
+}
+function fbRmClaimItemComplete(item, patch) {
+  return fbRmItemTx(item, (cur, info) => {
+    if (cur.status === 'Completed') { info.abort = 'itemDone'; return; }
+    return Object.assign({}, cur, patch, { status: 'Completed', _rv: FB_SV, _bv: fbBvStamp() });
+  });
+}
+function fbRmFlagDeducted(item) {
+  return fbRmItemTx(item, (cur, info) => {
+    if (cur.stockDeducted === true) { info.abort = 'flagged'; return; }
+    return Object.assign({}, cur, { stockDeducted: true, _rv: FB_SV, _bv: fbBvStamp() });
+  });
+}
+function fbRmServerItem(item) {   // fresh server read of one STO item (null = not on the server)
+  return new Promise(resolve => {
+    let done = false; const fin = v => { if (!done) { done = true; resolve(v); } };
+    setTimeout(() => fin(undefined), 10000);
+    try { fbDb.ref('RawMaterial_STOs/' + fbSafeKey(syncKeyOf(item))).once('value').then(s => fin(s.val()), () => fin(undefined)); } catch (e) { fin(undefined); }
+  });
+}
+function fbRmFailText(res, what) {
+  const r = res && res.reason, tail = '\n\nMeters already deducted by this operation are kept and will NOT be deducted twice if you repeat it.';
+  if (r === 'offline') return what + ' needs a live connection to the server and this device is offline / not validated yet. Wait for "Connected" and try again. Nothing was changed.';
+  if (r === 'busy') return 'Another operation on the same roll is running on this device. Wait a moment and try again.' + tail;
+  if (r === 'timeout' || r === 'unknown') return 'The server did not confirm roll ' + ((res && res.detail) || '') + ' in time. It may or may not have been changed. Open Stock Balance, check that roll, and only then repeat.' + tail;
+  if (r === 'missing') return 'The record is not on the server yet (or was removed). Wait for sync and try again.' + tail;
+  return what + ' failed (' + (r || 'error') + (res && res.err && res.err.message ? ': ' + res.err.message : '') + ').' + tail;
+}
+// deduct a list of {key, fabricName, fabricCode, colorCode, total} groups from the matching rolls, largest balance first, each step a transaction on the SERVER value
+async function fbRmDeductGroups(opId, groups) {
+  const out = { ok: true, results: [], reason: '', detail: '' };
+  for (const g of groups) {
+    const gj = 'g:' + g.key, gp = fbRmJournalGet(opId).parts[gj];
+    if (gp && gp.done) { out.results.push({ key: g.key, taken: gp.taken, short: gp.short }); continue; }
+    let remaining = fbRm2(g.total), taken = 0;
+    // parts that an earlier (interrupted) run of this same operation already committed count first, even if that roll is empty now
+    const jparts = fbRmJournalGet(opId).parts, pre = 'r:' + g.key + '::', seen = new Set();
+    for (const pk of Object.keys(jparts)) {
+      if (pk.indexOf(pre) !== 0) continue; seen.add(pk);
+      if (jparts[pk].state === 'ok') { remaining = fbRm2(remaining - jparts[pk].taken); taken = fbRm2(taken + jparts[pk].taken); }
+      else if (jparts[pk].state === 'unknown') { out.ok = false; out.reason = 'unknown'; out.detail = jparts[pk].roll; return out; }
+    }
+    const cands = rawMaterialRolls.filter(r => (r.fabricName || '') === g.fabricName && (r.fabricCode || '') === g.fabricCode && (r.colorCode || '') === g.colorCode && Number(r.meterRemaining) > 0)
+      .sort((a, b) => Number(b.meterRemaining) - Number(a.meterRemaining));
+    for (const r of cands) {
+      if (remaining <= 0.004) break;
+      const pk = pre + fbRmRollKey(r);
+      if (seen.has(pk)) continue;
+      const res = await fbRmDeductUpTo(r, remaining);
+      if (res.ok) { const t = res.info.taken; fbRmJournalPut(opId, pk, { state: 'ok', taken: t, key: res.key, roll: r.rollNo }); fbRmAdopt(r, res.key, res.value); remaining = fbRm2(remaining - t); taken = fbRm2(taken + t); continue; }
+      if (res.reason === 'empty') continue;   // the server says this roll is already empty: try the next one
+      if (res.reason === 'timeout') fbRmJournalPut(opId, pk, { state: 'unknown', roll: r.rollNo });
+      out.ok = false; out.reason = res.reason; out.detail = r.rollNo; out.err = res.err; return out;
+    }
+    const short = remaining > 0.004 ? fbRm2(remaining) : 0;
+    fbRmJournalPut(opId, gj, { done: true, taken, short });
+    out.results.push({ key: g.key, taken, short });
+  }
+  return out;
+}
+// give back everything a journaled operation deducted (used only when another device completed the same operation first)
+async function fbRmRollbackOp(opId) {
+  const parts = fbRmJournalGet(opId).parts; let ok = true;
+  for (const pk of Object.keys(parts)) {
+    const p = parts[pk]; if (pk.indexOf('r:') !== 0 || p.state !== 'ok' || !(p.taken > 0)) continue;
+    const roll = rawMaterialRolls.find(r => fbRmRollKey(r) === p.key); if (!roll) { ok = false; continue; }
+    const res = await fbRmAddBack(roll, p.taken, Number(roll.meter) || 0);
+    if (res.ok) { fbRmAdopt(roll, res.key, res.value); fbRmJournalPut(opId, pk, { state: 'rolledback', taken: 0, key: p.key, roll: p.roll }); } else if (res.reason !== 'nochange') ok = false;
+  }
+  if (ok) fbRmJournalClear(opId);
+  return ok;
+}
+// ---- Deduct Stock Now (retrofit for a manually added STO) ----
+async function rmDeductStoNow(stoNo) {
+  const items = rawMaterialStos.filter(s => s.stoNo === stoNo && s.itemType === 'fabric' && isRmStoManualReconLine(s) && !s.stockDeducted);
+  if (!items.length) return;
+  if (!fbRmTxnUsable()) { alert(fbRmFailText({ reason: 'offline' }, 'Deduct Stock Now')); return; }
+  const groups = new Map();
+  items.forEach(s => {
+    const key = [s.fabricName || '', s.fabricCode || '', s.colorCode || ''].join('|||');
+    groups.set(key, (groups.get(key) || 0) + (Number(s.meter) || 0));
+  });
+  if (!confirm(`Deduct a total of ${formatQty([...groups.values()].reduce((a, b) => a + b, 0))} m from current matching rolls for STO ${stoNo}? This cannot be undone.`)) return;
+  const opId = 'deduct:' + stoNo;
+  const groupList = [...groups].map(([key, total]) => { const p = key.split('|||'); return { key, fabricName: p[0], fabricCode: p[1], colorCode: p[2], total }; });
+  const res = await fbRmDeductGroups(opId, groupList);
+  if (!res.ok) { fbNoteWriteIssue('rm-op', 'RawMaterial_Rolls', 'deduct-now', 'STO ' + stoNo + ': ' + res.reason); alert(fbRmFailText(res, 'Deduct Stock Now')); renderRmStoListTable(); return; }
+  // exactly one device may complete this retrofit: the "deducted" flag is claimed by a transaction on every item
+  let claimed = 0;
+  for (const s of items) {
+    const c = await fbRmFlagDeducted(s);
+    if (c.ok) { fbRmAdopt(s, c.key, c.value, 'RawMaterial_STOs'); claimed++; continue; }
+    if (c.reason === 'flagged') {
+      if (!claimed) { const rb = await fbRmRollbackOp(opId); alert('Another device already deducted this STO. Your deduction was ' + (rb ? 'reversed - nothing is deducted twice.' : 'NOT fully reversed - open Stock Balance and check the rolls of this STO.')); renderRmStoListTable(); return; }
+      s.stockDeducted = true; continue;
+    }
+    alert(fbRmFailText(c, 'Deduct Stock Now') + '\nThe roll meters were deducted; the STO is not marked yet. Press Deduct Stock Now again to finish marking it (no second deduction).'); renderRmStoListTable(); return;
+  }
+  fbRmJournalClear(opId);
+  saveRawMaterialRolls(); saveRawMaterialStos();
+  renderRmStoListTable();
+  if (typeof renderRmStockTab === 'function' && document.getElementById('tab-rm-stock')) renderRmStockTab();
+  if (typeof renderRmPrintTab === 'function' && document.getElementById('tab-rm-print')) renderRmPrintTab();
+  const shorts = res.results.filter(r => r.short > 0);
+  if (shorts.length) alert('Stock deducted, but the matching rolls did not hold enough meters for: ' + shorts.map(r => r.key.split('|||').join(' / ') + ' (short by ' + formatQty(r.short) + ' m)').join('; ') + '. Check Stock Balance.');
+}
+// ---- Delete STO (restores the meters of Completed fabric items) ----
+async function rmDeleteStoNow(stoNo) {
+  const items = rawMaterialStos.filter(s => s.stoNo === stoNo);
+  const completedCount = items.filter(s => s.status === 'Completed').length;
+  const msg = completedCount
+    ? `STO ${stoNo} has ${completedCount} item(s) that are ALREADY sent (stock already deducted/reserved). Deleting this STO will restore the meterage that was deducted for those fabric rolls, and free up the reserved accessories quantity. Continue?`
+    : `Delete STO ${stoNo}? Items reserved for this STO will be freed up again (available for other STOs).`;
+  if (!confirm(msg)) return;
+  const restorable = items.filter(s => s.status === 'Completed' && rawMaterialRolls.some(r => r.id === s.rollId));
+  const opId = 'delsto:' + stoNo;
+  if (restorable.length) {
+    if (!fbRmTxnUsable()) { alert(fbRmFailText({ reason: 'offline' }, 'Deleting an STO that restores roll meters')); return; }
+    for (const s of restorable) {
+      const pk = 'i:' + s.id, pj = fbRmJournalGet(opId).parts[pk];
+      if (pj && (pj.state === 'ok' || pj.state === 'skipped')) continue;
+      if (pj && pj.state === 'unknown') { alert(fbRmFailText({ reason: 'unknown', detail: s.rollNo }, 'Delete STO')); return; }
+      const srv = await fbRmServerItem(s);
+      if (srv === undefined) { alert(fbRmFailText({ reason: 'timeout', detail: s.rollNo }, 'Delete STO')); return; }
+      if (srv === null || srv.status !== 'Completed') { fbRmJournalPut(opId, pk, { state: 'skipped' }); continue; }   // another device already removed / changed this item: its restore is theirs
+      const roll = rawMaterialRolls.find(r => r.id === s.rollId);
+      const res = await fbRmAddBack(roll, Number(s.meter) || 0, Number(roll.meter) || 0);
+      if (res.ok) { fbRmAdopt(roll, res.key, res.value); fbRmJournalPut(opId, pk, { state: 'ok', added: res.info.added }); continue; }
+      if (res.reason === 'nochange') { fbRmJournalPut(opId, pk, { state: 'ok', added: 0 }); continue; }
+      if (res.reason === 'timeout') fbRmJournalPut(opId, pk, { state: 'unknown' });
+      fbNoteWriteIssue('rm-op', 'RawMaterial_Rolls', 'delete-sto-restore', 'STO ' + stoNo + ': ' + res.reason);
+      alert(fbRmFailText(res, 'Restoring the roll') + '\nThe STO was NOT deleted.'); return;
+    }
+    saveRawMaterialRolls();
+  }
+  // per Shaila (Sep 30, 2026 - deleted STOs came back the next day): record exactly what is removed and push the deletion to Firebase right now
+  const deletedStoKeys = rawMaterialStos.filter(s => s.stoNo === stoNo).map(s => syncKeyOf(s));
+  const deletedDoKeys = rawMaterialDos.filter(d => d.stoNo === stoNo).map(d => syncKeyOf(d));
+  rawMaterialStos = rawMaterialStos.filter(s => s.stoNo !== stoNo);
+  rawMaterialDos = rawMaterialDos.filter(d => d.stoNo !== stoNo);
+  saveRawMaterialStos();
+  saveRawMaterialDos();
+  rmMarkDeletedAndPushNow('RawMaterial_STOs', deletedStoKeys);
+  rmMarkDeletedAndPushNow('RawMaterial_DOs', deletedDoKeys);
+  fbRmJournalClear(opId);
+  renderRmStoListTable();
+  if (typeof renderRmStockTab === 'function' && document.getElementById('tab-rm-stock')) renderRmStockTab();
+  if (typeof renderRmPrintTab === 'function' && document.getElementById('tab-rm-print')) renderRmPrintTab();
+}
+// Raw Material tables: an unexplained step BACKWARDS (Completed pick back to Open, sent qty lower, roll balance higher) is never pushed unless a person just acted on this device.
+const FB_RM_GUARD_TABLES = new Set(['RawMaterial_STOs', 'RawMaterial_Rolls']);
+function fbIsRmRegress(table, nowRec, prevRec) {
+  if (!nowRec || !prevRec || Date.now() - fbUserEventAt < 4000) return false;
+  if (table === 'RawMaterial_STOs') return (prevRec.status === 'Completed' && nowRec.status !== 'Completed') || (Number(nowRec.qtySent) || 0) < (Number(prevRec.qtySent) || 0);
+  if (table === 'RawMaterial_Rolls') return (Number(nowRec.meterRemaining) || 0) > (Number(prevRec.meterRemaining) || 0) + 0.005;
+  return false;
+}
 
 // Detects the specific race where two devices each create the SAME STO No. before they've synced
 // with each other — since both records now share the same Firebase key (see backfillNaturalSyncIds
@@ -13201,12 +13686,12 @@ const FB_SV = { '.sv': 'timestamp' };
 function fbCloneRecord(r) { return (r && typeof r === 'object') ? JSON.parse(JSON.stringify(r)) : r; }
 function fbCloneRecords(arr) { return (arr || []).map(fbCloneRecord); }
 function fbCloneMap(map) { const o = {}; Object.keys(map || {}).forEach(k => { o[k] = fbCloneRecord(map[k]); }); return o; }
-function fbBvStamp() { return APP_BUILD_NUM * 1e12 + (Date.now() % 1e9) * 1000 + Math.floor(Math.random() * 1000); }
+function fbBvStamp() { const v = Math.max((Date.now() + (Number(globalThis.__fbSrvOff) || 0)) * 1000 + Math.floor(Math.random() * 1000), (fbBvStamp.last || 0) + 1); fbBvStamp.last = v; return v; }   // PHASE 2: server-time based (.info/serverTimeOffset) so a wrong device clock cannot out-run or lag other devices; strictly increasing per device; always >= 1.7e15 (above every old stamp)   // PHASE 2: strictly increasing on this device and time-ordered across devices (the old stamp wrapped every ~11.6 days); always >= 1.7e15, above every old stamp
 function fbStripRvMap(map) {
   const out = {};
   Object.keys(map || {}).forEach(k => {
     const r = map[k];
-    if (r && typeof r === 'object' && ('_rv' in r || '_bv' in r)) { const c = Object.assign({}, r); delete c._rv; delete c._bv; out[k] = c; } else out[k] = r;
+    if (r && typeof r === 'object' && ('_rv' in r || '_bv' in r || '_adj' in r)) { const c = Object.assign({}, r); delete c._rv; delete c._bv; delete c._adj; out[k] = c; } else out[k] = r;
   });
   return out;
 }
@@ -13224,6 +13709,9 @@ const collectionPushInFlight = new Set();
 // not reached the server yet; a record missing from it was added on THIS device. An incoming server snapshot must never throw those away (a staff 'Picking Done'
 // or a newly added STO used to vanish when a snapshot arrived while the push was held back).
 const FB_KEEP_LOCAL_TABLES = new Set(['STO_Records', 'DO_Records', 'Fleet_Trips', 'Inbound_STO']);
+// r632: Raw Material pick / stock records get the same 'baseline' protection (unsent local edits survive an incoming snapshot; a device whose record is unchanged never pushes a stale copy),
+// but NOT the read-first gate, the typing hold or the HTTPS poll (those stay exclusive to the workflow tables).
+const FB_BASELINE_TABLES = new Set([...FB_KEEP_LOCAL_TABLES, ...FB_RM_GUARD_TABLES]);
 const fbBaseline = {};
 function fbBaselineFrom(arr) { const m = {}; arr.forEach(r => { m[fbSafeKey(syncKeyOf(r))] = stableStringify(r); }); return m; }
 // ===== HOTFIX HF1 (Nov 4, 2026): STO status roll-back =====
@@ -13233,18 +13721,205 @@ function fbBaselineFrom(arr) { const m = {}; arr.forEach(r => { m[fbSafeKey(sync
 // (3) an incoming server snapshot keeps this device's pending edits on top of the server copy (field by field), (4) a duplicate never causes a server delete, (5) deterministic duplicate choice.
 const FB_FIELD_LEVEL_TABLES = new Set(['STO_Records', 'DO_Records', 'Fleet_Trips']);
 const fbGateReady = {};   // table -> true once the server snapshot has been read AND adopted on this device (baseline loaded)
-const FB_META_FIELDS = new Set(['_rv', '_bv', '_syncId']);
+const FB_META_FIELDS = new Set(['_rv', '_bv', '_adj', '_syncId']);
 function fbGateClosedTables() { return [...FB_KEEP_LOCAL_TABLES].filter(t => !fbGateReady[t]); }
 function fbChangedFields(local, base) {
   const out = [], keys = new Set([...Object.keys(base || {}), ...Object.keys(local || {})]);
   keys.forEach(f => { if (FB_META_FIELDS.has(f)) return; if (stableStringify(local ? local[f] : undefined) !== stableStringify(base ? base[f] : undefined)) out.push(f); });
   return out;
 }
-function fbOverlayLocalOntoServer(serverRec, localRec, baseRec) {
+function fbOverlayLocalOntoServer(serverRec, localRec, baseRec, ctx) {
   const rec = JSON.parse(JSON.stringify(serverRec));
-  fbChangedFields(localRec, baseRec).forEach(f => { if (localRec[f] === undefined) delete rec[f]; else rec[f] = JSON.parse(JSON.stringify(localRec[f])); });
+  fbChangedFields(localRec, baseRec).forEach(f => {
+    // r633: during / right after an offline period a field this device changed is applied only if the server still has the value this device last saw; otherwise the server value is kept and the local value is logged.
+    if (ctx && stableStringify(serverRec[f]) !== stableStringify(baseRec[f]) && stableStringify(serverRec[f]) !== stableStringify(localRec[f])) { fbLogConflict({ table: ctx.table, key: ctx.key, field: f, local: localRec[f], server: serverRec[f], base: baseRec[f] }); return; }
+    if (localRec[f] === undefined) delete rec[f]; else rec[f] = JSON.parse(JSON.stringify(localRec[f]));
+  });
   return rec;
 }
+
+// ===== r633 (Fix 1): hold ALL automatic writes while the device is disconnected; on reconnect fetch the latest SERVER data, validate every pending local change against it, only then send =====
+// Why: a write made while offline is queued by the Firebase SDK and replayed on reconnect WITHOUT any server check, so an old device could overwrite a newer value another device saved meanwhile.
+// Now: (1) from the moment the connection drops (or the browser reports offline) the diff-based pushers send nothing (the edits stay on this device); (2) on reconnect the server copy of every synced
+// table is read fresh (HTTPS, never the SDK cache) and merged in with the conflict rule: a field/record this device changed is kept and sent ONLY if the server value is still the one this device last
+// saw; if someone else changed it meanwhile the SERVER value is kept and this device's value is written to the Sync Conflicts list (localStorage, shown in the status bar) - never silently dropped, never replayed;
+// (3) only after that is each table released for sending. 'Sync Now' waits for this. Nothing here touches Firebase configuration, paths or Rules.
+let fbEverConnected = false, fbRevalNeeded = false, fbRevalRunning = null, fbRevalFails = 0, fbRevalRetryAt = 0, fbRevalStartedAt = 0, fbFreshReads = false;
+const fbRevalFetched = {}, fbRevalOk = {}, fbTempTracked = new Set();
+let fbSettingsOfflineBase = null, fbPostponedOfflineBase = null, fbSettingsKeep = {};
+const fbBespokeBase = {};   // name -> { key: record } as the server had it when the connection dropped (Item Master, SKU Price, Stock Available, Campaign Timeline / Accessories)
+const FB_CONFLICT_KEY = 'fbConflictLogV1';
+let fbConflictLog = (() => { try { const a = JSON.parse(localStorage.getItem(FB_CONFLICT_KEY)); return Array.isArray(a) ? a : []; } catch (e) { return []; } })();
+function fbConflictsOpen() { return fbConflictLog.filter(c => !c.reviewed); }
+function fbLogConflict(c) {
+  const sig = [c.table, c.key, c.field, JSON.stringify(c.local), JSON.stringify(c.server)].join('|');
+  if (fbConflictLog.some(x => x.sig === sig && !x.reviewed)) return;
+  fbConflictLog.push(Object.assign({ sig, at: new Date().toISOString(), reviewed: false }, c));
+  fbConflictLog = fbConflictLog.slice(-300);
+  try { localStorage.setItem(FB_CONFLICT_KEY, JSON.stringify(fbConflictLog)); } catch (e) {}
+  try { renderCloudSyncStatus(); } catch (e) {}
+}
+function fbSaveConflicts() { try { localStorage.setItem(FB_CONFLICT_KEY, JSON.stringify(fbConflictLog)); } catch (e) {} try { renderCloudSyncStatus(); } catch (e) {} }
+function fbShowConflicts() {
+  try {
+    const old = document.getElementById('fbConflictModal'); if (old) old.remove();
+    const open = fbConflictsOpen();
+    const box = document.createElement('div'); box.id = 'fbConflictModal';
+    box.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+    const esc = v => String(v === undefined ? '(empty)' : (typeof v === 'object' ? JSON.stringify(v) : v)).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])).slice(0, 220);
+    box.innerHTML = '<div style="background:#1b2430;color:#e8eef5;max-width:900px;width:100%;max-height:85vh;overflow:auto;border-radius:10px;padding:18px;font:13px system-ui">'
+      + '<h3 style="margin:0 0 6px">Sync conflicts (' + open.length + ')</h3><div style="opacity:.8;margin-bottom:10px">These changes were made on THIS device while it was offline, but somebody else had already changed the same data on the server. The server value was kept. Your value is shown here so you can re-enter it if it is still needed.</div>'
+      + '<table style="width:100%;border-collapse:collapse"><tr style="text-align:left;opacity:.7"><th>When</th><th>Table</th><th>Record</th><th>Field</th><th>Your value (not applied)</th><th>Server value (kept)</th></tr>'
+      + open.map(c => '<tr style="border-top:1px solid #33404f"><td>' + esc((c.at || '').replace('T', ' ').slice(0, 19)) + '</td><td>' + esc(c.table) + '</td><td>' + esc(c.key) + '</td><td>' + esc(c.field) + '</td><td>' + esc(c.local) + '</td><td>' + esc(c.server) + '</td></tr>').join('')
+      + '</table><div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end"><button id="fbConfMark">Mark all as reviewed</button><button id="fbConfClose">Close</button></div></div>';
+    document.body.appendChild(box);
+    document.getElementById('fbConfClose').onclick = () => box.remove();
+    document.getElementById('fbConfMark').onclick = () => { fbConflictLog.forEach(c => { c.reviewed = true; }); fbSaveConflicts(); box.remove(); };
+  } catch (e) { console.warn(e); }
+}
+function fbNavOffline() { try { return typeof navigator !== 'undefined' && navigator.onLine === false; } catch (e) { return false; } }
+function fbAnyHeld() { return fbEverConnected && (fbConnected === false || fbNavOffline() || fbRevalNeeded); }
+function fbTableHeld(table) { return fbEverConnected && (fbConnected === false || fbNavOffline() || (fbRevalNeeded && !fbRevalOk[table])); }
+function fbSameStr(a, b) { return stableStringify(a) === stableStringify(b); }
+// the five bespoke tables (own push / apply functions): descriptor list (a function: the variables below are declared further down the script)
+function fbBespoke() {
+  return [
+    { name: 'itemMaster', table: ITEM_MASTER_FB_TABLE, list: () => itemMasterList, key: it => fbSafeKey(it.id), snap: () => _itemMasterLastServerSnapshot, apply: o => applyItemMasterServerSnapshot(o), pending: () => itemMasterPushInFlight },
+    { name: 'skuPrice', table: SKU_PRICE_FB_TABLE, list: () => skuPriceList, key: it => fbSafeKey(it.sku), snap: () => _skuPriceLastServerSnapshot, apply: o => applySkuPriceServerSnapshot(o), pending: () => skuPricePushInFlight },
+    { name: 'stockAvail', table: STOCK_AVAILABLE_FB_TABLE, list: () => stockAvailableList, key: it => fbSafeKey(it.id), snap: () => _stockAvailableLastServerSnapshot, apply: o => applyStockAvailableServerSnapshot(o), pending: () => stockAvailablePushInFlight },
+    { name: 'campaignTimeline', table: CAMPAIGN_TIMELINE_FB_TABLE, list: () => campaignTimelineList, key: it => fbSafeKey(it.id), snap: () => _campaignTimelineLastServerSnapshot, apply: o => applyCampaignTimelineServerSnapshot(o), pending: () => campaignTimelinePushInFlight },
+    { name: 'campaignAcc', table: CAMPAIGN_ACC_FB_TABLE, list: () => campaignAccList, key: it => fbSafeKey(it.id), snap: () => _campaignAccLastServerSnapshot, apply: o => campaignAccApplyServerSnapshot(o), pending: () => campaignAccPushInFlight }
+  ];
+}
+// Bespoke tables: the incoming server snapshot normally REPLACES the local list. While this device still holds changes made offline (fbBespokeBase set) the view shown locally is
+// server + this device's still-valid changes; the snapshot variable itself stays the pure server copy, so the normal diff push sends exactly those changes afterwards.
+function fbBespokeView(name, remoteObj) {
+  const base = fbBespokeBase[name], d = fbBespoke().find(x => x.name === name);
+  if (!base || !d) return Object.values(remoteObj || {});
+  const remote = remoteObj || {}, out = Object.assign({}, remote), local = {};
+  (d.list() || []).forEach(r => { local[d.key(r)] = r; });
+  Object.keys(local).forEach(k => {
+    const l = local[k], b = base[k], r = remote[k];
+    if (b !== undefined && fbSameStr(l, b)) return;                  // unchanged here: the server value stands
+    if (r !== undefined && fbSameStr(r, l)) return;                  // already identical
+    if (b === undefined) { if (r === undefined) out[k] = l; else fbLogConflict({ table: d.table, key: k, field: '(record)', local: l, server: r }); return; }   // new here: keep + send / same key created elsewhere -> server kept
+    if (r === undefined) { fbLogConflict({ table: d.table, key: k, field: '(record deleted on server)', local: l, server: null }); return; }
+    if (fbSameStr(r, b)) out[k] = l;                                  // server unchanged since this device last saw it: this device's change is valid
+    else fbLogConflict({ table: d.table, key: k, field: '(record)', local: l, server: r });
+  });
+  Object.keys(base).forEach(k => {
+    if (k in local) return;
+    const r = remote[k];
+    if (r === undefined) return;
+    if (fbSameStr(r, base[k])) delete out[k];                         // deleted here, server unchanged: the delete is valid and is sent after validation
+    else fbLogConflict({ table: d.table, key: k, field: '(record deleted here)', local: null, server: r });
+  });
+  return Object.values(out);
+}
+function fbBespokeDiffless(d) {
+  const snap = d.snap() || {}, local = {}; (d.list() || []).forEach(r => { local[d.key(r)] = r; });
+  const ks = Object.keys(local); if (ks.length !== Object.keys(snap).length) return false;
+  return ks.every(k => snap[k] !== undefined && fbSameStr(snap[k], local[k]));
+}
+function fbEnterOffline() {
+  if (!fbEverConnected) return;
+  const already = fbRevalNeeded;
+  fbRevalNeeded = true; fbRevalFails = 0; fbRevalRetryAt = 0;
+  Object.keys(fbRevalFetched).forEach(k => delete fbRevalFetched[k]); Object.keys(fbRevalOk).forEach(k => delete fbRevalOk[k]);
+  if (already) return;
+  try { fbNoteQueuedAtDisconnect(); } catch (e) {}   // r635: T17 visibility
+  fbRevalStartedAt = Date.now();
+  SYNC_COLLECTIONS.forEach(def => {   // tables without a permanent baseline get one for the offline period: what the server had when the connection dropped
+    const t = def.table, snap = fbLastServerSnapshot[t];
+    if (!FB_BASELINE_TABLES.has(t) && snap) { const m = {}; Object.keys(snap).forEach(k => { m[k] = stableStringify(snap[k]); }); fbBaseline[t] = m; FB_BASELINE_TABLES.add(t); fbTempTracked.add(t); }
+  });
+  fbBespoke().forEach(d => { if (!fbBespokeBase[d.name]) fbBespokeBase[d.name] = Object.assign({}, d.snap() || {}); });
+  fbSettingsOfflineBase = Object.assign({}, fbLastServerSnapshot[FB_SETTINGS_TABLE] || {});
+  fbPostponedOfflineBase = new Set(Object.values(fbLastServerSnapshot[FB_POSTPONED_DONOS_TABLE] || {}));
+  try { renderCloudSyncStatus(); } catch (e) {}
+}
+// Reads one table straight from the server over HTTPS (never the SDK cache - after a reconnect the cache can still hold the pre-offline copy). Falls back to the SDK read only if HTTPS is unavailable.
+async function fbFreshRead(table) {
+  if (typeof fetch === 'function' && typeof firebaseConfig !== 'undefined') {
+    try {
+      const ctl = (typeof AbortController === 'function') ? new AbortController() : null;
+      const timer = setTimeout(() => { try { if (ctl) ctl.abort(); } catch (e) {} }, 15000);
+      const r = await fetch(String(firebaseConfig.databaseURL).replace(/\/$/, '') + '/' + table + '.json?_=' + Date.now(), { cache: 'no-store', signal: ctl ? ctl.signal : undefined });
+      clearTimeout(timer);
+      if (r.ok) return await r.json();
+    } catch (e) { /* fall through to the SDK read */ }
+  }
+  const snap = await Promise.race([fbDb.ref(table).once('value'), new Promise((_, rej) => setTimeout(() => rej(new Error('no response from the server within 15 seconds')), 15000))]);
+  return snap.val();
+}
+async function fbReadOnce(table) {   // once('value') replacement used by the startup / Sync Now pulls: fresh over HTTPS while a validation / Sync Now is running
+  if (fbFreshReads || fbRevalNeeded) { try { const v = await fbFreshRead(table); return { val: () => v }; } catch (e) { /* fall back */ } }
+  return fbDb.ref(table).once('value');
+}
+function fbRevalTargets() {
+  const t = SYNC_COLLECTIONS.map(def => ({ table: def.table,
+    apply: obj => { fbLastServerSnapshot[def.table] = FB_PROTECTED_TABLES.has(def.table) ? fbStripRvMap(obj) : (obj || {}); applyServerSnapshot(def.table); },
+    pending: () => pendingRemoteApply.has(def.table) || collectionPushInFlight.has(def.table) }));
+  t.push({ table: FB_SETTINGS_TABLE, apply: o => { fbLastServerSnapshot[FB_SETTINGS_TABLE] = o || {}; applySettingsSnapshot(); }, pending: () => settingsApplyPending });
+  t.push({ table: FB_POSTPONED_DONOS_TABLE, apply: o => { fbLastServerSnapshot[FB_POSTPONED_DONOS_TABLE] = o || {}; applyPostponedDoNosSnapshot(); }, pending: () => false });
+  fbBespoke().forEach(d => t.push({ table: d.table, apply: d.apply, pending: d.pending }));
+  return t;
+}
+function fbStartReval() {
+  if (!fbRevalNeeded) return Promise.resolve();
+  if (fbRevalRunning) return fbRevalRunning;
+  fbRevalRunning = (async () => {
+    let allOk = true;
+    try {
+      await Promise.all(fbRevalTargets().map(async tg => {
+        if (fbRevalFetched[tg.table]) return;
+        const stamp0 = fbSnapStamp[tg.table] || 0;
+        try {
+          const val = await fbFreshRead(tg.table);
+          if (!fbRevalNeeded) return;
+          if (fbConnected === false) throw new Error('connection lost again');
+          const obj = (val && typeof val === 'object') ? val : null;
+          if (obj === null && Object.keys(fbLastServerSnapshot[tg.table] || {}).length) { fbRevalFetched[tg.table] = true; return; }   // an empty answer for a table that had data is not adopted; the live listener decides
+          if ((fbSnapStamp[tg.table] || 0) === stamp0) tg.apply(obj || {});   // a live snapshot that arrived meanwhile was already merged with the same rules
+          fbRevalFetched[tg.table] = true;
+        } catch (e) { allOk = false; console.warn('r633 revalidation read failed', tg.table, e); }
+      }));
+    } finally { fbRevalRunning = null; }
+    if (allOk) fbRevalFails = 0; else { fbRevalFails++; fbRevalRetryAt = Date.now() + fbBackoffMs(fbRevalFails); }
+    fbRevalProgress();
+  })();
+  return fbRevalRunning;
+}
+function fbRevalProgress() {
+  if (!fbRevalNeeded) { fbTrackCleanup(); return; }
+  if (fbConnected !== true || fbNavOffline()) return;
+  let all = true, needFetch = false;
+  fbRevalTargets().forEach(tg => { if (fbRevalOk[tg.table]) return; if (!fbRevalFetched[tg.table]) needFetch = true; if (fbRevalFetched[tg.table] && !tg.pending()) fbRevalOk[tg.table] = true; else all = false; });
+  if (all) { fbRevalNeeded = false; fbFreshReads = false; try { renderCloudSyncStatus(); } catch (e) {} return; }
+  if (needFetch && !fbRevalRunning && Date.now() >= fbRevalRetryAt) fbStartReval();   // only tables not read yet are fetched; a table that is read but still applying simply waits for the next 2 s tick
+}
+// After release: temporary baselines / offline copies are dropped as soon as the pending changes of that table have really been sent (nothing is dropped while an unsent change remains).
+function fbTrackCleanup() {
+  fbTempTracked.forEach(t => {
+    const def = SYNC_COLLECTIONS.find(d => d.table === t), base = fbBaseline[t];
+    if (!def || !base) { fbTempTracked.delete(t); FB_BASELINE_TABLES.delete(t); return; }
+    if (collectionPushInFlight.has(t) || pendingRemoteApply.has(t)) return;
+    const arr = def.getArray(); let same = arr.length === Object.keys(base).length;
+    for (let i = 0; same && i < arr.length; i++) { const k = fbSafeKey(syncKeyOf(arr[i])); if (base[k] === undefined || stableStringify(arr[i]) !== base[k]) same = false; }
+    if (same) { fbTempTracked.delete(t); FB_BASELINE_TABLES.delete(t); delete fbBaseline[t]; }
+  });
+  fbBespoke().forEach(d => { if (fbBespokeBase[d.name] && !d.pending() && fbBespokeDiffless(d)) delete fbBespokeBase[d.name]; });
+  if (fbSettingsOfflineBase && !Object.keys(fbSettingsKeep).length) fbSettingsOfflineBase = null;
+  if (fbPostponedOfflineBase && fbPostponedOfflineBase.__done) fbPostponedOfflineBase = null;
+}
+function fbOnConnectedChange(c) {
+  if (c === fbConnected) return;
+  fbConnected = c; fbDisconnectedAt = c ? 0 : Date.now();
+  if (c) { if (fbEverConnected) { try { fbOnReconnected(); } catch (e) { console.warn(e); } } fbEverConnected = true; }
+  else { try { fbEnterOffline(); } catch (e) { console.warn(e); } }
+  try { renderCloudSyncStatus(); } catch (e) {}
+}
+try { window.addEventListener('offline', () => { try { fbEnterOffline(); renderCloudSyncStatus(); } catch (e) {} }); window.addEventListener('online', () => { try { if (fbConnected === true && fbRevalNeeded) fbStartReval(); } catch (e) {} }); } catch (e) {}
 function fbIdentityOf(rec) { return rec && (rec.orderNumber || rec.doNo) ? String(rec.orderNumber || rec.doNo).trim() : null; }
 function fbIdentityStillLocal(rec, nowKeyed) { const id = fbIdentityOf(rec); return !!id && Object.keys(nowKeyed).some(k2 => fbIdentityOf(nowKeyed[k2]) === id); }
 const fbKnownKeys = {}, fbKnownSig = {}; // table -> Set of record keys this device has held locally (persisted)
@@ -13293,9 +13968,11 @@ function fbIsAccidentalRegress(table, k, nowRec, prevRec) {
 function pushCollectionDiff(def, opts) {
   if (!fbDb) return;
   if (!fbWritesAllowed()) return;   // FORCED UPDATE: outdated / unverified build never pushes
+  if (fbTableHeld(def.table)) return;   // r633: offline / not yet validated against the server: nothing is sent, the change stays on this device
+  if (fbPushBackoffActive(def.table)) return;   // r632: a failed push waits (controlled back-off / parked) instead of being re-sent every 2 s; 'Sync Now' releases it
   // HOTFIX HF1: nothing is pushed for the workflow tables until this device has READ the server copy and adopted it. A failed or slow read keeps everything held back.
   if (FB_KEEP_LOCAL_TABLES.has(def.table) && !fbGateReady[def.table]) return;
-  const arr = def.getArray();
+  const arr = def.getArray().filter(r => r && typeof r === 'object' && !Array.isArray(r));   // r634: a stray non-record entry (e.g. the text "x") in a local array used to get a NEW random key on every sync pass and so created a new junk record on the server each time
   const prev = fbLastServerSnapshot[def.table] || {};
   // CRITICAL safety guard: an empty local array must never be allowed to wipe an already-populated
   // remote table. Without this, any device whose local copy of this table is momentarily empty or
@@ -13320,7 +13997,7 @@ function pushCollectionDiff(def, opts) {
   arr.forEach(rec => { nowKeyed[fbSafeKey(syncKeyOf(rec))] = rec; });
   const updateObj = {};
   let changed = false;
-  const keepBase = FB_KEEP_LOCAL_TABLES.has(def.table) ? fbBaseline[def.table] : null;
+  const keepBase = FB_BASELINE_TABLES.has(def.table) ? fbBaseline[def.table] : null;
   Object.keys(nowKeyed).forEach(k => {
     const prevStr = (prev[k] !== undefined) ? stableStringify(prev[k]) : undefined;
     // a record unchanged on THIS device since the last sync, but different from the server, means the SERVER is newer - never push our stale copy back over it.
@@ -13342,10 +14019,22 @@ function pushCollectionDiff(def, opts) {
       updateObj[k + '/_bv'] = fbBvStamp();   // r610 version stamp (required by the server rules)
       changed = true; return;
     }
+    if (FB_RM_GUARD_TABLES.has(def.table) && prev[k] !== undefined) {   // r632: Raw Material records that already exist on the server are written field-by-field, and never backwards without a person acting
+      if (fbIsRmRegress(def.table, nowKeyed[k], prev[k])) { console.warn('r632: blocked Raw Material roll-back', def.table, k); (fbBaseline[def.table] || (fbBaseline[def.table] = {}))[k] = stableStringify(nowKeyed[k]); nowKeyed[k] = fbCloneRecord(prev[k]); pendingRemoteApply.add(def.table); return; }   // baseline = the blocked copy, so the next apply treats it as 'not an edit' and re-adopts the server copy
+      const rmFields = fbChangedFields(nowKeyed[k], prev[k]);
+      // r639: a roll's balance is written ONLY by the atomic operations; within 15 s of one finishing on this device a different local number can only be a stale echo: the server copy is re-adopted, never pushed
+      if (def.table === 'RawMaterial_Rolls' && rmFields.indexOf('meterRemaining') >= 0 && fbRmRecentlyTx(k)) { nowKeyed[k] = fbCloneRecord(prev[k]); pendingRemoteApply.add(def.table); return; }
+      if (!rmFields.length) return;
+      rmFields.forEach(f => { updateObj[k + '/' + f] = nowKeyed[k][f] === undefined ? null : nowKeyed[k][f]; });
+      const rmBv = fbBvStamp(); updateObj[k + '/_rv'] = FB_SV; updateObj[k + '/_bv'] = rmBv; changed = true;   // PHASE 2: RM version stamp
+      // PHASE 3: a DELIBERATE step backwards (person acted: delete-STO restore, edit roll, undo) is marked _adj == _bv so the server Rules can tell it from a stale replay
+      if ((def.table === 'RawMaterial_Rolls' && (Number(nowKeyed[k].meterRemaining) || 0) > (Number(prev[k].meterRemaining) || 0)) || (def.table === 'RawMaterial_STOs' && ((prev[k].status === 'Completed' && nowKeyed[k].status !== 'Completed') || (Number(nowKeyed[k].qtySent) || 0) < (Number(prev[k].qtySent) || 0)))) updateObj[k + '/_adj'] = rmBv;
+      return;
+    }
     // r615 (FU7): the server copy of this record is NOT in this device's snapshot cache, yet this device HAS seen the record before (baseline) -> never push the whole local
     // (possibly stale) record over whatever the server holds. Only a record this device created itself (no baseline) is written whole.
     if (FB_FIELD_LEVEL_TABLES.has(def.table) && keepBase && keepBase[k] !== undefined) return;
-    updateObj[k] = FB_PROTECTED_TABLES.has(def.table) ? Object.assign({}, nowKeyed[k], { _rv: FB_SV }, FB_FIELD_LEVEL_TABLES.has(def.table) ? { _bv: fbBvStamp() } : {}) : nowKeyed[k]; changed = true;
+    updateObj[k] = FB_PROTECTED_TABLES.has(def.table) ? Object.assign({}, nowKeyed[k], { _rv: FB_SV }, (FB_FIELD_LEVEL_TABLES.has(def.table) || FB_RM_GUARD_TABLES.has(def.table)) ? { _bv: fbBvStamp() } : {}) : nowKeyed[k]; changed = true;
   });
   // Oct 14, 2026 (per Shaila: "kalau tkde sapa2 yg delete tkkn hilang" — applies to EVERY table): a push may only delete a record this device itself
   // held in its own array (known keys, persisted across reloads). A record that merely appeared on the server and was never in THIS device's array
@@ -13386,7 +14075,7 @@ function pushCollectionDiff(def, opts) {
   fbSetKnown(def.table, Object.keys(nowKeyed));
   try { dhRecordDeletions(def.table, deletedNow); } catch (e) { console.warn('delete history failed', e); }
   if (!changed) return;
-  fbLastServerSnapshot[def.table] = FB_KEEP_LOCAL_TABLES.has(def.table) ? fbCloneMap(nowKeyed) : nowKeyed;
+  fbLastServerSnapshot[def.table] = FB_BASELINE_TABLES.has(def.table) ? fbCloneMap(nowKeyed) : nowKeyed;
   collectionPushInFlight.add(def.table);
   const pushMain = () => fbChunkedUpdate(fbDb.ref(def.table), updateObj);
   let pushAll;
@@ -13394,14 +14083,13 @@ function pushCollectionDiff(def, opts) {
     const tomb = {}; deletedNow.forEach(d => { tomb[d.k] = FB_SV; });
     pushAll = fbChunkedUpdate(fbDb.ref('Deleted/' + def.table), tomb).then(pushMain); // tombstone must exist BEFORE the delete is accepted
   } else pushAll = pushMain();
-  if (FB_KEEP_LOCAL_TABLES.has(def.table)) pushAll.then(() => {
+  if (FB_BASELINE_TABLES.has(def.table)) pushAll.then(() => {
     const b = fbBaseline[def.table] || (fbBaseline[def.table] = {});
     Object.keys(updateObj).forEach(p => { const k = p.split('/')[0]; if (p === k && updateObj[p] === null) delete b[k]; else if (nowKeyed[k]) b[k] = stableStringify(nowKeyed[k]); });
   }).catch(() => {});
+  pushAll.then(() => { fbPushSucceeded(def.table); }).catch(() => {});
   pushAll.catch(e => {
-    cloudSyncStatus = 'error';
-    cloudSyncLastError = `${def.table}: ${(e && e.message) || e}`;
-    renderCloudSyncStatus();
+    fbPushFailed(def.table, e);   // r632: classified message, back-off, clears itself once a later push succeeds
     // Nov 4, 2026: the push failed, so the server does NOT have these changes. Forget the optimistic "already on server" mark for those records so the next
     // 2-second reconcile pushes them again (before, a failed push was never retried and a later server snapshot could bring the old status back).
     try {
@@ -13543,7 +14231,7 @@ function applyServerSnapshot(table) {
   }
   const remoteOnlyArr = remoteArr;   // exactly what the server has (before this device's unsent changes are merged back in)
   let keptLocal = false;
-  if (FB_KEEP_LOCAL_TABLES.has(table)) {
+  if (FB_BASELINE_TABLES.has(table)) {
     try {
       const base = fbBaseline[table], known = fbGetKnown(table);
       const remoteIdx = new Map(); remoteArr.forEach((r, i) => remoteIdx.set(fbSafeKey(syncKeyOf(r)), i));
@@ -13553,22 +14241,23 @@ function applyServerSnapshot(table) {
         if (!remoteIdx.has(k)) {
           const neverOnServer = base ? (base[k] === undefined) : !(known && known.has(k));
           if (neverOnServer) { out.push(lr); keptLocal = true; }   // added here, not on the server yet
+          else if (fbRevalNeeded && base && base[k] !== undefined && stableStringify(lr) !== base[k]) { let b0 = null; try { b0 = JSON.parse(base[k]); } catch (e) {} fbLogConflict({ table, key: k, field: '(record deleted on server)', local: lr, server: null, base: b0 }); }   // r633: edited here while offline, deleted on the server meanwhile: server kept, local copy logged
           return;
         }
         if (base && base[k] !== undefined && stableStringify(lr) !== base[k]) {   // changed here since the last sync -> keep this device's version
           const i = remoteIdx.get(k);
           // HOTFIX HF1: keep this device's pending edits ON TOP OF the newer server copy (field by field), not the whole stale local record.
-          const merged = FB_FIELD_LEVEL_TABLES.has(table) ? fbOverlayLocalOntoServer(remoteArr[i], lr, JSON.parse(base[k])) : lr;
+          const merged = (FB_FIELD_LEVEL_TABLES.has(table) || FB_RM_GUARD_TABLES.has(table) || fbTempTracked.has(table)) ? fbOverlayLocalOntoServer(remoteArr[i], lr, JSON.parse(base[k]), fbRevalNeeded ? { table, key: k } : null) : lr;
           if (stableStringify(remoteArr[i]) !== stableStringify(merged)) { out[i] = merged; keptLocal = true; }
         }
       });
       if (keptLocal) { remoteArr = out; if (def.sortKey) remoteArr.sort((a, b) => def.sortKey(a).localeCompare(def.sortKey(b))); }
     } catch (e) { console.warn('keep-local merge failed', e); keptLocal = false; remoteArr = remoteOnlyArr; }
   }
-  if (stableStringify(remoteArr) === stableStringify(def.getArray())) { if (FB_KEEP_LOCAL_TABLES.has(table)) { fbBaseline[table] = fbBaselineFrom(remoteOnlyArr); fbGateReady[table] = true; } pendingRemoteApply.delete(table); return; }
+  if (stableStringify(remoteArr) === stableStringify(def.getArray())) { if (FB_BASELINE_TABLES.has(table)) { fbBaseline[table] = fbBaselineFrom(remoteOnlyArr); if (FB_KEEP_LOCAL_TABLES.has(table)) fbGateReady[table] = true; } pendingRemoteApply.delete(table); return; }
   if (isUserActivelyTyping() || isTableDirty(table)) { pendingRemoteApply.add(table); return; }
-  def.setArray(FB_KEEP_LOCAL_TABLES.has(table) ? fbCloneRecords(remoteArr) : remoteArr);
-  if (FB_KEEP_LOCAL_TABLES.has(table)) { fbBaseline[table] = fbBaselineFrom(remoteOnlyArr); fbGateReady[table] = true; if (keptLocal) { try { pushCollectionDiff(def, { skipEmptyGuard: true }); } catch (e) { console.warn('re-push of kept local changes failed', e); } } }
+  def.setArray(FB_BASELINE_TABLES.has(table) ? fbCloneRecords(remoteArr) : remoteArr);
+  if (FB_BASELINE_TABLES.has(table)) { fbBaseline[table] = fbBaselineFrom(remoteOnlyArr); if (FB_KEEP_LOCAL_TABLES.has(table)) fbGateReady[table] = true; if (keptLocal) { try { pushCollectionDiff(def, { skipEmptyGuard: true }); } catch (e) { console.warn('re-push of kept local changes failed', e); } } }
   try { fbSetKnown(table, def.getArray().map(r => fbSafeKey(syncKeyOf(r)))); } catch (e) {}
   if (def.afterPull) def.afterPull();
   pendingRemoteApply.delete(table);
@@ -13581,17 +14270,15 @@ function applyServerSnapshot(table) {
 // currently in the database, then again automatically every time ANY computer changes that table
 // (including this one's own writes, which is harmless: the content will already match what's
 // local, so applyServerSnapshot's diff check above is a no-op).
-function attachCollectionListener(def) {
+function attachCollectionListener(def, force) {
   if (!fbDb) return;
-  fbDb.ref(def.table).on('value', snapshot => {
+  fbAttachOnValue(def.table, def.table, snapshot => {
+    fbListenerOk(def.table);
     fbLastServerEventAt = Date.now();
+    fbSnapStamp[def.table] = (fbSnapStamp[def.table] || 0) + 1;
     fbLastServerSnapshot[def.table] = FB_PROTECTED_TABLES.has(def.table) ? fbStripRvMap(snapshot.val()) : (snapshot.val() || {});
     applyServerSnapshot(def.table);
-  }, error => {
-    cloudSyncStatus = 'error';
-    cloudSyncLastError = `${def.table}: ${(error && error.message) || error}`;
-    renderCloudSyncStatus();
-  });
+  }, error => { fbListenerFailed(def.table, error, f => attachCollectionListener(def, f)); }, { force: force === true });   // r632: Firebase cancels the listener on an error -> re-attach with back-off
 }
 
 // fleetPostponedDoNos is a plain array of strings (DO numbers, which can contain "/") — stored as
@@ -13600,6 +14287,8 @@ function attachCollectionListener(def) {
 const FB_POSTPONED_DONOS_TABLE = 'Fleet_PostponedDoNos';
 function pushPostponedDoNosDiff() {
   if (!fbDb) return;
+  if (!fbWritesAllowed()) return;   // r638: version not verified yet -> hold quietly (same rule as pushCollectionDiff); the change is re-sent by the next sync pass, no false alarm
+  if (fbTableHeld(FB_POSTPONED_DONOS_TABLE)) return;   // r633
   const prev = fbLastServerSnapshot[FB_POSTPONED_DONOS_TABLE] || {};
   const nowKeyed = {};
   fleetPostponedDoNos.forEach(doNo => { nowKeyed[fbSafeKey(doNo)] = doNo; });
@@ -13620,19 +14309,27 @@ function pushPostponedDoNosDiff() {
 }
 function applyPostponedDoNosSnapshot() {
   const remoteObj = fbLastServerSnapshot[FB_POSTPONED_DONOS_TABLE] || {};
-  const remoteArr = Object.values(remoteObj);
+  let remoteArr = Object.values(remoteObj);
+  if (fbPostponedOfflineBase) {   // r633: DO numbers postponed on this device while offline are kept (and sent after validation); one removed here while offline but still on the server is restored and logged
+    const base = fbPostponedOfflineBase, localSet = new Set(fleetPostponedDoNos);
+    fleetPostponedDoNos.forEach(d => { if (!base.has(d) && !remoteArr.includes(d)) remoteArr = remoteArr.concat([d]); });
+    base.forEach(d => { if (!localSet.has(d) && remoteArr.includes(d)) fbLogConflict({ table: FB_POSTPONED_DONOS_TABLE, key: d, field: '(removed here while offline)', local: null, server: d }); });
+    if (!fbRevalNeeded) fbPostponedOfflineBase.__done = true;
+  }
   if (stableStringify([...remoteArr].sort()) === stableStringify([...fleetPostponedDoNos].sort())) return;
   fleetPostponedDoNos = remoteArr;
   saveFleetPostponedDoNos();
   autoAttachDoNosToTrips();
   renderFleetTab();
 }
-function attachPostponedDoNosListener() {
+function attachPostponedDoNosListener(force) {
   if (!fbDb) return;
-  fbDb.ref(FB_POSTPONED_DONOS_TABLE).on('value', snapshot => {
+  fbAttachOnValue('Postponed DOs', FB_POSTPONED_DONOS_TABLE, snapshot => {
+    fbListenerOk('Postponed DOs');
+    fbSnapStamp[FB_POSTPONED_DONOS_TABLE] = (fbSnapStamp[FB_POSTPONED_DONOS_TABLE] || 0) + 1;
     fbLastServerSnapshot[FB_POSTPONED_DONOS_TABLE] = snapshot.val() || {};
     applyPostponedDoNosSnapshot();
-  });
+  }, error => { fbListenerFailed('Postponed DOs', error, attachPostponedDoNosListener); }, { force: force === true });
 }
 
 // Single-value settings (SLA config, carton/DO counters, sticker template, daily targets, inbound
@@ -13649,6 +14346,8 @@ function syncSettingsKeys() {
 const FB_SETTINGS_TABLE = 'AppSettings';
 function pushSettingsDiff() {
   if (!fbDb) return;
+  if (!fbWritesAllowed()) return;   // r638: version not verified yet -> hold quietly (same rule as pushCollectionDiff); the change is re-sent by the next sync pass, no false alarm
+  if (fbTableHeld(FB_SETTINGS_TABLE)) return;   // r633
   const remoteMap = fbLastServerSnapshot[FB_SETTINGS_TABLE] || {};
   const settingsKeys = syncSettingsKeys();
   const updateObj = {};
@@ -13657,6 +14356,7 @@ function pushSettingsDiff() {
     const local = localStorage.getItem(k);
     if (local !== null && local !== remoteMap[k]) { updateObj[k] = local; changed = true; }
   });
+  Object.keys(updateObj).forEach(k => { delete fbSettingsKeep[k]; });
   if (!changed) return;
   fbLastServerSnapshot[FB_SETTINGS_TABLE] = { ...remoteMap, ...updateObj };
   fbDb.ref(FB_SETTINGS_TABLE).update(updateObj).catch(e => {
@@ -13681,6 +14381,12 @@ function applySettingsSnapshot() {
   settingsKeys.forEach(k => {
     const remote = Object.prototype.hasOwnProperty.call(remoteMap, k) ? remoteMap[k] : undefined;
     const local = localStorage.getItem(k);
+    // r633: a setting changed on this device while offline stays (and is sent after validation) if the server still has the value this device last saw; otherwise the server value wins and the local one is logged.
+    if (fbSettingsOfflineBase && !(k in fbSettingsKeep) && local !== null && local !== (fbSettingsOfflineBase[k] === undefined ? null : fbSettingsOfflineBase[k]) && !fbSameStr(remote, local)) {
+      if (remote === fbSettingsOfflineBase[k]) fbSettingsKeep[k] = fbSettingsOfflineBase[k];
+      else if (remote !== undefined) fbLogConflict({ table: FB_SETTINGS_TABLE, key: k, field: k, local, server: remote, base: fbSettingsOfflineBase[k] });
+    }
+    if (k in fbSettingsKeep) { if (remote === fbSettingsKeep[k]) return; delete fbSettingsKeep[k]; if (remote !== undefined && remote !== local) fbLogConflict({ table: FB_SETTINGS_TABLE, key: k, field: k, local, server: remote }); }
     if (remote === undefined || remote === local) return;
     if (k === SLA_KEY) {
       // Merge (see mergeSlaBoutiqueData above) instead of overwrite, so a boutique added on this
@@ -13749,16 +14455,14 @@ function applySettingsSnapshot() {
     renderCloudSyncStatus();
   }
 }
-function attachSettingsListener() {
+function attachSettingsListener(force) {
   if (!fbDb) return;
-  fbDb.ref(FB_SETTINGS_TABLE).on('value', snapshot => {
+  fbAttachOnValue('Settings', FB_SETTINGS_TABLE, snapshot => {
+    fbListenerOk('Settings');
+    fbSnapStamp[FB_SETTINGS_TABLE] = (fbSnapStamp[FB_SETTINGS_TABLE] || 0) + 1;
     fbLastServerSnapshot[FB_SETTINGS_TABLE] = snapshot.val() || {};
     applySettingsSnapshot();
-  }, error => {
-    cloudSyncStatus = 'error';
-    cloudSyncLastError = `Settings: ${(error && error.message) || error}`;
-    renderCloudSyncStatus();
-  });
+  }, error => { fbListenerFailed('Settings', error, attachSettingsListener); }, { force: force === true });
 }
 
 /* ================= Raw Material (Fabric Roll) module =================
@@ -14475,6 +15179,8 @@ let itemMasterFbListenerAttached = false;
 let itemMasterPushInFlight = false;
 function pushItemMasterDiffToFirebase() {
   if (!fbDb) return;
+  if (!fbWritesAllowed()) return;   // r638: version not verified yet -> hold quietly (same rule as pushCollectionDiff); the change is re-sent by the next sync pass, no false alarm
+  if (fbTableHeld(ITEM_MASTER_FB_TABLE)) return;   // r633
   const nowKeyed = {};
   itemMasterList.forEach(it => { nowKeyed[fbSafeKey(it.id)] = it; });
   const updateObj = {};
@@ -14497,7 +15203,7 @@ function pushItemMasterDiffToFirebase() {
 function applyItemMasterServerSnapshot(remoteObj) {
   if (itemMasterPushInFlight) return;
   _itemMasterLastServerSnapshot = remoteObj || {};
-  const remoteArr = Object.values(_itemMasterLastServerSnapshot);
+  const remoteArr = fbBespokeView('itemMaster', _itemMasterLastServerSnapshot);
   if (stableStringify(remoteArr) === stableStringify(itemMasterList)) return; // no-op — likely our own echo
   itemMasterList = remoteArr;
   itemMasterReplaceAll(remoteArr).catch(e => console.error('itemMasterReplaceAll (remote sync) failed', e));
@@ -14505,16 +15211,18 @@ function applyItemMasterServerSnapshot(remoteObj) {
   const tabEl = document.getElementById('tab-item-master');
   if (tabEl && tabEl.classList.contains('active')) renderItemMasterTab();
 }
-function attachItemMasterFbListener() {
-  if (!fbDb || itemMasterFbListenerAttached) return;
+function attachItemMasterFbListener(force) {
+  if (!fbDb) return;
+  // r633 (Fix 3): same recovery as the core tables - Firebase cancels a listener on an error; it is re-attached (back-off, on reconnect, on Sync Now), never twice.
   itemMasterFbListenerAttached = true;
-  fbDb.ref(ITEM_MASTER_FB_TABLE).on('value', snapshot => {
+  fbAttachOnValue('Item Master', ITEM_MASTER_FB_TABLE, snapshot => {
+    fbListenerOk('Item Master');
+    fbSnapStamp[ITEM_MASTER_FB_TABLE] = (fbSnapStamp[ITEM_MASTER_FB_TABLE] || 0) + 1;
     applyItemMasterServerSnapshot(snapshot.val() || {});
   }, error => {
-    cloudSyncStatus = 'error';
-    cloudSyncLastError = `ItemMasterList: ${(error && error.message) || error}`;
-    renderCloudSyncStatus();
-  });
+    itemMasterFbListenerAttached = false;
+    fbListenerFailed('Item Master', error, attachItemMasterFbListener);
+  }, { force: force === true });
 }
 // Runs once at startup (alongside initialCloudSync). First time EVER on this computer: union-merge
 // (keep every local item, adopt every remote-only item) so this computer's existing upload isn't
@@ -14524,7 +15232,7 @@ async function initialItemMasterCloudSync() {
   if (!fbDb) return;
   await loadItemMasterList(); // make sure itemMasterList reflects this computer's IndexedDB before merging
   try {
-    const snap = await fbDb.ref(ITEM_MASTER_FB_TABLE).once('value');
+    const snap = await fbReadOnce(ITEM_MASTER_FB_TABLE);
     const remoteObj = snap.val() || {};
     _itemMasterLastServerSnapshot = remoteObj;
     const everMergedKey = fbEverMergedKey(ITEM_MASTER_FB_TABLE);
@@ -15256,6 +15964,8 @@ let skuPriceFbListenerAttached = false;
 let skuPricePushInFlight = false;
 function pushSkuPriceDiffToFirebase() {
   if (!fbDb) return;
+  if (!fbWritesAllowed()) return;   // r638: version not verified yet -> hold quietly (same rule as pushCollectionDiff); the change is re-sent by the next sync pass, no false alarm
+  if (fbTableHeld(SKU_PRICE_FB_TABLE)) return;   // r633
   const nowKeyed = {};
   skuPriceList.forEach(it => { nowKeyed[fbSafeKey(it.sku)] = it; });
   const updateObj = {};
@@ -15278,7 +15988,7 @@ function pushSkuPriceDiffToFirebase() {
 function applySkuPriceServerSnapshot(remoteObj) {
   if (skuPricePushInFlight) return;
   _skuPriceLastServerSnapshot = remoteObj || {};
-  const remoteArr = Object.values(_skuPriceLastServerSnapshot);
+  const remoteArr = fbBespokeView('skuPrice', _skuPriceLastServerSnapshot);
   if (stableStringify(remoteArr) === stableStringify(skuPriceList)) return; // no-op — likely our own echo
   skuPriceList = remoteArr;
   skuPriceReplaceAll(remoteArr).catch(e => console.error('skuPriceReplaceAll (remote sync) failed', e));
@@ -15286,16 +15996,18 @@ function applySkuPriceServerSnapshot(remoteObj) {
   const tabEl2 = document.getElementById('tab-sku-price');
   if (tabEl2 && tabEl2.classList.contains('active')) renderSkuPriceTab();
 }
-function attachSkuPriceFbListener() {
-  if (!fbDb || skuPriceFbListenerAttached) return;
+function attachSkuPriceFbListener(force) {
+  if (!fbDb) return;
+  // r633 (Fix 3): same recovery as the core tables - Firebase cancels a listener on an error; it is re-attached (back-off, on reconnect, on Sync Now), never twice.
   skuPriceFbListenerAttached = true;
-  fbDb.ref(SKU_PRICE_FB_TABLE).on('value', snapshot => {
+  fbAttachOnValue('SKU Price', SKU_PRICE_FB_TABLE, snapshot => {
+    fbListenerOk('SKU Price');
+    fbSnapStamp[SKU_PRICE_FB_TABLE] = (fbSnapStamp[SKU_PRICE_FB_TABLE] || 0) + 1;
     applySkuPriceServerSnapshot(snapshot.val() || {});
   }, error => {
-    cloudSyncStatus = 'error';
-    cloudSyncLastError = `SkuPriceList: ${(error && error.message) || error}`;
-    renderCloudSyncStatus();
-  });
+    skuPriceFbListenerAttached = false;
+    fbListenerFailed('SKU Price', error, attachSkuPriceFbListener);
+  }, { force: force === true });
 }
 // Runs once at startup (alongside initialCloudSync/initialItemMasterCloudSync). First time EVER on
 // this computer: union-merge (keep every local item, adopt every remote-only item) so this computer's
@@ -15305,7 +16017,7 @@ async function initialSkuPriceCloudSync() {
   if (!fbDb) return;
   await loadSkuPriceList(); // make sure skuPriceList reflects this computer's IndexedDB before merging
   try {
-    const snap = await fbDb.ref(SKU_PRICE_FB_TABLE).once('value');
+    const snap = await fbReadOnce(SKU_PRICE_FB_TABLE);
     const remoteObj = snap.val() || {};
     _skuPriceLastServerSnapshot = remoteObj;
     const everMergedKey = fbEverMergedKey(SKU_PRICE_FB_TABLE);
@@ -15461,6 +16173,8 @@ let stockAvailableFbListenerAttached = false;
 let stockAvailablePushInFlight = false;
 function pushStockAvailableDiffToFirebase(opts) {
   if (!fbDb) return;
+  if (!fbWritesAllowed()) return;   // r638: version not verified yet -> hold quietly (same rule as pushCollectionDiff); the change is re-sent by the next sync pass, no false alarm
+  if (fbTableHeld(STOCK_AVAILABLE_FB_TABLE)) return;   // r633
   if (!(opts && opts.skipEmptyGuard) && !stockAvailableList.length && Object.keys(_stockAvailableLastServerSnapshot).length) return;
   const nowKeyed = {};
   stockAvailableList.forEach(it => { nowKeyed[fbSafeKey(it.id)] = it; });
@@ -15484,7 +16198,7 @@ function pushStockAvailableDiffToFirebase(opts) {
 function applyStockAvailableServerSnapshot(remoteObj) {
   if (stockAvailablePushInFlight) return;
   _stockAvailableLastServerSnapshot = remoteObj || {};
-  const remoteArr = Object.values(_stockAvailableLastServerSnapshot);
+  const remoteArr = fbBespokeView('stockAvail', _stockAvailableLastServerSnapshot);
   if (stableStringify(remoteArr) === stableStringify(stockAvailableList)) return;
   stockAvailableList = remoteArr;
   stockAvailableReplaceAll(remoteArr).catch(e => console.error('stockAvailableReplaceAll (remote sync) failed', e));
@@ -15492,16 +16206,18 @@ function applyStockAvailableServerSnapshot(remoteObj) {
   const tabEl = document.getElementById('tab-stock-available');
   if (tabEl && tabEl.classList.contains('active')) renderStockAvailableTab();
 }
-function attachStockAvailableFbListener() {
-  if (!fbDb || stockAvailableFbListenerAttached) return;
+function attachStockAvailableFbListener(force) {
+  if (!fbDb) return;
+  // r633 (Fix 3): same recovery as the core tables - Firebase cancels a listener on an error; it is re-attached (back-off, on reconnect, on Sync Now), never twice.
   stockAvailableFbListenerAttached = true;
-  fbDb.ref(STOCK_AVAILABLE_FB_TABLE).on('value', snapshot => {
+  fbAttachOnValue('Stock Available', STOCK_AVAILABLE_FB_TABLE, snapshot => {
+    fbListenerOk('Stock Available');
+    fbSnapStamp[STOCK_AVAILABLE_FB_TABLE] = (fbSnapStamp[STOCK_AVAILABLE_FB_TABLE] || 0) + 1;
     applyStockAvailableServerSnapshot(snapshot.val() || {});
   }, error => {
-    cloudSyncStatus = 'error';
-    cloudSyncLastError = `StockAvailableList: ${(error && error.message) || error}`;
-    renderCloudSyncStatus();
-  });
+    stockAvailableFbListenerAttached = false;
+    fbListenerFailed('Stock Available', error, attachStockAvailableFbListener);
+  }, { force: force === true });
 }
 function refreshStockAvailableFromServer() {
   if (!fbDb) return;
@@ -15513,7 +16229,7 @@ async function initialStockAvailableCloudSync() {
   if (!fbDb) { stockAvailableInitialSyncDone = true; return; }
   await loadStockAvailableList();
   try {
-    const snap = await fbDb.ref(STOCK_AVAILABLE_FB_TABLE).once('value');
+    const snap = await fbReadOnce(STOCK_AVAILABLE_FB_TABLE);
     const remoteObj = snap.val() || {};
     _stockAvailableLastServerSnapshot = remoteObj;
     applyStockAvailableServerSnapshot(remoteObj); // cloud always wins — see module header for why
@@ -18439,7 +19155,7 @@ function rqAllFgRows() { let a = []; try { a = Array.isArray(campaignAccList) ? 
     if (r && String(r.qcFg || '').trim() === '' && /^pass/i.test(String(r.distStatus || '').trim())) return Object.assign({}, r, { qcFg: /condition/i.test(r.distStatus) ? 'PASS WITH CONDITION' : 'PASS' });
     return r; }).map(r => (r && !String(r.officialProductName || '').trim() && String(r.projectDescription || '').trim()) ? Object.assign({}, r, { officialProductName: r.projectDescription }) : r); // r631: accessories with no Official Product Name show the Project Description instead of '-'
   return (campaignTimelineList || []).concat(a); } // Finished Goods + Accessories (one list)
-function rqHasDistInfo(r) { return rqLinksRaw(r, 'distForm').length > 0; } // only items that already have a Distribution Form (complete) appear in Bulk QC / Distribution Status
+function rqHasDistInfo(r) { if (rqLinksRaw(r, 'distForm').length > 0) return true; const t = String((r && r.distFormLink) || '').trim(); return !!t && t !== '-'; }   // r634: a Distribution Form cell that already has text (e.g. the file chip 'PENDENG') counts as filled in even before its link has been pulled with the Sheets API key // only items that already have a Distribution Form (complete) appear in Bulk QC / Distribution Status
 function rqDocColour() { return ''; }
 function rqColours(r) { return rqRowColour(r); }
 function rqQcPill(r) { const k = bqcStatusKey(rqFabric ? r.qcWash : r.qcFg); return k === 'pass' ? '<span class="rq-pill pass">Pass</span>' : k === 'pass-with' ? '<span class="rq-pill cond">Pass With Condition</span>' : '<span class="rq-pill fail">Fail</span>'; }
@@ -20321,6 +21037,8 @@ let campaignTimelineFbListenerAttached = false;
 let campaignTimelinePushInFlight = false;
 function pushCampaignTimelineDiffToFirebase(opts) {
   if (!fbDb) return;
+  if (!fbWritesAllowed()) return;   // r638: version not verified yet -> hold quietly (same rule as pushCollectionDiff); the change is re-sent by the next sync pass, no false alarm
+  if (fbTableHeld(CAMPAIGN_TIMELINE_FB_TABLE)) return;   // r633
   if (!(opts && opts.skipEmptyGuard) && !campaignTimelineList.length && Object.keys(_campaignTimelineLastServerSnapshot).length) return;
   const nowKeyed = {};
   campaignTimelineList.forEach(it => { nowKeyed[fbSafeKey(it.id)] = it; });
@@ -20354,7 +21072,7 @@ function pushCampaignTimelineDiffToFirebase(opts) {
 function applyCampaignTimelineServerSnapshot(remoteObj) {
   if (campaignTimelinePushInFlight) return;
   _campaignTimelineLastServerSnapshot = remoteObj || {};
-  const remoteArr = Object.values(_campaignTimelineLastServerSnapshot);
+  const remoteArr = fbBespokeView('campaignTimeline', _campaignTimelineLastServerSnapshot);
   // Only merge-protect when the remote side still has SOME rows — an explicit "Reset All" push (or a
   // genuinely emptied sheet) sends an intentionally empty snapshot, and that has to go through as-is,
   // otherwise this device would keep resurrecting every old row forever (merge treats "row missing
@@ -20366,22 +21084,24 @@ function applyCampaignTimelineServerSnapshot(remoteObj) {
   const tabEl = document.getElementById('tab-production-timeline');
   if (tabEl && tabEl.classList.contains('active')) renderCampaignTimelineTab();
 }
-function attachCampaignTimelineFbListener() {
-  if (!fbDb || campaignTimelineFbListenerAttached) return;
+function attachCampaignTimelineFbListener(force) {
+  if (!fbDb) return;
+  // r633 (Fix 3): same recovery as the core tables - Firebase cancels a listener on an error; it is re-attached (back-off, on reconnect, on Sync Now), never twice.
   campaignTimelineFbListenerAttached = true;
-  fbDb.ref(CAMPAIGN_TIMELINE_FB_TABLE).on('value', snapshot => {
+  fbAttachOnValue('Campaign Timeline', CAMPAIGN_TIMELINE_FB_TABLE, snapshot => {
+    fbListenerOk('Campaign Timeline');
+    fbSnapStamp[CAMPAIGN_TIMELINE_FB_TABLE] = (fbSnapStamp[CAMPAIGN_TIMELINE_FB_TABLE] || 0) + 1;
     applyCampaignTimelineServerSnapshot(snapshot.val() || {});
   }, error => {
-    cloudSyncStatus = 'error';
-    cloudSyncLastError = `CampaignTimelineList: ${(error && error.message) || error}`;
-    renderCloudSyncStatus();
-  });
+    campaignTimelineFbListenerAttached = false;
+    fbListenerFailed('Campaign Timeline', error, attachCampaignTimelineFbListener);
+  }, { force: force === true });
 }
 async function initialCampaignTimelineCloudSync() {
   if (!fbDb) { campaignTimelineInitialSyncDone = true; return; }
   loadCampaignTimelineList();
   try {
-    const snap = await fbDb.ref(CAMPAIGN_TIMELINE_FB_TABLE).once('value');
+    const snap = await fbReadOnce(CAMPAIGN_TIMELINE_FB_TABLE);
     const remoteObj = snap.val() || {};
     _campaignTimelineLastServerSnapshot = remoteObj;
     applyCampaignTimelineServerSnapshot(remoteObj); // cloud always wins — see module header for why
@@ -22965,6 +23685,8 @@ function campaignAccLoadLocal() {
 function campaignAccSaveLocal() { localStorage.setItem(CAMPAIGN_ACC_KEY, JSON.stringify(campaignAccList)); }
 function pushCampaignAccToFirebase() {
   if (!fbDb) return;
+  if (!fbWritesAllowed()) return;   // r638: version not verified yet -> hold quietly (same rule as pushCollectionDiff); the change is re-sent by the next sync pass, no false alarm
+  if (fbTableHeld(CAMPAIGN_ACC_FB_TABLE)) return;   // r633
   const nowKeyed = {};
   campaignAccList.forEach(it => { nowKeyed[fbSafeKey(it.id)] = it; });
   const updateObj = {};
@@ -22987,7 +23709,7 @@ function pushCampaignAccToFirebase() {
 function campaignAccApplyServerSnapshot(remoteObj) {
   if (campaignAccPushInFlight) return;
   _campaignAccLastServerSnapshot = remoteObj || {};
-  const remoteArr = Object.values(_campaignAccLastServerSnapshot);
+  const remoteArr = fbBespokeView('campaignAcc', _campaignAccLastServerSnapshot);
   if (stableStringify(remoteArr) === stableStringify(campaignAccList)) return;
   campaignAccList = remoteArr;
   campaignAccSaveLocal();
@@ -22997,12 +23719,16 @@ function campaignAccApplyServerSnapshot(remoteObj) {
 async function campaignAccCloudInit() {
   if (!fbDb) return;
   try {
-    const snap = await fbDb.ref(CAMPAIGN_ACC_FB_TABLE).once('value');
+    const snap = await fbReadOnce(CAMPAIGN_ACC_FB_TABLE);
     campaignAccApplyServerSnapshot(snap.val() || {});
   } catch (e) { /* offline — keep local copy */ }
-  if (campaignAccFbListenerAttached) return;
+  attachCampaignAccFbListener();
+}
+function attachCampaignAccFbListener(force) {
+  if (!fbDb) return;
   campaignAccFbListenerAttached = true;
-  fbDb.ref(CAMPAIGN_ACC_FB_TABLE).on('value', snapshot => campaignAccApplyServerSnapshot(snapshot.val() || {}));
+  fbAttachOnValue('Campaign Accessories', CAMPAIGN_ACC_FB_TABLE, snapshot => { fbListenerOk('Campaign Accessories'); fbSnapStamp[CAMPAIGN_ACC_FB_TABLE] = (fbSnapStamp[CAMPAIGN_ACC_FB_TABLE] || 0) + 1; campaignAccApplyServerSnapshot(snapshot.val() || {}); },
+    error => { campaignAccFbListenerAttached = false; fbListenerFailed('Campaign Accessories', error, attachCampaignAccFbListener); }, { force: force === true });
 }
 function parseCampaignAccRows(rows, rawHeaderRows) {
   let headerRowIdx = 2;
@@ -25395,7 +26121,7 @@ function scanRmPickAccessoriesCarton(stoNo, cartonNo, resultEl) {
 // Manual fallback (Oct 19, 2026): a roll was physically sent but its scan won't go through (e.g. reserved by another STO,
 // already marked Completed elsewhere). Completes ONE open fabric line of the group; stock is only deducted if the roll
 // is known and still has meters left, so nothing is double-deducted.
-function rmPickManualComplete(stoNo, key) {
+async function rmPickManualComplete(stoNo, key) {
   if (!stoNo) return;
   const item = rawMaterialStos.find(s => s.stoNo === stoNo && s.itemType !== 'accessories' && s.status !== 'Completed'
     && [s.fabricName || '', s.colorCode || '', s.colorName || ''].join('|||') === key);
@@ -25405,26 +26131,56 @@ function rmPickManualComplete(stoNo, key) {
   const rollNo = input.trim();
   const roll = rollNo ? rawMaterialRolls.find(r => (r.rollNo || '').toLowerCase() === rollNo.toLowerCase()) : null;
   if (rollNo && !roll) { alert('Roll "' + rollNo + '" not found in stock. Check the number, or leave it blank.'); return; }
+  const date = (document.getElementById('rmPickDate') && document.getElementById('rmPickDate').value) || todayStr();
+  let subst = {}, willDeduct = false, take = 0;   // r639: nothing is changed locally until the server has confirmed (a background push must never send an unconfirmed change)
   if (roll) {
     const sentElsewhere = rawMaterialStos.some(s => s.rollId === roll.id && s.status === 'Completed');
-    if (item.rollId !== roll.id) {
-      // release nothing else; just point this slot at the real roll
-      item.rollId = roll.id; item.rollNo = roll.rollNo; item.fabricCode = roll.fabricCode;
-    }
-    if (!sentElsewhere && (Number(roll.meterRemaining) || 0) > 0) {
-      item.meter = Number(roll.meterRemaining) || 0;
-      roll.meterRemaining = 0;
+    // release nothing else; just point this slot at the real roll
+    if (item.rollId !== roll.id) subst = { rollId: roll.id, rollNo: roll.rollNo, fabricCode: roll.fabricCode };
+    if (!sentElsewhere && (Number(roll.meterRemaining) || 0) > 0) { willDeduct = true; take = Number(roll.meterRemaining) || 0; }
+  }
+  const noteText = ((item.notes ? item.notes + ' | ' : '') + 'Marked as sent manually').trim();
+  const finishManual = (rollClaim, itemClaim) => {
+    Object.assign(item, subst);
+    if (rollClaim && rollClaim.ok) fbRmAdopt(roll, rollClaim.key, rollClaim.value);
+    if (itemClaim && itemClaim.ok) fbRmAdopt(item, itemClaim.key, itemClaim.value, 'RawMaterial_STOs');
+    if (willDeduct) {
+      item.meter = take;
+      if (!(rollClaim && rollClaim.ok)) roll.meterRemaining = 0;
       saveRawMaterialRolls(); pushRmTableNow('RawMaterial_Rolls');
     }
+    item.status = 'Completed';
+    item.date = date;
+    item.notes = noteText;
+    saveRawMaterialStos(); pushRmTableNow('RawMaterial_STOs');
+    const stoItems = rawMaterialStos.filter(s => s.stoNo === stoNo);
+    if (stoItems.length && stoItems.every(s => s.status === 'Completed')) createAndPrintRmDo(stoNo);
+    renderRmPickToPickList();
+    renderRmPickStoItems();
+  };
+  if (fbRmTxnUsable()) {
+    // r639: the roll (if any meters are left on the SERVER) and the STO item are each claimed by a transaction; the item can be completed only once
+    let rollClaim = null;
+    if (willDeduct) {
+      rollClaim = await fbRmClaimRoll(roll, take);
+      if (!rollClaim.ok) {
+        if (rollClaim.reason === 'already') { willDeduct = false; rollClaim = null; }   // the server says nothing is left to deduct: just mark the item (same rule as before: nothing is double-deducted)
+        else { alert(fbRmFailText(rollClaim, 'Manual complete') + '\nThe item was NOT marked as sent.'); renderRmPickStoItems(); return; }
+      }
+    }
+    const patch = Object.assign({}, subst, { date: date, notes: noteText });
+    if (willDeduct) patch.meter = take;
+    const ic = await fbRmClaimItemComplete(item, patch);
+    if (!ic.ok) {
+      let back = '';
+      if (rollClaim && rollClaim.ok) { const rb = await fbRmAddBack(roll, take, Number(roll.meter) || 0); back = rb.ok ? '\nThe roll meters were given back.' : '\nWARNING: roll ' + roll.rollNo + ' could not be given back automatically - check Stock Balance (' + take + ' m).'; if (rb.ok) fbRmAdopt(roll, rb.key, rb.value); else fbNoteWriteIssue('rm-op', 'RawMaterial_Rolls', 'manual-complete-compensate', 'roll ' + roll.rollNo + ': ' + rb.reason); }
+      alert(ic.reason === 'itemDone' ? 'This item was already completed on another device. Nothing was changed.' + back : fbRmFailText(ic, 'Manual complete') + back);
+      renderRmPickStoItems(); return;
+    }
+    finishManual(rollClaim, ic);
+    return;
   }
-  item.status = 'Completed';
-  item.date = (document.getElementById('rmPickDate') && document.getElementById('rmPickDate').value) || todayStr();
-  item.notes = ((item.notes ? item.notes + ' | ' : '') + 'Marked as sent manually').trim();
-  saveRawMaterialStos(); pushRmTableNow('RawMaterial_STOs');
-  const stoItems = rawMaterialStos.filter(s => s.stoNo === stoNo);
-  if (stoItems.length && stoItems.every(s => s.status === 'Completed')) createAndPrintRmDo(stoNo);
-  renderRmPickToPickList();
-  renderRmPickStoItems();
+  finishManual(null, null);
 }
 function scanRmPickRoll() {
   const stoSelect = document.getElementById('rmPickStoSelect');
@@ -25490,6 +26246,7 @@ function scanRmPickRoll() {
     return;
   }
 
+  const rmSlotBefore = { rollId: item.rollId, rollNo: item.rollNo, fabricCode: item.fabricCode, colorCode: item.colorCode, colorName: item.colorName, meter: item.meter };
   // Substitute the scanned roll's real identity into this item slot (releases the original
   // placeholder roll back to available stock since it's no longer referenced by any Open item).
   if (item.rollId !== roll.id) {
@@ -25499,14 +26256,17 @@ function scanRmPickRoll() {
     item.colorCode = roll.colorCode;
     item.colorName = roll.colorName;
   }
-  item.meter = Number(roll.meterRemaining) || 0;
+  const rmTake = Number(roll.meterRemaining) || 0;
+  const rmFinish = (claim) => {
+  item.meter = rmTake;
+  if (claim && claim.ok) fbRmAdopt(roll, claim.key, claim.value);   // r637: the server's committed roll record is the truth
 
   // Auto-complete immediately on a successful scan — no separate "Complete" click anymore. Deduct
   // stock, mark this item Completed straight away, and auto-generate/print the STO's DO once every
   // item in it is done.
   const notes = (document.getElementById('rmPickNotes').value || '').trim();
   const date = document.getElementById('rmPickDate').value || todayStr();
-  roll.meterRemaining = Math.max(0, Math.round((Number(roll.meterRemaining) - Number(item.meter)) * 100) / 100);
+  if (!(claim && claim.ok)) roll.meterRemaining = Math.max(0, Math.round((Number(roll.meterRemaining) - Number(item.meter)) * 100) / 100);
   item.status = 'Completed';
   item.date = date;
   if (notes) item.notes = notes;
@@ -25529,6 +26289,40 @@ function scanRmPickRoll() {
 
   renderRmPickToPickList();
   renderRmPickStoItems();
+  };
+  if (fbRmTxnUsable()) {
+    resultEl.textContent = 'Checking roll ' + roll.rollNo + ' with the server…'; resultEl.style.color = '#c79b4a';
+    // r639: no local change while the server decides (a background push must never send an unconfirmed slot change): put the slot back now, apply it only after both claims succeed
+    const subst = { rollId: roll.id, rollNo: roll.rollNo, fabricCode: roll.fabricCode, colorCode: roll.colorCode, colorName: roll.colorName };
+    Object.assign(item, rmSlotBefore);
+    const failScan = (msg) => { resultEl.textContent = msg; resultEl.style.color = '#e0685c'; rmPickMatchedItemId = null; renderRmPickStoItems(); };
+    fbRmClaimRoll(roll, rmTake).then(async claim => {
+      if (!claim.ok) {   // nothing was sent
+        failScan(claim.reason === 'already' ? `Roll ${roll.rollNo} was already sent (or has fewer meters) according to the server - NOT sent again. Refresh and pick another roll.`
+          : claim.reason === 'busy' ? `Roll ${roll.rollNo} is being sent right now.`
+          : `Roll ${roll.rollNo} could not be confirmed with the server (${claim.reason}) - NOT sent. Check the connection and scan again.`);
+        return;
+      }
+      // r639: the STO item can be completed only ONCE (two staff scanning different rolls for the same item): claimed by a transaction on the SERVER copy of the item
+      const scanDate = document.getElementById('rmPickDate').value || todayStr(), scanNotes = (document.getElementById('rmPickNotes').value || '').trim();
+      const patch = Object.assign({}, subst, { meter: rmTake, date: scanDate });
+      if (scanNotes) patch.notes = scanNotes;
+      const ic = await fbRmClaimItemComplete(item, patch);
+      if (!ic.ok) {   // give the roll's meters back: this scan did NOT send anything
+        const rb = await fbRmAddBack(roll, rmTake, Number(roll.meter) || 0);
+        if (rb.ok) fbRmAdopt(roll, rb.key, rb.value);
+        else fbNoteWriteIssue('rm-op', 'RawMaterial_Rolls', 'scan-compensate', 'roll ' + roll.rollNo + ' could not be given back (' + rmTake + ' m): ' + rb.reason);
+        failScan(ic.reason === 'itemDone' ? `This item was already completed on another device - roll ${roll.rollNo} was NOT sent${rb.ok ? ' (its meters were given back)' : ' - WARNING: its ' + rmTake + ' m could not be given back automatically, tell the admin'}.`
+          : `Roll ${roll.rollNo}: the item could not be confirmed (${ic.reason})${rb.ok ? ' - its meters were given back' : ' - WARNING: ' + rmTake + ' m were deducted and could not be given back automatically, tell the admin'}. Scan again.`);
+        return;
+      }
+      Object.assign(item, subst);
+      fbRmAdopt(item, ic.key, ic.value, 'RawMaterial_STOs');
+      rmFinish(claim);
+    });
+    return;
+  }
+  rmFinish(null);
 }
 document.getElementById('rmPickStoSelect').addEventListener('change', () => { resetRmPickScan(); renderRmPickToPickList(); renderRmPickStoItems(); });
 document.getElementById('rmPickScanBtn').addEventListener('click', scanRmPickRoll);
@@ -26019,37 +26813,7 @@ function renderRmStoListTable() {
   wrap.querySelectorAll('.rm-sto-deduct-now-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const stoNo = btn.dataset.sto;
-      requireAdminPassword(() => {
-        const items = rawMaterialStos.filter(s => s.stoNo === stoNo && s.itemType === 'fabric' && isRmStoManualReconLine(s) && !s.stockDeducted);
-        if (!items.length) return;
-        const groups = new Map();
-        items.forEach(s => {
-          const key = [s.fabricName || '', s.fabricCode || '', s.colorCode || ''].join('|||');
-          groups.set(key, (groups.get(key) || 0) + (Number(s.meter) || 0));
-        });
-        if (!confirm(`Deduct a total of ${formatQty([...groups.values()].reduce((a, b) => a + b, 0))} m from current matching rolls for STO ${stoNo}? This cannot be undone.`)) return;
-        groups.forEach((totalMeter, key) => {
-          const [fabricName, fabricCode, colorCode] = key.split('|||');
-          let remaining = totalMeter;
-          rawMaterialRolls
-            .filter(r => (r.fabricName || '') === fabricName && (r.fabricCode || '') === fabricCode && (r.colorCode || '') === colorCode && Number(r.meterRemaining) > 0)
-            .sort((a, b) => Number(b.meterRemaining) - Number(a.meterRemaining))
-            .forEach(r => {
-              if (remaining <= 0) return;
-              const take = Math.min(Number(r.meterRemaining) || 0, remaining);
-              r.meterRemaining = Math.round((Number(r.meterRemaining) - take) * 100) / 100;
-              remaining = Math.round((remaining - take) * 100) / 100;
-            });
-        });
-        items.forEach(s => { s.stockDeducted = true; });
-        saveRawMaterialRolls();
-        pushRmTableNow('RawMaterial_Rolls');
-        saveRawMaterialStos();
-        pushRmTableNow('RawMaterial_STOs');
-        renderRmStoListTable();
-        if (typeof renderRmStockTab === 'function' && document.getElementById('tab-rm-stock')) renderRmStockTab();
-        if (typeof renderRmPrintTab === 'function' && document.getElementById('tab-rm-print')) renderRmPrintTab();
-      });
+      requireAdminPassword(() => { rmDeductStoNow(stoNo); });   // r639: atomic (see rmDeductStoNow)
     });
   });
   // "Mark All Sent" (bypass-without-scanning) was removed since picking is now random-by-fabric —
@@ -26057,38 +26821,7 @@ function renderRmStoListTable() {
   // offers Delete STO now (for cancelling/removing a wrongly-created STO), scanning at the Pick tab
   // stays the only way to actually complete an item and deduct stock.
   wrap.querySelectorAll('.rm-sto-delete-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const stoNo = btn.dataset.sto;
-      const items = rawMaterialStos.filter(s => s.stoNo === stoNo);
-      const completedCount = items.filter(s => s.status === 'Completed').length;
-      const msg = completedCount
-        ? `STO ${stoNo} has ${completedCount} item(s) that are ALREADY sent (stock already deducted/reserved). Deleting this STO will restore the meterage that was deducted for those fabric rolls, and free up the reserved accessories quantity. Continue deleting?`
-        : `Delete STO ${stoNo}? Items reserved for this STO will be freed up again (available for other STOs).`;
-      if (!confirm(msg)) return;
-      items.filter(s => s.status === 'Completed').forEach(s => {
-        const roll = rawMaterialRolls.find(r => r.id === s.rollId);
-        if (!roll) return;
-        const cap = Number(roll.meter) || 0;
-        roll.meterRemaining = Math.round((Number(roll.meterRemaining || 0) + Number(s.meter || 0)) * 100) / 100;
-        if (cap > 0) roll.meterRemaining = Math.min(roll.meterRemaining, cap);
-      });
-      saveRawMaterialRolls();
-      pushRmTableNow('RawMaterial_Rolls');
-      // Per Shaila (Sep 30, 2026 — deleted STOs came back the next day): record exactly what's being
-      // removed and push the deletion to Firebase right now, instead of leaving it to the next periodic
-      // sync tick (which never got a chance to fire if the tab was closed right after this click).
-      const deletedStoKeys = rawMaterialStos.filter(s => s.stoNo === stoNo).map(s => syncKeyOf(s));
-      const deletedDoKeys = rawMaterialDos.filter(d => d.stoNo === stoNo).map(d => syncKeyOf(d));
-      rawMaterialStos = rawMaterialStos.filter(s => s.stoNo !== stoNo);
-      rawMaterialDos = rawMaterialDos.filter(d => d.stoNo !== stoNo);
-      saveRawMaterialStos();
-      saveRawMaterialDos();
-      rmMarkDeletedAndPushNow('RawMaterial_STOs', deletedStoKeys);
-      rmMarkDeletedAndPushNow('RawMaterial_DOs', deletedDoKeys);
-      renderRmStoListTable();
-      if (typeof renderRmStockTab === 'function' && document.getElementById('tab-rm-stock')) renderRmStockTab();
-      if (typeof renderRmPrintTab === 'function' && document.getElementById('tab-rm-print')) renderRmPrintTab();
-    });
+    btn.addEventListener('click', () => { rmDeleteStoNow(btn.dataset.sto); });   // r639: atomic restore (see rmDeleteStoNow)
   });
 }
 // Edit STO — add or remove fabric roll lines from an already-created STO (per Shaila's request,
@@ -26416,7 +27149,9 @@ document.getElementById('rmManualAddStoBtn').addEventListener('click', () => {
     document.getElementById('rmManualAddStoModal').classList.remove('hidden');
   });
 });
-document.getElementById('rmManualAddStoSaveBtn').addEventListener('click', () => {
+let rmManualSaveBusy = false;
+document.getElementById('rmManualAddStoSaveBtn').addEventListener('click', async () => { if (rmManualSaveBusy) return; rmManualSaveBusy = true; try { await rmManualAddStoSave(); } finally { rmManualSaveBusy = false; } });
+async function rmManualAddStoSave() {
   const errEl = document.getElementById('rmManualAddStoError');
   errEl.style.display = 'none';
   const stoNo = document.getElementById('rmManualStoNo').value.trim();
@@ -26442,6 +27177,18 @@ document.getElementById('rmManualAddStoSaveBtn').addEventListener('click', () =>
   });
   if (!lines.length) { errEl.textContent = 'Add at least one complete fabric line (Fabric Name, Rolls, Total Meters).'; errEl.style.display = 'block'; return; }
 
+  // r639: the stock deduction is atomic (transactions on the SERVER balances) and happens BEFORE the STO is saved; if it cannot be completed nothing is saved
+  // (an interrupted deduction is remembered in the journal, so pressing Save again continues without deducting the same meters twice)
+  let reconShort = [];
+  if (deductStock) {
+    if (!fbRmTxnUsable()) { errEl.textContent = fbRmFailText({ reason: 'offline' }, 'Deducting stock'); errEl.style.display = 'block'; return; }
+    const gmap = new Map();
+    lines.forEach(l => { const k = [l.fabricName, l.fabricCode, l.colorCode].join('|||'); gmap.set(k, (gmap.get(k) || 0) + l.meters); });
+    const glist = [...gmap].map(([key, total]) => { const p = key.split('|||'); return { key, fabricName: p[0], fabricCode: p[1], colorCode: p[2], total }; });
+    const dres = await fbRmDeductGroups('recon:' + stoNo, glist);
+    if (!dres.ok) { fbNoteWriteIssue('rm-op', 'RawMaterial_Rolls', 'manual-recon', 'STO ' + stoNo + ': ' + dres.reason); errEl.textContent = fbRmFailText(dres, 'Deducting stock') + ' The STO was NOT saved; press Save again to continue.'; errEl.style.display = 'block'; return; }
+    reconShort = dres.results.filter(r => r.short > 0);
+  }
   const doItems = [];
   // One counter shared across every line/colour in this whole STO (not reset back to 1 per line) —
   // the Finance tab's "Rolls" count is a DISTINCT-Roll-No. count (see financeGroupRows), and it groups
@@ -26473,18 +27220,7 @@ document.getElementById('rmManualAddStoSaveBtn').addEventListener('click', () =>
       });
       doItems.push({ itemType: 'fabric', rollNo, fabricName: line.fabricName, fabricCode: line.fabricCode, gsm: line.gsm, colorCode: line.colorCode, colorName: line.colorName, meter });
     }
-    if (deductStock) {
-      let remaining = line.meters;
-      rawMaterialRolls
-        .filter(r => (r.fabricName || '') === line.fabricName && (r.fabricCode || '') === line.fabricCode && (r.colorCode || '') === line.colorCode && Number(r.meterRemaining) > 0)
-        .sort((a, b) => Number(b.meterRemaining) - Number(a.meterRemaining))
-        .forEach(r => {
-          if (remaining <= 0) return;
-          const take = Math.min(Number(r.meterRemaining) || 0, remaining);
-          r.meterRemaining = Math.round((Number(r.meterRemaining) - take) * 100) / 100;
-          remaining = Math.round((remaining - take) * 100) / 100;
-        });
-    }
+    // (stock deduction moved above: atomic, r639)
   });
   saveRawMaterialStos();
   pushRmTableNow('RawMaterial_STOs');
@@ -26495,12 +27231,14 @@ document.getElementById('rmManualAddStoSaveBtn').addEventListener('click', () =>
     pushRmTableNow('RawMaterial_DOs');
   }
 
+  fbRmJournalClear('recon:' + stoNo);
   closeRmManualAddStoModal();
   renderRmStoListTable();
   if (typeof renderRmStockTab === 'function' && document.getElementById('tab-rm-stock')) renderRmStockTab();
   if (typeof renderRmPrintTab === 'function' && document.getElementById('tab-rm-print')) renderRmPrintTab();
   alert(`STO "${stoNo}" recreated${doNo ? ` with DO "${doNo}"` : ''}.\n\n${deductStock ? 'Matching roll stock (same Fabric + Colour) was also deducted by the total meterage entered.' : 'Roll stock was NOT changed by this — tick the checkbox next time if this fabric had already been wrongly restored to stock (e.g. from an earlier accidental delete).'}`);
-});
+  if (reconShort.length) alert('Stock was deducted, but the matching rolls did not hold enough meters for: ' + reconShort.map(r => r.key.split('|||').join(' / ') + ' (short by ' + formatQty(r.short) + ' m)').join('; ') + '. Check Stock Balance.');
+}
 document.getElementById('rmStoAddAccItemBtn').addEventListener('click', addRmStoAccessoriesItem);
 document.getElementById('rmStoCreateBtn').addEventListener('click', createRmStoFromForm);
 document.getElementById('rmStoItemFabricSelect').addEventListener('change', renderRmStoColorOptions);
@@ -26882,10 +27620,12 @@ function renderRmPrintTab() {
 }
 // ---- Edit Roll modal (used from the Print Sticker tab) --------------------------------------
 let rmEditRollCurrentId = null;
+let rmEditBaseRemaining = null;   // r639: the balance the person SAW when the window opened (compare-and-set base)
 function openRmEditRollModal(rollId) {
   const roll = rawMaterialRolls.find(r => r.id === rollId);
   if (!roll) return;
   rmEditRollCurrentId = rollId;
+  rmEditBaseRemaining = Number(roll.meterRemaining) || 0;
   document.getElementById('rmEditRollNo').value = roll.rollNo || '';
   document.getElementById('rmEditReceivedDate').value = roll.receivedDate || '';
   document.getElementById('rmEditGsm').value = roll.gsm || '';
@@ -26906,8 +27646,9 @@ function closeRmEditRollModal() {
 }
 document.getElementById('rmEditRollCloseBtn').addEventListener('click', closeRmEditRollModal);
 document.getElementById('rmEditRollCancelBtn').addEventListener('click', closeRmEditRollModal);
-document.getElementById('rmEditRollSaveBtn').addEventListener('click', () => {
-  const roll = rawMaterialRolls.find(r => r.id === rmEditRollCurrentId);
+document.getElementById('rmEditRollSaveBtn').addEventListener('click', async () => {
+  const editId = rmEditRollCurrentId;
+  let roll = rawMaterialRolls.find(r => r.id === rmEditRollCurrentId);
   const errEl = document.getElementById('rmEditRollModalError');
   if (!roll) { closeRmEditRollModal(); return; }
   const showErr = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
@@ -26920,6 +27661,16 @@ document.getElementById('rmEditRollSaveBtn').addEventListener('click', () => {
   if (!Number.isFinite(newMeter) || newMeter < 0) { showErr('Total Meter is invalid.'); return; }
   if (!Number.isFinite(newMeterRemaining) || newMeterRemaining < 0) { showErr('Meter Remaining is invalid.'); return; }
   if (newMeterRemaining > newMeter) { showErr('Meter Remaining cannot be greater than Total Meter.'); return; }
+  // r639: a changed balance is saved by compare-and-set on the SERVER value (refused, nothing saved, if someone else changed it meanwhile)
+  const balBase = rmEditBaseRemaining != null ? rmEditBaseRemaining : (Number(roll.meterRemaining) || 0);
+  if (Math.abs(newMeterRemaining - balBase) > 0.004) {
+    if (!fbRmTxnUsable()) { showErr(fbRmFailText({ reason: 'offline' }, 'Changing the balance')); return; }
+    const sb = document.getElementById('rmEditRollSaveBtn'); sb.disabled = true;
+    let cas; try { cas = await fbRmSetBalance(roll, balBase, newMeterRemaining); } finally { sb.disabled = false; }
+    if (!cas.ok) { showErr(cas.reason === 'changed' ? `The balance of this roll was changed by another device while you were editing (server now ${cas.info.server} m, you saw ${balBase} m). NOTHING was saved. Close this window, check the roll, and edit again.` : fbRmFailText(cas, 'Changing the balance') + ' Nothing was saved.'); return; }
+    roll = rawMaterialRolls.find(r => r.id === editId) || roll;
+    fbRmAdopt(roll, cas.key, cas.value);
+  }
   roll.rollNo = newRollNo;
   roll.receivedDate = document.getElementById('rmEditReceivedDate').value || roll.receivedDate;
   roll.gsm = document.getElementById('rmEditGsm').value.trim();
@@ -27031,7 +27782,7 @@ document.getElementById('rmPrintImportFileInput').addEventListener('change', (e)
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = (evt) => {
+  reader.onload = async (evt) => {
     try {
       const wb = XLSX.read(evt.target.result, { type: 'array', cellDates: true });
       const sheet = wb.Sheets[wb.SheetNames[0]];
@@ -27040,24 +27791,34 @@ document.getElementById('rmPrintImportFileInput').addEventListener('change', (e)
       const parseDateCell = (val) => (val instanceof Date && !isNaN(val)) ? toIsoLocal(val) : String(val || '').trim();
       let updated = 0;
       const errors = [];
-      rows.forEach((row, idx) => {
+      for (let idx = 0; idx < rows.length; idx++) {
+        const row = rows[idx];
         const lineNo = idx + 2; // +1 for header row, +1 for 1-indexing
         const rid = String(row['⚠️ Roll ID'] || '').trim();
         const rollNoVal = String(row['Roll No.'] || '').trim();
         let roll = null;
         if (rid) roll = rawMaterialRolls.find(r => r.id === rid);
         if (!roll && rollNoVal) roll = rawMaterialRolls.find(r => r.rollNo === rollNoVal);
-        if (!roll) { errors.push(`Row ${lineNo}: Roll "${rollNoVal || rid || '-'}" not found in system, skipped.`); return; }
+        if (!roll) { errors.push(`Row ${lineNo}: Roll "${rollNoVal || rid || '-'}" not found in system, skipped.`); continue; }
         const newRollNo = rollNoVal || roll.rollNo;
         if (newRollNo !== roll.rollNo) {
           const dupe = rawMaterialRolls.some(r => r.id !== roll.id && r.rollNo === newRollNo);
-          if (dupe) { errors.push(`Row ${lineNo}: Roll No. "${newRollNo}" already exists on another roll, row skipped.`); return; }
+          if (dupe) { errors.push(`Row ${lineNo}: Roll No. "${newRollNo}" already exists on another roll, row skipped.`); continue; }
         }
         const newMeter = Number(row['Meter (Total)']);
         const newMeterRemaining = Number(row['Meter Remaining']);
-        if (!Number.isFinite(newMeter) || newMeter < 0) { errors.push(`Row ${lineNo} (${roll.rollNo}): Meter (Total) is invalid, skipped.`); return; }
-        if (!Number.isFinite(newMeterRemaining) || newMeterRemaining < 0) { errors.push(`Row ${lineNo} (${roll.rollNo}): Meter Remaining is invalid, skipped.`); return; }
-        if (newMeterRemaining > newMeter) { errors.push(`Row ${lineNo} (${roll.rollNo}): Meter Remaining greater than Meter (Total), skipped.`); return; }
+        if (!Number.isFinite(newMeter) || newMeter < 0) { errors.push(`Row ${lineNo} (${roll.rollNo}): Meter (Total) is invalid, skipped.`); continue; }
+        if (!Number.isFinite(newMeterRemaining) || newMeterRemaining < 0) { errors.push(`Row ${lineNo} (${roll.rollNo}): Meter Remaining is invalid, skipped.`); continue; }
+        if (newMeterRemaining > newMeter) { errors.push(`Row ${lineNo} (${roll.rollNo}): Meter Remaining greater than Meter (Total), skipped.`); continue; }
+        // r639: a changed balance is set by compare-and-set against the SERVER value this device shows (a roll scanned/edited elsewhere meanwhile is skipped and reported)
+        const oldRemaining = Number(roll.meterRemaining) || 0;
+        if (Math.abs(newMeterRemaining - oldRemaining) > 0.004) {
+          if (!fbRmTxnUsable()) { errors.push(`Row ${lineNo} (${roll.rollNo}): changing the balance needs a live connection to the server, skipped.`); continue; }
+          const cas = await fbRmSetBalance(roll, oldRemaining, newMeterRemaining);
+          if (!cas.ok) { errors.push(`Row ${lineNo} (${roll.rollNo}): ` + (cas.reason === 'changed' ? `balance changed on the server meanwhile (now ${cas.info.server} m), skipped.` : `not confirmed by the server (${cas.reason}), skipped.`)); continue; }
+          roll = rawMaterialRolls.find(r => r.id === roll.id) || roll;
+          fbRmAdopt(roll, cas.key, cas.value);
+        }
         roll.rollNo = newRollNo;
         roll.fabricName = String(row['Fabric Name'] || '').trim();
         roll.fabricCode = String(row['Fabric Code'] || '').trim();
@@ -27071,7 +27832,7 @@ document.getElementById('rmPrintImportFileInput').addEventListener('change', (e)
         roll.invoiceNo = String(row['Invoice No.'] || '').trim();
         roll.notes = String(row['Notes'] || '').trim();
         updated++;
-      });
+      }
       saveRawMaterialRolls();
       renderRmPrintTab();
       let msg = `${updated} roll(s) updated successfully.`;
@@ -28177,7 +28938,7 @@ function processUploadedRmReceiveFile(file) {
   statusEl.className = 'upload-status';
   const ext = file.name.split('.').pop().toLowerCase();
   const reader = new FileReader();
-  reader.onload = (evt) => {
+  reader.onload = async (evt) => {
     try {
       const msgs = [];
       if (ext === 'csv') {
@@ -28211,7 +28972,8 @@ function processUploadedRmReceiveFile(file) {
           }
           if (rollOutSheetName) {
             const mapped = parseRmStoImportSheet(sheetToRows(rollOutSheetName));
-            const { added, skippedNoRoll } = upsertRmStoImportRows(mapped);
+            const { added, skippedNoRoll, short } = await upsertRmStoImportRows(mapped, file.name + '|' + file.size + '|' + file.lastModified);
+            if (short) msgs.push(`${short} Roll Out row(s) took more meters than the roll still had (balance set to 0).`);
             msgs.push(`Roll Out: ${added} STO record(s) added${skippedNoRoll ? `, ${skippedNoRoll} skipped (Roll No. not found)` : ''}.`);
           }
           if (doSheetName) {
@@ -28298,26 +29060,37 @@ function parseRmPickImportSheet(sheetRows) {
   });
   return out;
 }
-function upsertRmPickImportRows(importRows) {
-  let added = 0, skippedNoRoll = 0;
-  importRows.forEach(row => {
+async function upsertRmPickImportRows(importRows, sig) {
+  let added = 0, skippedNoRoll = 0, short = 0, fail = null;
+  const opId = 'impPick:' + (sig || 'x');
+  if (importRows.some(r => rawMaterialRolls.some(x => x.rollNo === r.rollNo && fbRmRollOnServer(x))) && !fbRmTxnUsable()) throw new Error(fbRmFailText({ reason: 'offline' }, 'Importing history (it deducts roll balances)'));
+  for (let i = 0; i < importRows.length; i++) {
+    const row = importRows[i];
     const roll = rawMaterialRolls.find(r => r.rollNo === row.rollNo);
-    if (!roll) { skippedNoRoll++; return; }
-    // Reconstructs history like a ledger: Roll IN import brings the roll in full, so each
-    // imported Pick/STO "out" transaction deducts from it here, same as the manual flows do live.
-    roll.meterRemaining = Math.max(0, Math.round((Number(roll.meterRemaining) - row.meterTaken) * 100) / 100);
+    if (!roll) { skippedNoRoll++; continue; }
+    const pk = 'row:' + i, pj = fbRmJournalGet(opId).parts[pk];
+    if (pj && pj.state === 'ok') continue;   // done by an earlier interrupted run of this same file
+    if (pj && pj.state === 'unknown') { fail = { reason: 'unknown', detail: roll.rollNo }; break; }
+    // Reconstructs history like a ledger: Roll IN import brings the roll in full, so each imported Pick/STO "out" transaction deducts from it here, same as the manual flows do live.
+    const res = await fbRmDeductImport(roll, row.meterTaken);
+    if (res.ok) { if (!res.local) fbRmAdopt(roll, res.key, res.value); if (res.info.taken + 0.004 < row.meterTaken) short++; fbRmJournalPut(opId, pk, { state: 'ok' }); }
+    else if (res.reason === 'empty') { short++; fbRmJournalPut(opId, pk, { state: 'ok' }); }
+    else { if (res.reason === 'timeout') fbRmJournalPut(opId, pk, { state: 'unknown' }); fail = Object.assign({ detail: roll.rollNo }, res); break; }
     rawMaterialPicks.push({
       id: genRmId(), rollId: roll.id, rollNo: roll.rollNo,
       fabricName: roll.fabricName, fabricCode: roll.fabricCode, colorCode: roll.colorCode, colorName: roll.colorName,
       meterTaken: row.meterTaken, purpose: row.purpose, date: row.date
     });
     added++;
-  });
+    if (added % 25 === 0) saveRawMaterialPicks();
+  }
   saveRawMaterialRolls();
   pushRmTableNow('RawMaterial_Rolls');
   saveRawMaterialPicks();
   pushRmTableNow('RawMaterial_Picks');
-  return { added, skippedNoRoll };
+  if (fail) throw new Error(`${added} row(s) were imported before the import stopped. ` + fbRmFailText(fail, 'Import') + ' Import the SAME file again to continue (rows already done are skipped).');
+  fbRmJournalClear(opId);
+  return { added, skippedNoRoll, short };
 }
 function processUploadedRmPickFile(file) {
   const statusEl = document.getElementById('rmPickUploadStatus');
@@ -28325,7 +29098,7 @@ function processUploadedRmPickFile(file) {
   statusEl.className = 'upload-status';
   const ext = file.name.split('.').pop().toLowerCase();
   const reader = new FileReader();
-  reader.onload = (evt) => {
+  reader.onload = async (evt) => {
     try {
       let sheetRows = [];
       if (ext === 'csv') {
@@ -28337,8 +29110,9 @@ function processUploadedRmPickFile(file) {
         sheetRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
       }
       const mapped = parseRmPickImportSheet(sheetRows);
-      const { added, skippedNoRoll } = upsertRmPickImportRows(mapped);
+      const { added, skippedNoRoll, short } = await upsertRmPickImportRows(mapped, file.name + '|' + file.size + '|' + file.lastModified);
       let msg = `Success: ${added} pick record(s) added.`;
+      if (short) msg += ` ${short} row(s) took more meters than the roll still had on the server (balance set to 0).`;
       if (skippedNoRoll) msg += ` ${skippedNoRoll} row(s) skipped (Roll No. not found — import Receive first).`;
       statusEl.textContent = msg;
       statusEl.className = 'upload-status ok';
@@ -28406,17 +29180,25 @@ function parseRmStoImportSheet(sheetRows) {
   });
   return out;
 }
-function upsertRmStoImportRows(importRows) {
-  let added = 0, skippedNoRoll = 0;
+async function upsertRmStoImportRows(importRows, sig) {
+  let added = 0, skippedNoRoll = 0, short = 0, fail = null;
+  const opId = 'impSto:' + (sig || 'x');
+  if (importRows.some(r => r.rollNo && rawMaterialRolls.some(x => x.rollNo === r.rollNo && fbRmRollOnServer(x))) && !fbRmTxnUsable()) throw new Error(fbRmFailText({ reason: 'offline' }, 'Importing history (it deducts roll balances)'));
   let counter = getRmStoCounter();
-  importRows.forEach(row => {
+  for (let i = 0; i < importRows.length; i++) {
+    const row = importRows[i];
     const roll = row.rollNo ? rawMaterialRolls.find(r => r.rollNo === row.rollNo) : null;
-    if (row.rollNo && !roll) { skippedNoRoll++; return; }
+    if (row.rollNo && !roll) { skippedNoRoll++; continue; }
+    const pk = 'row:' + i, pj = fbRmJournalGet(opId).parts[pk];
+    if (pj && pj.state === 'ok') continue;   // done by an earlier interrupted run of this same file
+    if (pj && pj.state === 'unknown') { fail = { reason: 'unknown', detail: row.rollNo }; break; }
     if (roll) {
-      // Reconstructs history like a ledger: Roll IN import brings the roll in full, so each
-      // imported Pick/STO "out" transaction deducts from it here, same as the manual flows do live.
-      roll.meterRemaining = Math.max(0, Math.round((Number(roll.meterRemaining) - row.meter) * 100) / 100);
-    }
+      // Reconstructs history like a ledger: Roll IN import brings the roll in full, so each imported Pick/STO "out" transaction deducts from it here, same as the manual flows do live.
+      const res = await fbRmDeductImport(roll, row.meter);
+      if (res.ok) { if (!res.local) fbRmAdopt(roll, res.key, res.value); if (res.info.taken + 0.004 < row.meter) short++; fbRmJournalPut(opId, pk, { state: 'ok' }); }
+      else if (res.reason === 'empty') { short++; fbRmJournalPut(opId, pk, { state: 'ok' }); }
+      else { if (res.reason === 'timeout') fbRmJournalPut(opId, pk, { state: 'unknown' }); fail = Object.assign({ detail: row.rollNo }, res); break; }
+    } else fbRmJournalPut(opId, pk, { state: 'ok' });
     let stoNo = row.stoNoRaw;
     if (stoNo) {
       const m = stoNo.match(/^RM-STO-(\d+)$/i);
@@ -28432,13 +29214,16 @@ function upsertRmStoImportRows(importRows) {
       meter: row.meter, destination: row.destination, date: row.date, pickedBy: row.pickedBy, status: row.status, notes: row.notes, createdAt: Date.now()
     });
     added++;
-  });
+    if (added % 25 === 0) { setRmStoCounter(counter); saveRawMaterialStos(); }
+  }
   setRmStoCounter(counter);
   saveRawMaterialRolls();
   pushRmTableNow('RawMaterial_Rolls');
   saveRawMaterialStos();
   pushRmTableNow('RawMaterial_STOs');
-  return { added, skippedNoRoll };
+  if (fail) throw new Error(`${added} row(s) were imported before the import stopped. ` + fbRmFailText(fail, 'Import') + ' Import the SAME file again to continue (rows already done are skipped).');
+  fbRmJournalClear(opId);
+  return { added, skippedNoRoll, short };
 }
 function processUploadedRmStoFile(file) {
   const statusEl = document.getElementById('rmStoUploadStatus');
@@ -28446,7 +29231,7 @@ function processUploadedRmStoFile(file) {
   statusEl.className = 'upload-status';
   const ext = file.name.split('.').pop().toLowerCase();
   const reader = new FileReader();
-  reader.onload = (evt) => {
+  reader.onload = async (evt) => {
     try {
       let sheetRows = [];
       if (ext === 'csv') {
@@ -28458,8 +29243,9 @@ function processUploadedRmStoFile(file) {
         sheetRows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
       }
       const mapped = parseRmStoImportSheet(sheetRows);
-      const { added, skippedNoRoll } = upsertRmStoImportRows(mapped);
+      const { added, skippedNoRoll, short } = await upsertRmStoImportRows(mapped, file.name + '|' + file.size + '|' + file.lastModified);
       let msg = `Success: ${added} STO record(s) added.`;
+      if (short) msg += ` ${short} row(s) took more meters than the roll still had on the server (balance set to 0).`;
       if (skippedNoRoll) msg += ` ${skippedNoRoll} row(s) skipped (Roll No. not found — import Receive first).`;
       statusEl.textContent = msg;
       statusEl.className = 'upload-status ok';
@@ -28679,6 +29465,7 @@ let cloudSyncReconcileRunning = false;
 function cloudSyncReconcile() {
   if (!fbDb || cloudSyncReconcileRunning) return;
   if (!fbReadsAllowed()) { try { renderCloudSyncStatus(); } catch (e) {} return; }   // FORCED UPDATE: an outdated build does nothing
+  try { fbRevalProgress(); } catch (e) { console.warn('r633 revalidation progress', e); }
   const fbWritesOk = fbWritesAllowed();   // while the version is only being checked, incoming server data is still applied but nothing is pushed
   const typingNow = isUserActivelyTyping();
   cloudSyncReconcileRunning = true;
@@ -28728,7 +29515,7 @@ async function initialCloudSync() {
   renderCloudSyncStatus();
   try {
     await Promise.all(SYNC_COLLECTIONS.map(async def => {
-      const snap = await fbDb.ref(def.table).once('value');
+      const snap = await fbReadOnce(def.table);
       const remoteObj = FB_PROTECTED_TABLES.has(def.table) ? fbStripRvMap(snap.val()) : (snap.val() || {});
       fbLastServerSnapshot[def.table] = remoteObj;
       const everMergedKey = fbEverMergedKey(def.table);
@@ -28750,7 +29537,7 @@ async function initialCloudSync() {
       }
     }));
     const settingsEverMergedKey = fbEverMergedKey(FB_SETTINGS_TABLE);
-    const settingsSnap = await fbDb.ref(FB_SETTINGS_TABLE).once('value');
+    const settingsSnap = await fbReadOnce(FB_SETTINGS_TABLE);
     const settingsRemote = settingsSnap.val() || {};
     fbLastServerSnapshot[FB_SETTINGS_TABLE] = settingsRemote;
     if (!localStorage.getItem(settingsEverMergedKey)) {
@@ -28780,7 +29567,7 @@ async function initialCloudSync() {
       pushSettingsDiff();
     }
     const doNosEverMergedKey = fbEverMergedKey(FB_POSTPONED_DONOS_TABLE);
-    const doNosSnap = await fbDb.ref(FB_POSTPONED_DONOS_TABLE).once('value');
+    const doNosSnap = await fbReadOnce(FB_POSTPONED_DONOS_TABLE);
     const doNosRemote = doNosSnap.val() || {};
     fbLastServerSnapshot[FB_POSTPONED_DONOS_TABLE] = doNosRemote;
     if (!localStorage.getItem(doNosEverMergedKey)) {
@@ -28827,23 +29614,71 @@ function renderCloudSyncStatus() {
     } else if (cloudSyncStatus === 'error') {
       fullText = `Sync error: ${cloudSyncLastError}`;
       shortText = 'Sync error ⚠';
+    } else if (fbPendingCount() > 0) {
+      fullText = `Pending Sync: ${fbPendingCount()} table(s) have changes on this device that are still being sent to Firebase.`;
+      shortText = `Pending Sync (${fbPendingCount()})`;
     } else {
       // The sidebar's version is deliberately short (just the time, no "Cloud Sync: last synced…"
       // preamble) — that sidebar strip is narrow, and the longer sentence used to wrap onto two
       // lines next to the Sync Now button. The Team Setup card has room for the full sentence.
       fullText = cloudSyncLastAt ? `Cloud Sync: last synced ${cloudSyncLastAt.toLocaleTimeString()}.` : 'Connected — syncing…';
-      shortText = cloudSyncLastAt ? `Synced ${cloudSyncLastAt.toLocaleTimeString()}` : 'Connected';
+      shortText = cloudSyncLastAt ? `Connected · ${cloudSyncLastAt.toLocaleTimeString()}` : 'Connected';
     }
   }
   const fbNote = isCloudSyncEnabled() ? fbConnectionNote() : null;
   if (fbNote) { fullText = fbNote.full; shortText = fbNote.short; }
   else if (isCloudSyncEnabled() && cloudSyncStatus === 'idle' && fbGateClosedTables().length) { fullText = 'Sync NOT SAFE: waiting to read the server before sending changes (nothing is being sent).'; shortText = 'Sync NOT SAFE'; }   // HOTFIX HF1
-  if (fullNote) fullNote.textContent = fullText;
-  if (sidebarNote) { sidebarNote.textContent = shortText; try { sidebarNote.title = fbLastServerEventAt ? 'Last data from the server: ' + new Date(fbLastServerEventAt).toLocaleTimeString() : 'No data received from the server yet'; } catch (e) {} }
+  const nConf = fbConflictsOpen().length;
+  if (nConf) { fullText += '  ⚠ ' + nConf + ' offline change(s) were NOT applied because newer data already existed on the server — open Sync conflicts to review.'; shortText += ' · ⚠' + nConf; }
+  if (fullNote) { fullNote.textContent = fullText; fullNote.style.cursor = nConf ? 'pointer' : ''; fullNote.onclick = nConf ? fbShowConflicts : null; }
+  if (sidebarNote) { sidebarNote.textContent = shortText; sidebarNote.style.cursor = nConf ? 'pointer' : ''; sidebarNote.onclick = nConf ? fbShowConflicts : null; try { sidebarNote.title = fbLastServerEventAt ? 'Last data from the server: ' + new Date(fbLastServerEventAt).toLocaleTimeString() : 'No data received from the server yet'; } catch (e) {} }
   updateSidebarSyncBarVisibility();
 }
-document.getElementById('cloudSyncNowBtn').addEventListener('click', () => { initialCloudSync(); initialItemMasterCloudSync(); initialStockAvailableCloudSync(); initialCampaignTimelineCloudSync(); initialSkuPriceCloudSync(); });
-document.getElementById('sidebarSyncNowBtn').addEventListener('click', () => { initialCloudSync(); initialItemMasterCloudSync(); initialStockAvailableCloudSync(); initialCampaignTimelineCloudSync(); initialSkuPriceCloudSync(); });
+// r632: 'Sync Now' is a real recovery, not a cosmetic refresh: it (1) releases parked retries and re-attaches listeners Firebase cancelled, (2) re-opens the realtime connection
+// if it is down and WAITS for it, (3) proves the server is readable with a real round-trip, (4) runs the normal pull / reconcile, (5) waits for the pushes to be confirmed.
+// It only reports success after those steps; otherwise it shows exactly which step failed.
+let fbSyncNowBusy = false;
+const fbSleep = ms => new Promise(r => setTimeout(r, ms));
+async function fbSyncNow() {
+  if (fbSyncNowBusy || !fbDb) return;
+  fbSyncNowBusy = true; cloudSyncStatus = 'syncing'; cloudSyncLastError = ''; fbCloudErrorFromPush = false;
+  try { renderCloudSyncStatus(); } catch (e) {}
+  let failure = '';
+  try {
+    fbRetryNow();
+    if (fbConnected !== true) {
+      try { fbDb.goOffline(); await fbSleep(700); fbDb.goOnline(); } catch (e) {}
+      const t0 = Date.now(); while (fbConnected !== true && Date.now() - t0 < 9000) await fbSleep(250);
+      if (fbConnected !== true) failure = 'Offline: Sync Now could not re-open the connection to Firebase within 9 seconds. Check Wi-Fi / internet, VPN, firewall or ad-blocker for *.firebasedatabase.app.';
+    }
+    if (!failure && fbRevalNeeded) {   // r633: pending offline changes are validated against the fresh server copy first; nothing is sent before that
+      try { fbForceStuckListeners(); } catch (e) {}
+      await fbStartReval();
+      const tv = Date.now(); while (fbRevalNeeded && Date.now() - tv < 25000) { try { fbRevalProgress(); } catch (e) {} await fbSleep(250); }
+      if (fbRevalNeeded) failure = 'Reconnected, but the offline changes could not be checked against the server yet (' + Object.keys(fbRevalOk).length + ' tables verified). They are kept on this device and nothing is sent until the check completes - press Sync Now again.';
+    }
+    if (!failure) {
+      try { await Promise.race([fbDb.ref(FB_VERSION_PATH).once('value'), new Promise((_, rej) => setTimeout(() => rej(new Error('no response from the server within 10 seconds')), 10000))]); }
+      catch (e) { failure = 'Cannot read from Firebase: ' + fbClassifyError(e).text; }
+    }
+    if (!failure) {
+      fbFreshReads = true;
+      try { fbForceStuckListeners(); } catch (e) {}
+      await Promise.all([initialCloudSync(), initialItemMasterCloudSync(), initialStockAvailableCloudSync(), initialCampaignTimelineCloudSync(), initialSkuPriceCloudSync()].map(p => Promise.resolve(p).catch(e => { failure = failure || ('Sync step failed: ' + fbClassifyError(e).text); })));
+      if (cloudSyncStatus === 'error' && cloudSyncLastError && !fbActiveErrorText()) failure = failure || cloudSyncLastError;   // the pull itself reported an error
+      try { cloudSyncReconcile(); } catch (e) {}
+      const t1 = Date.now(); while (collectionPushInFlight.size && Date.now() - t1 < 10000) await fbSleep(250);
+      if (collectionPushInFlight.size) failure = failure || ('Still sending: ' + Array.from(collectionPushInFlight).join(', ') + ' (no confirmation from Firebase yet).');
+    }
+  } catch (e) { failure = 'Sync Now failed: ' + fbClassifyError(e).text; }
+  fbSyncNowBusy = false; fbFreshReads = false;
+  const live = fbActiveErrorText();
+  if (failure || live) { cloudSyncStatus = 'error'; cloudSyncLastError = [failure, live].filter(Boolean).join(' | '); fbCloudErrorFromPush = !failure; }
+  else { cloudSyncStatus = 'idle'; cloudSyncLastError = ''; cloudSyncLastAt = new Date(); }
+  try { renderCloudSyncStatus(); } catch (e) {}
+}
+document.getElementById('cloudSyncNowBtn').addEventListener('click', fbSyncNow);
+document.getElementById('sidebarSyncNowBtn').addEventListener('click', fbSyncNow);
 
 const FLEET_DRIVERS_KEY = 'sto_fleet_drivers_v1';
 const FLEET_VEHICLES_KEY_LEGACY = 'sto_fleet_vehicles_v1'; // pre-simplification key (had plate/vehicle type too)
@@ -41176,7 +42011,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '7Nov-r631-FU23';
+const APP_BUILD_LABEL = '24Nov-r639-RM-ATOMIC';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
@@ -41224,7 +42059,9 @@ try {
     verRef = fbDb.ref('AppMeta/latestBuild');
     verRef.on('value', snap => {
       const v = Number(snap.val()) || 0;
-      if (APP_BUILD_NUM > v) { if (/^https?:$/.test(location.protocol)) verRef.set(APP_BUILD_NUM).catch(() => {}); }
+      // r635: this page NEVER raises AppMeta/latestBuild by itself. It is written only when the deployer opens the hosted page ONCE with ?publishBuild=<this build number>
+      // (e.g. ...Inventory-Outbound-System.html?publishBuild=635) as the last step of the approved deployment procedure. Exactly one write: AppMeta/latestBuild = APP_BUILD_NUM.
+      if (APP_BUILD_NUM > v) { let want = false; try { want = new URLSearchParams(location.search).get('publishBuild') === String(APP_BUILD_NUM); } catch (e) {} if (want && /^https?:$/.test(location.protocol)) { verRef.set(APP_BUILD_NUM).catch(() => {}); } else { console.info('r635: latestBuild (' + v + ') NOT raised - add ?publishBuild=' + APP_BUILD_NUM + ' to publish this build'); } }
       else if (v > APP_BUILD_NUM) { showBar(); scheduleAutoReload(); }
     });
   }, 3000);
