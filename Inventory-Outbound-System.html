@@ -8716,10 +8716,20 @@ function isFieldFocused() {
   if (!el) return false;
   return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable;
 }
+// r640 (lag fix): the pass below re-reads and re-draws EVERY tab. With big tables one pass can take seconds, every 10 s, so (a) a tab nobody can see is skipped and refreshed the moment it is shown again,
+// and (b) when a pass is slow the next one waits ~20x as long (max 60 s). Fast computers are unchanged (a pass under 250 ms never delays the next). Data is never touched by this.
+let autoSyncNextAt = 0;
+document.addEventListener('visibilitychange', () => { if (!document.hidden) autoSyncNextAt = 0; });
+window.addEventListener('storage', () => { autoSyncNextAt = 0; });   // another tab of this file changed the stored data: pick it up at the next tick
 function autoSyncFromStorage() {
+  if (document.hidden) return;
+  if (Date.now() < autoSyncNextAt) return;
   if (isAnyModalOpen() || isFieldFocused()) return;
+  const t0 = Date.now();
   loadData();
   renderAll();
+  const d = Date.now() - t0;
+  autoSyncNextAt = d > 250 ? Date.now() + Math.min(60000, d * 20) : 0;
 }
 setInterval(autoSyncFromStorage, AUTO_SYNC_INTERVAL_MS);
 
@@ -29462,8 +29472,11 @@ const SYNC_COLLECTIONS = [
 // retrying anything those listeners had to defer (pendingRemoteApply / settingsApplyPending) once
 // the user's stopped typing / clicked Save.
 let cloudSyncReconcileRunning = false;
-function cloudSyncReconcile() {
+let fbReconcileNextAt = 0;   // r640 (lag fix): when one pass is slow (big tables) the next waits ~6x as long (max 8 s). Direct pushes (pushRmTableNow, immediate STO push) are not affected.
+function cloudSyncReconcile(force) {
   if (!fbDb || cloudSyncReconcileRunning) return;
+  if (!force && Date.now() < fbReconcileNextAt) return;
+  const rcT0 = Date.now();
   if (!fbReadsAllowed()) { try { renderCloudSyncStatus(); } catch (e) {} return; }   // FORCED UPDATE: an outdated build does nothing
   try { fbRevalProgress(); } catch (e) { console.warn('r633 revalidation progress', e); }
   const fbWritesOk = fbWritesAllowed();   // while the version is only being checked, incoming server data is still applied but nothing is pushed
@@ -29485,6 +29498,7 @@ function cloudSyncReconcile() {
     if (fbGateClosedTables().length) renderCloudSyncStatus();   // HOTFIX HF1: keep the 'not safe' notice visible while the gate is closed
   } finally {
     cloudSyncReconcileRunning = false;
+    const rcD = Date.now() - rcT0; fbReconcileNextAt = rcD > 150 ? Date.now() + Math.min(8000, rcD * 6) : 0;
   }
 }
 const CLOUD_SYNC_RECONCILE_MS = 2000;
@@ -42011,7 +42025,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '24Nov-r639-RM-ATOMIC';
+const APP_BUILD_LABEL = '24Nov-r640-PERF';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
