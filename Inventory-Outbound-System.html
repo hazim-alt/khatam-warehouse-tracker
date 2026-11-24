@@ -19165,6 +19165,7 @@ function rqAllFgRows() { let a = []; try { a = Array.isArray(campaignAccList) ? 
     if (r && String(r.qcFg || '').trim() === '' && /^pass/i.test(String(r.distStatus || '').trim())) return Object.assign({}, r, { qcFg: /condition/i.test(r.distStatus) ? 'PASS WITH CONDITION' : 'PASS' });
     return r; }).map(r => (r && !String(r.officialProductName || '').trim() && String(r.projectDescription || '').trim()) ? Object.assign({}, r, { officialProductName: r.projectDescription }) : r); // r631: accessories with no Official Product Name show the Project Description instead of '-'
   return (campaignTimelineList || []).concat(a); } // Finished Goods + Accessories (one list)
+function rqDistPassed(r) { return /^pass/i.test(String((r && r.distStatus) || '').trim()); }   // r642: Distribution Status 'Passed' / 'Passed with condition' in the sheet
 function rqHasDistInfo(r) { if (rqLinksRaw(r, 'distForm').length > 0) return true; const t = String((r && r.distFormLink) || '').trim(); return !!t && t !== '-'; }   // r634: a Distribution Form cell that already has text (e.g. the file chip 'PENDENG') counts as filled in even before its link has been pulled with the Sheets API key // only items that already have a Distribution Form (complete) appear in Bulk QC / Distribution Status
 function rqDocColour() { return ''; }
 function rqColours(r) { return rqRowColour(r); }
@@ -20856,7 +20857,7 @@ function renderBqrTab() {
   const field = fabric ? 'qcWash' : 'qcFg';
   const supField = fabric ? 'fabricSupplier' : 'supplier';
   const DONE = ['pass', 'pass-with', 'fail'];
-  const rows = (fabric ? (campaignTimelineList || []) : rqAllFgRows()).filter(r => (!fabric || campaignTimelineFabricRowHasDetails(r) || r.material || r.fabricSupplier) && DONE.includes(bqcStatusKey(r[field])) && (fabric || rqHasDistInfo(r)));
+  const rows = (fabric ? (campaignTimelineList || []) : rqAllFgRows()).filter(r => (!fabric || campaignTimelineFabricRowHasDetails(r) || r.material || r.fabricSupplier) && (DONE.includes(bqcStatusKey(r[field])) || (!fabric && rqDistPassed(r))) && (fabric || rqHasDistInfo(r)));   // r642: FG rows whose Distribution Status is Passed also show here even if QC is still On Hold (the QC badge still shows the real QC result)
   const fill = (id, f, allLabel) => {
     const sel = document.getElementById(id); if (!sel) return '';
     const vals = Array.from(new Set(rows.map(r => r[f]).filter(Boolean))).sort((a, b) => String(a).localeCompare(String(b)));
@@ -42025,7 +42026,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '24Nov-r640-PERF';
+const APP_BUILD_LABEL = '24Nov-r642-DISTPASS';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
@@ -42068,6 +42069,19 @@ try {
       if (/^https?:$/.test(location.protocol)) location.href = location.pathname + '?v=' + Date.now(); else location.reload();
     }, 5000);
   };
+  // r641: AUTO-PUBLISH. When an ADMIN is logged in on the real hosted page (https, github.io, this file's name) and this build is newer than AppMeta/latestBuild,
+  // the page raises latestBuild by itself (one value, only ever upwards) so every other open copy reloads automatically. Never from file://, localhost, test copies, or non-admin users.
+  let verSeen = null, autoPublished = false;
+  const tryAutoPublish = () => {
+    if (autoPublished || !verRef || verSeen === null || !(APP_BUILD_NUM > verSeen)) return;
+    let ok = false;
+    try { const u = getCurrentUser(); ok = /^https:$/.test(location.protocol) && location.hostname === 'hazim-alt.github.io' && /\/Inventory-Outbound-System\.html$/.test(location.pathname) && !!(u && u.isAdmin) && !document.hidden && fbVersionState !== 'outdated'; } catch (e) {}
+    try { if (new URLSearchParams(location.search).get('publishBuild') === String(APP_BUILD_NUM) && /^https?:$/.test(location.protocol)) ok = true; } catch (e) {}
+    if (!ok) return;
+    autoPublished = true;
+    verRef.set(APP_BUILD_NUM).catch(() => { autoPublished = false; });
+  };
+  setInterval(tryAutoPublish, 15000);
   setInterval(() => {
     if (!fbDb || verRef) return;
     verRef = fbDb.ref('AppMeta/latestBuild');
@@ -42075,7 +42089,8 @@ try {
       const v = Number(snap.val()) || 0;
       // r635: this page NEVER raises AppMeta/latestBuild by itself. It is written only when the deployer opens the hosted page ONCE with ?publishBuild=<this build number>
       // (e.g. ...Inventory-Outbound-System.html?publishBuild=635) as the last step of the approved deployment procedure. Exactly one write: AppMeta/latestBuild = APP_BUILD_NUM.
-      if (APP_BUILD_NUM > v) { let want = false; try { want = new URLSearchParams(location.search).get('publishBuild') === String(APP_BUILD_NUM); } catch (e) {} if (want && /^https?:$/.test(location.protocol)) { verRef.set(APP_BUILD_NUM).catch(() => {}); } else { console.info('r635: latestBuild (' + v + ') NOT raised - add ?publishBuild=' + APP_BUILD_NUM + ' to publish this build'); } }
+      verSeen = v;
+      if (APP_BUILD_NUM > v) { tryAutoPublish(); }
       else if (v > APP_BUILD_NUM) { showBar(); scheduleAutoReload(); }
     });
   }, 3000);
