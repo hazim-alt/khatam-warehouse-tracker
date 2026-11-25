@@ -12808,7 +12808,16 @@ function fbNoteQueuedAtDisconnect() {
   const items = [...fbInflightWrites.values()].map(w => w.op + ' ' + w.path);
   fbNoteWriteIssue('queued', items.slice(0, 4).join('; '), 'T17', items.length + ' write(s) were already queued inside the Firebase SDK when the disconnect was detected. The SDK re-sends them blindly when the connection returns and the page cannot cancel them. Check the affected records.');
 }
-try { window.addEventListener('pagehide', () => { try { if (fbAnyHeld() || fbInflightWrites.size) localStorage.setItem(FB_DIRTY_KEY, JSON.stringify({ at: new Date().toISOString(), reason: 'page closed/reloaded while offline, unvalidated or with unacknowledged writes' })); } catch (e) {} }); } catch (e) {}
+// r643: the recovery marker used to be set on ANY in-flight write or any momentary 'held' state at the instant the page closed, so it appeared after almost every reload.
+// Now it is set only when something is genuinely stuck: a write unacknowledged for 4 s or more, or the device offline / not yet re-validated for 8 s or more.
+let fbHeldSince = 0;
+try { setInterval(() => { try { if (fbAnyHeld()) { if (!fbHeldSince) fbHeldSince = Date.now(); } else fbHeldSince = 0; } catch (e) {} }, 1000); } catch (e) {}
+function fbReallyStuck() {
+  const now = Date.now(); let oldest = 0;
+  try { fbInflightWrites.forEach(w => { const a = now - (w.t || now); if (a > oldest) oldest = a; }); } catch (e) {}
+  return oldest >= 4000 || (fbHeldSince > 0 && now - fbHeldSince >= 8000);
+}
+try { window.addEventListener('pagehide', () => { try { if (fbReallyStuck()) localStorage.setItem(FB_DIRTY_KEY, JSON.stringify({ at: new Date().toISOString(), reason: 'page closed/reloaded while offline, unvalidated or with unacknowledged writes' })); } catch (e) {} }); } catch (e) {}
 // ---- visible reporting (bottom-left, does not touch any existing screen) ----
 function fbSafetyHost() {
   if (!document.body) return null;
@@ -30659,8 +30668,14 @@ function saveFleetTripFromModal() {
       delete trip.destination;
     }
   } else {
+    // r644: a laggy page queues several clicks on Save; each one used to create another identical trip (25 copies on 25 Nov). A second Save with the SAME date/driver/plate/assistants/destinations/DOs
+    // within 15 s is the same click repeated, so it returns the trip that was just created instead of making another.
+    const dupSig = JSON.stringify([fleetTripModalDate, driverName, plateNo, driverAssistants, destinations, doNos]);
+    const recent = window.__fleetLastTripCreate;
+    if (recent && recent.sig === dupSig && Date.now() - recent.at < 15000 && fleetTrips.some(t => t.id === recent.id)) { return fleetTrips.find(t => t.id === recent.id); }
     trip = { id: genFleetId(), date: fleetTripModalDate, driverName, plateNo, driverAssistants, destinations, doNos, status: 'Scheduled', createdDate: todayStr() };
     fleetTrips.push(trip);
+    window.__fleetLastTripCreate = { sig: dupSig, at: Date.now(), id: trip.id };
   }
   saveFleetTrips();
   // Picks up any already-printed DO for this trip's destination(s) that wasn't manually ticked
@@ -42026,7 +42041,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '24Nov-r642-DISTPASS';
+const APP_BUILD_LABEL = '25Nov-r644-NODUPTRIP';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
