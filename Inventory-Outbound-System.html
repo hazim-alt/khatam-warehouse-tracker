@@ -19274,10 +19274,10 @@ function rqRenderDetail(list) {
 // Uses the SAME BqrDistrib data as Bulk QC/Distribution Result (so both tabs always agree); only addition is an optional `note` field on the record. ----
 const DS_PAGE = 10;
 var dstPage = 1, dstSel = '', dstChecked = new Set(), dstWired = false;
-function dstAllRows() { return rqAllFgRows().filter(r => ['pass', 'pass-with'].includes(bqcStatusKey(r.qcFg)) && rqHasDistInfo(r)); }
+function dstAllRows() { return rqAllFgRows().filter(r => (['pass', 'pass-with'].includes(bqcStatusKey(r.qcFg)) || rqDistPassed(r)) && rqHasDistInfo(r)); }   // r645: same rule as Bulk QC/Distribution Result (r642): Distribution Status 'Passed' is enough even if QC is still On Hold
 function dstStIdx(st) { const i = BQR_DIST_STATUSES.indexOf(st); return i < 0 ? 0 : i; }
 function dstPill(st) { return `<span class="dst-pill s${dstStIdx(st)}">${escapeHtml(st === 'Not distributed' ? 'Not Distributed' : st)}</span>`; }
-function dstQcPill(r) { return bqcStatusKey(r.qcFg) === 'pass' ? '<span class="dst-pill pass">Pass</span>' : '<span class="dst-pill cond">Pass With Condition</span>'; }
+function dstQcPill(r) { const k = bqcStatusKey(r.qcFg); return k === 'pass' ? '<span class="dst-pill pass">Pass</span>' : (k === 'pass-with' ? '<span class="dst-pill cond">Pass With Condition</span>' : '<span class="dst-pill cond">QC: ' + escapeHtml(String(r.qcFg || 'Pending').trim() || 'Pending') + '</span>'); }
 var dstFilters = { series: [], status: [], boutique: [] };
 var dstTab = '';
 function dstStage(r) { const st = bqrDistStatusOf(r); return st === 'Distributed' ? 'done' : (st === 'Not distributed' ? 'todo' : 'doing'); }
@@ -42041,7 +42041,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '25Nov-r644-NODUPTRIP';
+const APP_BUILD_LABEL = '25Nov-r645-DISTSTATUS';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
