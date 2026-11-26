@@ -21873,7 +21873,7 @@ function campaignTimelineFillPatawaliTotalValue(patawaliRows, summaryRows) {
   // Summary lists a product twice: normal run, and "Rewashed Finished Goods (PTX3)" (= Batch "R" on the
   // Patawali sheet). Key = product + rewash flag so each pairs with its own value.
   const keyOf = (r, isPatawali) => {
-    const p = norm(r.officialProductName);
+    const p = norm(r.officialProductName).replace(/\bwomen\s+/g, '');   // r646: 'Women Kurung Riau' (Summary) = 'Kurung Riau' (Patawali tab)
     if (!p) return '';
     const rewash = /rewash/i.test(r.projectDescription || '') || (isPatawali && norm(r.batch) === 'r');
     return p + '|' + (rewash ? 'r' : 'n');
@@ -21894,7 +21894,9 @@ function campaignTimelineFillPatawaliTotalValue(patawaliRows, summaryRows) {
     if (!groups.has(k)) groups.set(k, []);
     groups.get(k).push(r);
   });
+  const consumedKeys = new Set();
   groups.forEach((rows, k) => {
+    consumedKeys.add(k);
     const src = byProduct.get(k);
     const colorMatch = (r) => src.find(sr => norm(sr.color) && norm(sr.color) === norm(r.color));
     const unmatched = [];
@@ -21906,6 +21908,18 @@ function campaignTimelineFillPatawaliTotalValue(patawaliRows, summaryRows) {
       unmatched.forEach(r => { r.totalValue = totalQty ? Math.round(src[0].totalValue * (Number(r.quantity) || 0) / totalQty * 100) / 100 : src[0].totalValue / unmatched.length; });
     }
   });
+  // r646: Summary PATAWALI values that were NOT used above (its product has no row of that kind on the Patawali tab) used to vanish from the dashboard total (RM8.9m short).
+  // They are the 'Rewashed Finished Goods (PTX3)' lines; on the Patawali tab those are the unnamed SHIPMENT rows, so the leftover is shared across those rows by quantity.
+  let leftover = 0;
+  byProduct.forEach((list, k) => { if (!consumedKeys.has(k)) list.forEach(sr => { leftover += Number(sr.totalValue) || 0; }); });
+  if (leftover > 0) {
+    const targets = patawaliRows.filter(r => !(Number(r.totalValue) > 0) && !String(r.officialProductName || '').trim() && (Number(r.quantity) || 0) > 0);
+    const tq = targets.reduce((a, r) => a + (Number(r.quantity) || 0), 0);
+    if (targets.length && tq > 0) {
+      let given = 0;
+      targets.forEach((r, i) => { const v = i === targets.length - 1 ? Math.round((leftover - given) * 100) / 100 : Math.round(leftover * (Number(r.quantity) || 0) / tq * 100) / 100; given += v; r.totalValue = v; });
+    }
+  }
 }
 async function fetchCampaignTimelineFromGoogleSheets() {
   const statusEl = document.getElementById('campaignTimelineUploadStatus');
@@ -42041,7 +42055,7 @@ try {
   rnRun();
 } catch (e) { console.warn('rownum setup failed', e); }
 // Build stamp (shown in the browser tab title) so it's easy to confirm which version of this file is running.
-const APP_BUILD_LABEL = '25Nov-r645-DISTSTATUS';
+const APP_BUILD_LABEL = '26Nov-r646-PATAWALIVALUE';
 const APP_BUILD_NUM = Number((APP_BUILD_LABEL.match(/r(\d+)/) || [])[1]) || 0;
 try { document.title = document.title.replace(/ · build .*$/, '') + ' · build ' + APP_BUILD_LABEL; } catch (e) {}
 // Visible build label in the sidebar (under the date) so the running version can be checked without reading the browser tab.
